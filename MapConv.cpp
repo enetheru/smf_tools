@@ -172,6 +172,7 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 		CBitmap bm(inname);
 		if(bm.xsize!=mapx || bm.ysize!=mapy){
 			printf("Errenous dimensions for heightmap image");
+			exit(0);
 		}
 		for(int y=0;y<mapy;++y){
 			for(int x=0;x<mapx;++x){
@@ -199,7 +200,7 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 			for(int x=0;x<mapx;++x){
 				float h=0;
 				float tmod=0;
-				for(int y2=max(0,y-2);y2<min(mapx,y+3);++y2){
+				for(int y2=max(0,y-2);y2<min(mapy,y+3);++y2){
 					int dy=y2-y;
 					for(int x2=max(0,x-2);x2<min(mapx,x+3);++x2){
 						int dx=x2-x;
