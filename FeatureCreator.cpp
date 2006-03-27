@@ -1,10 +1,13 @@
-#include "StdAfx.h"
-#include ".\featurecreator.h"
+#include "FeatureCreator.h"
+#include "Bitmap.h"
 //del later
 #include <iomanip>
 #define NUM_TREE_TYPES 16
 #define treetop 215
 extern float* heightmap;
+
+#include <iostream> /* cout */
+using namespace std; /* cout */
 
 CFeatureCreator::CFeatureCreator(void)
 {
@@ -104,7 +107,11 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 					}
 					if(good){
 						//if(c==255){
+#ifdef WIN32
 						cout<<""<<x<<":"<<y<<" \001\n";
+#else
+						cout<<""<<x<<":"<<y<<" *\n";
+#endif
 							MapFeatureStruct ffs;
 							ffs.featureType=NUM_TREE_TYPES;
 							ffs.relativeSize=1;
@@ -128,9 +135,18 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 						break;
 					}
 					else {
+#ifdef WIN32
 						cout<< x <<":"<< y <<" X \009";
+#else
+						cout<< x <<":"<< y <<" X @";
+#endif
+#ifdef WIN32
 						x=bx+rand()*(40)/RAND_MAX-20;
 						y=by+rand()*(40)/RAND_MAX-20;
+#else
+						x=bx+( (float)(rand())*(40.0) )/RAND_MAX-20;
+						y=by+( (float)(rand())*(40.0) )/RAND_MAX-20;
+#endif						
 						if(x<5)
 							x=5;
 						if(x>xsize-5)
@@ -217,7 +233,11 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 			//cout << setprecision(3)<< fixed << grass<<" ";
 			if (grass > 254)
 			{
+#ifdef WIN32
 				cout<<"\002";
+#else
+				cout<<"@";
+#endif
 				vegMap[y*vegfeature.xsize+x]=1;
 			}
 			else

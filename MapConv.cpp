@@ -1,18 +1,22 @@
 // MapConv.cpp : Defines the entry point for the console application.
 // (please ignore all the yucky commented out stuff :) thx -mother
 
-#include "stdafx.h"
-#include "bitmap.h"
+#include "Bitmap.h"
 #include <string>
 #include <stdio.h>
-#include "../rts/mapfile.h"
+#include "mapfile.h"
 #include <fstream>
-#include "filehandler.h"
+#include "FileHandler.h"
+#ifdef WIN32
 #include "ddraw.h"
-#include "featurecreator.h"
-#include "tilehandler.h"
+#endif
+#include "FeatureCreator.h"
+#include "TileHandler.h"
 #include "tclap/CmdLine.h"
 #include <vector>
+#ifndef WIN32
+#include "time.h" /* time() */
+#endif
 
 using namespace std;
 using namespace TCLAP;
@@ -29,8 +33,15 @@ void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize)
 void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap);
 void MapFeatures(const char *ffile, char *F_Array);
 float* heightmap;
+#ifndef WIN32
+string stupidGlobalCompressorName;
+#endif
 
+#ifdef WIN32
 int _tmain(int argc, _TCHAR* argv[])
+#else
+int main(int argc, char ** argv)
+#endif
 {
 	int xsize;
 	int ysize;
@@ -72,6 +83,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		cmd.add( maxhArg );
 		ValueArg<float> compressArg("c","compress","How much we should try to compress the texture file. Default value 0.8 . (lower=higher quality, larger file)",false,0.8f,"compression");
 		cmd.add( compressArg );
+#ifndef WIN32		
+		ValueArg<string> texCompressArg("z","texcompress","Pathtotexcompressfromcurrent working directory.",false,"./texcompress","texcompresspath");
+		cmd.add( texCompressArg );
+#endif
 
 		SwitchArg invertSwitch("i","invert","Inverts the height map vertically (not the height values but the height map (uhm someone rewrite this))", false);
 		cmd.add( invertSwitch );
@@ -99,6 +114,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		lowpassFilter=lowpassSwitch.getValue();
 		featuremap=featureArg.getValue();
 		//whereisit=whereArg.getValue();
+#ifndef WIN32
+		stupidGlobalCompressorName=texCompressArg.getValue();
+#endif
 	} catch (ArgException &e)  // catch any exceptions
 	{ cerr << "error: " << e.error() << " for arg " << e.argId() << endl; exit(-1);}
 
@@ -133,13 +151,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	tileHandler.ProcessTiles(compressFactor);
 
+#ifdef WIN32
 	LARGE_INTEGER li;
 	QueryPerformanceCounter(&li);
+#endif
 
 	MapHeader header;
 	strcpy(header.magic,"spring map file");
 	header.version=1;
+#ifdef WIN32
 	header.mapid=li.LowPart;		//todo: this should be made better to make it depend on heightmap etc, but this should be enough to make each map unique
+#else
+	header.mapid = time(NULL);
+#endif
 	header.mapx=xsize;
 	header.mapy=ysize;
 	header.squareSize=8;
@@ -172,7 +196,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	temp=header.metalmapPtr + (xsize/2)*(ysize/2);		//offset to vegetation map
 	outfile.write((char*)&temp,4);
 
-	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight,whereisit);
+	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight/*,whereisit*/);
 
 	SaveTypeMap(outfile,xsize,ysize,typemap);
 	SaveMiniMap(outfile);
@@ -195,6 +219,7 @@ void SaveMiniMap(ofstream &outfile)
 
 	CBitmap mini = tileHandler.bigTex.CreateRescaled(1024, 1024);
 	mini.Save("mini.bmp");
+#ifdef WIN32
 	system("nvdxt.exe -file mini.bmp -dxt1c -dither");
 
 	DDSURFACEDESC2 ddsheader;
@@ -203,6 +228,12 @@ void SaveMiniMap(ofstream &outfile)
 	CFileHandler file("mini.dds");
 	file.Read(&ddssignature, sizeof(int));
 	file.Read(&ddsheader, sizeof(DDSURFACEDESC2));
+#else
+	char execstring[512];
+	snprintf(execstring, 512, "%s mini.bmp", stupidGlobalCompressorName.c_str());
+	system(execstring);
+	CFileHandler file("mini.bmp.raw");
+#endif
 
 	char minidata[MINIMAP_SIZE];
 	file.Read(minidata, MINIMAP_SIZE);

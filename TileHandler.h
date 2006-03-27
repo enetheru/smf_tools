@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include "bitmap.h"
+#include "Bitmap.h"
 
 using namespace std;
 

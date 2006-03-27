@@ -2,8 +2,8 @@
 
 #include <fstream>
 #include <vector>
-#include "../rts/mapfile.h"
-#include "bitmap.h"
+#include "mapfile.h"
+#include "Bitmap.h"
 
 using namespace std;
 

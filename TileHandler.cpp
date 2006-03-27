@@ -1,8 +1,11 @@
-#include "StdAfx.h"
-#include ".\tilehandler.h"
-#include "filehandler.h"
+#include "TileHandler.h"
+#include "FileHandler.h"
+#ifdef WIN32
 #include "ddraw.h"
-#include "../rts/mapfile.h"
+#endif
+#include "mapfile.h"
+
+extern string stupidGlobalCompressorName; /* MapConv.cpp */
 
 CTileHandler tileHandler;
 
@@ -68,9 +71,6 @@ void CTileHandler::ProcessTiles(float compressFactor)
 
 	numExternalTile=usedTiles;
 
-	char execstring[512];
-	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -dxt1c -dither");
-
 	unsigned char* data=new unsigned char[1024*1024*4];
 	int tilex=xsize/4;
 	int tiley=ysize/4;
@@ -93,14 +93,27 @@ void CTileHandler::ProcessTiles(float compressFactor)
 		}
 		CBitmap square(data,1024,1024);
 		char name[100];
+#ifdef WIN32
 		sprintf(name,"temp\\Temp%03i.bmp",a);
+#else
+		sprintf(name,"temp/Temp%03i.bmp",a);
+#endif
 		square.Save(name);
 		printf("Writing bmp files %i%%\n", (((a+1)*1024)*100)/(tilex*tiley));
 	}
 
 	printf("Creating dds files\n");
+	char execstring[512];
+#ifdef WIN32	
+	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -dxt1c -dither");
 	system(execstring);
 	system("del temp\\temp*.bmp");
+#else
+	snprintf(execstring, 512,
+		"%s temp/*.bmp", stupidGlobalCompressorName.c_str());
+	system(execstring);
+	system("rm temp/Temp*.bmp");
+#endif
 
 	delete[] data;
 
@@ -137,6 +150,7 @@ void CTileHandler::ProcessTiles2(void)
 	for(int a=0;a<(tilex*tiley)/1024;++a){
 		int startTile=a*1024;
 
+#ifdef WIN32
 		DDSURFACEDESC2 ddsheader;
 		int ddssignature;
 		char name[100];
@@ -144,6 +158,11 @@ void CTileHandler::ProcessTiles2(void)
 		CFileHandler file(name);
 		file.Read(&ddssignature, sizeof(int));
 		file.Read(&ddsheader, sizeof(DDSURFACEDESC2));
+#else
+		char name[100];
+		snprintf(name, 100, "temp/Temp%03i.bmp.raw", a);
+		CFileHandler file(name);
+#endif
 
 		char bigtile[696320]; //1024x1024 and 4 mipmaps
 		file.Read(bigtile, 696320);
@@ -176,7 +195,11 @@ void CTileHandler::ProcessTiles2(void)
 	}
 
 	delete[] data;
+#ifdef WIN32
 	system("del temp*.dds");
+#else
+	system("rm temp/Temp*.bmp.raw");
+#endif	
 /*	
 	char execstring[512];
 	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -dxt1c -dither");

@@ -9,6 +9,4 @@
 #include <iostream>
 #include <tchar.h>
 
-#include "float3.h"
-
 // TODO: reference additional headers your program requires here
