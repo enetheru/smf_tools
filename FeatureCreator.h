@@ -12,10 +12,10 @@ class CFeatureCreator
 public:
 	CFeatureCreator(void);
 	~CFeatureCreator(void);
-	void WriteToFile(ofstream* file);
+	void WriteToFile(ofstream* file, vector<string> F_map);
 
 	std::vector<MapFeatureStruct> features;
-	void CreateFeatures(CBitmap* bm, int startx, int starty,std::string metalfile);
+	void CreateFeatures(CBitmap* bm, int startx, int starty,std::string metalfile, int arbFeatureTypes, std::string featurefile);
 
 	int xsize,ysize;
 

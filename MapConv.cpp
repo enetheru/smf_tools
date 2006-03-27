@@ -1,5 +1,5 @@
 // MapConv.cpp : Defines the entry point for the console application.
-//
+// (please ignore all the yucky commented out stuff :) thx -mother
 
 #include "stdafx.h"
 #include "bitmap.h"
@@ -12,6 +12,7 @@
 #include "featurecreator.h"
 #include "tilehandler.h"
 #include "tclap/CmdLine.h"
+#include <vector>
 
 using namespace std;
 using namespace TCLAP;
@@ -26,7 +27,7 @@ void SaveTextures(ofstream &outfile,string temptexname,int xsize,int ysize);
 void SaveMiniMap(ofstream &outfile);
 void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize);
 void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap);
-
+void MapFeatures(const char *ffile, char *F_Array);
 float* heightmap;
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -39,11 +40,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	string metalmap="marsmetal.bmp";
 	string typemap="";
 	string extTileFile="";
+	string featuremap="";
 	float minHeight=20;
 	float maxHeight=300;
 	float compressFactor=0.8f;
+	float whereisit=0;
 	bool invertHeightMap=false;
 	bool lowpassFilter=false;
+	vector<string> F_Spec;
 
 	try {  
 		// Define the command line object.
@@ -73,6 +77,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		cmd.add( invertSwitch );
 		SwitchArg lowpassSwitch("l","lowpass","Lowpass filters the heightmap", false);
 		cmd.add( lowpassSwitch );
+		ValueArg<string> featureArg("f","featuremap","Feature placement file", false,"","Feature Placement");
+		cmd.add( featureArg );
+		//ValueArg<float> whereArg("w","whereisit","Where is this height?",true,0,"Where iddit?");
+		//cmd.add( whereArg );
 
 		// Parse the args.
 		cmd.parse( argc, argv );
@@ -89,6 +97,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		compressFactor=compressArg.getValue();
 		invertHeightMap=invertSwitch.getValue();
 		lowpassFilter=lowpassSwitch.getValue();
+		featuremap=featureArg.getValue();
+		//whereisit=whereArg.getValue();
 	} catch (ArgException &e)  // catch any exceptions
 	{ cerr << "error: " << e.error() << " for arg " << e.argId() << endl; exit(-1);}
 
@@ -105,8 +115,21 @@ int _tmain(int argc, _TCHAR* argv[])
 	ysize=tileHandler.ysize;
 
 	LoadHeightMap(inHeightName,xsize,ysize,minHeight,maxHeight,invertHeightMap,lowpassFilter);
+	//BOO
+	ifstream ifs;
+	int ex=0;
 
-	featureCreator.CreateFeatures(&tileHandler.bigTex,0,0,metalmap);
+	//if (featureSpecFile!=""){
+	//	ifs.open(featureSpecFile.c_str(), ifstream::in);
+	ifs.open("fs.txt", ifstream::in);
+	while (ifs.good()){
+			char c[100]="";
+		    ifs.getline(c,100);
+			F_Spec.push_back(c);
+			ex++;
+	}
+	//endboo
+	featureCreator.CreateFeatures(&tileHandler.bigTex,0,0,metalmap,ex,featuremap);
 
 	tileHandler.ProcessTiles(compressFactor);
 
@@ -149,7 +172,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	temp=header.metalmapPtr + (xsize/2)*(ysize/2);		//offset to vegetation map
 	outfile.write((char*)&temp,4);
 
-	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight);
+	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight,whereisit);
 
 	SaveTypeMap(outfile,xsize,ysize,typemap);
 	SaveMiniMap(outfile);
@@ -159,9 +182,10 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	SaveMetalMap(outfile, metalmap,xsize,ysize);
 
-	featureCreator.WriteToFile(&outfile);
+	featureCreator.WriteToFile(&outfile, F_Spec);
 
 	delete[] heightmap;
+	//cout<<"Short:"<<sizeof(short);
 	return 0;
 }
 
@@ -319,6 +343,7 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 		}
 	}
 */
+
 }
 
 void SaveHeightMap(ofstream& outfile,int xsize,int ysize,float minHeight,float maxHeight)
@@ -326,16 +351,45 @@ void SaveHeightMap(ofstream& outfile,int xsize,int ysize,float minHeight,float m
 	int mapx=xsize+1;
 	int mapy=ysize+1;
 	unsigned short* hm=new unsigned short[mapx*mapy];
-
+	//unsigned char* whereis=new unsigned char[mapx*mapy*4];
+	//memset(whereis,0,mapx*mapy*4);
+	//CBitmap wh("Geovent.bmp");
+	//CBitmap whereMap=wh.CreateRescaled(mapx, mapy);
+	//whereMap.Save("WhereIsItb4.bmp");
 	float sub=minHeight;
 	float mul=(1.0f/(maxHeight-minHeight))*0xffff;
+	//whereSit=(whereSit-sub)*mul;
+	//cout << "Looking for " << (unsigned short)whereSit;
 	for(int y=0;y<mapy;++y){
 		for(int x=0;x<mapx;++x){
 			hm[y*mapx+x]=(unsigned short)((heightmap[y*mapx+x]-sub)*mul);
+	/*		if (((hm[y*mapx+x-1]-whereSit<0) && (hm[y*mapx+x]-whereSit>0)) || ((hm[y*mapx+x-1]-whereSit)>0 && (hm[y*mapx+x]-whereSit<0) || (hm[y*mapx+x-1]-whereSit)==0))
+			{
+				unsigned char roy=whereMap.mem[(y*mapx+x)*4];
+				whereMap.mem[(y*mapx+x)*4]=(unsigned char)255;
+				unsigned char gee=whereMap.mem[(y*mapx+x)*4+1];
+				whereMap.mem[(y*mapx+x)*4+1]=(unsigned char)255;
+				unsigned char biv=whereMap.mem[(y*mapx+x)*4+2];
+				whereMap.mem[(y*mapx+x)*4+2]=(unsigned char)255;
+				//whereMap.mem[(y*mapx+x)*4+1]=(unsigned char)whereMap.mem[(y*mapx+x+1)]^(unsigned char)255;
+				//whereMap.mem[(y*mapx+x)*4+2]=(unsigned char)whereMap.mem[(y*mapx+x+2)]^(unsigned char)255;
+			}
+			else
+			{
+				whereMap.mem[(y*mapx+x)*4]=(unsigned char)0;
+				whereMap.mem[(y*mapx+x)*4+1]=(unsigned char)0;
+				whereMap.mem[(y*mapx+x)*4+2]=(unsigned char)0;
+			}
+			/*else if ((hm[y*mapx+x]<(unsigned short)whereSit))
+				whereis[(y*mapx+x)*4+1]=high;
+			
+			//	whereis[(y*mapx+x)*4+2]=255;*/
 		}
 	}
 	outfile.write((char*)hm,mapx*mapy*2);
 
+	//whereMap.mem=wheremap.mem^whereis;
+	//whereMap.Save("WhereIsIt.bmp");
 	delete[] hm;
 }
 
@@ -378,3 +432,4 @@ void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap)
 
 	delete[] typeMapMem;
 }
+
