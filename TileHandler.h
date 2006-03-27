@@ -1,15 +1,19 @@
 #pragma once
 
+#include <vector>
 #include <string>
 #include <fstream>
 #include "bitmap.h"
 
 using namespace std;
 
+#define MAX_MAP_SIZE 40					//increase maybe
+#define MAX_TILES (MAX_MAP_SIZE*MAX_MAP_SIZE*16*16)
+
 class CTileHandler
 {
 public:
-	CTileHandler(void);
+	CTileHandler();
 	~CTileHandler(void);
 	void LoadTexture(string name);
 	void ProcessTiles(float compressFactor);
@@ -18,26 +22,37 @@ public:
 	int FindCloseTile(CBitmap* bm,int forbidden);
 	void ProcessTiles2(void);
 
+	int GetFileSize(void);
+	void AddExternalTileFile(string file);
+	void SetOutputFile(string file);
+
 	CBitmap bigTex;
 	int xsize;
 	int ysize;
 
-	CBitmap* tiles[200000];//increase maybe
-	int tileUse[200000];
+	CBitmap* tiles[MAX_TILES];
+	vector<char*> newTiles;
+	int tileUse[MAX_TILES];
 	int usedTiles;
+	int numExternalTile;
 	
 	struct FastStat{
 		int r,g,b;
 		int rx,gx,bx;
 		int ry,gy,by;
 	};
-	FastStat fastStats[200000];
+	FastStat fastStats[MAX_TILES];
 	FastStat CalcFastStat(CBitmap* bm);
 	bool CompareTiles(CBitmap* bm, CBitmap* bm2);
 
 	int meanThreshold;
 	int meanDirThreshold;
 	int borderThreshold;
+
+	vector<string> externalFiles;
+	vector<int> externalFileTileSize;
+
+	string myTileFile;
 };
 
 extern CTileHandler tileHandler;

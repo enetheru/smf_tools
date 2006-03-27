@@ -5,7 +5,7 @@
 #include "bitmap.h"
 #include <string>
 #include <stdio.h>
-#include "sm2header.h"
+#include "../rts/mapfile.h"
 #include <fstream>
 #include "filehandler.h"
 #include "ddraw.h"
@@ -19,12 +19,13 @@ using namespace TCLAP;
 CFeatureCreator featureCreator;
 void ConvertTextures(string intexname,string temptexname,int xsize,int ysize);
 void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHeight,bool invert,bool lowpass);
-void SaveHeightMap(ofstream& outfile,int xsize,int ysize);
+void SaveHeightMap(ofstream& outfile,int xsize,int ysize,float minHeight,float maxHeight);
 void SaveTexOffsets(ofstream &outfile,string temptexname,int xsize,int ysize);
 void SaveTextures(ofstream &outfile,string temptexname,int xsize,int ysize);
 
 void SaveMiniMap(ofstream &outfile);
 void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize);
+void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap);
 
 float* heightmap;
 
@@ -34,8 +35,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	int ysize;
 	string intexname="mars.bmp";
 	string inHeightName="mars.raw";
-	string outfilename="mars.sm2";
+	string outfilename="mars.smf";
 	string metalmap="marsmetal.bmp";
+	string typemap="";
+	string extTileFile="";
 	float minHeight=20;
 	float maxHeight=300;
 	float compressFactor=0.8f;
@@ -44,7 +47,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	try {  
 		// Define the command line object.
-		CmdLine cmd("Convers a series of bmp/raw files to a spring map. This just creates the .sm2 file, you will also have to create a .smd file using a text editor", ' ', "0.5");
+		CmdLine cmd("Convers a series of bmp/raw files to a spring map. This just creates the .smf file, you will also have to create a .smd file using a text editor", ' ', "0.5");
 
 		// Define a value argument and add it to the command line.
 		ValueArg<string> intexArg("t","intex","Input bitmap to use for the map. Must be xsize*1024 x ysize*1024 in size. (xsize,ysize integers determined from this file)",true,"test.bmp","Texture file");
@@ -53,7 +56,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		cmd.add( heightArg );
 		ValueArg<string> metalArg("m","metalmap","Metal map to use, red channel is amount of metal, green=255 is where to place geos (one pixel=one geo). Is resized to fit the mapsize",true,"metal.bmp","Metalmap file");
 		cmd.add( metalArg );
-		ValueArg<string> outArg("o","outfile","The name of the created map",false,"test.sm2","Output file");
+		ValueArg<string> typeArg("y","typemap","Type map to use, uses the red channel to decide type, types are defined in the .smd, if this argument is skipped the map will be all type 0",false,"","Typemap file");
+		cmd.add( typeArg );
+		ValueArg<string> tileArg("e","externaltilefile","External tile file that will be used for finding tiles, tiles not found in this will be added in a new tile file",false,"","tile file");
+		cmd.add( tileArg );
+		ValueArg<string> outArg("o","outfile","The name of the created map",false,"test.smf","Output file");
 		cmd.add( outArg );
 		ValueArg<float> minhArg("n","minheight","What altitude in spring the min(0) level of the height map should represent",true,-20,"min height");
 		cmd.add( minhArg );
@@ -74,6 +81,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		intexname=intexArg.getValue();
 		inHeightName=heightArg.getValue();
 		outfilename=outArg.getValue();
+		typemap=typeArg.getValue();
+		extTileFile=tileArg.getValue();
 		metalmap=metalArg.getValue();
 		minHeight=minhArg.getValue();
 		maxHeight=maxhArg.getValue();
@@ -83,7 +92,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	} catch (ArgException &e)  // catch any exceptions
 	{ cerr << "error: " << e.error() << " for arg " << e.argId() << endl; exit(-1);}
 
+/*	if(!extTileFile.empty())
+		tileHandler.AddExternalTileFile(extTileFile);
+	tileHandler.ProcessTiles(compressFactor);
+*/
 	tileHandler.LoadTexture(intexname);
+	tileHandler.SetOutputFile(outfilename);
+	if(!extTileFile.empty())
+		tileHandler.AddExternalTileFile(extTileFile);
+
 	xsize=tileHandler.xsize;
 	ysize=tileHandler.ysize;
 
@@ -93,29 +110,48 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	tileHandler.ProcessTiles(compressFactor);
 
+	LARGE_INTEGER li;
+	QueryPerformanceCounter(&li);
 
-	SM2Header header;
-	strcpy(header.magic,"SM2File");
+	MapHeader header;
+	strcpy(header.magic,"spring map file");
 	header.version=1;
-	header.xsize=xsize;
-	header.ysize=ysize;
+	header.mapid=li.LowPart;		//todo: this should be made better to make it depend on heightmap etc, but this should be enough to make each map unique
+	header.mapx=xsize;
+	header.mapy=ysize;
+	header.squareSize=8;
+	header.texelPerSquare=8;
 	header.tilesize=32;
-	header.numtiles=tileHandler.usedTiles;
+	header.minHeight=minHeight;
+	header.maxHeight=maxHeight;
 
-	header.heightmapPtr = sizeof(SM2Header);
-	header.minimapPtr = header.heightmapPtr + (xsize+1)*(ysize+1)*4;
-	header.tilemapPtr = header.minimapPtr + MINIMAP_SIZE;
-	header.tilesPtr = header.tilemapPtr + ((xsize*ysize)/(4*4))*4;
-	header.metalmapPtr = header.tilesPtr + tileHandler.usedTiles*SMALL_TILE_SIZE;
-	header.featurePtr = header.metalmapPtr + (xsize/2)*(ysize/2);
+	header.numExtraHeaders=1;
+
+	int headerSize=sizeof(MapHeader);
+	headerSize+=12;		//size of vegetation extra header
+
+	header.heightmapPtr = headerSize;
+	header.typeMapPtr= header.heightmapPtr + (xsize+1)*(ysize+1)*2;
+	header.minimapPtr = header.typeMapPtr + (xsize/2) * (ysize/2);
+	header.tilesPtr = header.minimapPtr + MINIMAP_SIZE;
+	header.metalmapPtr = header.tilesPtr + tileHandler.GetFileSize();
+	header.featurePtr = header.metalmapPtr + (xsize/2)*(ysize/2) + (xsize/4*ysize/4);	//last one is space for vegetation map
 	
 	
 	ofstream outfile(outfilename.c_str(), ios::out|ios::binary);
 
-	outfile.write((char*)&header,sizeof(SM2Header));
+	outfile.write((char*)&header,sizeof(MapHeader));
 
-	SaveHeightMap(outfile,xsize,ysize);
+	int temp=12;	//extra header size
+	outfile.write((char*)&temp,4);
+	temp=MEH_Vegetation;	//extra header type
+	outfile.write((char*)&temp,4);
+	temp=header.metalmapPtr + (xsize/2)*(ysize/2);		//offset to vegetation map
+	outfile.write((char*)&temp,4);
 
+	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight);
+
+	SaveTypeMap(outfile,xsize,ysize,typemap);
 	SaveMiniMap(outfile);
 
 	tileHandler.ProcessTiles2();
@@ -125,6 +161,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	featureCreator.WriteToFile(&outfile);
 
+	delete[] heightmap;
 	return 0;
 }
 
@@ -146,7 +183,7 @@ void SaveMiniMap(ofstream &outfile)
 	char minidata[MINIMAP_SIZE];
 	file.Read(minidata, MINIMAP_SIZE);
 
-    outfile.write(minidata, MINIMAP_SIZE);
+	outfile.write(minidata, MINIMAP_SIZE);
 }
 
 void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHeight,bool invert,bool lowpass)
@@ -284,11 +321,22 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 */
 }
 
-void SaveHeightMap(ofstream& outfile,int xsize,int ysize)
+void SaveHeightMap(ofstream& outfile,int xsize,int ysize,float minHeight,float maxHeight)
 {
-	outfile.write((char*)heightmap,(xsize+1)*(ysize+1)*4);
+	int mapx=xsize+1;
+	int mapy=ysize+1;
+	unsigned short* hm=new unsigned short[mapx*mapy];
 
-	delete[] heightmap;
+	float sub=minHeight;
+	float mul=(1.0f/(maxHeight-minHeight))*0xffff;
+	for(int y=0;y<mapy;++y){
+		for(int x=0;x<mapx;++x){
+			hm[y*mapx+x]=(unsigned short)((heightmap[y*mapx+x]-sub)*mul);
+		}
+	}
+	outfile.write((char*)hm,mapx*mapy*2);
+
+	delete[] hm;
 }
 
 void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize)
@@ -309,4 +357,24 @@ void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize)
 	outfile.write(buf, size);
 
 	delete [] buf;
+}
+
+void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap)
+{
+	int mapx=xsize/2;
+	int mapy=ysize/2;
+
+	unsigned char* typeMapMem=new unsigned char[mapx*mapy];
+	memset(typeMapMem,0,mapx*mapy);
+
+	if(!typemap.empty()){
+		CBitmap tm;
+		tm.Load(typemap);
+		CBitmap tm2=tm.CreateRescaled(mapx,mapy);
+		for(int a=0;a<mapx*mapy;++a)
+			typeMapMem[a]=tm2.mem[a*4];
+	}
+	outfile.write((char*)typeMapMem,mapx*mapy);
+
+	delete[] typeMapMem;
 }

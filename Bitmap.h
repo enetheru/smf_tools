@@ -48,6 +48,7 @@ protected:
 	void SaveJPG(string filename,int quality=85);
 public:
 	CBitmap CreateRescaled(int newx, int newy);
+	void CreateFromDXT1(unsigned char* buf, int xsize, int ysize);
 };
 
 #endif // !defined(AFX_BITMAP_H__BBA7EEE5_879F_4ABE_A878_51FE098C3A0D__INCLUDED_)

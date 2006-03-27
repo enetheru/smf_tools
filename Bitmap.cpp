@@ -549,3 +549,110 @@ CBitmap CBitmap::CreateRescaled(int newx, int newy)
 	}
 	return bm;
 }
+
+#define RM	0x0000F800
+#define GM  0x000007E0
+#define BM  0x0000001F
+
+#define RED_RGB565(x) ((x&RM)>>11)
+#define GREEN_RGB565(x) ((x&GM)>>5)
+#define BLUE_RGB565(x) (x&BM)
+#define PACKRGB(r, g, b) (((r<<11)&RM) | ((g << 5)&GM) | (b&BM) )
+
+void CBitmap::CreateFromDXT1(unsigned char* buf, int xsize, int ysize)
+{
+	delete[] mem;
+
+	mem=new unsigned char[xsize*ysize*4];
+	memset(mem,0,xsize*ysize*4);
+
+	this->xsize=xsize;
+	this->ysize=ysize;
+
+	int numblocks = ((xsize+3)/4)*((ysize+3)/4);
+
+	unsigned char* temp = buf;
+
+	for ( int i = 0; i < numblocks; i++ ){
+
+		unsigned short color0 = (*(unsigned short*)&temp[0]);
+		unsigned short color1 = (*(unsigned short*)&temp[2]);
+
+		int r0=RED_RGB565(color0)<<3;
+		int g0=GREEN_RGB565(color0)<<2;
+		int b0=BLUE_RGB565(color0)<<3;
+
+		int r1=RED_RGB565(color1)<<3;
+		int g1=GREEN_RGB565(color1)<<2;
+		int b1=BLUE_RGB565(color1)<<3;
+
+		unsigned int bits = (*(unsigned int*)&temp[4]);
+		
+		for ( int a = 0; a < 4; a++ )
+		{
+			for ( int b = 0; b < 4; b++ )
+			{
+				int x = 4*(i % ((xsize+3)/4))+b;
+				int y = 4*(i / ((xsize+3)/4))+a;
+				bits >>= 2;
+				unsigned char code = bits & 0x3;
+				
+				if ( color0 > color1 )
+				{
+					if ( code == 0 )
+					{
+						mem[(y*xsize+x)*4+0]=r0;
+						mem[(y*xsize+x)*4+1]=g0;
+						mem[(y*xsize+x)*4+2]=b0;
+					}
+					else if ( code == 1 )
+					{
+						mem[(y*xsize+x)*4+0]=r1;
+						mem[(y*xsize+x)*4+1]=g1;
+						mem[(y*xsize+x)*4+2]=b1;
+					}
+					else if ( code == 2 )
+					{
+						mem[(y*xsize+x)*4+0]=(r0*2+r1)/3;
+						mem[(y*xsize+x)*4+1]=(g0*2+g1)/3;
+						mem[(y*xsize+x)*4+2]=(b0*2+b1)/3;
+					}
+					else
+					{	
+						mem[(y*xsize+x)*4+0]=(r0+r1*2)/3;
+						mem[(y*xsize+x)*4+1]=(g0+g1*2)/3;
+						mem[(y*xsize+x)*4+2]=(b0+b1*2)/3;
+					}
+				}
+				else
+				{
+					if ( code == 0 )
+					{
+						mem[(y*xsize+x)*4+0]=r0;
+						mem[(y*xsize+x)*4+1]=g0;
+						mem[(y*xsize+x)*4+2]=b0;
+					}
+					else if ( code == 1 )
+					{
+						mem[(y*xsize+x)*4+0]=r1;
+						mem[(y*xsize+x)*4+1]=g1;
+						mem[(y*xsize+x)*4+2]=b1;
+					}
+					else if ( code == 2 )
+					{
+						mem[(y*xsize+x)*4+0]=(r0+r1)/2;
+						mem[(y*xsize+x)*4+1]=(g0+g1)/2;
+						mem[(y*xsize+x)*4+2]=(b0+b1)/2;
+					}
+					else
+					{	
+						mem[(y*xsize+x)*4+0]=0;
+						mem[(y*xsize+x)*4+1]=0;
+						mem[(y*xsize+x)*4+2]=0;
+					}
+				}
+			}
+		}
+		temp += 8;
+	}
+}

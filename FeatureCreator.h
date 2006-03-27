@@ -2,7 +2,7 @@
 
 #include <fstream>
 #include <vector>
-#include "sm2header.h"
+#include "../rts/mapfile.h"
 #include "bitmap.h"
 
 using namespace std;
@@ -14,6 +14,10 @@ public:
 	~CFeatureCreator(void);
 	void WriteToFile(ofstream* file);
 
-	std::vector<FeatureFileStruct> features;
+	std::vector<MapFeatureStruct> features;
 	void CreateFeatures(CBitmap* bm, int startx, int starty,std::string metalfile);
+
+	int xsize,ysize;
+
+	unsigned char* vegMap;
 };

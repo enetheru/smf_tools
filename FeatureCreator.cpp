@@ -2,7 +2,6 @@
 #include ".\featurecreator.h"
 
 #define NUM_TREE_TYPES 16
-#define NUM_GRASS_TYPES 1
 
 extern float* heightmap;
 
@@ -16,9 +15,14 @@ CFeatureCreator::~CFeatureCreator(void)
 
 void CFeatureCreator::WriteToFile(ofstream* file)
 {
-	FeatureHeader fh;
+	//write vegetation map
+	file->write((char*)vegMap,xsize/4*ysize/4);
+	delete[] vegMap;
+
+	//write features
+	MapFeatureHeader fh;
 	fh.numFeatures=(int)features.size();
-	fh.numFeatureType=NUM_TREE_TYPES+NUM_GRASS_TYPES+1;
+	fh.numFeatureType=NUM_TREE_TYPES+1;
 
 	printf("Writing %i features\n",fh.numFeatures);
 
@@ -29,25 +33,20 @@ void CFeatureCreator::WriteToFile(ofstream* file)
 		sprintf(c,"TreeType%i",a);
 		file->write(c,(int)strlen(c)+1);
 	}
-	for(int a=0;a<NUM_GRASS_TYPES;++a){
-		char c[100];
-		sprintf(c,"GrassType%i",a);
-		file->write(c,(int)strlen(c)+1);
-	}
 	char c[100];
 	sprintf(c,"GeoVent",a);
 	file->write(c,(int)strlen(c)+1);
 
-	for(vector<FeatureFileStruct>::iterator fi=features.begin();fi!=features.end();++fi){
-		file->write((char*)&*fi,sizeof(FeatureFileStruct));
+	for(vector<MapFeatureStruct>::iterator fi=features.begin();fi!=features.end();++fi){
+		file->write((char*)&*fi,sizeof(MapFeatureStruct));
 	}
 }
 
 void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::string metalfile)
 {
 	printf("Creating features\n");
-	int xsize=bm->xsize/8;
-	int ysize=bm->ysize/8;
+	xsize=bm->xsize/8;
+	ysize=bm->ysize/8;
 	int mapx=xsize+1;
 
 	//geovents
@@ -84,8 +83,8 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 						}
 					}
 					if(good){
-						FeatureFileStruct ffs;
-						ffs.featureType=NUM_TREE_TYPES+NUM_GRASS_TYPES;
+						MapFeatureStruct ffs;
+						ffs.featureType=NUM_TREE_TYPES;
 						ffs.relativeSize=1;
 						ffs.rotation=0;
 						ffs.xpos=(float)x*8+4;
@@ -141,7 +140,7 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 				}
 				if(!foundClose && float(rand())/RAND_MAX>0.8){
 					map[y*xsize+x]=1;
-					FeatureFileStruct ffs;
+					MapFeatureStruct ffs;
 					ffs.featureType=(rand()*NUM_TREE_TYPES)/RAND_MAX;
 					ffs.relativeSize=0.8f+float(rand())/RAND_MAX*0.4f;
 					ffs.rotation=0;
@@ -154,7 +153,9 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 			}
 		}
 	}
-	//grass
+	//vegetation
+	vegMap=new unsigned char[xsize/4*ysize/4];
+	memset(vegMap,0,xsize/4*ysize/4);
 	for(int y=0;y<ysize/4;++y){
 		for(int x=0;x<xsize/4;++x){
 			int red=0;
@@ -168,16 +169,7 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 				}
 			}
 			if(green>red*1.07 && green>blue*1.07 && heightmap[(y*4+2)*mapx+x*4+2]>2){
-				map[y*xsize+x]=1;
-				FeatureFileStruct ffs;
-				ffs.featureType=NUM_TREE_TYPES;
-				ffs.relativeSize=0;
-				ffs.rotation=0;
-				ffs.xpos=(float)x*32+16;
-				ffs.ypos=0;
-				ffs.zpos=(float)y*32+16;
-
-				features.push_back(ffs);
+				vegMap[y*xsize/4+x]=1;
 			}
 		}
 	}
