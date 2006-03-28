@@ -62,37 +62,66 @@ int main(int argc, char ** argv)
 
 	try {  
 		// Define the command line object.
-		CmdLine cmd("Convers a series of bmp/raw files to a spring map. This just creates the .smf file, you will also have to create a .smd file using a text editor", ' ', "0.5");
+		CmdLine cmd(
+			"Converts a series of image files to a Spring map. This just creates the .smf and .smt files. You also need to write a .smd file using a text editor.", 
+			' ', "0.5");
 
 		// Define a value argument and add it to the command line.
-		ValueArg<string> intexArg("t","intex","Input bitmap to use for the map. Must be xsize*1024 x ysize*1024 in size. (xsize,ysize integers determined from this file)",true,"test.bmp","Texture file");
+		ValueArg<string> intexArg("t", "intex",
+			"Input bitmap to use for the map. Sides must be multiple of 1024 long. xsize, ysize determined from this file: xsize = intex width / 8, ysize = height / 8.",
+			true, "test.bmp", "texturemap file");
 		cmd.add( intexArg );
-		ValueArg<string> heightArg("a","heightmap","Input heightmap to use for the map, this should be in 16 bit raw format (.raw extension) or an image file. Must be xsize*128+1 x ysize*128+1 in size.",true,"test.raw","Heightmap file");
+		ValueArg<string> heightArg("a", "heightmap",
+			"Input heightmap to use for the map, this should be in 16 bit raw format (.raw extension) or an image file. Must be xsize*128+1 by ysize*128+1.",
+			true, "test.raw", "heightmap file");
 		cmd.add( heightArg );
-		ValueArg<string> metalArg("m","metalmap","Metal map to use, red channel is amount of metal, green=255 is where to place geos (one pixel=one geo). Is resized to fit the mapsize",true,"metal.bmp","Metalmap file");
+		ValueArg<string> metalArg("m", "metalmap",
+			"Metal map to use, red channel is amount of metal. Resized to xsize / 2 by ysize / 2.",
+			true, "metal.bmp", "metalmap image");
 		cmd.add( metalArg );
-		ValueArg<string> typeArg("y","typemap","Type map to use, uses the red channel to decide type, types are defined in the .smd, if this argument is skipped the map will be all type 0",false,"","Typemap file");
+		ValueArg<string> typeArg("y","typemap",
+			"Type map to use, uses the red channel to decide type. types are defined in the .smd, if this argument is skipped the map will be all type 0",
+			false, "", "typemap image");
 		cmd.add( typeArg );
-		ValueArg<string> tileArg("e","externaltilefile","External tile file that will be used for finding tiles, tiles not found in this will be added in a new tile file",false,"","tile file");
+		ValueArg<string> tileArg("e", "externaltilefile",
+			"External tile file that will be used for finding tiles. Tiles not found in this will be saved in a new tile file.",
+			false, "", "tile file");
 		cmd.add( tileArg );
-		ValueArg<string> outArg("o","outfile","The name of the created map",false,"test.smf","Output file");
+		ValueArg<string> outArg("o", "outfile",
+			"The name of the created map file. Should end in .smf. A tilefile (extension .smt) is also created.",
+			false, "test.smf", "output .smf");
 		cmd.add( outArg );
-		ValueArg<float> minhArg("n","minheight","What altitude in spring the min(0) level of the height map should represent",true,-20,"min height");
+		ValueArg<float> minhArg("n", "minheight",
+			"What altitude in spring the min(0) level of the height map represents.",
+			true, -20, "min height");
 		cmd.add( minhArg );
-		ValueArg<float> maxhArg("x","maxheight","What altitude in spring the max(0xffff) level of the height map should represent",true,500,"max height");
+		ValueArg<float> maxhArg("x", "maxheight",
+			"What altitude in spring the max(0xff or 0xffff) level of the height map represents.",
+			true, 500, "max height");
 		cmd.add( maxhArg );
-		ValueArg<float> compressArg("c","compress","How much we should try to compress the texture file. Default value 0.8 . (lower=higher quality, larger file)",false,0.8f,"compression");
+		ValueArg<float> compressArg("c", "compress", 
+			"How much we should try to compress the texture map. Default 0.8, lower -> higher quality, larger files.",
+			false, 0.8f, "compression");
 		cmd.add( compressArg );
 #ifndef WIN32		
-		ValueArg<string> texCompressArg("z","texcompress","Pathtotexcompressfromcurrent working directory.",false,"./texcompress","texcompresspath");
+		ValueArg<string> texCompressArg("z", "texcompress",
+			"Name of companion program texcompress from current working directory.",
+			false, "./texcompress", "texcompress program");
 		cmd.add( texCompressArg );
 #endif
 
-		SwitchArg invertSwitch("i","invert","Inverts the height map vertically (not the height values but the height map (uhm someone rewrite this))", false);
+		// Actually, it flips the heightmap *after* it's been read in. Hopefully this is clearer.
+		SwitchArg invertSwitch("i", "invert",
+			"Flip the height map image upside-down on reading.", 
+			false);
 		cmd.add( invertSwitch );
-		SwitchArg lowpassSwitch("l","lowpass","Lowpass filters the heightmap", false);
+		SwitchArg lowpassSwitch("l", "lowpass",
+			"Lowpass filters the heightmap", 
+			false);
 		cmd.add( lowpassSwitch );
-		ValueArg<string> featureArg("f","featuremap","Feature placement file", false,"","Feature Placement");
+		ValueArg<string> featureArg("f", "featuremap",
+			"Feature placement file, xsize by ysize. See README.txt for details.",
+			false, "", "featuremap image");
 		cmd.add( featureArg );
 		//ValueArg<float> whereArg("w","whereisit","Where is this height?",true,0,"Where iddit?");
 		//cmd.add( whereArg );
