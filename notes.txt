@@ -8,6 +8,12 @@ TODO What does that lowpass algorithm actually do? It looks like it bases
 each point of the new heightmap on a weighted average of the twenty-five
 point square centered on it, so it'd be a global smooth?
 
+Note: this has only been ported to x86 Linux. Despite the presence of
+byteorder.h, it doesn't do the *on-write* swabbing, so a map compiled on a
+PowerPC can't be read by anything. :(
+
+TODO Check a map compiled under Linux works on Windows...
+
 texcompress
 ------------
 
@@ -18,6 +24,10 @@ Dependencies: boost_regex, boost_filesystem, DevIL, GL, GLU, GLEW, SDL.
 Converts the images given on the commandline (loaded with CBitmap) to the
 format required by MapConv, whatever it is. The data is written to
 <filename>.raw, which is what Linux mapconv looks for.
+
+This hasn't been tested with any real, serious texture map; just the
+tiling-convenient ones in the samples. It may be very slow with, say,
+something made by a terrain renderer.
 
 Very crude; I copied hunks of SDL and OpenGL code out of rts/ and spent far
 too long fiddling with it to make it go, rather than learning the calls.

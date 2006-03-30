@@ -60,10 +60,6 @@ void CTileHandler::ProcessTiles(float compressFactor)
 			CBitmap* bm=new CBitmap();
 			bm->CreateFromDXT1(buf,32,32);
 			
-/*			char t[200];
-			sprintf(t,"test%i.jpg",a);
-			bm->Save(t);
-*/
 			fastStats[usedTiles]=CalcFastStat(bm);
 			tiles[usedTiles++]=bm;
 		}
@@ -116,28 +112,6 @@ void CTileHandler::ProcessTiles(float compressFactor)
 #endif
 
 	delete[] data;
-
-/*
-	for(int y=0; y<tilex; y++){
-		for(int x=0; x<tiley; x++){
-			CBitmap* bm=new CBitmap();
-			bm->CreateFromDXT1(buf,32,32);
-			int t1=tileUse[max(0,(y-1)*xsize/4+x)];
-			int t2=tileUse[max(0,y*xsize/4+x-1)];
-			int ct=FindCloseTile(bm,t1==t2?t1:-1);
-			if(ct==-1){
-				tileUse[y*xsize/4+x]=usedTiles;
-				tiles[usedTiles++]=bm;
-			} else {
-				if(ct<numExternalTile)
-					printf("used external tile");
-				tileUse[y*xsize/4+x]=ct;
-				delete bm;
-			}
-		}
-		printf("Creating tiles %i/%i %i%%\n", usedTiles-numExternalTile,y*xsize/4+x,((y*xsize/4+x)*100)/(xsize/4*ysize/4));
-	}
-*/
 }
 
 void CTileHandler::ProcessTiles2(void)
@@ -200,35 +174,6 @@ void CTileHandler::ProcessTiles2(void)
 #else
 	system("rm temp/Temp*.bmp.raw");
 #endif	
-/*	
-	char execstring[512];
-	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -dxt1c -dither");
-
-	for(int a=0;a<(usedTiles-numExternalTile+1023)/1024;++a){
-		int startTile=numExternalTile+a*1024;
-		for(int b=0;b<1024 && startTile+b<usedTiles;++b){
-			int x=b%32;
-			int y=b/32;
-			for(int y2=0;y2<32;++y2){
-				for(int x2=0;x2<32;++x2){
-					data[((y*32+y2)*1024+x*32+x2)*4+0]=tiles[startTile+b]->mem[((y2)*32+x2)*4+0];
-					data[((y*32+y2)*1024+x*32+x2)*4+1]=tiles[startTile+b]->mem[((y2)*32+x2)*4+1];
-					data[((y*32+y2)*1024+x*32+x2)*4+2]=tiles[startTile+b]->mem[((y2)*32+x2)*4+2];
-					data[((y*32+y2)*1024+x*32+x2)*4+3]=tiles[startTile+b]->mem[((y2)*32+x2)*4+3];
-				}
-			}
-		}
-		CBitmap square(data,1024,1024);
-		char name[100];
-		sprintf(name,"temp\\Temp%03i.bmp",a);
-		square.Save(name);
-		printf("Writing bmp files %i%%\n", ((a*1024)*100)/(usedTiles));
-	}
-	printf("Creating dds files\n");
-	system(execstring);
-	system("del temp\\temp*.bmp");
-
-*/
 }
 
 void CTileHandler::SaveData(ofstream& ofs)
@@ -274,31 +219,6 @@ void CTileHandler::SaveData(ofstream& ofs)
 		tf.write(newTiles[a],SMALL_TILE_SIZE);
 		delete[] newTiles[a];
 	}
-/*
-	for(int a=numExternalTile;a<(usedTiles+1023)/1024;++a){
-		int startTile=numExternalTile+a*1024;
-		DDSURFACEDESC2 ddsheader;
-		int ddssignature;
-
-		char name[100];
-		sprintf(name,"Temp%03i.dds",a);
-		CFileHandler file(name);
-		file.Read(&ddssignature, sizeof(int));
-		file.Read(&ddsheader, sizeof(DDSURFACEDESC2));
-
-		char bigtile[696320]; //1024x1024 and 4 mipmaps
-		file.Read(bigtile, 696320);
-
-		for(int b=0;b<1024 && startTile+b<usedTiles;++b){
-			int x=b%32;
-			int y=b/32;
-			char tile[SMALL_TILE_SIZE];
-			ReadTile(x*32,y*32,tile,bigtile);
-			tf.write(tile,SMALL_TILE_SIZE);
-		}
-		printf("Writing tiles %i%%\n", ((a*1024)*100)/(internalTiles));
-	}
-*/
 }
 
 void CTileHandler::ReadTile(int xpos, int ypos, char *destbuf, char *sourcebuf)

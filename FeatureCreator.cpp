@@ -25,7 +25,6 @@ void CFeatureCreator::WriteToFile(ofstream* file, vector<string> F_map)
 	
 	vector<string>::iterator F_map_iter;
 	int ArbFeatureTypes=F_map.size();
-	//F_map=&F_map[1];
 
 	//write features
 	MapFeatureHeader fh;
@@ -46,9 +45,6 @@ void CFeatureCreator::WriteToFile(ofstream* file, vector<string> F_map)
 	file->write(c,(int)strlen(c)+1);
 		
 	for (F_map_iter=F_map.begin();F_map_iter!=F_map.end();F_map_iter++){
-		//char c[100];
-		//sprintf(c,"%s",F_map->a);
-		//cout<< *F_map_iter;
 		string c=*F_map_iter;
 		file->write(c.c_str(),(int)strlen(c.c_str())+1);
 	}
@@ -67,7 +63,6 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 
 	//geovents
 	CBitmap vent("geovent.bmp");
-//	CBitmap metal(metalfile);		//use the green channel for geos
 	CBitmap feature(featurefile);
 	unsigned char* map=new unsigned char[ysize*xsize];
 
@@ -76,24 +71,11 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 		for(int x=0;x<feature.xsize;++x){
 			unsigned char c=feature.mem[(y*feature.xsize+x)*4+1];
 			unsigned char f=feature.mem[(y*feature.xsize+x)*4];
-			//if (f) {cout << (int)f;}//Blue channel for arb features
-			//cout<<x<<":"<<y<<" c="<<(int)c<<" f="<<(int)f<<"\n";
 			if(c==255){
 				cout<<"Geo at:";
 				int bx=x*xsize/feature.xsize;
 				int by=y*ysize/feature.ysize;
 				for(int tries=0;tries<1000;++tries){
-					/*int x=bx+rand()*(40)/RAND_MAX-20;
-					int y=by+rand()*(40)/RAND_MAX-20;
-					if(x<5)
-						x=5;
-					if(x>xsize-5)
-						x=xsize-5;
-					if(y<5)
-						y=5;
-					if(y>ysize-5)
-						y=ysize-5;
-*/
 					float h=heightmap[y*mapx+x];
 					if(h<5)
 						continue;
@@ -106,7 +88,6 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 						}
 					}
 					if(good){
-						//if(c==255){
 #ifdef WIN32
 						cout<<""<<x<<":"<<y<<" \001\n";
 #else
@@ -187,13 +168,6 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 								features.push_back(ffs);
 							}
 						}
-						//break;
-		//}
-						//Grass metalmap green 128 & not under water
-						//if(c==128){
-						//else{	vegMap[y*xsize+x]=1;
-						//break;
-					//break;
 		
 	
 			
@@ -208,7 +182,6 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 				ffs.ypos=0;
 				ffs.zpos=(float)starty+y*8+4;
 				features.push_back(ffs);
-			//}
 							
 			}
 			}
@@ -224,13 +197,9 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 	for(int y=0;y<ysize/4;++y){
 		for(int x=0;x<vegfeature.xsize;++x){
 			unsigned char c=vegfeature.mem[(y*vegfeature.xsize+x)*4+2];
-//			if (c==128){
-//				vegMap[y*vegfeature.xsize+x]=1;
 			float a=c/255;
 			float b=1-a;
 			int grass=(rand()%(255))+c;
-			//float grass=c+rf;
-			//cout << setprecision(3)<< fixed << grass<<" ";
 			if (grass > 254)
 			{
 #ifdef WIN32

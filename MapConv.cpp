@@ -1,5 +1,4 @@
 // MapConv.cpp : Defines the entry point for the console application.
-// (please ignore all the yucky commented out stuff :) thx -mother
 
 #include "Bitmap.h"
 #include <string>
@@ -123,8 +122,6 @@ int main(int argc, char ** argv)
 			"Feature placement file, xsize by ysize. See README.txt for details.",
 			false, "", "featuremap image");
 		cmd.add( featureArg );
-		//ValueArg<float> whereArg("w","whereisit","Where is this height?",true,0,"Where iddit?");
-		//cmd.add( whereArg );
 
 		// Parse the args.
 		cmd.parse( argc, argv );
@@ -142,17 +139,12 @@ int main(int argc, char ** argv)
 		invertHeightMap=invertSwitch.getValue();
 		lowpassFilter=lowpassSwitch.getValue();
 		featuremap=featureArg.getValue();
-		//whereisit=whereArg.getValue();
 #ifndef WIN32
 		stupidGlobalCompressorName=texCompressArg.getValue();
 #endif
 	} catch (ArgException &e)  // catch any exceptions
 	{ cerr << "error: " << e.error() << " for arg " << e.argId() << endl; exit(-1);}
 
-/*	if(!extTileFile.empty())
-		tileHandler.AddExternalTileFile(extTileFile);
-	tileHandler.ProcessTiles(compressFactor);
-*/
 	tileHandler.LoadTexture(intexname);
 	tileHandler.SetOutputFile(outfilename);
 	if(!extTileFile.empty())
@@ -162,12 +154,10 @@ int main(int argc, char ** argv)
 	ysize=tileHandler.ysize;
 
 	LoadHeightMap(inHeightName,xsize,ysize,minHeight,maxHeight,invertHeightMap,lowpassFilter);
-	//BOO
+
 	ifstream ifs;
 	int ex=0;
 
-	//if (featureSpecFile!=""){
-	//	ifs.open(featureSpecFile.c_str(), ifstream::in);
 	ifs.open("fs.txt", ifstream::in);
 	while (ifs.good()){
 			char c[100]="";
@@ -238,7 +228,6 @@ int main(int argc, char ** argv)
 	featureCreator.WriteToFile(&outfile, F_Spec);
 
 	delete[] heightmap;
-	//cout<<"Short:"<<sizeof(short);
 	return 0;
 }
 
@@ -335,75 +324,6 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 		}
 		delete[] heightmap2;
 	}
-/*
-	int bfsizex=xsize/2;
-	int bfsizey=ysize/2;
-
-	float* bfmap=new float[bfsizex*bfsizey];
-
-
-	for(int y=0;y<bfsizey;++y){
-		for(int x=0;x<bfsizex;++x){
-			unsigned short h;
-			fh.Read(&h,2);
-			bfmap[y*bfsizex+x]=float(h)/128;
-		}
-	}
-
-
-	for(int x=0; x<bfsizex; x++){
-		for(int y=0; y<bfsizey; y++){
-			heightmap[(y*2)*mapx+(x*2)]=bfmap[y*bfsizex+x];
-		}
-	}
-	for(int x=0; x<bfsizex; x++){
-		heightmap[(ysize)*mapx+(x*2)]=bfmap[(bfsizey-1)*bfsizex+x];
-	}
-	for(int y=0; y<bfsizey; y++){
-		heightmap[(y*2)*mapx+(xsize)]=bfmap[y*bfsizex+bfsizex-1];
-	}
-	heightmap[ysize*xsize+xsize]=heightmap[ysize*xsize+xsize-2];
-
-	for(int y=0;y<mapy/2;++y){
-		for(int x=0;x<mapx/2;++x){
-
-			float h=heightmap[(y*2)*mapx+(x*2)]*0.57f+heightmap[(y*2)*mapx+(x+1)*2]*0.57f;
-			h-=heightmap[(y*2)*mapx+max(0,x-1)*2]*0.07f+heightmap[(y*2)*mapx+min(mapx-1,(x+2)*2)]*0.07f;
-			heightmap[(y*2)*mapx+x*2+1]=h;
-
-			h=heightmap[(y*2)*mapx+x*2]*0.57f+heightmap[(y+1)*2*mapx+x*2]*0.57f;
-			h-=heightmap[max(0,(y-1)*2)*mapx+x*2]*0.07f + heightmap[min(mapy-1,(y+2)*2)*mapx+x*2]*0.07f;
-			heightmap[(y*2+1)*mapx+x*2]=h;
-		}
-	}
-
-	for(int y=0;y<mapy/2;++y){
-		int x=mapx/2;
-		float h=heightmap[(y*2)*mapx+x*2]*0.57f+heightmap[(y+1)*2*mapx+x*2]*0.57f;
-		h-=heightmap[max(0,(y-1)*2)*mapx+x*2]*0.07f + heightmap[min(mapy-1,(y+2)*2)*mapx+x*2]*0.07f;
-		heightmap[(y*2+1)*mapx+x*2]=h;
-	}	
-
-	for(int x=0;x<mapx/2;++x){
-		int y=mapy/2;
-		float h=heightmap[(y*2)*mapx+(x*2)]*0.57f+heightmap[(y*2)*mapx+(x+1)*2]*0.57f;
-		h-=heightmap[(y*2)*mapx+max(0,x-1)*2]*0.07f+heightmap[(y*2)*mapx+min(mapx-1,(x+2)*2)]*0.07f;
-		heightmap[(y*2)*mapx+x*2+1]=h;
-	}
-
-	for(int y=0;y<mapy/2;++y){
-		for(int x=0;x<mapx/2;++x){
-			float hx=heightmap[(y*2+1)*mapx+x*2]*0.57f+heightmap[(y*2+1)*mapx+x*2+2]*0.57f;
-			hx-=heightmap[(y*2+1)*mapx+max(0,x*2-2)]*0.07f+heightmap[(y*2+1)*mapx+min(mapx-1,x*2+4)]*0.07f;
-
-			float hy=heightmap[(y*2)*mapx+x*2+1]*0.57f+heightmap[(y*2+2)*mapx+x*2+1]*0.57f;
-			hy-=heightmap[max(0,(y*2-2))*mapx+x*2+1]*0.07f+heightmap[min(mapy-1,(y*2+4))*mapx+x*2+1]*0.07f;
-
-			heightmap[(y*2+1)*mapx+x*2+1]=(hx+hy)*0.5f;
-		}
-	}
-*/
-
 }
 
 void SaveHeightMap(ofstream& outfile,int xsize,int ysize,float minHeight,float maxHeight)
@@ -411,45 +331,15 @@ void SaveHeightMap(ofstream& outfile,int xsize,int ysize,float minHeight,float m
 	int mapx=xsize+1;
 	int mapy=ysize+1;
 	unsigned short* hm=new unsigned short[mapx*mapy];
-	//unsigned char* whereis=new unsigned char[mapx*mapy*4];
-	//memset(whereis,0,mapx*mapy*4);
-	//CBitmap wh("Geovent.bmp");
-	//CBitmap whereMap=wh.CreateRescaled(mapx, mapy);
-	//whereMap.Save("WhereIsItb4.bmp");
 	float sub=minHeight;
 	float mul=(1.0f/(maxHeight-minHeight))*0xffff;
-	//whereSit=(whereSit-sub)*mul;
-	//cout << "Looking for " << (unsigned short)whereSit;
 	for(int y=0;y<mapy;++y){
 		for(int x=0;x<mapx;++x){
 			hm[y*mapx+x]=(unsigned short)((heightmap[y*mapx+x]-sub)*mul);
-	/*		if (((hm[y*mapx+x-1]-whereSit<0) && (hm[y*mapx+x]-whereSit>0)) || ((hm[y*mapx+x-1]-whereSit)>0 && (hm[y*mapx+x]-whereSit<0) || (hm[y*mapx+x-1]-whereSit)==0))
-			{
-				unsigned char roy=whereMap.mem[(y*mapx+x)*4];
-				whereMap.mem[(y*mapx+x)*4]=(unsigned char)255;
-				unsigned char gee=whereMap.mem[(y*mapx+x)*4+1];
-				whereMap.mem[(y*mapx+x)*4+1]=(unsigned char)255;
-				unsigned char biv=whereMap.mem[(y*mapx+x)*4+2];
-				whereMap.mem[(y*mapx+x)*4+2]=(unsigned char)255;
-				//whereMap.mem[(y*mapx+x)*4+1]=(unsigned char)whereMap.mem[(y*mapx+x+1)]^(unsigned char)255;
-				//whereMap.mem[(y*mapx+x)*4+2]=(unsigned char)whereMap.mem[(y*mapx+x+2)]^(unsigned char)255;
-			}
-			else
-			{
-				whereMap.mem[(y*mapx+x)*4]=(unsigned char)0;
-				whereMap.mem[(y*mapx+x)*4+1]=(unsigned char)0;
-				whereMap.mem[(y*mapx+x)*4+2]=(unsigned char)0;
-			}
-			/*else if ((hm[y*mapx+x]<(unsigned short)whereSit))
-				whereis[(y*mapx+x)*4+1]=high;
-			
-			//	whereis[(y*mapx+x)*4+2]=255;*/
 		}
 	}
 	outfile.write((char*)hm,mapx*mapy*2);
 
-	//whereMap.mem=wheremap.mem^whereis;
-	//whereMap.Save("WhereIsIt.bmp");
 	delete[] hm;
 }
 
