@@ -120,5 +120,5 @@ std::vector<std::string> CFileHandler::FindFiles(std::string pattern)
 
 int CFileHandler::FileSize()
 {
-   return filesize;
+	return filesize;
 }

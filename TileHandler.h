@@ -35,7 +35,7 @@ public:
 	int tileUse[MAX_TILES];
 	int usedTiles;
 	int numExternalTile;
-	
+
 	struct FastStat{
 		int r,g,b;
 		int rx,gx,bx;

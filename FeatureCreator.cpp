@@ -22,7 +22,7 @@ void CFeatureCreator::WriteToFile(ofstream* file, vector<string> F_map)
 	//write vegetation map
 	file->write((char*)vegMap,xsize/4*ysize/4);
 	delete[] vegMap;
-	
+
 	vector<string>::iterator F_map_iter;
 	int ArbFeatureTypes=F_map.size();
 
@@ -43,7 +43,7 @@ void CFeatureCreator::WriteToFile(ofstream* file, vector<string> F_map)
 	char c[100];
 	sprintf(c,"GeoVent");
 	file->write(c,(int)strlen(c)+1);
-		
+
 	for (F_map_iter=F_map.begin();F_map_iter!=F_map.end();F_map_iter++){
 		string c=*F_map_iter;
 		file->write(c.c_str(),(int)strlen(c.c_str())+1);
@@ -93,15 +93,15 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 #else
 						cout<<""<<x<<":"<<y<<" *\n";
 #endif
-							MapFeatureStruct ffs;
-							ffs.featureType=NUM_TREE_TYPES;
-							ffs.relativeSize=1;
-							ffs.rotation=0;
-							ffs.xpos=(float)x*8+4;
-							ffs.ypos=0;
-							ffs.zpos=(float)y*8+4;
+						MapFeatureStruct ffs;
+						ffs.featureType=NUM_TREE_TYPES;
+						ffs.relativeSize=1;
+						ffs.rotation=0;
+						ffs.xpos=(float)x*8+4;
+						ffs.ypos=0;
+						ffs.zpos=(float)y*8+4;
 
-							features.push_back(ffs);
+						features.push_back(ffs);
 
 
 						for(int y2=0;y2<vent.ysize;++y2){
@@ -127,7 +127,7 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 #else
 						x=bx+( (float)(rand())*(40.0) )/RAND_MAX-20;
 						y=by+( (float)(rand())*(40.0) )/RAND_MAX-20;
-#endif						
+#endif
 						if(x<5)
 							x=5;
 						if(x>xsize-5)
@@ -140,37 +140,37 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 
 				}
 			}
-						//trees metalmap green 200-216
-					if(c>199 && c<=treetop){
-						float h=heightmap[y*mapx+x];
-						if(h<5)
-							continue;
+			//trees metalmap green 200-216
+			if(c>199 && c<=treetop){
+				float h=heightmap[y*mapx+x];
+				if(h<5)
+					continue;
 
-						bool good=true;
-						for(int y2=y-3;y2<=y+3;++y2){
-							for(int x2=x-3;x2<=x+3;++x2){
-								if(fabs(h-heightmap[(y2)*mapx+x2])>3)
-									good=false;
-							}
-						}
-						if (!((LastTree[0]==(x-1) && LastTree[1]==y) || (LastTree[0]==x && LastTree[1]==(y-1)))){
-								int t_type=(c-200);
-								map[y*xsize+x]=1;
-								MapFeatureStruct ffs;
-								ffs.featureType=t_type;
-								ffs.relativeSize=0.8f+float(rand())/RAND_MAX*0.4f;
-								ffs.rotation=0;
-								ffs.xpos=(float)startx+x*8+4;
-								ffs.ypos=0;
-								ffs.zpos=(float)starty+y*8+4;
-								LastTree[0]=x;
-								LastTree[1]=y;	
-								features.push_back(ffs);
-							}
-						}
-		
-	
-			
+				bool good=true;
+				for(int y2=y-3;y2<=y+3;++y2){
+					for(int x2=x-3;x2<=x+3;++x2){
+						if(fabs(h-heightmap[(y2)*mapx+x2])>3)
+							good=false;
+					}
+				}
+				if (!((LastTree[0]==(x-1) && LastTree[1]==y) || (LastTree[0]==x && LastTree[1]==(y-1)))){
+					int t_type=(c-200);
+					map[y*xsize+x]=1;
+					MapFeatureStruct ffs;
+					ffs.featureType=t_type;
+					ffs.relativeSize=0.8f+float(rand())/RAND_MAX*0.4f;
+					ffs.rotation=0;
+					ffs.xpos=(float)startx+x*8+4;
+					ffs.ypos=0;
+					ffs.zpos=(float)starty+y*8+4;
+					LastTree[0]=x;
+					LastTree[1]=y;
+					features.push_back(ffs);
+				}
+			}
+
+
+
 			if ((f) && ((256-f)<= arbFeatureTypes)) {
 				cout<<"Feature Type"<<(256-f)<<" at:"<<x<<":"<<y<<endl;
 				map[y*xsize+x]=1;
@@ -182,13 +182,12 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 				ffs.ypos=0;
 				ffs.zpos=(float)starty+y*8+4;
 				features.push_back(ffs);
-							
 			}
-			}
-	}		
+		}
+	}
 
-				
-				
+
+
 	//grass take 2
 	CBitmap vegfeature=feature.CreateRescaled(xsize/4,ysize/4);
 	vegMap=new unsigned char[vegfeature.xsize*vegfeature.ysize];
@@ -211,9 +210,7 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty,std::st
 			}
 			else
 				cout<<" ";
-				
 		}
 		cout<<"\n";
 	}
-	}
-
+}

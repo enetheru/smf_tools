@@ -59,10 +59,10 @@ int main(int argc, char ** argv)
 	bool lowpassFilter=false;
 	vector<string> F_Spec;
 
-	try {  
+	try {
 		// Define the command line object.
 		CmdLine cmd(
-			"Converts a series of image files to a Spring map. This just creates the .smf and .smt files. You also need to write a .smd file using a text editor.", 
+			"Converts a series of image files to a Spring map. This just creates the .smf and .smt files. You also need to write a .smd file using a text editor.",
 			' ', "0.5");
 
 		// Define a value argument and add it to the command line.
@@ -98,11 +98,11 @@ int main(int argc, char ** argv)
 			"What altitude in spring the max(0xff or 0xffff) level of the height map represents.",
 			true, 500, "max height");
 		cmd.add( maxhArg );
-		ValueArg<float> compressArg("c", "compress", 
+		ValueArg<float> compressArg("c", "compress",
 			"How much we should try to compress the texture map. Default 0.8, lower -> higher quality, larger files.",
 			false, 0.8f, "compression");
 		cmd.add( compressArg );
-#ifndef WIN32		
+#ifndef WIN32
 		ValueArg<string> texCompressArg("z", "texcompress",
 			"Name of companion program texcompress from current working directory.",
 			false, "./texcompress", "texcompress program");
@@ -111,11 +111,11 @@ int main(int argc, char ** argv)
 
 		// Actually, it flips the heightmap *after* it's been read in. Hopefully this is clearer.
 		SwitchArg invertSwitch("i", "invert",
-			"Flip the height map image upside-down on reading.", 
+			"Flip the height map image upside-down on reading.",
 			false);
 		cmd.add( invertSwitch );
 		SwitchArg lowpassSwitch("l", "lowpass",
-			"Lowpass filters the heightmap", 
+			"Lowpass filters the heightmap",
 			false);
 		cmd.add( lowpassSwitch );
 		ValueArg<string> featureArg("f", "featuremap",
@@ -126,7 +126,7 @@ int main(int argc, char ** argv)
 		// Parse the args.
 		cmd.parse( argc, argv );
 
-		// Get the value parsed by each arg. 
+		// Get the value parsed by each arg.
 		intexname=intexArg.getValue();
 		inHeightName=heightArg.getValue();
 		outfilename=outArg.getValue();
@@ -161,7 +161,7 @@ int main(int argc, char ** argv)
 	ifs.open("fs.txt", ifstream::in);
 	while (ifs.good()){
 			char c[100]="";
-		    ifs.getline(c,100);
+			ifs.getline(c,100);
 			F_Spec.push_back(c);
 			ex++;
 	}
@@ -202,8 +202,8 @@ int main(int argc, char ** argv)
 	header.tilesPtr = header.minimapPtr + MINIMAP_SIZE;
 	header.metalmapPtr = header.tilesPtr + tileHandler.GetFileSize();
 	header.featurePtr = header.metalmapPtr + (xsize/2)*(ysize/2) + (xsize/4*ysize/4);	//last one is space for vegetation map
-	
-	
+
+
 	ofstream outfile(outfilename.c_str(), ios::out|ios::binary);
 
 	outfile.write((char*)&header,sizeof(MapHeader));

@@ -59,7 +59,7 @@ void CTileHandler::ProcessTiles(float compressFactor)
 			ifs.read((char*)buf,SMALL_TILE_SIZE);
 			CBitmap* bm=new CBitmap();
 			bm->CreateFromDXT1(buf,32,32);
-			
+
 			fastStats[usedTiles]=CalcFastStat(bm);
 			tiles[usedTiles++]=bm;
 		}
@@ -100,7 +100,7 @@ void CTileHandler::ProcessTiles(float compressFactor)
 
 	printf("Creating dds files\n");
 	char execstring[512];
-#ifdef WIN32	
+#ifdef WIN32
 	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -dxt1c -dither");
 	system(execstring);
 	system("del temp\\temp*.bmp");
@@ -173,7 +173,7 @@ void CTileHandler::ProcessTiles2(void)
 	system("del temp*.dds");
 #else
 	system("rm temp/Temp*.bmp.raw");
-#endif	
+#endif
 }
 
 void CTileHandler::SaveData(ofstream& ofs)
@@ -193,7 +193,7 @@ void CTileHandler::SaveData(ofstream& ofs)
 	int internalTiles=usedTiles-numExternalTile;
 	ofs.write((char*)&internalTiles,4);
 	ofs.write(myTileFile.c_str(),myTileFile.size()+1);
-	
+
 	//write tiles
 	for(int y=0; y<ysize/4; y++){
 		for(int x=0; x<xsize/4; x++){
@@ -252,7 +252,7 @@ int CTileHandler::FindCloseTile(CBitmap* bm,int forbidden)
 	FastStat fs=CalcFastStat(bm);
 	for(int a=0;a<usedTiles;++a){
 		if(a!=forbidden &&
-			 abs(fs.r-fastStats[a].r)<meanThreshold && abs(fs.g-fastStats[a].g)<meanThreshold && abs(fs.b-fastStats[a].b)<meanThreshold
+			abs(fs.r-fastStats[a].r)<meanThreshold && abs(fs.g-fastStats[a].g)<meanThreshold && abs(fs.b-fastStats[a].b)<meanThreshold
 		&& abs(fs.rx-fastStats[a].rx)<meanDirThreshold && abs(fs.gx-fastStats[a].gx)<meanDirThreshold && abs(fs.bx-fastStats[a].bx)<meanDirThreshold
 		&& abs(fs.ry-fastStats[a].ry)<meanDirThreshold && abs(fs.gy-fastStats[a].gy)<meanDirThreshold && abs(fs.by-fastStats[a].by)<meanDirThreshold
 		&& CompareTiles(bm,tiles[a]))
