@@ -1,6 +1,12 @@
 MapConv.exe:
 
-Images can (as of Mar 2006) be any format DevIL supports. (No more huge BMPs!)
+As of Mar 2006:
+
+* Images can be any format DevIL supports. 
+  That should include every image format you've used before, 
+  and adds, say, PNG. (No more huge BMPs!)
+
+* It shouldn't go berserk about geothermal vents.
 
 Texture map:
 =============

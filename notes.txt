@@ -1,8 +1,13 @@
 
 MapConv dependencies: boost_regex, boost_filesystem, DevIL.
 
+The line-endings in fs.txt need to be native.
+
 TODO Learn enough about it to let it be able to cache the texture-tiling
 stage and just read the height/metal/features back in again.
+
+  This is complicated by geovent placement automatically graffiting over
+  the texture map.
 
 TODO What does that lowpass algorithm actually do? It looks like it bases
 each point of the new heightmap on a weighted average of the twenty-five
@@ -12,12 +17,14 @@ Note: this has only been ported to x86 Linux. Despite the presence of
 byteorder.h, it doesn't do the *on-write* swabbing, so a map compiled on a
 PowerPC can't be read by anything. :(
 
+For all I know, we're getting the maps upside-down. :S
+
 TODO Check a map compiled under Linux works on Windows...
 
 texcompress
 ------------
 
-Windows uses the same compressor; this is for Linux.
+Windows uses the same compressor as always; this is for Linux.
 
 Dependencies: boost_regex, boost_filesystem, DevIL, GL, GLU, GLEW, SDL.
 

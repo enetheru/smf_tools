@@ -51,6 +51,8 @@ int main(int argc, char ** argv)
 	string typemap="";
 	string extTileFile="";
 	string featuremap="";
+	string geoVentFile="geovent.bmp";
+	string featureListFile="fs.txt";
 	float minHeight=20;
 	float maxHeight=300;
 	float compressFactor=0.8f;
@@ -82,6 +84,10 @@ int main(int argc, char ** argv)
 			"Type map to use, uses the red channel to decide type. types are defined in the .smd, if this argument is skipped the map will be all type 0",
 			false, "", "typemap image");
 		cmd.add( typeArg );
+		ValueArg<string> geoArg("g","geoventfile",
+			"The decal for geothermal vents; appears on the compiled map at each vent. (Default: geovent.bmp).",
+			false, "geovent.bmp", "Geovent image");
+		cmd.add( geoArg );
 		ValueArg<string> tileArg("e", "externaltilefile",
 			"External tile file that will be used for finding tiles. Tiles not found in this will be saved in a new tile file.",
 			false, "", "tile file");
@@ -122,6 +128,10 @@ int main(int argc, char ** argv)
 			"Feature placement file, xsize by ysize. See README.txt for details.",
 			false, "", "featuremap image");
 		cmd.add( featureArg );
+		ValueArg<string> featureListArg("j", "featurelist",
+			"A file with the name of one feature on each line. (Default: fs.txt). See README.txt for details.",
+			false, "fs.txt", "feature list file");
+		cmd.add( featureListArg );
 
 		// Parse the args.
 		cmd.parse( argc, argv );
@@ -139,6 +149,8 @@ int main(int argc, char ** argv)
 		invertHeightMap=invertSwitch.getValue();
 		lowpassFilter=lowpassSwitch.getValue();
 		featuremap=featureArg.getValue();
+		geoVentFile=geoArg.getValue();
+		featureListFile=featureListArg.getValue();
 #ifndef WIN32
 		stupidGlobalCompressorName=texCompressArg.getValue();
 #endif
@@ -156,17 +168,16 @@ int main(int argc, char ** argv)
 	LoadHeightMap(inHeightName,xsize,ysize,minHeight,maxHeight,invertHeightMap,lowpassFilter);
 
 	ifstream ifs;
-	int ex=0;
+	int numNamedFeatures=0;
 
-	ifs.open("fs.txt", ifstream::in);
+	ifs.open(featureListFile.c_str(), ifstream::in);
 	while (ifs.good()){
 			char c[100]="";
 			ifs.getline(c,100);
 			F_Spec.push_back(c);
-			ex++;
+			numNamedFeatures++;
 	}
-	//endboo
-	featureCreator.CreateFeatures(&tileHandler.bigTex,0,0,metalmap,ex,featuremap);
+	featureCreator.CreateFeatures(&tileHandler.bigTex,0,0,numNamedFeatures,featuremap,geoVentFile);
 
 	tileHandler.ProcessTiles(compressFactor);
 

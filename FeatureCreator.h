@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __FEATURECREATOR_H__
+#define __FEATURECREATOR_H__
 
 #include <fstream>
 #include <vector>
@@ -13,11 +14,18 @@ public:
 	CFeatureCreator(void);
 	~CFeatureCreator(void);
 	void WriteToFile(ofstream* file, vector<string> F_map);
+	void CreateFeatures(CBitmap* bm, int startx, int starty, int arbFeatureTypes, std::string featurefile, std::string geoVentFile);
+	
+private:
+	int xsize,ysize;
+	int mapx;
 
 	std::vector<MapFeatureStruct> features;
-	void CreateFeatures(CBitmap* bm, int startx, int starty,std::string metalfile, int arbFeatureTypes, std::string featurefile);
-
-	int xsize,ysize;
 
 	unsigned char* vegMap;
+
+	void PlaceVent(int x, int y, CBitmap * feature, CBitmap * vent, CBitmap * bm);
+	bool FlatSpot(int x, int y);
 };
+
+#endif // __FEATURECREATOR_H__

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __TILEHANDLER_H__
+#define __TILEHANDLER_H__
 
 #include <vector>
 #include <string>
@@ -56,3 +57,5 @@ public:
 };
 
 extern CTileHandler tileHandler;
+
+#endif // __TILEHANDLER_H__
