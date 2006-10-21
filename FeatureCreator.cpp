@@ -4,6 +4,7 @@
 #define treetop 215 /* TODO Shouldn't this be related to the previous define somehow? */
 extern float* heightmap;
 
+#include <math.h>
 #include <iostream> /* cout */
 using namespace std; /* cout */
 
@@ -207,8 +208,8 @@ void CFeatureCreator::PlaceVent(int x, int y, CBitmap * feature, CBitmap * vent,
 			x=bx+rand()*(40)/RAND_MAX-20;
 			y=by+rand()*(40)/RAND_MAX-20;
 #else
-			x=bx+( (float)(rand())*(40.0) )/RAND_MAX-20;
-			y=by+( (float)(rand())*(40.0) )/RAND_MAX-20;
+			x=(int)(bx + ((float)(rand())*(40.0) )/RAND_MAX-20);
+			y=(int)(by + ((float)(rand())*(40.0) )/RAND_MAX-20);
 #endif
 			if(x<5)
 				x=5;

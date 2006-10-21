@@ -3,6 +3,7 @@
 #include "Bitmap.h"
 #include <string>
 #include <stdio.h>
+#include <math.h>
 #include "mapfile.h"
 #include <fstream>
 #include "FileHandler.h"
