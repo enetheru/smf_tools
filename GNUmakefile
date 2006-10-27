@@ -2,6 +2,9 @@ CXXFLAGS=-g
 
 all: mapconv texcompress
 
+clean:
+	rm -f mapconv texcompress *.o
+
 texcompress: texcompress.o Bitmap.o FileHandler.o 
 	g++ $(CXXFLAGS) -lboost_filesystem -lboost_regex -lIL -lGLEW -lGLU -lGL $(shell sdl-config --cflags) $(shell sdl-config --libs) $^ -o $@
 
