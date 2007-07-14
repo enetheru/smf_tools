@@ -3,9 +3,6 @@ make a good Spring map.
 
 The .SMDs are modified from Small Divide, to boot.
 
-I haven't learned how to properly package a map for Spring; I just symlink
-the .smd, .smf and .smt into the maps directory.
-
 1: The sample map that seems to have come with mapconv, historically.
    Old file names:
 
