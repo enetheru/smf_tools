@@ -127,7 +127,8 @@ static inline std::vector<fs::path> find_files(fs::path &dirpath, const std::str
 					if (boost::regex_match(diritr->leaf(),regexpattern))
 						matches.push_back(*diritr);
 				} else if (recurse) {
-					std::vector<fs::path> submatch = find_files(*diritr,pattern,true);
+					fs::path dir_path = *diritr;
+					std::vector<fs::path> submatch = find_files(dir_path,pattern,true);
 					if (!submatch.empty()) {
 						for (std::vector<fs::path>::iterator it=submatch.begin(); it != submatch.end(); it++)
 							matches.push_back(*it);
