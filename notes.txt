@@ -1,5 +1,6 @@
 
 MapConv dependencies: boost_regex, boost_filesystem, DevIL.
+            optional: libtxc (using texcompress_nogui)
 
 The line-endings in fs.txt need to be native.
 
@@ -46,9 +47,7 @@ little.
 TODO
  * Check for the type of compression
  * GLX rather than SDL?
- * Compress without bringing up a window. (Though, I figured since we're
-   putting up windows, might as well make sure the image isn't completely
-   wrong.)
+ * check for license issues (GPL vs ?)
 
 Referred to the GIMP's dds plugin for implementation:
 
