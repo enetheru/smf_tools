@@ -75,7 +75,7 @@ int main(int argc, char ** argv)
 			true, "test.bmp", "texturemap file");
 		cmd.add( intexArg );
 		ValueArg<string> heightArg("a", "heightmap",
-			"Input heightmap to use for the map, this should be in 16 bit raw format (.raw extension) or an image file. Must be xsize*128+1 by ysize*128+1.",
+			"Input heightmap to use for the map, this should be in 16 bit raw format (.raw extension) or an image file. Must be xsize*64+1 by ysize*64+1.",
 			true, "test.raw", "heightmap file");
 		cmd.add( heightArg );
 		ValueArg<string> metalArg("m", "metalmap",
