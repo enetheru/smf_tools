@@ -103,7 +103,7 @@ void CTileHandler::ProcessTiles(float compressFactor)
 	printf("Creating dds files\n");
 	char execstring[512];
 #ifdef WIN32
-	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -dxt1c -dither");
+	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -nmips 5 -dxt1 -box -fadeamount 0");
 	system(execstring);
 	system("del temp\\temp*.bmp");
 #else
