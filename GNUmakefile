@@ -10,7 +10,7 @@ clean:
 	rm -f *~
 
 texcompress: texcompress.o Bitmap.o FileHandler.o
-	g++ $(CXXFLAGS) $(SDLLIBS) -lboost_filesystem-mt -lboost_regex-mt -lGLEW -lIL  $^ -o $@
+	g++ $(CXXFLAGS) $(SDLLIBS) -lboost_filesystem-mt -lboost_regex-mt -lGLU -lGLEW -lIL  $^ -o $@
 
 texcompress.o: texcompress.cpp
 	g++ $(CXXFLAGS) $(SDLCFLAGS) -c $^ -o $@
