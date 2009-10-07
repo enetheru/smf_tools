@@ -7,6 +7,7 @@
 #include <fstream>
 #include "FileHandler.h"
 #include <math.h>
+#include <string.h>
 #ifdef WIN32
 #include "ddraw.h"
 #endif

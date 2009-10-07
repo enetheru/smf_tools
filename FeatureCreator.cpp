@@ -6,6 +6,8 @@
 extern float* heightmap;
 
 #include <iostream> /* cout */
+#include <string.h>
+#include <stdlib.h>
 using namespace std; /* cout */
 
 CFeatureCreator::CFeatureCreator(void)

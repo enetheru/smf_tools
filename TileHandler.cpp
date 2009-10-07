@@ -4,6 +4,8 @@
 #include "ddraw.h"
 #endif
 #include "mapfile.h"
+#include <string.h>
+#include <stdlib.h>
 
 extern string stupidGlobalCompressorName; /* MapConv.cpp */
 

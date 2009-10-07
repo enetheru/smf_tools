@@ -8,6 +8,7 @@
 #include <IL/il.h>
 #include "Bitmap.h"
 #include <assert.h>
+#include <string.h>
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

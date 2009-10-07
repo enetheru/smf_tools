@@ -1,4 +1,4 @@
-CXXFLAGS=-g -Wall
+CXXFLAGS=-g -Wall -L/usr/lib
 SDLCFLAGS=$(SDLFLAGS) $(shell sdl-config --cflags)
 SDLLIBS=$(shell sdl-config --libs)
 
@@ -10,13 +10,13 @@ clean:
 	rm -f *~
 
 texcompress: texcompress.o Bitmap.o FileHandler.o
-	g++ $(CXXFLAGS) $(SDLLIBS) -lboost_filesystem -lboost_regex -lGLEW -lIL  $^ -o $@
+	g++ $(CXXFLAGS) $(SDLLIBS) -lboost_filesystem-mt -lboost_regex-mt -lGLEW -lIL  $^ -o $@
 
 texcompress.o: texcompress.cpp
 	g++ $(CXXFLAGS) $(SDLCFLAGS) -c $^ -o $@
 
 mapconv: Bitmap.o MapConv.o TileHandler.o FeatureCreator.o FileHandler.o
-	g++ $(CXXFLAGS) -lIL -lboost_regex -lboost_filesystem $^ -o $@
+	g++ $(CXXFLAGS) -lIL -lboost_regex-mt -lboost_filesystem-mt $^ -o $@
 
 MapConv.o: MapConv.cpp Bitmap.h FileHandler.h
 	g++ $(CXXFLAGS) -c $< -Itclap-1.0.5/include/
@@ -38,5 +38,5 @@ FileHandler.o: FileHandler.cpp FileHandler.h
 texcompress_nogui.o: texcompress_nogui.cpp
 	g++ $(CXXFLAGS) -c $^ -o $@
 texcompress_nogui: texcompress_nogui.o Bitmap.o FileHandler.o
-	g++ $(CXXFLAGS) -ldl -lboost_filesystem -lboost_regex -lIL $^ -o $@
+	g++ $(CXXFLAGS) -ldl -lboost_filesystem-mt -lboost_regex-mt -lIL $^ -o $@
 
