@@ -110,13 +110,15 @@ int main(int argc, char ** argv)
 			"How much we should try to compress the texture map. Default 0.8, lower -> higher quality, larger files.",
 			false, 0.8f, "compression");
 		cmd.add( compressArg );
-#ifndef WIN32
+		#ifdef WIN32
+		char* defaultTexCompress = "nvdxt.exe -nmips 5 -dxt1 -box -fadeamount 0 -file";
+		#else
+		char* defaultTexCompress = "texcompress_nogui";
+		#endif
 		ValueArg<string> texCompressArg("z", "texcompress",
 			"Name of companion program texcompress from current working directory.",
-			false, "./texcompress", "texcompress program");
+			false, defaultTexCompress, "texcompress program");
 		cmd.add( texCompressArg );
-#endif
-
 		// Actually, it flips the heightmap *after* it's been read in. Hopefully this is clearer.
 		SwitchArg invertSwitch("i", "invert",
 			"Flip the height map image upside-down on reading.",
@@ -153,9 +155,7 @@ int main(int argc, char ** argv)
 		featuremap=featureArg.getValue();
 		geoVentFile=geoArg.getValue();
 		featureListFile=featureListArg.getValue();
-#ifndef WIN32
 		stupidGlobalCompressorName=texCompressArg.getValue();
-#endif
 	} catch (ArgException &e)  // catch any exceptions
 	{ cerr << "error: " << e.error() << " for arg " << e.argId() << endl; exit(-1);}
 

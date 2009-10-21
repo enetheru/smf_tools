@@ -91,25 +91,18 @@ void CTileHandler::ProcessTiles(float compressFactor)
 		}
 		CBitmap square(data,1024,1024);
 		char name[100];
-#ifdef WIN32
-		sprintf(name,"temp\\Temp%03i.bmp",a);
-#else
 		sprintf(name,"temp/Temp%03i.bmp",a);
-#endif
 		square.Save(name);
 		printf("Writing bmp files %i%%\n", (((a+1)*1024)*100)/(tilex*tiley));
 	}
 
 	printf("Creating dds files\n");
 	char execstring[512];
+	snprintf(execstring, 512, "%s temp/*.bmp", stupidGlobalCompressorName.c_str());
+	system(execstring);
 #ifdef WIN32
-	sprintf(execstring, "nvdxt.exe -file temp\\*.bmp -nmips 5 -dxt1 -box -fadeamount 0");
-	system(execstring);
-	system("del temp\\temp*.bmp");
-#else
-	snprintf(execstring, 512,
-		"%s temp/*.bmp", stupidGlobalCompressorName.c_str());
-	system(execstring);
+	system("del temp/temp*.bmp");
+#else	
 	system("rm temp/Temp*.bmp");
 #endif
 
