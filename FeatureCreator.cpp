@@ -1,14 +1,18 @@
 #include "FeatureCreator.h"
 #include "Bitmap.h"
 #include "math.h"
+#include "stdafx.h"
 #define NUM_TREE_TYPES 16
 #define treetop 215 /* TODO Shouldn't this be related to the previous define somehow? */
 extern float* heightmap;
+extern short int* rotations;
+extern int randomrotatefeatures;
 
 #include <iostream> /* cout */
 #include <string.h>
 #include <stdlib.h>
 using namespace std; /* cout */
+
 
 CFeatureCreator::CFeatureCreator(void)
 {
@@ -55,7 +59,7 @@ void CFeatureCreator::WriteToFile(ofstream* file, vector<string> F_map)
 	}
 }
 
-void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int arbFeatureTypes, std::string featurefile, std::string geoVentFile)
+void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int arbFeatureTypes, std::string featurefile, std::string geoVentFile, vector<LuaFeature> lf,vector<string> F_Spec)
 {
 	printf("Creating features\n");
 	xsize=bm->xsize/8;
@@ -66,6 +70,34 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 	CBitmap vent(geoVentFile);
 	CBitmap feature(featurefile);
 	unsigned char* map=new unsigned char[ysize*xsize];
+	for (int i=0; i<lf.size(); i++){
+
+				MapFeatureStruct ffs;
+				int ftype=-1; //now we must look up the lua feature types number identifer from the Luafeatures vector:
+				for (int j=0; j<F_Spec.size();j++){
+					if (F_Spec[j].compare(lf[i].name)==0){
+						ftype=j;
+					}
+				}
+				if (ftype==-1) {
+					printf("feature not found in f_spec, %s \n", lf[i].name);
+					continue;
+				}
+
+			
+				ffs.featureType=NUM_TREE_TYPES+ftype+1;
+				ffs.relativeSize=1;
+				if (lf[i].rot==-1){//yep, we are still keeping it. -1 rotates randomly.
+					ffs.rotation=(float(2*rand()-RAND_MAX));
+				}else{
+					ffs.rotation=lf[i].rot;
+				}
+				ffs.xpos=(float)startx+lf[i].posx;
+				ffs.ypos=0;
+				ffs.zpos=(float)starty+lf[i].posz;
+				features.push_back(ffs);
+				cout<<"Feature Type: "<<lf[i].name<<" at:"<<ffs.xpos<<":"<<ffs.zpos<<" rotation="<<ffs.rotation<<endl;
+	}
 
 	int LastTree[2]={0,0};
 	for(int y=0;y<feature.ysize;++y){
@@ -85,20 +117,22 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 				if (!FlatSpot(x, y))
 					good = false;
 
-				if (!((LastTree[0]==(x-1) && LastTree[1]==y) || (LastTree[0]==x && LastTree[1]==(y-1)))){
+				//if (!((LastTree[0]==(x-1) && LastTree[1]==y) || (LastTree[0]==x && LastTree[1]==(y-1)))){
+				//above: removed the limit of placing features close to each other, since its pointless
+
 					int t_type=(c-200);
 					map[y*xsize+x]=1;
 					MapFeatureStruct ffs;
 					ffs.featureType=t_type;
 					ffs.relativeSize=0.8f+float(rand())/RAND_MAX*0.4f;
-					ffs.rotation=0;
+					ffs.rotation=(float(2*rand()-RAND_MAX));
 					ffs.xpos=(float)startx+x*8+4;
 					ffs.ypos=0;
 					ffs.zpos=(float)starty+y*8+4;
 					LastTree[0]=x;
 					LastTree[1]=y;
 					features.push_back(ffs);
-				}
+				//}
 			} 
 			else if (c != 0){
 				printf("Does nothing: green %02x at X %d Y %d\n", c, x, y);
@@ -108,16 +142,20 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 			/* Read fs.txt's features from the red channel. */
 			unsigned char f=feature.mem[(y*feature.xsize+x)*4];
 			if ((f) && ((256-f)<= arbFeatureTypes)) {
-				cout<<"Feature Type"<<(256-f)<<" at:"<<x<<":"<<y<<endl;
 				map[y*xsize+x]=1;
 				MapFeatureStruct ffs;
 				ffs.featureType=NUM_TREE_TYPES+(int)(256-f);
 				ffs.relativeSize=1;
-				ffs.rotation=0;
+				if (f>=256- randomrotatefeatures || rotations[255-(int)f]==-1)
+					ffs.rotation=(float(2*rand()-RAND_MAX));
+				else 
+					ffs.rotation=rotations[255-(int)f];
+				
 				ffs.xpos=(float)startx+x*8+4;
 				ffs.ypos=0;
 				ffs.zpos=(float)starty+y*8+4;
 				features.push_back(ffs);
+				cout<<"Feature Type"<<(256-f)<<" at:"<<x<<":"<<y<<" rr="<<randomrotatefeatures<<" val="<<ffs.rotation<<endl;
 			}
 			else if (f != 0){
 				printf("Does nothing: red %02x at X %d Y %d (put more lines in fs.txt?)\n",
@@ -149,8 +187,8 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 #endif
 				vegMap[y*vegfeature.xsize+x]=1;
 			}
-			else
-				cout<<" ";
+			
+				//cout<<" ";
 		}
 		cout<<"\n";
 	}
@@ -207,11 +245,11 @@ void CFeatureCreator::PlaceVent(int x, int y, CBitmap * feature, CBitmap * vent,
 			cout<< x <<":"<< y <<" X @";
 #endif
 #ifdef WIN32
-			x=bx+rand()*(40)/RAND_MAX-20;
-			y=by+rand()*(40)/RAND_MAX-20;
+			x=bx+rand()*(20)/RAND_MAX-10;
+			y=by+rand()*(20)/RAND_MAX-10;
 #else
-			x=bx+( (float)(rand())*(40.0) )/RAND_MAX-20;
-			y=by+( (float)(rand())*(40.0) )/RAND_MAX-20;
+			x=bx+( (float)(rand())*(20.0) )/RAND_MAX-10;
+			y=by+( (float)(rand())*(20.0) )/RAND_MAX-10;
 #endif
 			if(x<5)
 				x=5;
@@ -246,7 +284,7 @@ bool CFeatureCreator::FlatSpot(int x, int y)
 			if (x2 > xsize)
 				continue;
 		
-			if(fabs(h-heightmap[(y2)*mapx+x2])>3)
+			if(fabs(h-heightmap[(y2)*mapx+x2])>20)
 				return false;
 		}
 	}

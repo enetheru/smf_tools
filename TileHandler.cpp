@@ -30,7 +30,7 @@ void CTileHandler::LoadTexture(string name)
 	ysize=bigTex.ysize/8;
 }
 
-void CTileHandler::ProcessTiles(float compressFactor)
+void CTileHandler::ProcessTiles(float compressFactor,bool fastcompress)
 {
 	meanThreshold=(int)(2000*compressFactor);
 	meanDirThreshold=(int)(20000*compressFactor);
@@ -72,38 +72,52 @@ void CTileHandler::ProcessTiles(float compressFactor)
 	unsigned char* data=new unsigned char[1024*1024*4];
 	int tilex=xsize/4;
 	int tiley=ysize/4;
+	int bigsquaretexx=tilex/32;
+	int bigsquaretexy=tiley/32;
+	int a=0;
+	for(int j=0;j<bigsquaretexy;j++){
+		for(int i=0;i<bigsquaretexx;i++){
+			int ox=1024*i;
+			int oy=1024*j;
+			
 
-	for(int a=0;a<(tilex*tiley)/1024;++a){
-		int startTile=a*1024;
-		for(int b=0;b<1024;++b){
-			int x=b%32;
-			int y=b/32;
-			int xb=(startTile+b)%tilex;
-			int yb=(startTile+b)/tilex;
-			for(int y2=0;y2<32;++y2){
-				for(int x2=0;x2<32;++x2){
-					data[((y*32+y2)*1024+x*32+x2)*4+0]=bigTex.mem[((yb*32+y2)*bigTex.xsize+xb*32+x2)*4+0];
-					data[((y*32+y2)*1024+x*32+x2)*4+1]=bigTex.mem[((yb*32+y2)*bigTex.xsize+xb*32+x2)*4+1];
-					data[((y*32+y2)*1024+x*32+x2)*4+2]=bigTex.mem[((yb*32+y2)*bigTex.xsize+xb*32+x2)*4+2];
-					data[((y*32+y2)*1024+x*32+x2)*4+3]=bigTex.mem[((yb*32+y2)*bigTex.xsize+xb*32+x2)*4+3];
+			for(int y2=0;y2<1024;++y2){
+				for(int x2=0;x2<1024;++x2){
+					data[(y2*1024 +x2)*4 +0]=bigTex.mem[(ox +(oy+y2)*xsize*8 +x2)*4 +0];
+					data[(y2*1024 +x2)*4 +1]=bigTex.mem[(ox +(oy+y2)*xsize*8 +x2)*4 +1];
+					data[(y2*1024 +x2)*4 +2]=bigTex.mem[(ox +(oy+y2)*xsize*8 +x2)*4 +2];
+					data[(y2*1024 +x2)*4 +3]=bigTex.mem[(ox +(oy+y2)*xsize*8 +x2)*4 +3];
 				}
 			}
-		}
-		CBitmap square(data,1024,1024);
-		char name[100];
-		sprintf(name,"temp/Temp%03i.bmp",a);
-		square.Save(name);
-		printf("Writing bmp files %i%%\n", (((a+1)*1024)*100)/(tilex*tiley));
-	}
 
+			CBitmap square(data,1024,1024);
+			char name[100];
+			sprintf(name,"temp/Temp%03i.tga",a);
+			square.Save(name);
+			printf("Writing tga files %i%%\n", (((a+1)*1024)*100)/(tilex*tiley));
+			a++;
+		}
+	}
+	int numbigsquares=(xsize/128)*(ysize/128);
 	printf("Creating dds files\n");
 	char execstring[512];
-	snprintf(execstring, 512, "%s temp/*.bmp", stupidGlobalCompressorName.c_str());
-	system(execstring);
+	if (fastcompress){
+		for (int i=0;i<numbigsquares;i++){
+			sprintf(execstring, "nvcompress.exe -fast -bc1a temp/Temp%03i.tga Temp%03i.dds",i,i);
+			printf("%s\n", execstring);
+			system(execstring);
+		}
+	
+	}else{
+		sprintf(execstring, "%s temp/Temp*.tga",stupidGlobalCompressorName.c_str());
+		printf("%s\n", execstring);
+		system(execstring);
+	}
 #ifdef WIN32
-	system("del temp/temp*.bmp");
+	system("del /Q temp\\Temp*.tga");
+	system("del /Q temp");
 #else	
-	system("rm temp/Temp*.bmp");
+	system("rm temp/Temp*.tga");
 #endif
 
 	delete[] data;
@@ -115,9 +129,13 @@ void CTileHandler::ProcessTiles2(void)
 	bigTex=CBitmap(data,1,1);	//free big tex memory
 	int tilex=xsize/4;
 	int tiley=ysize/4;
+	int bigx=tilex/32;
+	int bigy=tiley/32;
+	int a=0;
 
-	for(int a=0;a<(tilex*tiley)/1024;++a){
-		int startTile=a*1024;
+	for(int a=0;a<bigx*bigy;++a){
+		int startTilex=(a%bigx)*32;
+		int startTiley=(a/bigx)*32;
 
 #ifdef WIN32
 		DDSURFACEDESC2 ddsheader;
@@ -139,8 +157,8 @@ void CTileHandler::ProcessTiles2(void)
 		for(int b=0;b<1024;++b){
 			int x=b%32;
 			int y=b/32;
-			int xb=(startTile+b)%tilex;
-			int yb=(startTile+b)/tilex;
+			int xb=startTilex+x; //curr pointer to tile in bigtex
+			int yb=startTiley+y;
 
 			char* ctile=new char[SMALL_TILE_SIZE];
 			ReadTile(x*32,y*32,ctile,bigtile);
@@ -165,7 +183,7 @@ void CTileHandler::ProcessTiles2(void)
 
 	delete[] data;
 #ifdef WIN32
-	system("del temp*.dds");
+	system("del /q temp*.dds");
 #else
 	system("rm temp/Temp*.bmp.raw");
 #endif
@@ -293,6 +311,7 @@ CTileHandler::FastStat CTileHandler::CalcFastStat(CBitmap* bm)
 
 bool CTileHandler::CompareTiles(CBitmap* bm, CBitmap* bm2)
 {
+	if (meanThreshold<=0) return false;
 	int totalerror=0;
 	for(int y=0;y<32;++y){
 		for(int x=0;x<32;++x){

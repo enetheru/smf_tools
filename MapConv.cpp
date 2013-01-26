@@ -1,5 +1,5 @@
 // MapConv.cpp : Defines the entry point for the console application.
-
+//#define WIN32 true
 #include "Bitmap.h"
 #include <string>
 #include <stdio.h>
@@ -15,6 +15,7 @@
 #include "TileHandler.h"
 #include "tclap/CmdLine.h"
 #include <vector>
+#include "stdafx.h"
 #ifndef WIN32
 #include "time.h" /* time() */
 #endif
@@ -34,8 +35,12 @@ void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize)
 void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap);
 void MapFeatures(const char *ffile, char *F_Array);
 float* heightmap;
+short int * rotations;
 #ifndef WIN32
 string stupidGlobalCompressorName;
+#else
+string stupidGlobalCompressorName= "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
+int randomrotatefeatures=0;
 #endif
 
 #ifdef WIN32
@@ -44,6 +49,7 @@ int _tmain(int argc, _TCHAR* argv[])
 int main(int argc, char ** argv)
 #endif
 {
+	printf("Mothers Mapconv version 2.4 updated by Beherith (mysterme at gmail dot com)\n");
 	int xsize;
 	int ysize;
 	string intexname="mars.bmp";
@@ -55,13 +61,17 @@ int main(int argc, char ** argv)
 	string featuremap="";
 	string geoVentFile="geovent.bmp";
 	string featureListFile="fs.txt";
+	string featurePlaceFile="fp.txt";
 	float minHeight=20;
 	float maxHeight=300;
 	float compressFactor=0.8f;
 	float whereisit=0;
 	bool invertHeightMap=false;
 	bool lowpassFilter=false;
+	bool usenvcompress=false;
+	bool justsmf=false;
 	vector<string> F_Spec;
+	//-i -c 0.7 -x 608 -n -76 -o Schizo_Shores_v4.smf -m m2.bmp -t t2.bmp -a h3.raw -f f2.bmp -z "nvdxt2.exe -dxt1a -Box -quality_production -nmips 4 -fadeamount 0 -sharpenMethod SharpenSoft -file"
 
 	try {
 		// Define the command line object.
@@ -111,7 +121,8 @@ int main(int argc, char ** argv)
 			false, 0.8f, "compression");
 		cmd.add( compressArg );
 		#ifdef WIN32
-		char* defaultTexCompress = "nvdxt.exe -nmips 5 -dxt1 -box -fadeamount 0 -file";
+		char* defaultTexCompress = "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
+		stupidGlobalCompressorName= "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
 		#else
 		char* defaultTexCompress = "texcompress_nogui";
 		#endif
@@ -124,18 +135,39 @@ int main(int argc, char ** argv)
 			"Flip the height map image upside-down on reading.",
 			false);
 		cmd.add( invertSwitch );
+
+		SwitchArg usenvcompressSwitch("q", "use_nvcompress",
+			"Use NVCOMPRESS.EXE tool for ultra fast CUDA compression. Needs Geforce 8 or higher nvidia card.",
+			false);
+		cmd.add( usenvcompressSwitch );
+
 		SwitchArg lowpassSwitch("l", "lowpass",
 			"Lowpass filters the heightmap",
 			false);
 		cmd.add( lowpassSwitch );
+		
+		SwitchArg justsmfSwitch("s", "justsmf",
+			"Just create smf file, dont make smt",
+			false);
+		cmd.add( justsmfSwitch );
+		
+		ValueArg<int> rrArg("r", "randomrotate",
+			"rotate features randomly, the first r features in featurelist (fs.txt) get random rotation, default 0",
+			false, 0, "randomrotate");
+		cmd.add( rrArg );
 		ValueArg<string> featureArg("f", "featuremap",
-			"Feature placement file, xsize by ysize. See README.txt for details.",
+			"Feature placement file, xsize by ysize. See README.txt for details. Green 255 pixels are geo vents, blue is grass, green 201-215 is default trees, red 255-0 correspont each to a line in fs.txt.",
 			false, "", "featuremap image");
 		cmd.add( featureArg );
 		ValueArg<string> featureListArg("j", "featurelist",
-			"A file with the name of one feature on each line. (Default: fs.txt). See README.txt for details.",
+			"A file with the name of one feature on each line. (Default: fs.txt). See README.txt for details. \n Specifying a number from 32767 to -32768 next to the feature name will tell mapconv how much to rotate the feature. specifying -1 will rotate it randomly. \n Example line from fs.txt \n btreeblo_1 -1\n btreeblo 16000",
 			false, "fs.txt", "feature list file");
 		cmd.add( featureListArg );
+
+		ValueArg<string> featurePlaceArg("k", "featureplacement",
+			"A special text file defining the placement of each feature. (Default: fp.txt). See README.txt for details. The default format specifies it to have each line look like this (spacing is strict) \n { name = \'agorm_talltree6\', x = 224, z = 3616, rot = \"0\" }",
+			false, "fp.txt", "feature placement file");
+		cmd.add( featurePlaceArg );
 
 		// Parse the args.
 		cmd.parse( argc, argv );
@@ -153,9 +185,13 @@ int main(int argc, char ** argv)
 		invertHeightMap=invertSwitch.getValue();
 		lowpassFilter=lowpassSwitch.getValue();
 		featuremap=featureArg.getValue();
+		usenvcompress=usenvcompressSwitch.getValue();
 		geoVentFile=geoArg.getValue();
 		featureListFile=featureListArg.getValue();
 		stupidGlobalCompressorName=texCompressArg.getValue();
+		justsmf=justsmfSwitch.getValue();
+		randomrotatefeatures=rrArg.getValue();
+		featurePlaceFile=featurePlaceArg.getValue();
 	} catch (ArgException &e)  // catch any exceptions
 	{ cerr << "error: " << e.error() << " for arg " << e.argId() << endl; exit(-1);}
 
@@ -173,15 +209,126 @@ int main(int argc, char ** argv)
 	int numNamedFeatures=0;
 
 	ifs.open(featureListFile.c_str(), ifstream::in);
+	int i=0;
+	rotations=new short int[65000];
 	while (ifs.good()){
 			char c[100]="";
 			ifs.getline(c,100);
-			F_Spec.push_back(c);
+			string tmp=c;
+			int l=tmp.find(' ');
+			if(l>0){
+				rotations[i]=atoi(tmp.substr(l+1).c_str());
+				
+			}else rotations[i]=0;
+			int r=rotations[i++];
+			F_Spec.push_back(tmp.substr(0,l).c_str());
 			numNamedFeatures++;
 	}
-	featureCreator.CreateFeatures(&tileHandler.bigTex,0,0,numNamedFeatures,featuremap,geoVentFile);
+	ifs.close();
+	
+	
+	ifstream ifp;
+	ifp.open(featurePlaceFile.c_str(),ifstream::in);
+	vector<LuaFeature> extrafeatures; //we are gonna store the features from the lua file in this struct and then pass this over to the featurecreator.
+	int lnum=0;
+	while(ifp.good()){
+		lnum++;
+		char c[255]="";
+		ifp.getline(c,255);
+		string tmp=c;
+		int x= tmp.find("name");
+		if (x>0){
+			//stupid lua file specifies a goddamned feature.
+			//now to parse this shit, example line:
+			//	{ name = 'agorm_talltree6', x = 224, z = 3616, rot = "0" },
+			//
+			int s=tmp.find('\'',x);
+			string name= tmp.substr( s+1,tmp.find('\'',s+1)-s-1);
+			//printf("%s",name);
+			string rot="";
+			int posx=0;
+			int posz=0;
+			short int irot=-1;
 
-	tileHandler.ProcessTiles(compressFactor);
+			x= tmp.find("rot");
+			if (x>-1){
+				s=tmp.find('\"',x);
+				rot= tmp.substr( s+1,tmp.find('\"',s+1)-s-1);
+				//printf("%s",rot);
+				int ttt=rot.find("south");
+				if (ttt>-1) {
+					irot=0;
+				}else if (rot.find("east")>-1){
+					irot=16384;
+				}else if (rot.find("north")>-1){
+					irot=-32768;
+				
+				}else if (rot.find("west")>-1){
+					irot=-16384;
+				}	else irot=atoi(rot.c_str());
+			}else{
+				printf("failed to find rot in feature placer file on line: %s line num: %i \n", tmp.c_str(),lnum);
+				continue;
+			}
+
+			x= tmp.find("x =");
+			if (x>-1){
+				s=tmp.find(',',x);
+				string sposx= tmp.substr( x+4,s -(x+4));
+
+				//printf("%s",sposx);
+				posx=atoi(sposx.c_str());
+				if (posx==0)
+					printf("Suspicious 0 value for pos X read from line: %s (devs: atoi returned 0) line num:%i \n", tmp.c_str(),lnum);
+			}else{
+				printf("failed to find x = in feature placer file on line: %s line num:%i \n", tmp.c_str(),lnum);
+				continue;
+			}
+			
+			x= tmp.find("z =");
+			if (x>-1){
+				s=tmp.find(',',x);
+				string sposz= tmp.substr( x+4,s -(x+4));
+
+				//printf("%s",sposz);
+				posz=atoi(sposz.c_str());
+				if (posz==0)
+					printf("Suspicious 0 value for pos Z read from line: %s (devs: atoi returned 0) line num:%i \n", tmp.c_str(),lnum);
+
+			}else{
+				printf("failed to find z = in feature placer file on line: %s line num: %i \n", tmp.c_str(),lnum);
+				continue;
+			}
+			bool found=false;
+			for (int j=0; j<F_Spec.size(); j++){
+				if (F_Spec[j].compare(name) ==0){
+					found=true;}
+			}
+			if (!found){
+				F_Spec.push_back(name);
+				printf("New feature name from feature placement file: %s line num:%i\n", name.c_str(),lnum);
+			} 
+			LuaFeature lf;
+			lf.name=name;
+			lf.posx=posx;
+			lf.posz=posz;
+			lf.rot=irot;
+			extrafeatures.push_back(lf);
+
+				
+
+		}
+		
+
+	}
+	featureCreator.CreateFeatures(&tileHandler.bigTex,0,0,numNamedFeatures,featuremap,geoVentFile, extrafeatures,F_Spec);
+	printf("Options are: -q: %i compressstring: %s \n",(int) usenvcompress, stupidGlobalCompressorName.c_str());
+	if (usenvcompress && stupidGlobalCompressorName.find("nvdxt")>0){
+		stupidGlobalCompressorName= "nvcompress.exe -fast -bc1";
+		printf("Invalid compressor string for CUDA compress, using default of nvcompress.exe -fast -bc1\n");
+
+	}
+	tileHandler.ProcessTiles(compressFactor,usenvcompress);
 
 #ifdef WIN32
 	LARGE_INTEGER li;
@@ -228,7 +375,7 @@ int main(int argc, char ** argv)
 	temp=header.metalmapPtr + (xsize/2)*(ysize/2);		//offset to vegetation map
 	outfile.write((char*)&temp,4);
 
-	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight/*,whereisit*/);
+	SaveHeightMap(outfile,xsize,ysize,minHeight,maxHeight);
 
 	SaveTypeMap(outfile,xsize,ysize,typemap);
 	SaveMiniMap(outfile);
@@ -250,8 +397,14 @@ void SaveMiniMap(ofstream &outfile)
 
 	CBitmap mini = tileHandler.bigTex.CreateRescaled(1024, 1024);
 	mini.Save("mini.bmp");
-#ifdef WIN32
-	system("nvdxt.exe -file mini.bmp -dxt1c -dither");
+	#ifdef WIN32
+	try{
+		system("nvdxt.exe -dxt1a -file mini.bmp\n");
+	}
+	catch(...){
+		printf("caught a wierd stack overflow exception (this doesnt mean the program failed...)\n");
+		//we are looking for a stack overflow except, running this program in debug mode throws an exception at this point...
+	}
 
 	DDSURFACEDESC2 ddsheader;
 	int ddssignature;
@@ -294,7 +447,7 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 	} else {		//standard image
 		CBitmap bm(inname);
 		if(bm.xsize!=mapx || bm.ysize!=mapy){
-			printf("Errenous dimensions for heightmap image");
+			printf("Errenous dimensions for heightmap image. Correct size is texture/8 +1\n  You specified %i x %i when %i x %i is the correct dimension based on the texture\n",bm.xsize,bm.ysize,mapx,mapy);
 			exit(0);
 		}
 		for(int y=0;y<mapy;++y){
@@ -306,6 +459,7 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 	}
 
 	if(invert){
+		printf("Inverting height map\n");
 		float* heightmap2=heightmap;
 		heightmap=new float[mapx*mapy];
 		for(int y=0;y<mapy;++y){
@@ -317,6 +471,7 @@ void LoadHeightMap(string inname,int xsize,int ysize,float minHeight,float maxHe
 	}
 
 	if(lowpass){
+		printf("Applying lowpass filter to height map\n");
 		float* heightmap2=heightmap;
 		heightmap=new float[mapx*mapy];
 		for(int y=0;y<mapy;++y){
@@ -363,6 +518,8 @@ void SaveMetalMap(ofstream &outfile, std::string metalmap, int xsize, int ysize)
 	CBitmap metal(metalmap);
 	if(metal.xsize!=xsize/2 || metal.ysize!=ysize/2){
 		metal=metal.CreateRescaled(xsize/2,ysize/2);
+		
+			printf("Warning: Metal map is being rescaled, may result in undesirable metal layout. Correct size is %i * %i \n", xsize/2,ysize/2);
 	}
 	int size = (xsize/2)*(ysize/2);
 	char *buf = new char[size];
@@ -387,6 +544,8 @@ void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap)
 	if(!typemap.empty()){
 		CBitmap tm;
 		tm.Load(typemap);
+		if(tm.xsize!=mapx || tm.ysize!=mapy)
+			printf("WARNING: TYPEMAP NOT CORRECT SIZE! WILL RESULT IN RESIZED TYPEMAP WITH HOLES IN IT! Correct size is %i*%i \n",mapx,mapy);
 		CBitmap tm2=tm.CreateRescaled(mapx,mapy);
 		for(int a=0;a<mapx*mapy;++a)
 			typeMapMem[a]=tm2.mem[a*4];

@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include "filefunctions.h"
-#include <boost/filesystem/exception.hpp>
+//#include <boost/filesystem/exception.hpp>
+#include "stdafx.h"
 
 using namespace std;
 
@@ -25,11 +26,13 @@ void CFileHandler::Init(const char* filename)
 {
 	string fnstr;
 	ifs = 0;
-
+	printf("Opening %s",filename);
 	try {
 		fs::path fn(filename,fs::native);
 		fnstr = fn.native_file_string();
-	} catch (boost::filesystem::filesystem_error err) {
+	} catch (void* err) {
+		printf("Caught filesystem error in file %s",filename);
+	//} catch (boost::filesystem::filesystem_error err) {
 		fnstr.clear();
 	}
 

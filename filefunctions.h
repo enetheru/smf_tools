@@ -10,7 +10,7 @@
  */
 #ifndef FILEFUNCTIONS_H
 #define FILEFUNCTIONS_H
-
+//s:\mapconv\mapconv\filefunctions.h
 #include <vector>
 #include <boost/filesystem/operations.hpp>
 #include <boost/regex.hpp>

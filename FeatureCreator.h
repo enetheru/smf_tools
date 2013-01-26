@@ -5,16 +5,22 @@
 #include <vector>
 #include "mapfile.h"
 #include "Bitmap.h"
+#include "string.h"
 
 using namespace std;
-
+struct LuaFeature{
+	short int rot;
+	int posx;
+	int posz;
+	string name;
+};
 class CFeatureCreator
 {
 public:
 	CFeatureCreator(void);
 	~CFeatureCreator(void);
 	void WriteToFile(ofstream* file, vector<string> F_map);
-	void CreateFeatures(CBitmap* bm, int startx, int starty, int arbFeatureTypes, std::string featurefile, std::string geoVentFile);
+	void CreateFeatures(CBitmap* bm, int startx, int starty, int arbFeatureTypes, std::string featurefile, std::string geoVentFile, vector<LuaFeature> lf, vector<string> F_Spec);
 	
 private:
 	int xsize,ysize;

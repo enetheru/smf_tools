@@ -6,6 +6,7 @@
 #define __BITMAP_H__
 
 #include <string>
+#include <IL/il.h>
 
 using std::string;
 
@@ -19,8 +20,9 @@ public:
 	CBitmap& operator=(const CBitmap& bm);
 
 	virtual ~CBitmap();
+	
 
-	void Load(string const& filename, unsigned char defaultAlpha=255);
+	void Load(string const& filename, unsigned char defaultAlpha=255, bool verylarge=false);
 	void Save(string const& filename);
 
 	unsigned int CreateTexture(bool mipmaps=false);
@@ -35,6 +37,7 @@ public:
 	unsigned char* mem;
 	int xsize;
 	int ysize;
+	ILuint vl;//for very large images.
 
 public:
 	CBitmap CreateRescaled(int newx, int newy);

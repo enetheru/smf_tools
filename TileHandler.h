@@ -17,7 +17,7 @@ public:
 	CTileHandler();
 	~CTileHandler(void);
 	void LoadTexture(string name);
-	void ProcessTiles(float compressFactor);
+	void ProcessTiles(float compressFactor, bool fastcompress);
 	void SaveData(ofstream& ofs);
 	void ReadTile(int xpos, int ypos, char *destbuf, char *sourcebuf);
 	int FindCloseTile(CBitmap* bm,int forbidden);

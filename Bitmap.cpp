@@ -1,14 +1,17 @@
 // Bitmap.cpp: implementation of the CBitmap class.
 //
 //////////////////////////////////////////////////////////////////////
-
+#include <IL/il.h>
 #include <ostream>
 #include <fstream>
 #include "FileHandler.h"
-#include <IL/il.h>
+
+//#include "IL\ilu.h"
+//#include "IL\ilut.h"
 #include "Bitmap.h"
 #include <assert.h>
 #include <string.h>
+#include "stdafx.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -32,7 +35,7 @@ CBitmap::CBitmap()
 
 CBitmap::~CBitmap()
 {
-	delete[] mem;
+	//delete[] mem;
 }
 
 CBitmap::CBitmap(const CBitmap& old)
@@ -72,10 +75,11 @@ CBitmap& CBitmap::operator=(const CBitmap& bm)
 	return *this;
 }
 
-void CBitmap::Load(string const& filename, unsigned char defaultAlpha)
+void CBitmap::Load(string const& filename, unsigned char defaultAlpha,bool verylarge)
 {
 	delete[] mem;
 	mem = NULL;
+	//mem = new unsigned char[16384 * 16384 * 4];
 
 	ilOriginFunc(IL_ORIGIN_UPPER_LEFT);
 	ilEnable(IL_ORIGIN_SET);
@@ -91,13 +95,19 @@ void CBitmap::Load(string const& filename, unsigned char defaultAlpha)
 		memset(mem, 0, 4);
 		return;
 	}
-
+	int fs=file.FileSize();
 	unsigned char *buffer = new unsigned char[file.FileSize()];
 	file.Read(buffer, file.FileSize());
 
-	ILuint ImageName = 0;
-	ilGenImages(1, &ImageName);
-	ilBindImage(ImageName);
+	if(verylarge){
+		vl = 0;
+		ilGenImages(1, &vl);
+		ilBindImage(vl);
+	}else{
+		ILuint ImageName = 0;
+		ilGenImages(1, &ImageName);
+		ilBindImage(ImageName);
+	}
 
 	const bool success = ilLoadL(IL_TYPE_UNKNOWN, buffer, file.FileSize());
 	delete [] buffer;
@@ -108,6 +118,7 @@ void CBitmap::Load(string const& filename, unsigned char defaultAlpha)
 		ysize = 1;
 		mem=new unsigned char[4];
 		memset(mem, 0, 4);
+		printf("Failed to open file %s",filename);
 		return;   
 	}
 
@@ -118,9 +129,11 @@ void CBitmap::Load(string const& filename, unsigned char defaultAlpha)
 	xsize = ilGetInteger(IL_IMAGE_WIDTH);
 	ysize = ilGetInteger(IL_IMAGE_HEIGHT);
 
-	mem = new unsigned char[xsize * ysize * 4];
-	//	ilCopyPixels(0,0,0,xsize,ysize,0,IL_RGBA,IL_UNSIGNED_BYTE,mem);
-	memcpy(mem, ilGetData(), xsize * ysize * 4);
+	if (!verylarge){
+		mem = new unsigned char[xsize * ysize * 4];
+		memcpy(mem, ilGetData(), xsize * ysize * 4);
+	}
+
 #else
 	xsize = 4;
 	ysize = 4;
@@ -128,12 +141,15 @@ void CBitmap::Load(string const& filename, unsigned char defaultAlpha)
 	mem = new unsigned char[xsize * ysize * 4];
 #endif
 
-	ilDeleteImages(1, &ImageName); 
+	if(!verylarge){
+		
+		//ilDeleteImages(1, &ImageName); 
 
-	if(noAlpha){
-		for(int y=0;y<ysize;++y){
-			for(int x=0;x<xsize;++x){
-			mem[(y*xsize+x)*4+3]=defaultAlpha;
+		if(noAlpha){
+			for(int y=0;y<ysize;++y){
+				for(int x=0;x<xsize;++x){
+				mem[(y*xsize+x)*4+3]=defaultAlpha;
+				}
 			}
 		}
 	}
@@ -159,7 +175,7 @@ void CBitmap::Save(string const& filename)
 	}
 
 	ilHint(IL_COMPRESSION_HINT, IL_USE_COMPRESSION);
-	ilSetInteger (IL_JPG_QUALITY, 80);
+	ilSetInteger (IL_JPG_QUALITY, 99);
 
 	ILuint ImageName = 0;
 	ilGenImages(1, &ImageName);
@@ -167,7 +183,12 @@ void CBitmap::Save(string const& filename)
 
 	ilTexImage(xsize,ysize,1,4,IL_RGBA,IL_UNSIGNED_BYTE,NULL);
 	ilSetData(buf);
-	ilSaveImage((char*)filename.c_str());
+	if (filename.find(".bmp")>2 && filename.find(".bmp")<100)
+		ilSave(IL_BMP,(char*)filename.c_str());
+	else
+		ilSave(IL_TGA,(char*)filename.c_str());
+	
+	
 	ilDeleteImages(1,&ImageName);
 	delete[] buf;
 }
