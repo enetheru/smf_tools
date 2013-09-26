@@ -1,7 +1,7 @@
 CXXFLAGS=-g -Wall -L/usr/lib
 SDLCFLAGS=$(SDLFLAGS) $(shell sdl-config --cflags)
 SDLLIBS=$(shell sdl-config --libs)
-TCLAP=-I../include/tclap-1.0.5/include
+TCLAP=-I../include/tclap-1.2.1/include
 
 
 all: mapconv texcompress_nogui texcompress
