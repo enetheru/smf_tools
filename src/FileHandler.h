@@ -6,6 +6,7 @@
 
 class CFileHandler
 {
+
 public:
 	CFileHandler(const char* filename);
 	CFileHandler(std::string filename);
@@ -22,9 +23,8 @@ public:
 	static std::vector<std::string> FindFiles(std::string pattern);
 private:
 	void Init(const char* filename);
-
-	std::ifstream* ifs;
 	int filesize;
+	std::ifstream* ifs;
 };
 
 #endif // __FILE_HANDLER_H__

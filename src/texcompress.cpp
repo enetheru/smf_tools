@@ -121,6 +121,7 @@ bool preview(CBitmap * picData)
     glDeleteTextures(1, &minimapTex);
 
     if (ret) return false;
+    return true;
 }
 
 /* If the current texture were mipmapped, how many levels would there be? */

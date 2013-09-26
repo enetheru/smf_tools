@@ -97,7 +97,6 @@ void CBitmap::Load(string const& filename, unsigned char defaultAlpha,bool veryl
 		memset(mem, 0, 4);
 		return;
 	}
-	int fs=file.FileSize();
 	unsigned char *buffer = new unsigned char[file.FileSize()];
 	file.Read(buffer, file.FileSize());
 
@@ -198,9 +197,9 @@ void CBitmap::Save(string const& filename)
 // Depreciated (Only used by GUI which will be replaced by CEGUI anyway)
 void CBitmap::SetTransparent( unsigned char red, unsigned char green, unsigned char blue )
 {
-	for ( unsigned int y = 0; y < xsize; y++ )
+	for ( int y = 0; y < xsize; y++ )
 	{
-		for ( unsigned int x = 0; x < xsize; x++ )
+		for ( int x = 0; x < xsize; x++ )
 		{
 			unsigned int index = (y*xsize + x)*4;
 			if ( mem[index+0] == red &&

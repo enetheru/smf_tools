@@ -72,11 +72,11 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 	CBitmap vent(geoVentFile);
 	CBitmap feature(featurefile);
 	unsigned char* map=new unsigned char[ysize*xsize];
-	for (int i=0; i<lf.size(); i++){
+	for (unsigned int i=0; i<lf.size(); i++){
 
 				MapFeatureStruct ffs;
 				int ftype=-1; //now we must look up the lua feature types number identifer from the Luafeatures vector:
-				for (int j=0; j<F_Spec.size();j++){
+				for (unsigned int j=0; j<F_Spec.size();j++){
 					if (F_Spec[j].compare(lf[i].name)==0){
 						ftype=j;
 					}
@@ -101,7 +101,6 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 				cout<<"Feature Type: "<<lf[i].name<<" at:"<<ffs.xpos<<":"<<ffs.zpos<<" rotation="<<ffs.rotation<<endl;
 	}
 
-	int LastTree[2]={0,0};
 	for(int y=0;y<feature.ysize;++y){
 		for(int x=0;x<feature.xsize;++x){
 			/* Read vents and trees from the green channel. */
@@ -115,12 +114,9 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 				if(h<5)
 					continue;
 
-				bool good=true;
-				if (!FlatSpot(x, y))
-					good = false;
-
-				//if (!((LastTree[0]==(x-1) && LastTree[1]==y) || (LastTree[0]==x && LastTree[1]==(y-1)))){
-				//above: removed the limit of placing features close to each other, since its pointless
+//				bool good=true;
+//				if (!FlatSpot(x, y))
+//					good = false;
 
 					int t_type=(c-200);
 					map[y*xsize+x]=1;
@@ -131,8 +127,6 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 					ffs.xpos=(float)startx+x*8+4;
 					ffs.ypos=0;
 					ffs.zpos=(float)starty+y*8+4;
-					LastTree[0]=x;
-					LastTree[1]=y;
 					features.push_back(ffs);
 				//}
 			} 
@@ -177,8 +171,8 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 		for(int x=0;x<vegfeature.xsize;++x){
 			/* Read grass from the blue channel. */
 			unsigned char c=vegfeature.mem[(y*vegfeature.xsize+x)*4+2];
-			float a=c/255;
-			float b=1-a;
+//			float a=c/255;
+//			float b=1-a;
 			int grass=(rand()%(255))+c;
 			if (grass > 254)
 			{

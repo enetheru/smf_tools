@@ -65,11 +65,11 @@ int main(int argc, char ** argv)
 	float minHeight=20;
 	float maxHeight=300;
 	float compressFactor=0.8f;
-	float whereisit=0;
+//	float whereisit=0;
 	bool invertHeightMap=false;
 	bool lowpassFilter=false;
 	bool usenvcompress=false;
-	bool justsmf=false;
+//	bool justsmf=false;
 	vector<string> F_Spec;
 	//-i -c 0.7 -x 608 -n -76 -o Schizo_Shores_v4.smf -m m2.bmp -t t2.bmp -a h3.raw -f f2.bmp -z "nvdxt2.exe -dxt1a -Box -quality_production -nmips 4 -fadeamount 0 -sharpenMethod SharpenSoft -file"
 
@@ -189,7 +189,7 @@ int main(int argc, char ** argv)
 		geoVentFile=geoArg.getValue();
 		featureListFile=featureListArg.getValue();
 		stupidGlobalCompressorName=texCompressArg.getValue();
-		justsmf=justsmfSwitch.getValue();
+//		justsmf=justsmfSwitch.getValue();
 		randomrotatefeatures=rrArg.getValue();
 		featurePlaceFile=featurePlaceArg.getValue();
 	} catch (ArgException &e)  // catch any exceptions
@@ -209,7 +209,7 @@ int main(int argc, char ** argv)
 	int numNamedFeatures=0;
 
 	ifs.open(featureListFile.c_str(), ifstream::in);
-	int i=0;
+	int i = 0;
 	rotations=new short int[65000];
 	while (ifs.good()){
 			char c[100]="";
@@ -220,7 +220,6 @@ int main(int argc, char ** argv)
 				rotations[i]=atoi(tmp.substr(l+1).c_str());
 				
 			}else rotations[i]=0;
-			int r=rotations[i++];
 			F_Spec.push_back(tmp.substr(0,l).c_str());
 			numNamedFeatures++;
 	}
@@ -255,17 +254,12 @@ int main(int argc, char ** argv)
 				s=tmp.find('\"',x);
 				rot= tmp.substr( s+1,tmp.find('\"',s+1)-s-1);
 				//printf("%s",rot);
-				int ttt=rot.find("south");
-				if (ttt>-1) {
-					irot=0;
-				}else if (rot.find("east")>-1){
-					irot=16384;
-				}else if (rot.find("north")>-1){
-					irot=-32768;
-				
-				}else if (rot.find("west")>-1){
-					irot=-16384;
-				}	else irot=atoi(rot.c_str());
+				int ttt = rot.find( "south" );
+				if ( ttt > -1 ) irot = 0;
+				else if ( rot.find( "east"  ) != string::npos ) irot =  16384;
+				else if ( rot.find( "north" ) != string::npos ) irot = -32768;
+				else if ( rot.find( "west"  ) != string::npos ) irot = -16384;
+				else irot = atoi( rot.c_str() );
 			}else{
 				printf("failed to find rot in feature placer file on line: %s line num: %i \n", tmp.c_str(),lnum);
 				continue;
@@ -299,11 +293,12 @@ int main(int argc, char ** argv)
 				printf("failed to find z = in feature placer file on line: %s line num: %i \n", tmp.c_str(),lnum);
 				continue;
 			}
+
 			bool found=false;
-			for (int j=0; j<F_Spec.size(); j++){
-				if (F_Spec[j].compare(name) ==0){
-					found=true;}
-			}
+            unsigned int j;
+			for ( j = 0; j < F_Spec.size(); j++ )
+				if ( F_Spec[j].compare( name ) == 0 ) found = true;
+
 			if (!found){
 				F_Spec.push_back(name);
 				printf("New feature name from feature placement file: %s line num:%i\n", name.c_str(),lnum);

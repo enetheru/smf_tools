@@ -131,7 +131,6 @@ void CTileHandler::ProcessTiles2(void)
 	int tiley=ysize/4;
 	int bigx=tilex/32;
 	int bigy=tiley/32;
-	int a=0;
 
 	for(int a=0;a<bigx*bigy;++a){
 		int startTilex=(a%bigx)*32;
