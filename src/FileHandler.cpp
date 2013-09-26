@@ -4,7 +4,9 @@
 #include <cctype>
 #include "filefunctions.h"
 //#include <boost/filesystem/exception.hpp>
+#ifdef WIN32
 #include "stdafx.h"
+#endif
 
 using namespace std;
 
@@ -28,8 +30,8 @@ void CFileHandler::Init(const char* filename)
 	ifs = 0;
 	printf("Opening %s",filename);
 	try {
-		fs::path fn(filename,fs::native);
-		fnstr = fn.native_file_string();
+		fs::path fn(filename);
+		fnstr = fn.string();
 	} catch (void* err) {
 		printf("Caught filesystem error in file %s",filename);
 	//} catch (boost::filesystem::filesystem_error err) {
@@ -105,7 +107,7 @@ std::vector<std::string> CFileHandler::FindFiles(std::string pattern)
 		patternPath.clear();
 	std::string filter=pattern;
 	filter.erase(0,patternPath.length());
-	fs::path fn(patternPath,fs::native);
+	fs::path fn(patternPath);
 	found = find_files(fn,filter);
 	std::vector<std::string> foundstrings;
 	for (std::vector<fs::path>::iterator it = found.begin(); it != found.end(); it++)

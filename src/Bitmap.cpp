@@ -11,7 +11,9 @@
 #include "Bitmap.h"
 #include <assert.h>
 #include <string.h>
+#ifdef WIN32
 #include "stdafx.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -118,7 +120,7 @@ void CBitmap::Load(string const& filename, unsigned char defaultAlpha,bool veryl
 		ysize = 1;
 		mem=new unsigned char[4];
 		memset(mem, 0, 4);
-		printf("Failed to open file %s",filename);
+		printf("Failed to open file %s",filename.c_str());
 		return;   
 	}
 

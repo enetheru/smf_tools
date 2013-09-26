@@ -1,7 +1,9 @@
 #include "FeatureCreator.h"
 #include "Bitmap.h"
 #include "math.h"
+#ifdef WIN32
 #include "stdafx.h"
+#endif
 #define NUM_TREE_TYPES 16
 #define treetop 215 /* TODO Shouldn't this be related to the previous define somehow? */
 extern float* heightmap;
@@ -80,7 +82,7 @@ void CFeatureCreator::CreateFeatures(CBitmap* bm, int startx, int starty, int ar
 					}
 				}
 				if (ftype==-1) {
-					printf("feature not found in f_spec, %s \n", lf[i].name);
+					printf("feature not found in f_spec, %s \n", lf[i].name.c_str());
 					continue;
 				}
 

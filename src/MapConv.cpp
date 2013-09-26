@@ -10,12 +10,12 @@
 #include <string.h>
 #ifdef WIN32
 #include "ddraw.h"
+#include "stdafx.h"
 #endif
 #include "FeatureCreator.h"
 #include "TileHandler.h"
 #include "tclap/CmdLine.h"
 #include <vector>
-#include "stdafx.h"
 #ifndef WIN32
 #include "time.h" /* time() */
 #endif
@@ -36,11 +36,11 @@ void SaveTypeMap(ofstream &outfile,int xsize,int ysize,string typemap);
 void MapFeatures(const char *ffile, char *F_Array);
 float* heightmap;
 short int * rotations;
+int randomrotatefeatures = 0;
 #ifndef WIN32
 string stupidGlobalCompressorName;
 #else
 string stupidGlobalCompressorName= "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
-int randomrotatefeatures=0;
 #endif
 
 #ifdef WIN32
@@ -124,7 +124,7 @@ int main(int argc, char ** argv)
 		char* defaultTexCompress = "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
 		stupidGlobalCompressorName= "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
 		#else
-		char* defaultTexCompress = "texcompress_nogui";
+		const char* defaultTexCompress = "texcompress_nogui";
 		#endif
 		ValueArg<string> texCompressArg("z", "texcompress",
 			"Name of companion program texcompress from current working directory.",

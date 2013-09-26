@@ -124,7 +124,7 @@ static inline std::vector<fs::path> find_files(fs::path &dirpath, const std::str
 			//Exclude broken symlinks by checking if the file actually exists.
 			if (fs::exists(*diritr)) {
 				if (!fs::is_directory(*diritr)) {
-					if (boost::regex_match(diritr->leaf(),regexpattern))
+					if (boost::regex_match(diritr->path().filename().c_str(),regexpattern))
 						matches.push_back(*diritr);
 				} else if (recurse) {
 					fs::path dir_path = *diritr;
