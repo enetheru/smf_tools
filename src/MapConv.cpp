@@ -35,6 +35,12 @@ void
 LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
 				float maxHeight,bool invert,bool lowpass );
 
+static void
+HeightMapInvert(int mapx, int mapy);
+
+static void
+HeightMapFilter(int mapx, int mapy);
+
 void
 SaveHeightMap( ofstream &outfile, int xsize, int ysize, float minHeight,
 				float maxHeight );
@@ -584,23 +590,25 @@ LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
 			float maxHeight, bool invert, bool lowpass )
 {
 	printf( "Creating height map\n" );
-
+	int x,y;
 	float hDif = maxHeight - minHeight;
 	int mapx = xsize + 1;
 	int mapy = ysize + 1;
+	unsigned short h;
 	heightmap = new float[ mapx * mapy ];
 
-	if ( inname.find( ".raw" ) != string::npos ) { //16 bit raw
+	if ( inname.find( ".raw" ) != string::npos ) {
+		//16 bit raw
 		CFileHandler fh(inname);
 
-		for ( int y = 0; y < mapy; ++y )
-			for ( int x = 0; x < mapx; ++x ) {
-				unsigned short h;
+		for ( y = 0; y < mapy; ++y )
+			for ( x = 0; x < mapx; ++x ) {
 				fh.Read( &h, 2 );
 				heightmap[ (ysize-y) * mapx + x ] =
 						(float( h )) / 65535 * hDif + minHeight;
 			}
-	} else {		//standard image
+	} else {
+		//standard image
 		CBitmap bm( inname );
 		if( bm.xsize != mapx || bm.ysize != mapy ) {
 			printf( "Errenous dimensions for heightmap image. Correct size"
@@ -609,53 +617,61 @@ LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
 				bm.xsize, bm.ysize, mapx, mapy );
 			exit(0);
 		}
-		for( int y = 0; y < mapy; ++y )
-			for( int x = 0; x < mapx; ++x ) {
-				unsigned short h = (int)bm.mem[ (y * mapx + x) * 4 ] * 256;
+		for( y = 0; y < mapy; ++y )
+			for( x = 0; x < mapx; ++x ) {
+				h = (int)bm.mem[ (y * mapx +x) * 4 ] * 256;
 				heightmap[ (ysize - y) * mapx + x ] =
-						(float( h )) / 65535 * hDif+minHeight;
+					float(h) / 65535 * hDif + minHeight;
 			}
 	}
 
-	if ( invert ) {
-		printf( "Inverting height map\n" );
-		float *heightmap2 = heightmap;
-		heightmap = new float[ mapx * mapy ];
-		for ( int y = 0; y < mapy; ++y )
-			for( int x = 0; x < mapx; ++x ) {
-				heightmap[ y * mapx + x ] =
-					heightmap2[ (mapy - y - 1) * mapx + x ];
-			}
-		delete[] heightmap2;
-	}
+	if ( invert )HeightMapInvert( mapx, mapy );
+	if ( lowpass )HeightMapFilter( mapx, mapy );
+}
 
-	if ( lowpass ) {
-		printf( "Applying lowpass filter to height map\n" );
-		float *heightmap2 = heightmap;
-		heightmap = new float[ mapx * mapy ];
-		for ( int y = 0; y < mapy; ++y ) {
-			for ( int x = 0; x < mapx; ++x ) {
-				float h = 0;
-				float tmod = 0;
-				for ( int y2 = max( 0, y - 2 );
-						y2 < min( mapy, y + 3 );
-						++y2 ) {
-					int dy = y2 - y;
-					for ( int x2 = max( 0, x - 2 );
-									x2 < min( mapx, x + 3 );
-									++x2 ) {
-						int dx = x2 - x;
-						float mod = max( 0.0f, 1.0f - 0.4f
-									* sqrtf( float( dx * dx + dy * dy ) ) );
-						tmod += mod;
-						h += heightmap2[ y2 * mapx + x2 ] * mod;
-					}
+static void
+HeightMapInvert(int mapx, int mapy)
+{
+	int x,y;
+	float *heightmap2;
+
+	printf( "Inverting height map\n" );
+	heightmap2 = heightmap;
+	heightmap = new float[ mapx * mapy ];
+	for ( y = 0; y < mapy; ++y )
+		for( x = 0; x < mapx; ++x )
+			heightmap[ y * mapx +x ] =	heightmap2[ (mapy -y -1) * mapx +x ];
+
+	delete[] heightmap2;
+}
+
+static void
+HeightMapFilter( int mapx, int mapy)
+{
+	float *heightmap2;
+	int x,y,x2,y2,dx,dy;
+	float h,tmod,mod;
+
+	printf( "Applying lowpass filter to height map\n" );
+	heightmap2 = heightmap;
+	heightmap = new float[ mapx * mapy ];
+	for ( y = 0; y < mapy; ++y )
+		for ( x = 0; x < mapx; ++x ) {
+			h = 0;
+			tmod = 0;
+			for ( y2 = max( 0, y - 2 ); y2 < min( mapy, y + 3 ); ++y2 ) {
+				dy = y2 - y;
+				for ( x2 = max( 0, x - 2 ); x2 < min( mapx, x + 3 ); ++x2 ) {
+					dx = x2 - x;
+					mod = max( 0.0f,
+						1.0f - 0.4f * sqrtf( float( dx * dx + dy * dy ) ) );
+					tmod += mod;
+					h += heightmap2[ y2 * mapx + x2 ] * mod;
 				}
-				heightmap[ y * mapx + x ] = h / tmod;
 			}
+			heightmap[ y * mapx + x ] = h / tmod;
 		}
-		delete[] heightmap2;
-	}
+	delete[] heightmap2;
 }
 
 void
