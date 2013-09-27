@@ -42,9 +42,6 @@ static void
 SaveHeightMap( ofstream &outfile, int xsize, int ysize, float minHeight,
 				float maxHeight );
 
-void
-SaveTextures( ofstream &outfile, string temptexname, int xsize, int ysize );
-
 static void
 SaveMiniMap( ofstream &outfile );
 
