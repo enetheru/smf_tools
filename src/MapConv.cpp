@@ -28,10 +28,7 @@
 using namespace std;
 using namespace TCLAP;
 
-void
-ConvertTextures( string intexname, string temptexname, int xsize, int ysize );
-
-void
+static void
 LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
 				float maxHeight,bool invert,bool lowpass );
 
@@ -41,27 +38,21 @@ HeightMapInvert(int mapx, int mapy);
 static void
 HeightMapFilter(int mapx, int mapy);
 
-void
+static void
 SaveHeightMap( ofstream &outfile, int xsize, int ysize, float minHeight,
 				float maxHeight );
 
 void
-SaveTexOffsets( ofstream &outfile, string temptexname, int xsize, int ysize );
-
-void
 SaveTextures( ofstream &outfile, string temptexname, int xsize, int ysize );
 
-void
+static void
 SaveMiniMap( ofstream &outfile );
 
-void
+static void
 SaveMetalMap( ofstream &outfile, std::string metalmap, int xsize, int ysize );
 
-void
+static void
 SaveTypeMap( ofstream &outfile, int xsize, int ysize, string typemap );
-
-void
-MapFeatures( const char *ffile, char *F_Array );
 
 CFeatureCreator featureCreator;
 float *heightmap;
@@ -552,7 +543,7 @@ main( int argc, char **argv )
 	return 0;
 }
 
-void
+static void
 SaveMiniMap( ofstream &outfile )
 {
 	printf( "creating minimap\n" );
@@ -585,7 +576,7 @@ SaveMiniMap( ofstream &outfile )
 	outfile.write( minidata, MINIMAP_SIZE );
 }
 
-void
+static void
 LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
 			float maxHeight, bool invert, bool lowpass )
 {
@@ -674,7 +665,7 @@ HeightMapFilter( int mapx, int mapy)
 	delete[] heightmap2;
 }
 
-void
+static void
 SaveHeightMap( ofstream& outfile, int xsize, int ysize, float minHeight,
 			float maxHeight )
 {
@@ -694,7 +685,7 @@ SaveHeightMap( ofstream& outfile, int xsize, int ysize, float minHeight,
 	delete[] hm;
 }
 
-void
+static void
 SaveMetalMap( ofstream &outfile, std::string metalmap, int xsize, int ysize )
 {
 	int x,y,size;
@@ -724,7 +715,7 @@ SaveMetalMap( ofstream &outfile, std::string metalmap, int xsize, int ysize )
 	delete [] buf;
 }
 
-void
+static void
 SaveTypeMap( ofstream &outfile, int xsize, int ysize, string typemap )
 {
 	int a;
