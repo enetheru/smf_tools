@@ -28,13 +28,13 @@ CTileHandler::~CTileHandler( void )
 void
 CTileHandler::LoadTexture( string name )
 {
-	printf( "Loading texture\n" );
 	bigTex.Load( name );
 
 	xsize = bigTex.xsize / 8;
 	ysize = bigTex.ysize / 8;
 }
 
+// This function generates tile files in a ./temp/ directory.
 void
 CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 {
@@ -81,23 +81,28 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 			tiles[ usedTiles++ ] = bm;
 		}
 	}
-
 	numExternalTile = usedTiles;
 
+	// assign memory for new tile image
 	unsigned char *data = new unsigned char[ 1024 * 1024 * 4 ];
+
 	int tilex = xsize / 4;
 	int tiley = ysize / 4;
 	int bigsquaretexx = tilex / 32;
 	int bigsquaretexy = tiley / 32;
 	int value1,value2;
 	a = 0;
+
+	// for each large tile, looping through X and y
 	for( j = 0; j < bigsquaretexy; j++ ) {
 		for( i = 0; i < bigsquaretexx; i++ ) {
+			// Set origin of texture image
 			ox = 1024 * i;
 			oy = 1024 * j;
 
 			for ( y2 = 0; y2 < 1024; ++y2 ) {
 				for ( x2 = 0; x2 < 1024; ++x2 ) {
+					// Copy image data
 					value1 = (x2 + y2 * 1024) * 4;
 					value2 = (ox + (oy + y2) * xsize * 8 + x2) * 4;
 					data[ value1 ]     = bigTex.mem[ value2 ];
@@ -107,6 +112,7 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 				}
 			}
 
+			// Create and save image from out data
 			CBitmap square( data, 1024, 1024 );
 			char name[ 100 ];
 			sprintf( name, "temp/Temp%03i.tga", a );
@@ -117,6 +123,8 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 		}
 	}
 	int numbigsquares = (xsize / 128) * (ysize / 128);
+
+	//FIXME doesnt appear to work for linux and is poorly written.
 	printf( "Creating dds files\n" );
 	char execstring[ 512 ];
 	if ( fastcompress ) {
@@ -138,7 +146,7 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 	system( "del /Q temp\\Temp*.tga" );
 	system( "del /Q temp" );
 #else	
-	system( "rm temp/Temp*.tga" );
+//	system( "rm temp/Temp*.tga" );
 #endif
 
 	delete[] data;
@@ -167,7 +175,7 @@ CTileHandler::ProcessTiles2( void )
 		file.Read( &ddssignature, sizeof( int ) );
 		file.Read( &ddsheader, sizeof( DDSURFACEDESC2 ) );
 #else
-		snprintf( name, 100, "temp/Temp%03i.bmp.raw", a );
+		snprintf( name, 100, "temp/Temp%03i.tga.raw", a );
 		CFileHandler file( name );
 #endif
 

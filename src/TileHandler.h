@@ -1,6 +1,7 @@
 #ifndef __TILEHANDLER_H__
 #define __TILEHANDLER_H__
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -8,7 +9,7 @@
 
 using namespace std;
 
-#define MAX_MAP_SIZE 40	//FIXME should be limited through cmd line options
+#define MAX_MAP_SIZE 40
 #define MAX_TILES (MAX_MAP_SIZE*MAX_MAP_SIZE*16*16)
 
 class CTileHandler
@@ -16,16 +17,20 @@ class CTileHandler
 public:
 	CTileHandler();
 	~CTileHandler( void );
+
 	void LoadTexture( string name );
-	void ProcessTiles( float compressFactor, bool fastcompress );
 	void SaveData( ofstream &ofs );
 	void ReadTile( int xpos, int ypos, char *destbuf, char *sourcebuf );
 	int  FindCloseTile( CBitmap* bm, int forbidden );
+
+	void ProcessTiles( float compressFactor, bool fastcompress );
 	void ProcessTiles2( void );
 
 	int  GetFileSize( void );
+
 	void AddExternalTileFile( string file );
 	void SetOutputFile( string file );
+	bool CompareTiles( CBitmap *bm, CBitmap *bm2 );
 
 	CBitmap bigTex;
 	int xsize;
@@ -44,7 +49,6 @@ public:
 	};
 	FastStat fastStats[ MAX_TILES ];
 	FastStat CalcFastStat( CBitmap* bm );
-	bool CompareTiles( CBitmap *bm, CBitmap *bm2 );
 
 	int meanThreshold;
 	int meanDirThreshold;
