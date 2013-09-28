@@ -6,6 +6,7 @@
 #ifdef WIN32
 #include "ddraw.h"
 #endif
+#include <nvtt/nvtt.h>
 
 #include "TileHandler.h"
 #include "FileHandler.h"
@@ -94,6 +95,21 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 	a = 0;
 
 	// for each large tile, looping through X and y
+	char outfile[1024];
+	nvtt::InputOptions inputOptions;
+	nvtt::OutputOptions outputOptions;
+	nvtt::CompressionOptions compressionOptions;
+	nvtt::Compressor compressor;
+
+	inputOptions.setTextureLayout(nvtt::TextureType_2D, 1024, 1024);
+//FIXME optional alpha component
+//	compressionOptions.setFormat(nvtt::Format_DXT1a);
+//
+	compressionOptions.setFormat(nvtt::Format_DXT1);
+//FIXME give the user this option.
+//	compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	outputOptions.setOutputHeader(false);
+
 	for( j = 0; j < bigsquaretexy; j++ ) {
 		for( i = 0; i < bigsquaretexx; i++ ) {
 			// Set origin of texture image
@@ -105,49 +121,25 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 					// Copy image data
 					value1 = (x2 + y2 * 1024) * 4;
 					value2 = (ox + (oy + y2) * xsize * 8 + x2) * 4;
-					data[ value1 ]     = bigTex.mem[ value2 ];
-					data[ value1 + 1 ] =	bigTex.mem[ value2 + 1 ];
-					data[ value1 + 2 ] =	bigTex.mem[ value2 + 2 ];
-					data[ value1 + 3 ] =	bigTex.mem[ value2 + 3 ];
+					//Copy data to buffer in BGRA format for nvtt to use
+					data[ value1 + 2 ] = bigTex.mem[ value2     ];
+					data[ value1 + 1 ] = bigTex.mem[ value2 + 1 ];
+					data[ value1     ] = bigTex.mem[ value2 + 2 ];
+					data[ value1 + 3 ] = bigTex.mem[ value2 + 3 ];
 				}
 			}
 
-			// Create and save image from out data
-			CBitmap square( data, 1024, 1024 );
-			char name[ 100 ];
-			sprintf( name, "temp/Temp%03i.tga", a );
-			square.Save( name );
-			printf( "Writing tga files %i%%\n",
+			inputOptions.setMipmapData(data, 1024, 1024);
+			sprintf(outfile, "temp/tile%03i", a);
+			outputOptions.setFileName( outfile );
+			compressor.process(inputOptions, compressionOptions,
+						outputOptions);
+			printf( "Writing tiles %i%%\n",
 				( ( ( a + 1 ) * 1024 ) * 100 ) / ( tilex * tiley ) );
 			a++;
 		}
 	}
 	int numbigsquares = (xsize / 128) * (ysize / 128);
-
-	//FIXME doesnt appear to work for linux and is poorly written.
-	printf( "Creating dds files\n" );
-	char execstring[ 512 ];
-	if ( fastcompress ) {
-		for ( i = 0; i < numbigsquares; i++ ) {
-			sprintf( execstring,
-				"nvcompress.exe -fast -bc1a temp/Temp%03i.tga Temp%03i.dds",
-				i,
-				i);
-			printf( "%s\n", execstring );
-			system( execstring );
-		}
-	} else {
-		sprintf( execstring, "%s temp/Temp*.tga",
-			stupidGlobalCompressorName.c_str() );
-		printf( "%s\n", execstring );
-		system( execstring );
-	}
-#ifdef WIN32
-	system( "del /Q temp\\Temp*.tga" );
-	system( "del /Q temp" );
-#else	
-//	system( "rm temp/Temp*.tga" );
-#endif
 
 	delete[] data;
 }
@@ -167,17 +159,9 @@ CTileHandler::ProcessTiles2( void )
 		int startTilex = (a % bigx) * 32;
 		int startTiley = (a / bigx) * 32;
 		char name[ 100 ];
-#ifdef WIN32
-		DDSURFACEDESC2 ddsheader;
-		int ddssignature;
-		sprintf( name, "Temp%03i.dds", a );
+
+		snprintf( name, 100, "temp/tile%03i", a );
 		CFileHandler file( name );
-		file.Read( &ddssignature, sizeof( int ) );
-		file.Read( &ddsheader, sizeof( DDSURFACEDESC2 ) );
-#else
-		snprintf( name, 100, "temp/Temp%03i.tga.raw", a );
-		CFileHandler file( name );
-#endif
 
 		char bigtile[ 696320 ]; // 1024x1024 and 4 mipmaps
 		file.Read( bigtile, 696320 );
@@ -212,9 +196,9 @@ CTileHandler::ProcessTiles2( void )
 
 	delete[] data;
 #ifdef WIN32
-	system( "del /q temp*.dds" );
+	system( "del /q tile*" );
 #else
-	system( "rm temp/Temp*.bmp.raw" );
+	system( "rm temp/tile*" );
 #endif
 }
 
