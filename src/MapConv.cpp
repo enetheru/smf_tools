@@ -11,8 +11,8 @@
 
 // external
 #include "tclap/CmdLine.h"
+#include <nvtt/nvtt.h>
 #ifdef WIN32
-#include "ddraw.h"
 #include "stdafx.h"
 #else
 #include "time.h" /* time() */
@@ -56,12 +56,6 @@ float *heightmap;
 short int *rotations;
 int randomrotatefeatures = 0;
 
-#ifndef WIN32
-string stupidGlobalCompressorName;
-#else
-string stupidGlobalCompressorName = "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
-#endif
-
 #ifdef WIN32
 int
 _tmain( int argc, _TCHAR *argv[] )
@@ -70,8 +64,6 @@ int
 main( int argc, char **argv )
 #endif
 {
-	printf( "Mothers Mapconv version 2.4 updated by Beherith"
-				   "(mysterme at gmail dot com)\n" );
 	int xsize;
 	int ysize;
 	string intexname = "mars.bmp";
@@ -90,7 +82,6 @@ main( int argc, char **argv )
 //	float whereisit = 0;
 	bool invertHeightMap = false;
 	bool lowpassFilter = false;
-	bool usenvcompress = false;
 //	bool justsmf = false;
 	vector<string> F_Spec;
 
@@ -209,23 +200,6 @@ main( int argc, char **argv )
 			"compression" );
 		cmd.add( compressArg );
 
-		#ifdef WIN32
-		char *defaultTexCompress = "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
-		stupidGlobalCompressorName = "nvdxt.exe -nmips 4 -dxt1a -Sinc -file";
-		#else
-		const char *defaultTexCompress = "texcompress_nogui";
-		#endif
-
-		ValueArg<string> texCompressArg(
-			"z",
-			"texcompress",
-			"Name of companion program texcompress from current working"
-			"directory.",
-			false,
-			defaultTexCompress,
-			"texcompress program" );
-		cmd.add( texCompressArg );
-
 		// Actually, it flips the heightmap *after* it's been read in.
 		// Hopefully this is clearer.
 		SwitchArg invertSwitch(
@@ -234,14 +208,6 @@ main( int argc, char **argv )
 			"Flip the height map image upside-down on reading.",
 			false );
 		cmd.add( invertSwitch );
-
-		SwitchArg usenvcompressSwitch(
-			"q",
-			"use_nvcompress",
-			"Use NVCOMPRESS.EXE tool for ultra fast CUDA compression. Needs"
-			"Geforce 8 or higher nvidia card.",
-			false );
-		cmd.add( usenvcompressSwitch );
 
 		SwitchArg lowpassSwitch(
 			"l",
@@ -322,10 +288,8 @@ main( int argc, char **argv )
 		invertHeightMap = invertSwitch.getValue();
 		lowpassFilter = lowpassSwitch.getValue();
 		featuremap = featureArg.getValue();
-		usenvcompress = usenvcompressSwitch.getValue();
 		geoVentFile = geoArg.getValue();
 		featureListFile = featureListArg.getValue();
-		stupidGlobalCompressorName = texCompressArg.getValue();
 //		justsmf = justsmfSwitch.getValue();
 		randomrotatefeatures = rrArg.getValue();
 		featurePlaceFile = featurePlaceArg.getValue();
@@ -458,16 +422,7 @@ main( int argc, char **argv )
 	featureCreator.CreateFeatures( &tileHandler.bigTex, 0, 0,
 		numNamedFeatures, featuremap, geoVentFile, extrafeatures, F_Spec);
 
-	printf( "Options are: -q: %i compressstring: %s \n", (int)usenvcompress,
-		stupidGlobalCompressorName.c_str() );
-
-	if ( usenvcompress && stupidGlobalCompressorName.find( "nvdxt" ) > 0 ) {
-		stupidGlobalCompressorName = "nvcompress.exe -fast -bc1";
-		printf( "Invalid compressor string for CUDA compress, using default"
-			"of nvcompress.exe -fast -bc1\n" );
-	}
-
-	tileHandler.ProcessTiles( compressFactor, usenvcompress );
+	tileHandler.ProcessTiles( compressFactor );
 
 #ifdef WIN32
 	LARGE_INTEGER li;
@@ -544,29 +499,41 @@ static void
 SaveMiniMap( ofstream &outfile )
 {
 	printf( "creating minimap\n" );
+	
+	nvtt::InputOptions inputOptions;
+	nvtt::OutputOptions outputOptions;
+	nvtt::CompressionOptions compressionOptions;
+	nvtt::Compressor compressor;
+	
+	inputOptions.setTextureLayout(nvtt::TextureType_2D, 1024, 1024);
+	compressionOptions.setFormat(nvtt::Format_DXT1);
+
+//FIXME give the user this option.
+//	compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	compressionOptions.setQuality(nvtt::Quality_Normal); 
+	outputOptions.setOutputHeader(false);
 
 	CBitmap mini = tileHandler.bigTex.CreateRescaled( 1024, 1024 );
-	mini.Save( "mini.bmp" );
-#ifdef WIN32
-	try system( "nvdxt.exe -dxt1a -file mini.bmp\n" );
-	// we are looking for a stack overflow except, running this program in
-	// debug mode throws an exception at this point...
-	catch(...) printf( "caught a wierd stack overflow exception (this doesnt"
-		"mean the program failed...)\n" );
 
-	DDSURFACEDESC2 ddsheader;
-	int ddssignature;
+	// swizzle RGBA to BGRA for dds compression
+	unsigned char buf[1024 * 1024 * 4];
+	for(int y=0; y<1024; ++y)
+	{
+		for(int x=0; x<1024; ++x)
+		{
+			buf[ (y * 1024 + x) * 4 + 2 ] = mini.mem[ (y * 1024 + x) * 4 + 0 ];
+			buf[ (y * 1024 + x) * 4 + 1 ] = mini.mem[ (y * 1024 + x) * 4 + 1 ];
+			buf[ (y * 1024 + x) * 4 + 0 ] = mini.mem[ (y * 1024 + x) * 4 + 2 ];
+			buf[ (y * 1024 + x) * 4 + 3 ] = mini.mem[ (y * 1024 + x) * 4 + 3 ];
+		}
+	}
 
-	CFileHandler file( "mini.dds" );
-	file.Read( &ddssignature, sizeof( int ) );
-	file.Read( &ddsheader, sizeof( DDSURFACEDESC2 ) );
-#else
-	char execstring[ 512 ];
-	snprintf( execstring, 512, "%s mini.bmp",
-					stupidGlobalCompressorName.c_str() );
-	system( execstring );
-	CFileHandler file( "mini.bmp.raw" );
-#endif
+	inputOptions.setMipmapData( buf, 1024, 1024 );
+	outputOptions.setFileName( "mini" );
+	compressor.process(inputOptions, compressionOptions,
+				outputOptions);
+
+	CFileHandler file( "mini" );
 
 	char minidata[ MINIMAP_SIZE ];
 	file.Read( minidata, MINIMAP_SIZE );

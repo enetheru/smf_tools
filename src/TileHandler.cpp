@@ -3,16 +3,11 @@
 #include <string.h>
 
 /* library includes */
-#ifdef WIN32
-#include "ddraw.h"
-#endif
 #include <nvtt/nvtt.h>
 
 #include "TileHandler.h"
 #include "FileHandler.h"
 #include "mapfile.h"
-
-extern string stupidGlobalCompressorName; /* MapConv.cpp */
 
 CTileHandler tileHandler;
 
@@ -37,7 +32,7 @@ CTileHandler::LoadTexture( string name )
 
 // This function generates tile files in a ./temp/ directory.
 void
-CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
+CTileHandler::ProcessTiles( float compressFactor )
 {
 	meanThreshold = int( 2000 * compressFactor );
 	meanDirThreshold = int( 20000 * compressFactor );
@@ -104,10 +99,11 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 	inputOptions.setTextureLayout(nvtt::TextureType_2D, 1024, 1024);
 //FIXME optional alpha component
 //	compressionOptions.setFormat(nvtt::Format_DXT1a);
-//
 	compressionOptions.setFormat(nvtt::Format_DXT1);
+
 //FIXME give the user this option.
 //	compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
 
 	for( j = 0; j < bigsquaretexy; j++ ) {
@@ -134,13 +130,12 @@ CTileHandler::ProcessTiles( float compressFactor, bool fastcompress )
 			outputOptions.setFileName( outfile );
 			compressor.process(inputOptions, compressionOptions,
 						outputOptions);
-			printf( "Writing tiles %i%%\n",
+			printf( "Writing tile %03i of %03i %i%%\n", i + j * bigsquaretexy,
+				bigsquaretexy * bigsquaretexx,
 				( ( ( a + 1 ) * 1024 ) * 100 ) / ( tilex * tiley ) );
 			a++;
 		}
 	}
-	int numbigsquares = (xsize / 128) * (ysize / 128);
-
 	delete[] data;
 }
 

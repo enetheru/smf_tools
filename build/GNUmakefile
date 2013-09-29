@@ -1,14 +1,11 @@
 CXXFLAGS=-g -Wall -L/usr/lib
-SDLCFLAGS=$(SDLFLAGS) $(shell sdl-config --cflags)
-SDLLIBS=$(shell sdl-config --libs)
 TCLAP=-I../include/tclap-1.2.1/include
 BOOSTLIBS=-lboost_system-mt -lboost_filesystem-mt -lboost_regex-mt
 
-
-all: mapconv texcompress_nogui texcompress
+all: mapconv 
 
 clean:
-	rm -f mapconv texcompress texcompress_nogui *.o
+	rm -f mapconv *.o
 	rm -f *~
 
 mapconv: Bitmap.o MapConv.o TileHandler.o FeatureCreator.o FileHandler.o
@@ -28,15 +25,3 @@ Bitmap.o: Bitmap.cpp Bitmap.h FileHandler.h
 
 FileHandler.o: FileHandler.cpp FileHandler.h
 	g++ $(CXXFLAGS) -c $<
-
-texcompress.o: texcompress.cpp
-	g++ $(CXXFLAGS) -c $^ -o $@ $(SDLCFLAGS)
-
-texcompress: texcompress.o Bitmap.o FileHandler.o
-	g++ $(CXXFLAGS) $^ -o $@ $(SDLLIBS) $(BOOSTLIBS) -lGLU -lGLEW -lIL
-
-texcompress_nogui.o: texcompress_nogui.cpp
-	g++ $(CXXFLAGS) -c $^ -o $@
-texcompress_nogui: texcompress_nogui.o Bitmap.o FileHandler.o
-	g++ $(CXXFLAGS) $^ -o $@ -ldl $(BOOSTLIBS) -lIL
-
