@@ -9,7 +9,7 @@ clean:
 	rm -f *~
 
 mapconv: Bitmap.o MapConv.o TileHandler.o FeatureCreator.o FileHandler.o
-	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt
+	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
 
 MapConv.o: MapConv.cpp Bitmap.h FileHandler.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)

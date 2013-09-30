@@ -12,6 +12,7 @@
 // external
 #include "tclap/CmdLine.h"
 #include <nvtt/nvtt.h>
+#include <OpenImageIO/imageio.h>
 #ifdef WIN32
 #include "stdafx.h"
 #else
@@ -27,6 +28,7 @@
 
 using namespace std;
 using namespace TCLAP;
+OIIO_NAMESPACE_USING
 
 static void
 LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
@@ -547,41 +549,37 @@ LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
 	printf( "Creating height map\n" );
 	int x,y;
 	float hDif = maxHeight - minHeight;
-	int mapx = xsize + 1;
-	int mapy = ysize + 1;
-	unsigned short h;
-	heightmap = new float[ mapx * mapy ];
 
-	if ( inname.find( ".raw" ) != string::npos ) {
-		//16 bit raw
-		CFileHandler fh(inname);
+	// test OIIO code
+	int xres, yres, channels;
+	float *pixels;
+	ImageInput *in = ImageInput::create (inname.c_str());
 
-		for ( y = 0; y < mapy; ++y )
-			for ( x = 0; x < mapx; ++x ) {
-				fh.Read( &h, 2 );
-				heightmap[ (ysize-y) * mapx + x ] =
-						(float( h )) / 65535 * hDif + minHeight;
-			}
-	} else {
-		//standard image
-		CBitmap bm( inname );
-		if( bm.xsize != mapx || bm.ysize != mapy ) {
-			printf( "Errenous dimensions for heightmap image. Correct size"
-				"is texture/8 +1\n  You specified %i x %i when %i x %i is"
-				"the correct dimension based on the texture\n",
-				bm.xsize, bm.ysize, mapx, mapy );
+	if (! in) return;
+	ImageSpec spec;
+	in->open ( inname.c_str(), spec );
+	xres = spec.width;
+	yres = spec.height;
+	channels = spec.nchannels;
+	if ( xres != xsize + 1 || yres != ysize + 1 ) {
+			fprintf(stderr, "Displacement Image does not have the correct dimensions\n");
 			exit(0);
-		}
-		for( y = 0; y < mapy; ++y )
-			for( x = 0; x < mapx; ++x ) {
-				h = (int)bm.mem[ (y * mapx +x) * 4 ] * 256;
-				heightmap[ (ysize - y) * mapx + x ] =
-					float(h) / 65535 * hDif + minHeight;
-			}
 	}
+	pixels = new float [ xres * yres * channels ];
+	in->read_image (TypeDesc::FLOAT, pixels);
+	in->close ();
+	delete in;
+	heightmap = new float [xres * yres];
+	for ( y=0; y<yres; ++y ) {
+		for ( x=0; x<xres; ++x ) {
+			heightmap[ (y * yres + x) ]
+				= pixels[ (y * yres + x) * channels ] * hDif + minHeight;
+		}
+	}
+	delete [] pixels;
 
-	if ( invert )HeightMapInvert( mapx, mapy );
-	if ( lowpass )HeightMapFilter( mapx, mapy );
+	if ( invert )HeightMapInvert( xres, yres );
+	if ( lowpass )HeightMapFilter( xres, yres );
 }
 
 static void

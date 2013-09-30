@@ -102,8 +102,8 @@ CTileHandler::ProcessTiles( float compressFactor )
 	compressionOptions.setFormat(nvtt::Format_DXT1);
 
 //FIXME give the user this option.
-//	compressionOptions.setQuality(nvtt::Quality_Fastest); 
-	compressionOptions.setQuality(nvtt::Quality_Normal); 
+	compressionOptions.setQuality(nvtt::Quality_Fastest); 
+//	compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
 
 	for( j = 0; j < bigsquaretexy; j++ ) {
