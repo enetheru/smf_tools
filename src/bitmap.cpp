@@ -8,8 +8,8 @@
 // Library Headers
 #include <IL/il.h>
 // Local headers
-#include "FileHandler.h"
-#include "Bitmap.h"
+#include "filehandler.h"
+#include "bitmap.h"
 #ifdef WIN32
 #include "stdafx.h"
 #endif

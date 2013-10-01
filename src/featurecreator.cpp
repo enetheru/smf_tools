@@ -1,5 +1,5 @@
-#include "FeatureCreator.h"
-#include "Bitmap.h"
+#include "featurecreator.h"
+#include "bitmap.h"
 #include "math.h"
 #ifdef WIN32
 #include "stdafx.h"

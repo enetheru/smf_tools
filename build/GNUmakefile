@@ -8,20 +8,20 @@ clean:
 	rm -f mapconv *.o
 	rm -f *~
 
-mapconv: Bitmap.o MapConv.o TileHandler.o FeatureCreator.o FileHandler.o
+mapconv: bitmap.o main.o tilehandler.o featurecreator.o filehandler.o
 	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
 
-MapConv.o: MapConv.cpp Bitmap.h FileHandler.h
+main.o: main.cpp bitmap.h filehandler.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
 
-TileHandler.o: TileHandler.cpp TileHandler.h Bitmap.h FileHandler.h
+tilehandler.o: tilehandler.cpp tilehandler.h bitmap.h filehandler.h
 	g++ $(CXXFLAGS) -c $<
 
-FeatureCreator.o: FeatureCreator.cpp FeatureCreator.h Bitmap.h
+featurecreator.o: featurecreator.cpp featurecreator.h bitmap.h
 	g++ $(CXXFLAGS) -c $<
 
-Bitmap.o: Bitmap.cpp Bitmap.h FileHandler.h
+bitmap.o: bitmap.cpp bitmap.h filehandler.h
 	g++ $(CXXFLAGS) -c $<
 
-FileHandler.o: FileHandler.cpp FileHandler.h
+filehandler.o: filehandler.cpp filehandler.h
 	g++ $(CXXFLAGS) -c $<

@@ -21,10 +21,10 @@
 
 // local headers
 #include "mapfile.h"
-#include "FileHandler.h"
-#include "FeatureCreator.h"
-#include "TileHandler.h"
-#include "Bitmap.h"
+#include "filehandler.h"
+#include "featurecreator.h"
+#include "tilehandler.h"
+#include "bitmap.h"
 
 using namespace std;
 using namespace TCLAP;

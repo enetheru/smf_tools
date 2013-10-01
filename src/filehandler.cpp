@@ -1,4 +1,4 @@
-#include "FileHandler.h"
+#include "filehandler.h"
 #include <fstream>
 #include <algorithm>
 #include <cctype>

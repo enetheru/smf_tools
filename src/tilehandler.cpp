@@ -5,8 +5,8 @@
 /* library includes */
 #include <nvtt/nvtt.h>
 
-#include "TileHandler.h"
-#include "FileHandler.h"
+#include "tilehandler.h"
+#include "filehandler.h"
 #include "mapfile.h"
 
 CTileHandler tileHandler;

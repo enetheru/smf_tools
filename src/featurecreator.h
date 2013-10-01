@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 #include "mapfile.h"
-#include "Bitmap.h"
+#include "bitmap.h"
 #include "string.h"
 
 using namespace std;
