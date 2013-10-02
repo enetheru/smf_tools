@@ -32,11 +32,11 @@ CTileHandler::LoadTexture( string name )
 
 // This function generates tile files in a ./temp/ directory.
 void
-CTileHandler::ProcessTiles( float compressFactor )
+CTileHandler::ProcessTiles( bool fastCompress )
 {
-	meanThreshold = int( 2000 * compressFactor );
-	meanDirThreshold = int( 20000 * compressFactor );
-	borderThreshold = int( 80000 * compressFactor );
+//	meanThreshold = int( 2000 * compressFactor );
+//	meanDirThreshold = int( 20000 * compressFactor );
+//	borderThreshold = int( 80000 * compressFactor );
 	unsigned char buf[ SMALL_TILE_SIZE ];
 	int a,i,j,ox,oy,x2,y2;
 	CBitmap *bm;
@@ -98,12 +98,11 @@ CTileHandler::ProcessTiles( float compressFactor )
 
 	inputOptions.setTextureLayout(nvtt::TextureType_2D, 1024, 1024);
 //FIXME optional alpha component
-//	compressionOptions.setFormat(nvtt::Format_DXT1a);
+//	if( ? )compressionOptions.setFormat(nvtt::Format_DXT1a);
 	compressionOptions.setFormat(nvtt::Format_DXT1);
 
-//FIXME give the user this option.
-	compressionOptions.setQuality(nvtt::Quality_Fastest); 
-//	compressionOptions.setQuality(nvtt::Quality_Normal); 
+	if( fastCompress )compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	else compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
 
 	for( j = 0; j < bigsquaretexy; j++ ) {

@@ -30,33 +30,41 @@ using namespace std;
 using namespace TCLAP;
 OIIO_NAMESPACE_USING
 
-static void
-LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
-				float maxHeight,bool invert,bool lowpass );
+class NVTTOutputHandler: public nvtt::OutputHandler
+{
+public:
+	void
+	beginImage( int size, int width, int height, int depth, int face,
+				int miplevel);
 
-static void
-HeightMapInvert(int mapx, int mapy);
+	bool
+	writeData(const void *data, int size);
 
-static void
-HeightMapFilter(int mapx, int mapy);
+	char buffer[MINIMAP_SIZE+1024];
+	int offset;
+};
 
-static void
-SaveHeightMap( ofstream &outfile, int xsize, int ysize, float minHeight,
-				float maxHeight );
+void
+NVTTOutputHandler::beginImage( int size, int width, int height, int depth, int face,
+				int miplevel)
+{
+	return;
+}
 
-static void
-SaveMiniMap( ofstream &outfile );
+bool
+NVTTOutputHandler::writeData(const void *data, int size)
+{
+    // Copy mipmap data
+    memcpy( &buffer[offset], data, size );
+    offset += size;
+    return true;
+}
 
-static void
-SaveMetalMap( ofstream &outfile, std::string metalmap, int xsize, int ysize );
+//static void
+//HeightMapInvert(int mapx, int mapy);
 
-static void
-SaveTypeMap( ofstream &outfile, int xsize, int ysize, string typemap );
-
-CFeatureCreator featureCreator;
-float *heightmap;
-short int *rotations;
-int randomrotatefeatures = 0;
+//static void
+//HeightMapFilter(int mapx, int mapy);
 
 #ifdef WIN32
 int
@@ -66,251 +74,299 @@ int
 main( int argc, char **argv )
 #endif
 {
-	int xsize;
-	int ysize;
-	string intexname = "mars.bmp";
-	string inHeightName = "mars.raw";
-	string outfilename = "mars.smf";
-	string metalmap = "marsmetal.bmp";
-	string typemap = "";
-	string extTileFile = "";
-	string featuremap = "";
-	string geoVentFile = "geovent.bmp";
-	string featureListFile = "fs.txt";
-	string featurePlaceFile = "fp.txt";
-	float minHeight = 20;
-	float maxHeight = 300;
-	float compressFactor = 0.8f;
-//	float whereisit = 0;
-	bool invertHeightMap = false;
-	bool lowpassFilter = false;
-//	bool justsmf = false;
-	vector<string> F_Spec;
-
-	// exmple command
-	// -i -c 0.7 -x 608 -n -76 -o Schizo_Shores_v4.smf -m m2.bmp -t t2.bmp
-	// -a h3.raw -f f2.bmp -z "nvdxt2.exe -dxt1a -Box -quality_production
-	// -nmips 4 -fadeamount 0 -sharpenMethod SharpenSoft -file"
+// Generic Options
+//  -o --outfilename <string>
+//     --no-smt <bool> Don't build smt file
+//     --smt <smt file> Use existing smt file
+//  -v --verbose <bool> Display extra output
+//  -q --quiet <bool> Supress standard output
+	string out_fn = "", smt_fn = "";
+//	bool no_smt = true,
+	bool verbose = false, quiet = false;
+//
+//  Map Dimensions
+//	-w --width <int> Width in spring map units
+//	-l --length <int> Length in spring map units
+//	-a --height <float> Height of the map in spring map units
+//	-d --depth <float> Depth of the map in spring map units
+	int width = -1, length = 0, height = 0, depth = 1;
+//
+// Diffuse Image
+//	-c --diffuse <image> 
+//	   --fast-dxt1 <bool> fast compression for dxt1 of diffuse image
+	bool fast_dxt1 = false;
+	string diffuse_fn = "";
+//
+// Displacement
+//	-y --displacement <image>
+//	   --lowpass <bool>
+//	   --invert <bool>
+	string displacement_fn = "";
+	bool displacement_lowpass = false, displacement_invert = false;
+//
+// Metal
+//	-m --metal <image>
+	string metalmap_fn = "";
+//
+// Terrain Type
+//	-t --type <image>
+	string typemap_fn = "";
+//
+// Features
+//	-f --feature <image>
+//	   --featurelist <text>
+	string featuremap_fn = "", featurelist_fn = "";
+//
+// Minimap
+//     --minimap <image>
+	string minimap_fn = "";
 
 	try {
 		// Define the command line object.
-		CmdLine cmd( "Converts a series of image files to a Spring map. This"
-			"just creates the .smf and .smt files. You also need to write a"
-			".smd file using a text editor.", ' ', "0.5" );
+		CmdLine cmd( "Converts a series of image and text files to .smf and"
+						".smt files used in SpringRTS maps.", ' ', "0.5" );
 
 		// Define a value argument and add it to the command line.
-		ValueArg<string> intexArg(
-			"t",
-			"intex",
-			"Input bitmap to use for the map. Sides must be multiple of 1024"
-			"long. xsize, ysize determined from this file: xsize = intex"
-			"width / 8, ysize = height / 8.",
-			true,
-			"test.bmp",
-			"texturemap file" );
-		cmd.add( intexArg );
+		
+		// Generic Options //		
+		/////////////////////
+		ValueArg<string> arg_out_fn(
+			"o", "outfilename",
+			"Output prefix for the spring map file(.smf) and the spring tile "
+			"file(.smt)",
+			true, "", "mapname", cmd);
 
-		ValueArg<string> heightArg(
-			"a",
-			"heightmap",
-			"Input heightmap to use for the map, this should be in 16 bit"
-			"raw format (.raw extension) or an image file. Must be xsize*64+1"
-			"by ysize*64+1.",
-			true,
-			"test.raw",
-			"heightmap file" );
-		cmd.add( heightArg );
-
-		ValueArg<string> metalArg(
-			"m",
-			"metalmap",
-			"Metal map to use, red channel is amount of metal. Resized to"
-			"xsize / 2 by ysize / 2.",
-			true,
-			"metal.bmp",
-			"metalmap image ");
-		cmd.add( metalArg );
-
-		ValueArg<string> typeArg(
-			"y",
-			"typemap",
-			"Type map to use, uses the red channel to decide type. types are"
-			"defined in the .smd, if this argument is skipped the map will be"
-			"all type 0",
-			false,
-			"",
-			"typemap image" );
-		cmd.add( typeArg );
-
-		ValueArg<string> geoArg(
-			"g",
-			"geoventfile",
-			"The decal for geothermal vents; appears on the compiled map at"
-			"each vent. (Default: geovent.bmp).",
-			false,
-			"geovent.bmp",
-			"Geovent image" );
-		cmd.add( geoArg );
-
-		ValueArg<string> tileArg(
-			"e",
-			"externaltilefile",
+		ValueArg<string> arg_smt_fn(
+			"", "smt",
 			"External tile file that will be used for finding tiles. Tiles"
 			"not found in this will be saved in a new tile file.",
-			false,
-			"",
-			"tile file" );
-		cmd.add( tileArg );
+			false, "", "filename", cmd );
 
-		ValueArg<string> outArg(
-			"o",
-			"outfile",
-			"The name of the created map file. Should end in .smf. A"
-			"tilefile (extension .smt) is also created.",
-			false,
-			"test.smf",
-			"output .smf" );
-		cmd.add( outArg );
+		SwitchArg arg_no_smt(
+			"", "no-smt",
+			"Don't make spring tile file(smt).",
+			cmd, false );
 
-		ValueArg<float> minhArg(
-			"n",
-			"minheight",
-			"What altitude in spring the min(0) level of the height map"
-			"represents.",
-			true,
-			-20,
-			"min height" );
-		cmd.add( minhArg );
+		SwitchArg arg_verbose(
+			"v", "verbose",
+			"Extra information printed to standard output.",
+			cmd, false );
 
-		ValueArg<float> maxhArg(
-			"x",
-			"maxheight",
-			"What altitude in spring the max(0xff or 0xffff) level of the"
-			"height map represents.",
-			true,
-			500,
-			"max height" );
-		cmd.add( maxhArg );
-
-		ValueArg<float> compressArg(
-			"c",
-			"compress",
-			"How much we should try to compress the texture map. Default 0.8,"
-			"lower -> higher quality, larger files.",
-			false,
-			0.8f,
-			"compression" );
-		cmd.add( compressArg );
-
-		// Actually, it flips the heightmap *after* it's been read in.
-		// Hopefully this is clearer.
-		SwitchArg invertSwitch(
-			"i",
-			"invert",
-			"Flip the height map image upside-down on reading.",
-			false );
-		cmd.add( invertSwitch );
-
-		SwitchArg lowpassSwitch(
-			"l",
-			"lowpass",
-			"Lowpass filters the heightmap",
-			false );
-		cmd.add( lowpassSwitch );
+		SwitchArg arg_quiet(
+			"q", "quiet",
+			"Supress information printing to standard output.",
+			cmd, false );
 		
-		SwitchArg justsmfSwitch(
-			"s",
-			"justsmf",
-			"Just create smf file, dont make smt",
-			false );
-		cmd.add( justsmfSwitch );
-		
-		ValueArg<int> rrArg(
-			"r",
-			"randomrotate",
-			"rotate features randomly, the first r features in featurelist"
-			"(fs.txt) get random rotation, default 0",
-			false,
-			0,
-			"randomrotate" );
-		cmd.add( rrArg );
+		// Map Dimensions //
+		////////////////////
+		ValueArg<int> arg_width(
+			"w", "width",
+			"The Width of the map in spring map units. Must be multiples of 2",
+			true, 8, "int", cmd );
 
-		ValueArg<string> featureArg(
-			"f",
-			"featuremap",
-			"Feature placement file, xsize by ysize. See README.txt for"
-			"details. Green 255 pixels are geo vents, blue is grass, green"
-			"201-215 is default trees, red 255-0 correspont each to a line"
-			"in fs.txt.",
-			false,
-			"",
-			"featuremap image" );
-		cmd.add( featureArg );
+		ValueArg<int> arg_length(
+			"l", "length",
+			"The Length of the map in spring map units. Must be multiples of 2",
+			true, 8, "int", cmd );
 
-		ValueArg<string> featureListArg(
-			"j",
-			"featurelist",
-			"A file with the name of one feature on each line. (Default:"
-			"fs.txt). See README.txt for details. \n Specifying a number"
-			"from 32767 to -32768 next to the feature name will tell mapconv"
-			"how much to rotate the feature. specifying -1 will rotate it"
-			"randomly. \n Example line from fs.txt \n btreeblo_1 -1\n"
-			"btreeblo 16000",
-			false,
-			"fs.txt",
-			"feature list file" );
-		cmd.add( featureListArg );
+		ValueArg<float> arg_depth(
+			"d", "depth",
+			"The deepest point on the map in spring map units, with zero being sea level.",
+			false, 1, "float", cmd );
 
-		ValueArg<string> featurePlaceArg(
-			"k",
-			"featureplacement",
-			"A special text file defining the placement of each feature."
-			"(Default: fp.txt). See README.txt for details. The default"
-			"format specifies it to have each line look like this (spacing"
-			"is strict) \n { name = \'agorm_talltree6\', x = 224, z = 3616,"
-			"rot = \"0\" }",
-			false,
-			"fp.txt",
-			"feature placement file" );
-		cmd.add( featurePlaceArg );
+		ValueArg<float> arg_height(
+			"a", "height",
+			"The highest point on the map in spring map units, with zero being sea level.",
+			false, 1, "float", cmd );
+
+		// Diffuse Image //
+		///////////////////
+		ValueArg<string> arg_diffuse_fn(
+			"c", "diffuse",
+			"Image to use for the diffuse or colour of the map.",
+			false, "", "filename", cmd );
+
+		SwitchArg arg_fast_dxt1(
+			"", "fast-dxt1",
+			"Use Fast compression method of dxt1",
+			cmd, false);
+
+		// Displacement Image //
+		////////////////////////
+		ValueArg<string> arg_displacement_fn(
+			"y", "displacment",
+			"Image to use for vertical displacement of the terrain.",
+			false, "", "filename", cmd );
+
+		SwitchArg arg_displacement_invert(
+			"", "invert",
+			"Invert the meaning of black and white.",
+			cmd, false );
+
+		SwitchArg arg_displacement_lowpass(
+			"", "lowpass",
+			"Lowpass filter smoothing hard edges from 8bit colour.",
+			cmd, false );
+
+		// Metal //
+		///////////
+		ValueArg<string> arg_metalmap_fn(
+			"m", "metalmap",
+			"Image used for built in resourcing scheme.",
+			false, "", "filename", cmd);
+
+		// Terrain Type //
+		//////////////////
+		ValueArg<string> arg_typemap_fn(
+			"t", "typemap",
+			"Image to define terrain types.",
+			false, "", "filename", cmd );
+
+		// Features //
+		//////////////
+		ValueArg<string> arg_featuremap_fn(
+			"f", "featuremap",
+			"Image used to place features and grass.",
+			false, "", "filename", cmd );
+
+		ValueArg<string> arg_featurelist_fn(
+			"", "featurelist",
+			"Text file defining type, location, rotation of feature and "
+			"decal to paint to diffuse texture.",
+			false, "", "filename", cmd );
+
+		// Minimap //
+		/////////////
+		ValueArg<string> arg_minimap_fn(
+			"", "minimap",
+			"Image file to use for the minimap",
+			false, "", "filename", cmd );
 
 		// Parse the args.
 		cmd.parse( argc, argv );
 
 		// Get the value parsed by each arg.
-		intexname = intexArg.getValue();
-		inHeightName = heightArg.getValue();
-		outfilename = outArg.getValue();
-		typemap = typeArg.getValue();
-		extTileFile = tileArg.getValue();
-		metalmap = metalArg.getValue();
-		minHeight = minhArg.getValue();
-		maxHeight = maxhArg.getValue();
-		compressFactor = compressArg.getValue();
-		invertHeightMap = invertSwitch.getValue();
-		lowpassFilter = lowpassSwitch.getValue();
-		featuremap = featureArg.getValue();
-		geoVentFile = geoArg.getValue();
-		featureListFile = featureListArg.getValue();
-//		justsmf = justsmfSwitch.getValue();
-		randomrotatefeatures = rrArg.getValue();
-		featurePlaceFile = featurePlaceArg.getValue();
+		// Generic Options
+		out_fn = arg_out_fn.getValue();
+		smt_fn = arg_smt_fn.getValue();
+		quiet = arg_quiet.getValue();
+		verbose = arg_verbose.getValue();
+
+		// Map Dimensions
+		width = arg_width.getValue();
+		length = arg_length.getValue();
+		depth = arg_depth.getValue();
+		height = arg_height.getValue();
+
+		// Diffuse Image
+		diffuse_fn = arg_diffuse_fn.getValue();
+		fast_dxt1 = arg_fast_dxt1.getValue();
+
+		// Displacement
+		displacement_fn = arg_displacement_fn.getValue();
+		displacement_invert = arg_displacement_invert.getValue();
+		displacement_lowpass = arg_displacement_lowpass.getValue();
+
+		// Resources
+		metalmap_fn = arg_metalmap_fn.getValue();
+
+		// Terrain Type
+		typemap_fn = arg_typemap_fn.getValue();
+
+		// Features
+		featuremap_fn = arg_featuremap_fn.getValue();
+		featurelist_fn = arg_featurelist_fn.getValue();
+
+		// Minimap
+		minimap_fn = arg_minimap_fn.getValue();
+
 	} catch ( ArgException &e ) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
 		exit( -1 );
 	}
 
-	tileHandler.LoadTexture( intexname );
-	tileHandler.SetOutputFile( outfilename );
-	if ( !extTileFile.empty() )tileHandler.AddExternalTileFile( extTileFile );
+	// Test arguments for validity before continuing //
+	///////////////////////////////////////////////////
+	cout << "INFO: Testing Arguments for validity." << endl;
+	if ( width < 2 || width > 64 || width % 2 ) {
+		cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
+		exit( -1 );
+	}
+	if ( length < 2 || length > 64 || length % 2 ) {
+		cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
+		exit( -1 );
+	}
 
-	xsize = tileHandler.xsize;
-	ysize = tileHandler.ysize;
+	// Test Diffuse //
+	ImageInput *in; 
+	if( !diffuse_fn.compare( "" ) ) {
+		if ( verbose ) cout << "WARNING: Diffuse unspecified.\n\tMap will be grey." << endl;
+	} else {
+		in = ImageInput::create( diffuse_fn.c_str() );
+		if ( !in ) {
+			if ( !quiet )cout << "ERROR: Diffuse image missing or invalid format." << endl; 
+			exit( -1 );
+		}
+		delete in;
+	}
+	// Test Displacement //
+	if( !displacement_fn.compare( "" ) ) {
+		if ( verbose ) cout << "WARNING: Displacement unspecified.\n\tMap will be flat." << endl;
+	} else {
+		in = ImageInput::create( displacement_fn.c_str() );
+		if ( !in ) {
+			if ( !quiet )cout << "ERROR: Displacement image missing or invalid format." << endl;
+			exit( -1 );
+		}
+		delete in;
+	}
+	// Test Metalmap //
+	if( !metalmap_fn.compare( "" ) ) {
+		if ( verbose ) cout << "WARNING: Metalmap unspecified." << endl;
+	} else {
+		in = ImageInput::create( metalmap_fn.c_str() );
+		if ( !in ) {
+			if ( !quiet )cout << "ERROR: Metalmap image missing or invalid format." << endl;
+			exit( -1 );
+		}
+		delete in;
+	}
+	// Test Typemap //
+	if( !typemap_fn.compare( "" ) ) {
+		if ( verbose ) cout << "WARNING: Typemap unspecified." << endl;
+	} else {
+		in = ImageInput::create( typemap_fn.c_str() );
+		if ( !in ) {
+			if ( !quiet )cout << "ERROR: Typemap image missing or invalid format." << endl;
+			exit( -1 );
+		}
+		delete in;
+	}
+	// Test Featuremap //
+	if( !featuremap_fn.compare( "" ) ) {
+		if ( verbose ) cout << "WARNING: Featuremap unspecified." << endl;
+	} else {
+		in = ImageInput::create( featuremap_fn.c_str() );
+		if ( !in ) {
+			if ( !quiet )cout << "ERROR: Featuremap image missing or invalid format." << endl;
+			exit( -1 );
+		}
+		delete in;
+	}
+	// Test Minimap //
+	if( !minimap_fn.compare( "" ) ) {
+		if ( verbose ) cout << "WARNING: Minimap unspecified." << endl;
+	} else {
+		in = ImageInput::create( minimap_fn.c_str() );
+		if ( !in ) {
+			if ( !quiet )cout << "ERROR: Minimap image missing or invalid format." << endl;
+			exit( -1 );
+		}
+		delete in;
+	}
 
-	LoadHeightMap( inHeightName, xsize, ysize, minHeight, maxHeight,
-				invertHeightMap, lowpassFilter );
 
-	ifstream ifs;
+/*	ifstream ifs;
 	int numNamedFeatures = 0;
 
 	ifs.open( featureListFile.c_str(), ifstream::in );
@@ -422,10 +478,12 @@ main( int argc, char **argv )
 	}
 
 	featureCreator.CreateFeatures( &tileHandler.bigTex, 0, 0,
-		numNamedFeatures, featuremap, geoVentFile, extrafeatures, F_Spec);
+		numNamedFeatures, feature_fn, geoVentFile, extrafeatures, F_Spec);
+*/
 
-	tileHandler.ProcessTiles( compressFactor );
-
+	// Build header //
+	//////////////////
+	if( verbose ) cout << "INFO: Creating Header." << endl;
 #ifdef WIN32
 	LARGE_INTEGER li;
 	QueryPerformanceCounter( &li );
@@ -442,31 +500,46 @@ main( int argc, char **argv )
 #else
 	header.mapid = time( NULL );
 #endif
-	header.mapx = xsize;
-	header.mapy = ysize;
+	header.mapx = width * 64;
+	header.mapy = length * 64;
 	header.squareSize = 8;
 	header.texelPerSquare = 8;
 	header.tilesize = 32;
-	header.minHeight = minHeight;
-	header.maxHeight = maxHeight;
+	header.minHeight = depth * 512;
+	header.maxHeight = height * 512;
 
 	header.numExtraHeaders = 1;
 
-	int headerSize = sizeof( MapHeader );
-	headerSize += 12; //size of vegetation extra header
+	int offset = sizeof( MapHeader );
+	// add size of vegetation extra header
+	offset += 12;
+	header.heightmapPtr = offset;
 
-	header.heightmapPtr = headerSize;
-	header.typeMapPtr = header.heightmapPtr + (xsize +1) * (ysize +1) * 2;
-	header.minimapPtr = header.typeMapPtr + (xsize / 2) * (ysize / 2);
-	header.tilesPtr = header.minimapPtr + MINIMAP_SIZE;
-	header.metalmapPtr = header.tilesPtr + tileHandler.GetFileSize();
-	header.featurePtr = header.metalmapPtr
-		+ (xsize / 2) * (ysize / 2)
-		+ (xsize / 4 * ysize / 4);	//last one is space for vegetation map
+	// add size of heightmap
+	offset += (width * 64 +1) * (length * 64 +1) * 2;
+	header.typeMapPtr = offset;
 
+	// add size of typemap
+	offset += width * length * 1024;
+	header.minimapPtr = offset;
 
-	ofstream outfile( outfilename.c_str(), ios::out | ios::binary );
+	// add size of minimap
+	offset += MINIMAP_SIZE;
+	header.tilesPtr = offset;
 
+	// add size of tiles
+	offset += tileHandler.GetFileSize();
+	header.metalmapPtr = offset;
+
+	// add size of metalmap
+	offset += width * length * 1024
+			+ width * length * 256;	//last one is space for vegetation map
+	header.featurePtr = offset;
+
+	// Write Header to file //
+	//////////////////////////
+	if( verbose ) cout << "INFO: Writing Header." << endl;
+	ofstream outfile( out_fn.append(".smf").c_str(), ios::out | ios::binary );
 	outfile.write( (char *)&header, sizeof( MapHeader ) );
 
 	//extra header size
@@ -478,30 +551,189 @@ main( int argc, char **argv )
 	outfile.write( (char *)&temp, 4 );
 
 	//offset to vegetation map
-	temp = header.metalmapPtr + (xsize / 2) * (ysize / 2);
+	temp = header.metalmapPtr + width * length * 1024;
 	outfile.write( (char *)&temp, 4 );
 
-	SaveHeightMap( outfile, xsize, ysize, minHeight, maxHeight );
-
-	SaveTypeMap( outfile, xsize, ysize, typemap );
-	SaveMiniMap( outfile );
-
-	tileHandler.ProcessTiles2();
-	tileHandler.SaveData( outfile );
-
-	SaveMetalMap( outfile, metalmap, xsize, ysize );
-
-	featureCreator.WriteToFile( &outfile, F_Spec );
-
-	delete[] heightmap;
-	return 0;
-}
-
-static void
-SaveMiniMap( ofstream &outfile )
-{
-	printf( "creating minimap\n" );
+	// Write Data to file //
+	////////////////////////
+	ImageSpec *spec;
+	int xres, zres, channels;
+	int ox, oz;
+	unsigned short *uint16_pixels;
+	unsigned char *uint8_pixels;
 	
+	// Height Displacement //
+	/////////////////////////
+	if( verbose ) cout << "INFO: Processing and writing displacement." << endl;
+	xres = width * 64 + 1;
+	zres = length * 64 + 1;
+	channels = 1;
+	unsigned short *displacement;
+
+	in = ImageInput::create( displacement_fn.c_str() );
+	if( !in ) {
+		if( verbose ) cout << "INFO: Generating flat displacement" << endl;
+		spec = new ImageSpec(xres, zres, 1, TypeDesc::UINT16);
+		uint16_pixels = new unsigned short[ xres * zres ];
+		memset( uint16_pixels, 32767, xres * zres * 2);
+	} else {
+		if( verbose ) printf( "INFO: Reading %s.\n", displacement_fn.c_str() );
+		spec = new ImageSpec;
+		in->open( displacement_fn.c_str(), *spec );
+		uint16_pixels = new unsigned short [spec->width * spec->height * spec->nchannels ];
+		in->read_image( TypeDesc::UINT16, uint16_pixels );
+		in->close();
+		delete in;
+	}
+
+	// If the image isnt the correct timensions or not the right number of
+	// channels, resample using nearest.
+	if (   spec->width     != xres
+		|| spec->height    != zres
+		|| spec->nchannels != channels ) {
+		if( verbose )
+			printf( "WARNING: %s is (%i,%i)%i, wanted (%i, %i)1 Resampling.\n",
+			displacement_fn.c_str(), spec->width, spec->height, spec->nchannels,
+			xres, zres);
+
+		// resample nearest
+		displacement = new unsigned short[ xres * zres ];
+		for (int z = 0; z < zres; z++ ) // rows
+			for ( int x = 0; x < xres; x++ ) { // columns
+				ox = (float)x / xres * spec->width;
+				oz = (float)z / zres * spec->height;
+				displacement[ z * xres + x ] =
+					uint16_pixels[ (oz * spec->width + ox) * spec->nchannels ];
+		}
+		delete [] uint16_pixels;
+	} else displacement = uint16_pixels;
+
+	// If inversion of height is specified in the arguments,
+	if ( displacement_invert && verbose ) cout << "WARNING: Height inversion not implemented yet" << endl;
+
+	// If inversion of height is specified in the arguments,
+	if ( displacement_lowpass && verbose ) cout << "WARNING: Height lowpass filter not implemented yet" << endl;
+	
+	// write height data to smf.
+	outfile.write( (char *)displacement, xres * zres * 2 );
+	delete [] displacement;
+	delete spec;
+
+	// Typemap //
+	/////////////
+	if( verbose ) cout << "INFO: Processing and writing typemap." << endl;
+	xres = width * 32;
+   	zres = length * 32;
+	channels = 1;
+	unsigned char *typemap;
+
+	in = ImageInput::create( typemap_fn.c_str() );
+	if( !in ) {
+			spec = new ImageSpec(xres, zres, 1, TypeDesc::UINT8);
+			uint8_pixels = new unsigned char[xres * zres];
+			memset( uint8_pixels, 0, xres * zres);
+
+	} else {
+		spec = new ImageSpec;
+		in->open( typemap_fn.c_str(), *spec );
+		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
+		in->read_image( TypeDesc::UINT8, uint8_pixels );
+		in->close();
+		delete in;
+	}
+
+	// If the image isnt the correct timensions or not the right number of
+	// channels, resample using nearest.
+	if (   spec->width     != xres
+		|| spec->height    != zres
+		|| spec->nchannels != 1 ) {
+		if( verbose )
+			printf( "WARNING: %s is (%i,%i)%i, wanted (%i, %i)1 Resampling.\n",
+			typemap_fn.c_str(), spec->width, spec->height, spec->nchannels,
+			xres, zres);
+
+		// resample nearest
+		typemap = new unsigned char[ xres * zres ];
+		for (int z = 0; z < zres; ++z ) // rows
+			for ( int x = 0; x < xres; ++x ) // columns
+				for( int c = 0; c < channels; c++ ) {
+					ox = (float)x / xres * spec->width;
+					oz = (float)z / zres * spec->height;
+					typemap[ z * xres + x ] =
+						uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + c ];
+		}
+		delete [] uint8_pixels;
+	} else typemap = uint8_pixels;
+
+	outfile.write( (char *)typemap, xres * zres );
+	delete [] typemap;
+	delete spec;
+
+	// Minimap //
+	/////////////
+	if( verbose ) cout << "INFO: Processing and writing minimap." << endl;
+	xres = 1024;
+	zres = 1024;
+	channels = 4;
+	unsigned char *minimap;
+
+	in = ImageInput::create( minimap_fn.c_str() );
+
+	if( !in ) {
+		if( verbose ) cout << "INFO: Attempting to create minimap from diffuse." << endl;
+		minimap_fn.assign(diffuse_fn);
+		in = ImageInput::create( minimap_fn.c_str() );
+	}
+
+	if( !in ) {
+		minimap_fn.assign(displacement_fn);
+		in = ImageInput::create( minimap_fn.c_str() );
+		if( verbose ) cout << "INFO: Attempting to create minimap from displacement." << endl;
+	}
+
+	if( !in ) {
+		if( verbose ) cout << "WARNING: Creating blank minimap." << endl;
+		spec = new ImageSpec(xres, zres, channels, TypeDesc::UINT8);
+		uint8_pixels = new unsigned char[xres * zres * channels];
+		memset( uint8_pixels, 0, xres * zres * channels);
+
+	} else {
+		if( verbose ) printf("INFO: Reading %s\n", minimap_fn.c_str() );
+		spec = new ImageSpec;
+		in->open( minimap_fn.c_str(), *spec );
+		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
+		in->read_image( TypeDesc::UINT8, uint8_pixels );
+		in->close();
+		delete in;
+	}
+
+	// If the image isnt the correct timensions or not the right number of
+	// channels, resample using nearest.
+	if (   spec->width     != xres
+		|| spec->height    != zres
+		|| spec->nchannels != channels ) {
+		if( verbose )
+			printf( "WARNING: %s is (%i,%i)%i, wanted (%i, %i)%i Resampling.\n",
+			minimap_fn.c_str(), spec->width, spec->height, spec->nchannels,
+			xres, zres, channels);
+
+		// resample nearest
+		minimap = new unsigned char[ xres * zres * channels ];
+		for (int z = 0; z < zres; ++z ) // rows
+			for ( int x = 0; x < xres; ++x ) { // columns
+				ox = (float)x / xres * spec->width;
+				oz = (float)z / zres * spec->height;
+				minimap[ (z * xres + x) * channels + 0 ] =
+					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + 2 ];
+				minimap[ (z * xres + x) * channels + 1 ] =
+					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + 1 ];
+				minimap[ (z * xres + x) * channels + 2 ] =
+					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + 0 ];
+				minimap[ (z * xres + x) * channels + 3 ] = 255;
+		}
+		delete [] uint8_pixels;
+	} else minimap = uint8_pixels;
+
 	nvtt::InputOptions inputOptions;
 	nvtt::OutputOptions outputOptions;
 	nvtt::CompressionOptions compressionOptions;
@@ -509,79 +741,87 @@ SaveMiniMap( ofstream &outfile )
 	
 	inputOptions.setTextureLayout(nvtt::TextureType_2D, 1024, 1024);
 	compressionOptions.setFormat(nvtt::Format_DXT1);
-
-//FIXME give the user this option.
-//	compressionOptions.setQuality(nvtt::Quality_Fastest); 
-	compressionOptions.setQuality(nvtt::Quality_Normal); 
+	
+	if( fast_dxt1 ) compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	else compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
 
-	CBitmap mini = tileHandler.bigTex.CreateRescaled( 1024, 1024 );
+	inputOptions.setMipmapData( minimap, 1024, 1024 );
 
-	// swizzle RGBA to BGRA for dds compression
-	unsigned char buf[1024 * 1024 * 4];
-	for(int y=0; y<1024; ++y)
-	{
-		for(int x=0; x<1024; ++x)
-		{
-			buf[ (y * 1024 + x) * 4 + 2 ] = mini.mem[ (y * 1024 + x) * 4 + 0 ];
-			buf[ (y * 1024 + x) * 4 + 1 ] = mini.mem[ (y * 1024 + x) * 4 + 1 ];
-			buf[ (y * 1024 + x) * 4 + 0 ] = mini.mem[ (y * 1024 + x) * 4 + 2 ];
-			buf[ (y * 1024 + x) * 4 + 3 ] = mini.mem[ (y * 1024 + x) * 4 + 3 ];
-		}
-	}
-
-	inputOptions.setMipmapData( buf, 1024, 1024 );
-	outputOptions.setFileName( "mini" );
+	NVTTOutputHandler *outputHandler = new NVTTOutputHandler();
+	outputOptions.setOutputHandler( outputHandler );
 	compressor.process(inputOptions, compressionOptions,
 				outputOptions);
 
-	CFileHandler file( "mini" );
+	outfile.write( outputHandler->buffer, MINIMAP_SIZE );
 
-	char minidata[ MINIMAP_SIZE ];
-	file.Read( minidata, MINIMAP_SIZE );
-	outfile.write( minidata, MINIMAP_SIZE );
-}
+	delete outputHandler;
+	delete [] minimap;
+	delete spec;
 
-static void
-LoadHeightMap( string inname, int xsize, int ysize, float minHeight,
-			float maxHeight, bool invert, bool lowpass )
-{
-	printf( "Creating height map\n" );
-	int x,y;
-	float hDif = maxHeight - minHeight;
+	// Diffuse Tiles //
+	///////////
+	tileHandler.LoadTexture( diffuse_fn );
+	tileHandler.SetOutputFile( out_fn );
+//	if ( !smt_fn.empty() )tileHandler.AddExternalTileFile( smt_fn );
+	tileHandler.ProcessTiles( fast_dxt1 );
+	tileHandler.ProcessTiles2();
+	tileHandler.SaveData( outfile );
 
-	// test OIIO code
-	int xres, yres, channels;
-	float *pixels;
-	ImageInput *in = ImageInput::create (inname.c_str());
+	// Metal Map //
+	///////////////
+	if( verbose ) cout << "INFO: Processing and writing metalmap." << endl;
+	xres = width * 32;
+	zres = length * 32;
+	channels = 1;
+	unsigned char *metalmap;
 
-	if (! in) return;
-	ImageSpec spec;
-	in->open ( inname.c_str(), spec );
-	xres = spec.width;
-	yres = spec.height;
-	channels = spec.nchannels;
-	if ( xres != xsize + 1 || yres != ysize + 1 ) {
-			fprintf(stderr, "Displacement Image does not have the correct dimensions\n");
-			exit(0);
+	in = ImageInput::create( metalmap_fn.c_str() );
+	if( !in ) {
+		if( verbose ) cout << "WARNING: Creating blank metalmap." << endl;
+		spec = new ImageSpec(xres, zres, channels, TypeDesc::UINT8);
+		uint8_pixels = new unsigned char[xres * zres * channels];
+		memset( uint8_pixels, 0, xres * zres * channels);
+	} else {
+		if( verbose ) printf("INFO: Reading %s\n", metalmap_fn.c_str() );
+		spec = new ImageSpec;
+		in->open( metalmap_fn.c_str(), *spec );
+		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
+		in->read_image( TypeDesc::UINT8, uint8_pixels );
+		in->close();
+		delete in;
 	}
-	pixels = new float [ xres * yres * channels ];
-	in->read_image (TypeDesc::FLOAT, pixels);
-	in->close ();
-	delete in;
-	heightmap = new float [xres * yres];
-	for ( y=0; y<yres; ++y ) {
-		for ( x=0; x<xres; ++x ) {
-			heightmap[ (y * yres + x) ]
-				= pixels[ (y * yres + x) * channels ] * hDif + minHeight;
+
+	// If the image isnt the correct dimensions or not the right number of
+	// channels, resample using nearest.
+	if (   spec->width     != xres
+		|| spec->height    != zres
+		|| spec->nchannels != channels ) {
+		if( verbose )
+			printf( "WARNING: %s is (%i,%i)%i, wanted (%i, %i)%i Resampling.\n",
+			metalmap_fn.c_str(), spec->width, spec->height, spec->nchannels,
+			xres, zres, channels);
+
+		// resample nearest
+		metalmap = new unsigned char[ xres * zres * channels ];
+		for (int z = 0; z < zres; ++z ) // rows
+			for ( int x = 0; x < xres; ++x ) { // columns
+				ox = (float)x / xres * spec->width;
+				oz = (float)z / zres * spec->height;
+				metalmap[ (z * xres + x) * channels ] =
+					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels ];
 		}
-	}
-	delete [] pixels;
+		delete [] uint8_pixels;
+	} else metalmap = uint8_pixels;
 
-	if ( invert )HeightMapInvert( xres, yres );
-	if ( lowpass )HeightMapFilter( xres, yres );
+	outfile.write( (char *)metalmap, xres * zres );
+
+//	featureCreator.WriteToFile( &outfile, F_Spec );
+
+	return 0;
 }
 
+/*
 static void
 HeightMapInvert(int mapx, int mapy)
 {
@@ -627,79 +867,6 @@ HeightMapFilter( int mapx, int mapy)
 	delete[] heightmap2;
 }
 
-static void
-SaveHeightMap( ofstream& outfile, int xsize, int ysize, float minHeight,
-			float maxHeight )
-{
-	int x,y;
-	int mapx = xsize + 1;
-	int mapy = ysize + 1;
-	unsigned short *hm = new unsigned short[ mapx * mapy ];
-	float sub = minHeight;
-	float mul = ( 1.0f / (maxHeight - minHeight) ) * 0xffff;
-	for( y = 0; y < mapy; ++y ) 
-		for( x = 0; x < mapx; ++x )
-			hm[ y * mapx + x ] =
-				(unsigned short)( ( heightmap[ y * mapx + x ] - sub ) * mul );
+*/
 
-	outfile.write((char*)hm,mapx*mapy*2);
-
-	delete[] hm;
-}
-
-static void
-SaveMetalMap( ofstream &outfile, std::string metalmap, int xsize, int ysize )
-{
-	int x,y,size;
-	char *buf;
-
-	printf( "Saving metal map\n" );
-
-	CBitmap metal( metalmap );
-	if( metal.xsize != xsize / 2 || metal.ysize != ysize / 2 ) {
-		metal = metal.CreateRescaled( xsize / 2, ysize / 2 );
-		printf( "Warning: Metal map is being rescaled, may result in"
-			"undesirable metal layout. Correct size is %i * %i \n",
-			xsize / 2, ysize / 2 );
-	}
-
-	size = (xsize / 2) * (ysize / 2);
-	buf = new char[ size ];
-
-	for(y = 0; y < metal.ysize; ++y )
-		for(x = 0; x < metal.xsize; ++x )
-			//we use the red component of the picture
-			buf[ y * metal.xsize + x ] =
-				metal.mem[ (y * metal.xsize + x) * 4 ];	
-
-	outfile.write( buf, size );
-
-	delete [] buf;
-}
-
-static void
-SaveTypeMap( ofstream &outfile, int xsize, int ysize, string typemap )
-{
-	int a;
-	int mapx = xsize / 2;
-	int mapy = ysize / 2;
-
-	unsigned char *typeMapMem = new unsigned char[ mapx * mapy ];
-	memset( typeMapMem, 0, mapx * mapy );
-
-	if ( !typemap.empty() ) {
-		CBitmap tm;
-		tm.Load( typemap );
-		if( tm.xsize != mapx || tm.ysize != mapy )
-			printf("WARNING: TYPEMAP NOT CORRECT SIZE! WILL RESULT IN"
-				"RESIZED TYPEMAP WITH HOLES IN IT! Correct size is %i*%i \n",
-				mapx, mapy );
-		CBitmap tm2 = tm.CreateRescaled( mapx, mapy );
-		for ( a = 0; a < mapx * mapy; ++a )
-			typeMapMem[ a ] = tm2.mem[ a * 4 ];
-	}
-	outfile.write( (char *)typeMapMem, mapx * mapy );
-
-	delete[] typeMapMem;
-}
 

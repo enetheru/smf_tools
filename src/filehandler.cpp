@@ -28,12 +28,12 @@ void CFileHandler::Init(const char* filename)
 {
 	string fnstr;
 	ifs = 0;
-	printf("Opening %s",filename);
+	printf("Opening %s\n",filename);
 	try {
 		fs::path fn(filename);
 		fnstr = fn.string();
 	} catch (void* err) {
-		printf("Caught filesystem error in file %s",filename);
+		printf("Caught filesystem error in file %s\n",filename);
 	//} catch (boost::filesystem::filesystem_error err) {
 		fnstr.clear();
 	}

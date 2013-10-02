@@ -8,7 +8,7 @@ clean:
 	rm -f mapconv *.o
 	rm -f *~
 
-mapconv: bitmap.o main.o tilehandler.o featurecreator.o filehandler.o
+mapconv: bitmap.o main.o tilehandler.o filehandler.o #featurecreator.o
 	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
 
 main.o: main.cpp bitmap.h filehandler.h

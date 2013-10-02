@@ -23,7 +23,7 @@ public:
 	void ReadTile( int xpos, int ypos, char *destbuf, char *sourcebuf );
 	int  FindCloseTile( CBitmap* bm, int forbidden );
 
-	void ProcessTiles( float compressFactor );
+	void ProcessTiles( bool fastCompress );
 	void ProcessTiles2( void );
 
 	int  GetFileSize( void );
