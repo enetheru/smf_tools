@@ -2,12 +2,12 @@
 //#define WIN32 true
 
 #include <string>
-#include <stdio.h>
 #include <fstream>
 #include <vector>
 
 // c headers
 #include <math.h>
+#include <stdio.h>
 
 // external
 #include "tclap/CmdLine.h"
@@ -60,6 +60,12 @@ NVTTOutputHandler::writeData(const void *data, int size)
     return true;
 }
 
+unsigned char *
+uint8_image_convert(unsigned char *id, //input data
+	int iw, int il, int ic, // input width, length, channels
+	int ow, int ol, int oc, // output width, length, channels
+	int *map, int *fill); // channel map, fill map
+
 //static void
 //HeightMapInvert(int mapx, int mapy);
 
@@ -75,12 +81,14 @@ main( int argc, char **argv )
 #endif
 {
 // Generic Options
-//  -o --outfilename <string>
+//  -o --smf-ofn <string>
+//     --smt-ofn <string>
 //     --no-smt <bool> Don't build smt file
 //     --smt <smt file> Use existing smt file
 //  -v --verbose <bool> Display extra output
 //  -q --quiet <bool> Supress standard output
-	string out_fn = "", smt_fn = "";
+	string smf_ofn = "", smt_ofn = "";
+	string smt_ifn = "";
 //	bool no_smt = true,
 	bool verbose = false, quiet = false;
 //
@@ -89,7 +97,7 @@ main( int argc, char **argv )
 //	-l --length <int> Length in spring map units
 //	-a --height <float> Height of the map in spring map units
 //	-d --depth <float> Depth of the map in spring map units
-	int width = -1, length = 0, height = 0, depth = 1;
+	int width = 0, length = 0, height = 1, depth = 1;
 //
 // Diffuse Image
 //	-c --diffuse <image> 
@@ -121,6 +129,22 @@ main( int argc, char **argv )
 //     --minimap <image>
 	string minimap_fn = "";
 
+	// Variables I use a lot!! //
+	///////////////////////////////////
+	ImageInput *in; 
+	ImageSpec *spec;
+	int xres, zres, channels;
+	int x, z, ox, oz;
+	unsigned short *uint16_pixels;
+	unsigned char *uint8_pixels;
+
+	// setup NVTT compression variables.
+	nvtt::InputOptions inputOptions;
+	nvtt::OutputOptions outputOptions;
+	nvtt::CompressionOptions compressionOptions;
+	nvtt::Compressor compressor;
+	NVTTOutputHandler *outputHandler;
+
 	try {
 		// Define the command line object.
 		CmdLine cmd( "Converts a series of image and text files to .smf and"
@@ -130,14 +154,19 @@ main( int argc, char **argv )
 		
 		// Generic Options //		
 		/////////////////////
-		ValueArg<string> arg_out_fn(
-			"o", "outfilename",
-			"Output prefix for the spring map file(.smf) and the spring tile "
-			"file(.smt)",
-			true, "", "mapname", cmd);
+		ValueArg<string> arg_smf_ofn(
+			"o", "smf-ofn",
+			"Output prefix for the spring map file(.smf)",
+			true, "", "string", cmd);
 
-		ValueArg<string> arg_smt_fn(
-			"", "smt",
+		ValueArg<string> arg_smt_ofn(
+			"", "smt-ofn",
+			"Output prefix for the spring map tile file(.smt), will default "
+			" to the spring map file name",
+			false, "", "string", cmd);
+
+		ValueArg<string> arg_smt_ifn(
+			"", "smt-ifn",
 			"External tile file that will be used for finding tiles. Tiles"
 			"not found in this will be saved in a new tile file.",
 			false, "", "filename", cmd );
@@ -247,8 +276,9 @@ main( int argc, char **argv )
 
 		// Get the value parsed by each arg.
 		// Generic Options
-		out_fn = arg_out_fn.getValue();
-		smt_fn = arg_smt_fn.getValue();
+		smf_ofn = arg_smf_ofn.getValue();// SMF Output Filename
+		smt_ofn = arg_smt_ofn.getValue();// SMT Output Filename
+		smt_ifn = arg_smt_ifn.getValue();// SMT Input Filename
 		quiet = arg_quiet.getValue();
 		verbose = arg_verbose.getValue();
 
@@ -288,17 +318,19 @@ main( int argc, char **argv )
 	// Test arguments for validity before continuing //
 	///////////////////////////////////////////////////
 	cout << "INFO: Testing Arguments for validity." << endl;
-	if ( width < 2 || width > 64 || width % 2 ) {
+	if ( width < 2 || width > 256 || width % 2 ) {
 		cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
 		exit( -1 );
 	}
-	if ( length < 2 || length > 64 || length % 2 ) {
+	if ( length < 2 || length > 256 || length % 2 ) {
 		cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
 		exit( -1 );
 	}
 
+	// Test SMT name
+	if( !smt_ofn.compare( "" ) ) smt_ofn = smf_ofn;
+
 	// Test Diffuse //
-	ImageInput *in; 
 	if( !diffuse_fn.compare( "" ) ) {
 		if ( verbose ) cout << "WARNING: Diffuse unspecified.\n\tMap will be grey." << endl;
 	} else {
@@ -365,7 +397,127 @@ main( int argc, char **argv )
 		delete in;
 	}
 
+	// Setup Global variables //
+	////////////////////////////
+	compressionOptions.setFormat(nvtt::Format_DXT1a);
+	if( fast_dxt1 ) compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	else compressionOptions.setQuality(nvtt::Quality_Normal); 
+	outputOptions.setOutputHeader(false);
+	
 
+	// SMT file comes before SMF because SMF relies on the tiles and filename
+	// Build SMT Header //
+	//////////////////////
+	if( verbose ) printf("INFO: Creating %s.smt\n", smt_ofn.c_str() );
+	ofstream smt_of( (smt_ofn+".smt").c_str(), ios::binary | ios::out);
+	TileFileHeader tileFileHeader;
+
+	strcpy( tileFileHeader.magic, "spring tilefile" );
+	tileFileHeader.version = 1;
+	tileFileHeader.tileSize = 32; 
+	tileFileHeader.compressionType = 1; 
+	tileFileHeader.numTiles = 0; //FIXME re-write this later after we know the number of tiles
+	smt_of.write( (char *)&tileFileHeader, sizeof(TileFileHeader) );
+
+	xres = width * 512;
+	zres = length * 512;
+	channels = 4;
+
+	int tcx = width * 16; // tile count x
+	int tcz = length * 16; // tile count z
+
+	int stw, stl, stc = 4; // source tile dimensions
+	int dtw, dtl, dtc = 4; //destination tile dimensions
+	int ttw, ttl, ttc = 4; // temporary tile info.
+	ttw = ttl = dtw = dtl = tileFileHeader.tileSize;
+
+	unsigned char *std, *dtd; // source & destination tile pixel data
+	unsigned char *ttd; // temporary tile pixel data
+
+	// used of no diffuse image is created.
+	ttd = new unsigned char[ttw * ttl * ttc];
+	for (int z = 0; z < ttl; ++z ) // rows
+		for ( int x = 0; x < ttw; ++x ) { // columns
+			ttd[ (z * ttw + x) * ttc + 0 ] = 39; //red
+			ttd[ (z * ttw + x) * ttc + 1 ] = 123; //green
+			ttd[ (z * ttw + x) * ttc + 2 ] = 81; //blue
+			ttd[ (z * ttw + x) * ttc + 3 ] = 255; //alpha
+	}
+
+	
+
+	outputHandler = new NVTTOutputHandler();
+	outputOptions.setOutputHandler( outputHandler );
+
+	char temp_ofn[256];
+	// Load up diffuse image
+	in = ImageInput::create( diffuse_fn.c_str() );
+	spec = new ImageSpec;
+	in->open( diffuse_fn.c_str(), *spec );
+
+	if( in ) {
+		stw = spec->width / tcx;
+		stl = spec->height / tcz;
+		stc = spec->nchannels;
+
+
+		if( verbose ) {
+			printf( "INFO: Loaded %s (%i, %i)*%i\n",
+				diffuse_fn.c_str(), spec->width, spec->height, spec->nchannels);
+			printf( "INFO: Converting tile size (%i,%i)*%i to (%i,%i)*%i\n",
+				stw,stl,stc,dtw,dtl,dtc);
+		}
+
+		for ( z = 0; z < tcz; z++) {
+			// pull scanline data from source image
+			uint8_pixels = new unsigned char [ spec->width * stl * spec->nchannels ];
+			in->read_scanlines(z * stl, z * stl + stl, 0, TypeDesc::UINT8, uint8_pixels);
+
+			for ( x = 0; x < tcx; x++) {
+				if( verbose ) printf("\033[0GINFO: Processing tile %i of %i",
+							z * tcx + x + 1, tcx * tcz);
+		
+				// copy from the scanline data our tile
+				std = new unsigned char [stw * stl * stc];
+				for( int i = 0; i < stw; ++i ) // rows
+					for( int j = 0; j < stl; ++j ) // columns
+						for( int c = 0; c < stc; ++c) {
+							std[ (i * stl + j) * stc + c] =
+								uint8_pixels[ ((i * spec->width) + (x * stw) + j) * stc + c ];
+				}
+						
+				// convert tile
+				int map[] = {2,1,0,3};
+				int fill[] = {0,0,0,255};
+				dtd = uint8_image_convert(std,
+							stw, stl, stc,
+							dtw, dtl, dtc,
+							map, fill);
+
+				outputHandler->offset=0;
+				inputOptions.setTextureLayout( nvtt::TextureType_2D, dtw, dtl );
+				inputOptions.setMipmapData( dtd, dtw, dtl );
+				compressor.process(inputOptions, compressionOptions,
+							outputOptions);
+				smt_of.write( (char *)outputHandler->buffer, SMALL_TILE_SIZE );
+				// write tile to file.
+				tileFileHeader.numTiles +=1;
+				delete [] dtd;
+			}
+			delete [] uint8_pixels;
+		}
+		printf("\n");
+
+		in->close();
+		delete in;
+		delete outputHandler;
+	}
+
+	smt_of.seekp( 20);
+	smt_of.write( (char *)&tileFileHeader.numTiles, 4);
+	smt_of.close();
+
+	
 /*	ifstream ifs;
 	int numNamedFeatures = 0;
 
@@ -481,7 +633,7 @@ main( int argc, char **argv )
 		numNamedFeatures, feature_fn, geoVentFile, extrafeatures, F_Spec);
 */
 
-	// Build header //
+	// Build SMF header //
 	//////////////////
 	if( verbose ) cout << "INFO: Creating Header." << endl;
 #ifdef WIN32
@@ -527,41 +679,38 @@ main( int argc, char **argv )
 	offset += MINIMAP_SIZE;
 	header.tilesPtr = offset;
 
-	// add size of tiles
-	offset += tileHandler.GetFileSize();
+	// add size of tile information.
+	offset += sizeof( MapTileHeader );
+	offset += (int)(smf_ofn + ".smt").size() + 5; // new tilefile name
+	offset += width * length  * 1024;  // space needed for tile map
+	//FIXME requires changes to allow multiple smt's
 	header.metalmapPtr = offset;
 
 	// add size of metalmap
-	offset += width * length * 1024
-			+ width * length * 256;	//last one is space for vegetation map
+	offset += width * length * 1024;
+
+	// add size of vegetation map
+	offset += width * length * 256;	
 	header.featurePtr = offset;
 
 	// Write Header to file //
 	//////////////////////////
 	if( verbose ) cout << "INFO: Writing Header." << endl;
-	ofstream outfile( out_fn.append(".smf").c_str(), ios::out | ios::binary );
-	outfile.write( (char *)&header, sizeof( MapHeader ) );
+	ofstream smf_of( (smf_ofn + ".smf").c_str(), ios::out | ios::binary );
+	smf_of.write( (char *)&header, sizeof( MapHeader ) );
 
 	//extra header size
 	int temp = 12;	
-	outfile.write( (char *)&temp, 4 );
+	smf_of.write( (char *)&temp, 4 );
 
 	//extra header type
 	temp = MEH_Vegetation;	
-	outfile.write( (char *)&temp, 4 );
+	smf_of.write( (char *)&temp, 4 );
 
 	//offset to vegetation map
 	temp = header.metalmapPtr + width * length * 1024;
-	outfile.write( (char *)&temp, 4 );
+	smf_of.write( (char *)&temp, 4 );
 
-	// Write Data to file //
-	////////////////////////
-	ImageSpec *spec;
-	int xres, zres, channels;
-	int ox, oz;
-	unsigned short *uint16_pixels;
-	unsigned char *uint8_pixels;
-	
 	// Height Displacement //
 	/////////////////////////
 	if( verbose ) cout << "INFO: Processing and writing displacement." << endl;
@@ -615,7 +764,7 @@ main( int argc, char **argv )
 	if ( displacement_lowpass && verbose ) cout << "WARNING: Height lowpass filter not implemented yet" << endl;
 	
 	// write height data to smf.
-	outfile.write( (char *)displacement, xres * zres * 2 );
+	smf_of.write( (char *)displacement, xres * zres * 2 );
 	delete [] displacement;
 	delete spec;
 
@@ -652,20 +801,17 @@ main( int argc, char **argv )
 			typemap_fn.c_str(), spec->width, spec->height, spec->nchannels,
 			xres, zres);
 
-		// resample nearest
-		typemap = new unsigned char[ xres * zres ];
-		for (int z = 0; z < zres; ++z ) // rows
-			for ( int x = 0; x < xres; ++x ) // columns
-				for( int c = 0; c < channels; c++ ) {
-					ox = (float)x / xres * spec->width;
-					oz = (float)z / zres * spec->height;
-					typemap[ z * xres + x ] =
-						uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + c ];
-		}
-		delete [] uint8_pixels;
+		// convert image
+		int map[] = {1};
+		int fill[] = {0};
+		typemap = uint8_image_convert(uint8_pixels,
+			spec->width, spec->height, spec->nchannels,
+			xres, zres, channels,
+			map, fill);
+		
 	} else typemap = uint8_pixels;
 
-	outfile.write( (char *)typemap, xres * zres );
+	smf_of.write( (char *)typemap, xres * zres );
 	delete [] typemap;
 	delete spec;
 
@@ -717,28 +863,16 @@ main( int argc, char **argv )
 			minimap_fn.c_str(), spec->width, spec->height, spec->nchannels,
 			xres, zres, channels);
 
-		// resample nearest
-		minimap = new unsigned char[ xres * zres * channels ];
-		for (int z = 0; z < zres; ++z ) // rows
-			for ( int x = 0; x < xres; ++x ) { // columns
-				ox = (float)x / xres * spec->width;
-				oz = (float)z / zres * spec->height;
-				minimap[ (z * xres + x) * channels + 0 ] =
-					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + 2 ];
-				minimap[ (z * xres + x) * channels + 1 ] =
-					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + 1 ];
-				minimap[ (z * xres + x) * channels + 2 ] =
-					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels + 0 ];
-				minimap[ (z * xres + x) * channels + 3 ] = 255;
-		}
-		delete [] uint8_pixels;
+		// convert image
+		int map[] = {2, 1, 0, 3};
+		int fill[] = {0, 0, 0, 255};
+		minimap = uint8_image_convert(uint8_pixels,
+			spec->width, spec->height, spec->nchannels,
+			xres, zres, channels,
+			map, fill);
+
 	} else minimap = uint8_pixels;
 
-	nvtt::InputOptions inputOptions;
-	nvtt::OutputOptions outputOptions;
-	nvtt::CompressionOptions compressionOptions;
-	nvtt::Compressor compressor;
-	
 	inputOptions.setTextureLayout(nvtt::TextureType_2D, 1024, 1024);
 	compressionOptions.setFormat(nvtt::Format_DXT1);
 	
@@ -748,25 +882,40 @@ main( int argc, char **argv )
 
 	inputOptions.setMipmapData( minimap, 1024, 1024 );
 
-	NVTTOutputHandler *outputHandler = new NVTTOutputHandler();
+	outputHandler = new NVTTOutputHandler();
 	outputOptions.setOutputHandler( outputHandler );
 	compressor.process(inputOptions, compressionOptions,
 				outputOptions);
 
-	outfile.write( outputHandler->buffer, MINIMAP_SIZE );
+	smf_of.write( outputHandler->buffer, MINIMAP_SIZE );
 
 	delete outputHandler;
 	delete [] minimap;
 	delete spec;
 
 	// Diffuse Tiles //
-	///////////
-	tileHandler.LoadTexture( diffuse_fn );
-	tileHandler.SetOutputFile( out_fn );
-//	if ( !smt_fn.empty() )tileHandler.AddExternalTileFile( smt_fn );
-	tileHandler.ProcessTiles( fast_dxt1 );
-	tileHandler.ProcessTiles2();
-	tileHandler.SaveData( outfile );
+	///////////////////
+	
+	// Map Tiles //
+	///////////////
+	MapTileHeader mapTileHeader;
+	mapTileHeader.numTileFiles = 1; //FIXME needs changing to allow multiple smt's
+	mapTileHeader.numTiles = width * length * 256;
+	smf_of.write( (char *)&mapTileHeader, sizeof( MapTileHeader ) );
+
+
+	smf_of.write( (char *)&mapTileHeader.numTiles, 4 );
+	smf_of.write( (smf_ofn + ".smt").c_str(), smf_ofn.size() + 5 );
+
+	// Write tile index
+	int i;
+	for ( int z = 0; z < length * 16; z++ )
+		for ( int x = 0; x < width * 16; x++) {
+			i = x + z * width * 16;
+			smf_of.write( (char *)&i, sizeof( int ) );
+	}
+
+
 
 	// Metal Map //
 	///////////////
@@ -802,22 +951,21 @@ main( int argc, char **argv )
 			metalmap_fn.c_str(), spec->width, spec->height, spec->nchannels,
 			xres, zres, channels);
 
-		// resample nearest
-		metalmap = new unsigned char[ xres * zres * channels ];
-		for (int z = 0; z < zres; ++z ) // rows
-			for ( int x = 0; x < xres; ++x ) { // columns
-				ox = (float)x / xres * spec->width;
-				oz = (float)z / zres * spec->height;
-				metalmap[ (z * xres + x) * channels ] =
-					uint8_pixels[ (oz * spec->width + ox) * spec->nchannels ];
-		}
-		delete [] uint8_pixels;
+		// convert image
+		int map[] = {0};
+		int fill[] = {255};
+		metalmap = uint8_image_convert(uint8_pixels,
+			spec->width, spec->height, spec->nchannels,
+			xres, zres, channels,
+			map, fill);
+
 	} else metalmap = uint8_pixels;
 
-	outfile.write( (char *)metalmap, xres * zres );
+	smf_of.write( (char *)metalmap, xres * zres );
 
-//	featureCreator.WriteToFile( &outfile, F_Spec );
+//	featureCreator.WriteToFile( &smf_of, F_Spec );
 
+	smf_of.close();
 	return 0;
 }
 
@@ -869,4 +1017,32 @@ HeightMapFilter( int mapx, int mapy)
 
 */
 
+unsigned char *
+uint8_image_convert(unsigned char *id, //input data
+	int iw, int il, int ic, // input width, length, channels
+	int ow, int ol, int oc, // output width, length, channels
+	int *map, int *fill) // channel map, fill map
+{
+	int ix, iy; // origin coordinates
+	int ip, op; // offsets to location in memory
+	if(ow == -1) ow = iw; 
+	if(ol == -1) ol = il;
+	if(oc == -1) oc = ic;
 
+	unsigned char *od = new unsigned char[ow * ol * oc];
+
+	for (int y = 0; y < ol; ++y ) // output rows
+		for ( int x = 0; x < ow; ++x ) { // output columns
+			ix = (float)x / ow * iw; //calculate the input coordinates
+			iy = (float)y / ol * il;
+
+			op = (y * ow + x) * oc; // calculate output data location
+			ip = (iy * iw + ix) * ic; // calculate input data location
+
+			for ( int c = 0; c < oc; ++c ) // output channels
+				if( map[ c ] >= ic ) od[ op +c ] = fill[ c ];
+				else od[ op + c ] = id[ ip + map[ c ] ];
+	}
+
+	return od;
+}

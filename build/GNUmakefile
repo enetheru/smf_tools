@@ -2,7 +2,7 @@ CXXFLAGS=-g -Wall -L/usr/lib
 TCLAP=-I../include/tclap-1.2.1/include
 BOOSTLIBS=-lboost_system-mt -lboost_filesystem-mt -lboost_regex-mt
 
-all: mapconv 
+all: mapconv tileconv
 
 clean:
 	rm -f mapconv *.o
@@ -25,3 +25,10 @@ bitmap.o: bitmap.cpp bitmap.h filehandler.h
 
 filehandler.o: filehandler.cpp filehandler.h
 	g++ $(CXXFLAGS) -c $<
+
+
+tileconv: tileconv.o
+	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
+
+tileconv.o: tileconv.cpp
+	g++ $(CXXFLAGS) -c $< $(TCLAP)
