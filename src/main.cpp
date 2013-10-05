@@ -419,8 +419,9 @@ main( int argc, char **argv )
 
 	int stw, stl, stc = 4; // source tile dimensions
 	int dtw, dtl, dtc = 4; //destination tile dimensions
-	int ttw, ttl, ttc = 4; // temporary tile info.
-	ttw = ttl = dtw = dtl = tileFileHeader.tileSize;
+//	int ttw, ttl, ttc = 4; // temporary tile info.
+//	ttw = ttl = tileFileHeader.tileSize;
+	dtw = dtl = tileFileHeader.tileSize;
 
 	unsigned char *std, *dtd; // source & destination tile pixel data
 /*	unsigned char *ttd; // temporary tile pixel data
