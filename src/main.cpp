@@ -13,18 +13,9 @@
 #include "tclap/CmdLine.h"
 #include <nvtt/nvtt.h>
 #include <OpenImageIO/imageio.h>
-#ifdef WIN32
-#include "stdafx.h"
-#else
-#include "time.h" /* time() */
-#endif
 
 // local headers
 #include "mapfile.h"
-#include "filehandler.h"
-#include "featurecreator.h"
-#include "tilehandler.h"
-#include "bitmap.h"
 
 using namespace std;
 using namespace TCLAP;
@@ -432,7 +423,7 @@ main( int argc, char **argv )
 	ttw = ttl = dtw = dtl = tileFileHeader.tileSize;
 
 	unsigned char *std, *dtd; // source & destination tile pixel data
-	unsigned char *ttd; // temporary tile pixel data
+/*	unsigned char *ttd; // temporary tile pixel data
 
 	// used of no diffuse image is created.
 	ttd = new unsigned char[ttw * ttl * ttc];
@@ -442,14 +433,11 @@ main( int argc, char **argv )
 			ttd[ (z * ttw + x) * ttc + 1 ] = 123; //green
 			ttd[ (z * ttw + x) * ttc + 2 ] = 81; //blue
 			ttd[ (z * ttw + x) * ttc + 3 ] = 255; //alpha
-	}
-
-	
+	} */
 
 	outputHandler = new NVTTOutputHandler();
 	outputOptions.setOutputHandler( outputHandler );
 
-	char temp_ofn[256];
 	// Load up diffuse image
 	in = ImageInput::create( diffuse_fn.c_str() );
 	spec = new ImageSpec;
@@ -508,10 +496,10 @@ main( int argc, char **argv )
 		}
 		printf("\n");
 
-		in->close();
-		delete in;
-		delete outputHandler;
 	}
+	in->close();
+	delete in;
+	delete outputHandler;
 
 	smt_of.seekp( 20);
 	smt_of.write( (char *)&tileFileHeader.numTiles, 4);
@@ -893,10 +881,7 @@ main( int argc, char **argv )
 	delete [] minimap;
 	delete spec;
 
-	// Diffuse Tiles //
-	///////////////////
-	
-	// Map Tiles //
+	// Map Tile Index //
 	///////////////
 	MapTileHeader mapTileHeader;
 	mapTileHeader.numTileFiles = 1; //FIXME needs changing to allow multiple smt's
@@ -914,8 +899,6 @@ main( int argc, char **argv )
 			i = x + z * width * 16;
 			smf_of.write( (char *)&i, sizeof( int ) );
 	}
-
-
 
 	// Metal Map //
 	///////////////

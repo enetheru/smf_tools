@@ -1,34 +1,20 @@
 CXXFLAGS=-g -Wall -L/usr/lib
 TCLAP=-I../include/tclap-1.2.1/include
-BOOSTLIBS=-lboost_system-mt -lboost_filesystem-mt -lboost_regex-mt
 
-all: mapconv tileconv
+all: mapconv #tileconv
 
 clean:
 	rm -f mapconv *.o
 	rm -f *~
 
-mapconv: bitmap.o main.o tilehandler.o filehandler.o #featurecreator.o
-	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
+mapconv: main.o 
+	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
 
-main.o: main.cpp bitmap.h filehandler.h
+main.o: main.cpp 
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
 
-tilehandler.o: tilehandler.cpp tilehandler.h bitmap.h filehandler.h
-	g++ $(CXXFLAGS) -c $<
+#tileconv: tileconv.o
+#	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
 
-featurecreator.o: featurecreator.cpp featurecreator.h bitmap.h
-	g++ $(CXXFLAGS) -c $<
-
-bitmap.o: bitmap.cpp bitmap.h filehandler.h
-	g++ $(CXXFLAGS) -c $<
-
-filehandler.o: filehandler.cpp filehandler.h
-	g++ $(CXXFLAGS) -c $<
-
-
-tileconv: tileconv.o
-	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
-
-tileconv.o: tileconv.cpp
-	g++ $(CXXFLAGS) -c $< $(TCLAP)
+#tileconv.o: tileconv.cpp
+#	g++ $(CXXFLAGS) -c $< $(TCLAP)
