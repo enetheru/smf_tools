@@ -439,9 +439,11 @@ main( int argc, char **argv )
 	outputOptions.setOutputHandler( outputHandler );
 
 	// Load up diffuse image
-	in = ImageInput::create( diffuse_fn.c_str() );
-	spec = new ImageSpec;
-	in->open( diffuse_fn.c_str(), *spec );
+	if( diffuse_fn.compare( "" ) ) {
+		in = ImageInput::create( diffuse_fn.c_str() );
+		spec = new ImageSpec;
+		in->open( diffuse_fn.c_str(), *spec );
+	}
 
 	if( in ) {
 		stw = spec->width / tcx;
@@ -495,11 +497,10 @@ main( int argc, char **argv )
 			delete [] uint8_pixels;
 		}
 		printf("\n");
-
+		in->close();
+		delete in;
+		delete outputHandler;
 	}
-	in->close();
-	delete in;
-	delete outputHandler;
 
 	smt_of.seekp( 20);
 	smt_of.write( (char *)&tileFileHeader.numTiles, 4);
