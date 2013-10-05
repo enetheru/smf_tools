@@ -71,6 +71,7 @@ int
 main( int argc, char **argv )
 #endif
 {
+	bool fail = false;
 // Generic Options
 //  -o --smf-ofn <string>
 //     --smt-ofn <string>
@@ -79,7 +80,7 @@ main( int argc, char **argv )
 //  -v --verbose <bool> Display extra output
 //  -q --quiet <bool> Supress standard output
 	string smf_ofn = "", smt_ofn = "";
-	string smt_ifn = "";
+	vector<string> smt_in;
 //	bool no_smt = true,
 	bool verbose = false, quiet = false;
 //
@@ -122,12 +123,16 @@ main( int argc, char **argv )
 
 	// Variables I use a lot!! //
 	///////////////////////////////////
-	ImageInput *in; 
-	ImageSpec *spec;
+	char magic[16];
+	ImageInput *in = NULL; 
+	ImageSpec *spec = NULL;
 	int xres, zres, channels;
 	int x, z, ox, oz;
 	unsigned short *uint16_pixels;
 	unsigned char *uint8_pixels;
+	int tiletotal = 0;
+	int tilenum = 0;
+	vector<int> smt_tilenums;
 
 	// setup NVTT compression variables.
 	nvtt::InputOptions inputOptions;
@@ -156,11 +161,11 @@ main( int argc, char **argv )
 			" to the spring map file name",
 			false, "", "string", cmd);
 
-		ValueArg<string> arg_smt_ifn(
-			"", "smt-ifn",
+		MultiArg<string> arg_smt_in(
+			"", "smt-in",
 			"External tile file that will be used for finding tiles. Tiles"
 			"not found in this will be saved in a new tile file.",
-			false, "", "filename", cmd );
+			false, "filename", cmd );
 
 		SwitchArg arg_no_smt(
 			"", "no-smt",
@@ -269,7 +274,7 @@ main( int argc, char **argv )
 		// Generic Options
 		smf_ofn = arg_smf_ofn.getValue();// SMF Output Filename
 		smt_ofn = arg_smt_ofn.getValue();// SMT Output Filename
-		smt_ifn = arg_smt_ifn.getValue();// SMT Input Filename
+		smt_in = arg_smt_in.getValue();// SMT Input Filename
 		quiet = arg_quiet.getValue();
 		verbose = arg_verbose.getValue();
 
@@ -308,18 +313,40 @@ main( int argc, char **argv )
 
 	// Test arguments for validity before continuing //
 	///////////////////////////////////////////////////
-	cout << "INFO: Testing Arguments for validity." << endl;
+	if( verbose )cout << "INFO: Testing Arguments for validity." << endl;
 	if ( width < 2 || width > 256 || width % 2 ) {
 		cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
-		exit( -1 );
+		fail = true;
 	}
 	if ( length < 2 || length > 256 || length % 2 ) {
 		cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
-		exit( -1 );
+		fail = true;
 	}
 
 	// Test SMT name
 	if( !smt_ofn.compare( "" ) ) smt_ofn = smf_ofn;
+
+	// Test smt input files exist
+	for( unsigned int i=0; i < smt_in.size(); ++i) {
+		ifstream smt_if(smt_in[i].c_str(), std::ifstream::in);
+		if(!smt_if.good()) {
+			if ( !quiet )printf( "ERROR: Cannot open %s\n", smt_in[i].c_str() ); 
+			fail = true;
+		}
+		else {
+			smt_if.read(magic, 16);
+			if( strcmp(magic, "spring tilefile") ) {
+				if ( !quiet )printf( "ERROR: %s is not a valid smt\n", smt_in[i].c_str() );
+			} else {
+				smt_if.seekg(20);
+				smt_if.read((char *)&tilenum, 4);
+				if( verbose )printf( "INFO: %s has %i tiles.\n", smt_in[i].c_str(), tilenum );
+				tiletotal += tilenum;
+				smt_tilenums.push_back(tilenum);
+			}
+			smt_if.close();
+		}
+	}
 
 	// Test Diffuse //
 	if( !diffuse_fn.compare( "" ) ) {
@@ -328,7 +355,7 @@ main( int argc, char **argv )
 		in = ImageInput::create( diffuse_fn.c_str() );
 		if ( !in ) {
 			if ( !quiet )cout << "ERROR: Diffuse image missing or invalid format." << endl; 
-			exit( -1 );
+			fail = true;
 		}
 		delete in;
 	}
@@ -339,7 +366,7 @@ main( int argc, char **argv )
 		in = ImageInput::create( displacement_fn.c_str() );
 		if ( !in ) {
 			if ( !quiet )cout << "ERROR: Displacement image missing or invalid format." << endl;
-			exit( -1 );
+			fail = true;
 		}
 		delete in;
 	}
@@ -350,7 +377,7 @@ main( int argc, char **argv )
 		in = ImageInput::create( metalmap_fn.c_str() );
 		if ( !in ) {
 			if ( !quiet )cout << "ERROR: Metalmap image missing or invalid format." << endl;
-			exit( -1 );
+			fail = true;
 		}
 		delete in;
 	}
@@ -361,7 +388,7 @@ main( int argc, char **argv )
 		in = ImageInput::create( typemap_fn.c_str() );
 		if ( !in ) {
 			if ( !quiet )cout << "ERROR: Typemap image missing or invalid format." << endl;
-			exit( -1 );
+			fail = true;
 		}
 		delete in;
 	}
@@ -372,7 +399,7 @@ main( int argc, char **argv )
 		in = ImageInput::create( featuremap_fn.c_str() );
 		if ( !in ) {
 			if ( !quiet )cout << "ERROR: Featuremap image missing or invalid format." << endl;
-			exit( -1 );
+			fail = true;
 		}
 		delete in;
 	}
@@ -383,10 +410,12 @@ main( int argc, char **argv )
 		in = ImageInput::create( minimap_fn.c_str() );
 		if ( !in ) {
 			if ( !quiet )cout << "ERROR: Minimap image missing or invalid format." << endl;
-			exit( -1 );
+			fail = true;
 		}
 		delete in;
 	}
+	in = NULL;
+	if( fail ) exit(-1);
 
 	// Setup Global variables //
 	////////////////////////////
@@ -394,11 +423,11 @@ main( int argc, char **argv )
 	if( fast_dxt1 ) compressionOptions.setQuality(nvtt::Quality_Fastest); 
 	else compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
-	
 
-	// SMT file comes before SMF because SMF relies on the tiles and filename
+
 	// Build SMT Header //
 	//////////////////////
+	// SMT file comes before SMF because SMF relies on the tiles and filename
 	if( verbose ) printf("INFO: Creating %s.smt\n", smt_ofn.c_str() );
 	ofstream smt_of( (smt_ofn+".smt").c_str(), ios::binary | ios::out);
 	TileFileHeader tileFileHeader;
@@ -671,9 +700,9 @@ main( int argc, char **argv )
 
 	// add size of tile information.
 	offset += sizeof( MapTileHeader );
-	offset += (int)(smf_ofn + ".smt").size() + 5; // new tilefile name
+	for(unsigned int i = 0; i < smt_in.size(); ++i )offset += 4 + smt_in[i].size();
+	offset += (int)(smf_ofn + ".smt").size() + 4; // new tilefile name
 	offset += width * length  * 1024;  // space needed for tile map
-	//FIXME requires changes to allow multiple smt's
 	header.metalmapPtr = offset;
 
 	// add size of metalmap
@@ -886,10 +915,15 @@ main( int argc, char **argv )
 	// Map Tile Index //
 	///////////////
 	MapTileHeader mapTileHeader;
-	mapTileHeader.numTileFiles = 1; //FIXME needs changing to allow multiple smt's
+	mapTileHeader.numTileFiles = smt_in.size() + 1; 
 	mapTileHeader.numTiles = width * length * 256;
 	smf_of.write( (char *)&mapTileHeader, sizeof( MapTileHeader ) );
 
+	// add additional smt's
+	for(unsigned int i = 0; i < smt_in.size(); ++i) {
+		smf_of.write( (char *)&smt_tilenums[i], 4);
+		smf_of.write( smt_in[i].c_str(), smt_in[i].size() +1 );
+	}
 
 	smf_of.write( (char *)&mapTileHeader.numTiles, 4 );
 	smf_of.write( (smf_ofn + ".smt").c_str(), smf_ofn.size() + 5 );
