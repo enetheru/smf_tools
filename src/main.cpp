@@ -57,16 +57,6 @@ NVTTOutputHandler::writeData(const void *data, int size)
     return true;
 }
 
-unsigned short *
-uint16_filter_bilinear(unsigned short *in_data,
-	int in_w, int in_l, int in_c,
-	int out_w, int out_l);
-
-unsigned short *
-uint16_filter_trilinear(unsigned short *in_data,
-	int in_w, int in_l, int in_c,
-	int out_w, int out_l);
-
 template <class T> T *
 map_channels(T *in_d, //input data
 	int width, int length, // input width, length
@@ -75,7 +65,12 @@ map_channels(T *in_d, //input data
 
 template <class T> T *
 interpolate_nearest(T *in_d, //input data
-	int in_w, int in_l, int in_c, // input width, length, channels
+	int in_w, int in_l, int chans, // input width, length, channels
+	int out_w, int out_l); // output width and length
+
+template <class T> T *
+interpolate_bilinear(T *in_d, //input data
+	int in_w, int in_l, int chans, // input width, length, channels
 	int out_w, int out_l); // output width and length
 
 #ifdef WIN32
@@ -503,7 +498,10 @@ main( int argc, char **argv )
 	int tcx = width * 16; // tile count x
 	int tcz = length * 16; // tile count z
 
-	int stw, stl, stc; // source tile dimensions
+	// Source tile dimensions
+	int stw, stl, stc;
+	float stw_f, stl_f;
+
 	int dtw, dtl, dtc = 4; //destination tile dimensions
 	dtw = dtl = tileFileHeader.tileSize;
 
@@ -520,8 +518,11 @@ main( int argc, char **argv )
 	}
 
 	if( in ) {
-		stw = spec->width / tcx;
-		stl = spec->height / tcz;
+		stw_f = (float)spec->width / tcx;
+		stl_f = (float)spec->height / tcz;
+		stw = (int)stw_f;
+		stl = (int)stl_f;
+
 		stc = spec->nchannels;
 
 
@@ -536,7 +537,7 @@ main( int argc, char **argv )
 		for ( z = 0; z < tcz; z++) {
 			// pull scanline data from source image
 			uint8_pixels = new unsigned char [ spec->width * stl * spec->nchannels ];
-			in->read_scanlines(z * stl, z * stl + stl, 0, TypeDesc::UINT8, uint8_pixels);
+			in->read_scanlines( (int)z * stl_f, (int)z * stl_f + stl, 0, TypeDesc::UINT8, uint8_pixels);
 
 			for ( x = 0; x < tcx; x++) {
 				if( verbose ) printf("\033[0GINFO: Processing tile %i of %i",
@@ -548,16 +549,14 @@ main( int argc, char **argv )
 					for( int j = 0; j < stl; ++j ) // columns
 						for( int c = 0; c < stc; ++c) {
 							std[ (i * stl + j) * stc + c] =
-								uint8_pixels[ ((i * spec->width) + (x * stw) + j) * stc + c ];
+								uint8_pixels[ ((i * spec->width) + (int)(x * stw_f) + j) * stc + c ];
 				}
 						
 				// convert tile
 				int map[] = {2,1,0,3};
 				int fill[] = {0,0,0,255};
-//				printf("map channels\n");
 				dtd = map_channels(std, stw, stl, stc, dtc, map, fill);
-//				printf("interpolate nearest\n");
-				dtd = interpolate_nearest(dtd, stw, stl, dtc, dtw, dtl);
+				dtd = interpolate_bilinear(dtd, stw, stl, dtc, dtw, dtl);
 
 				outputHandler->offset=0;
 				inputOptions.setTextureLayout( nvtt::TextureType_2D, dtw, dtl );
@@ -798,7 +797,6 @@ main( int argc, char **argv )
 	xres = width * 64 + 1;
 	zres = length * 64 + 1;
 	channels = 1;
-	int ox, oz;
 	unsigned short *displacement;
 
 	in = ImageInput::create( displacement_fn.c_str() );
@@ -835,16 +833,18 @@ main( int argc, char **argv )
 			spec->width, spec->height, spec->nchannels,
 			channels, map, fill);
 
-		// resample nearest
-		displacement = new unsigned short[ xres * zres ];
-		for (int z = 0; z < zres; z++ ) // rows
-		for ( int x = 0; x < xres; x++ ) { // columns
-				ox = (float)x / xres * spec->width;
-				oz = (float)z / zres * spec->height;
-				displacement[ z * xres + x ] =
-					uint16_pixels[ oz * spec->width + ox];
-		}
-		delete [] uint16_pixels;
+		displacement = interpolate_bilinear(uint16_pixels, spec->width, spec->height, channels, xres, zres);
+
+//		// resample nearest
+//		displacement = new unsigned short[ xres * zres ];
+//		for (int z = 0; z < zres; z++ ) // rows
+//		for ( int x = 0; x < xres; x++ ) { // columns
+//				ox = (float)x / xres * spec->width;
+//				oz = (float)z / zres * spec->height;
+//				displacement[ z * xres + x ] =
+//					uint16_pixels[ oz * spec->width + ox];
+//		}
+//		delete [] uint16_pixels;
 	} else displacement = uint16_pixels;
 
 	// If inversion of height is specified in the arguments,
@@ -979,7 +979,7 @@ main( int argc, char **argv )
 		uint8_pixels = map_channels(uint8_pixels,
 			spec->width, spec->height, spec->nchannels,
 			channels, map, fill);
-		minimap = interpolate_nearest(uint8_pixels,
+		minimap = interpolate_bilinear(uint8_pixels,
 			spec->width, spec->height, channels,
 			xres, zres);
 
@@ -1255,119 +1255,6 @@ HeightMapFilter( int mapx, int mapy)
 
 */
 
-unsigned short *
-uint16_filter_bilinear(unsigned short *in_data,
-	int in_w, int in_l, int in_c,
-	int out_w, int out_l)
-{
-	unsigned short *out_data = new unsigned short[out_w * out_l];
-	int ix1, ix2, iy1, iy2; //cornering vertices
-	float px,py; // sub pixel position on source map.
-	float i1, i2, i3; //interpolated values;
-	float p1, p2; // pixel colours to interpolate between.
-
-	for( int y = 0; y < out_l; y++) { //iterate through rows
-		for( int x = 0; x < out_w; x++) { //iterate through columns
-			// sub pixel location on input map.
-			px = (float)x / out_w * in_w;
-			py = (float)y / out_l * in_l;
-			// bounding texels.
-			ix1 = floor( px ); ix2 = ceil( px );
-			iy1 = floor( py ); iy2 = ceil( py );
-			if( ix1 == ix2) ix2++;
-			if( iy1 == iy2) iy2++;
-			//get the first two points to interpolate between (ix1, iy1) & (ix2, iy1)
-			p1 = in_data[ (iy1 * in_w + ix1) * in_c ];
-			p2 = in_data[ (iy1 * in_w + ix2) * in_c ];
-			// interpolate
-			i1 = (p1 * (px - ix1) + p2 * (ix2 - px));
-//			printf("%.0f, %.0f, %.0f   ", p1, p2, i1);
-
-			//get the second two points to interpolate between (ix1, iy2) & (ix2, iy2)
-			p1 = in_data[ iy2 * in_w + ix1];
-			p2 = in_data[ iy2 * in_w + ix2];
-			// interpolate
-			i2 = (p1 * (px - ix1) + p2 * (ix2 - px));
-//			printf("%.0f, %.0f, %.0f   ", p1, p2, i2);
-
-			// Interpolate between those values
-			i3 = (i1 * (py - iy1) + i2 * (iy2 - py));
-//			printf("%0.0f, %.0f, %.0f\n", i1, i2, i3);
-
-			out_data[y * out_w + x] = (unsigned short)i3;
-		}
-	}
-
-	delete [] in_data;
-	return out_data;
-}
-
-unsigned short *
-uint16_filter_trilinear(unsigned short *in_data,
-	int in_w, int in_l, int in_c,
-	int out_w, int out_l)
-{
-	unsigned short *out_data = new unsigned short[out_w * out_l];
-	unsigned short *mip0 = new unsigned short[ in_w/2 * in_l/2];
-	int ix1, ix2, iy1, iy2; //cornering vertices
-	float px,py; // sub pixel position on source map.
-	float i1, i2, i3, i4; //interpolated values;
-	float p1, p2; // pixel colours to interpolate between.
-
-	// generate mip level 1 using nearest
-	for ( int y = 0; y < in_l /2 ; y++ ) {
-		for ( int x = 0; x < in_w /2 ; x++ ) {
-			// pixel position
-			px = (float)x / 2;
-			py = (float)y / 2;
-			mip0[ y * in_w / 2 + x ] = in_data[ (int)(py * in_w + px) * in_c];
-		}
-	}
-
-	// trilinear interpolation
-	for( int y = 0; y < out_l; y++) { //iterate through rows
-		for( int x = 0; x < out_w; x++) { //iterate through columns
-			// sub pixel location on input map.
-			px = (float)x / out_w * in_w;
-			py = (float)y / out_l * in_l;
-			// bounding texels.
-			ix1 = floor( px ); ix2 = ceil( px );
-			iy1 = floor( py ); iy2 = ceil( py );
-			if( ix1 == ix2) ix2++;
-			if( iy1 == iy2) iy2++;
-			//get the first two points to interpolate between (ix1, iy1) & (ix2, iy1)
-			p1 = in_data[ (iy1 * in_w + ix1) * in_c ];
-			p2 = in_data[ (iy1 * in_w + ix2) * in_c ];
-			// interpolate
-			i1 = (p1 * (px - ix1) + p2 * (ix2 - px));
-//			printf("%.0f, %.0f, %.0f   ", p1, p2, i1);
-
-			//get the second two points to interpolate between (ix1, iy2) & (ix2, iy2)
-			p1 = in_data[ iy2 * in_w + ix1];
-			p2 = in_data[ iy2 * in_w + ix2];
-			// interpolate
-			i2 = (p1 * (px - ix1) + p2 * (ix2 - px));
-//			printf("%.0f, %.0f, %.0f   ", p1, p2, i2);
-
-			// Interpolate between those values
-			i3 = (i1 * (py - iy1) + i2 * (iy2 - py));
-//			printf("%0.0f, %.0f, %.0f\n", i1, i2, i3);
-
-			// get pixel data from mip and interpolate again.
-			px = (float)x / out_w * in_w / 2;
-			py = (float)y / out_l * in_l / 2;
-			i4 = (i3 + mip0[(int)(py * in_w/2 + px)]) / 2;
-
-			out_data[y * out_w + x] = (unsigned short)i4;
-		}
-	}
-
-	delete [] in_data;
-	delete [] mip0;
-	return out_data;
-}
-
-
 template <class T> T *
 map_channels(T *in_d, //input data
 	int width, int length, // input width, length
@@ -1407,6 +1294,46 @@ interpolate_nearest(T *in_d, //input data
 			for ( int c = 0; c < chans; ++c ) // output channels
 				out_d[ (y * out_w + x) * chans + c ] =
 					in_d[ (in_y * in_w + in_x) * chans + c ];
+	}
+
+	delete [] in_d;
+	return out_d;
+}
+
+template <class T> T *
+interpolate_bilinear(T *in_d, //input data
+	int in_w, int in_l, int chans, // input width, length, channels
+	int out_w, int out_l) // output width and length
+{
+	float in_x, in_y; // sub pixel coordinates on source map.
+	// the values of the four bounding texels + two interpolated ones.
+	T p1,p2,p3,p4,p5,p6,p7; 
+	int x1,x2,y1,y2;
+
+	T *out_d = new T[out_w * out_l * chans];
+
+	for (int y = 0; y < out_l; ++y ) // output rows
+		for ( int x = 0; x < out_w; ++x ) { // output columns
+			in_x = (float)x / (out_w-1) * (in_w-1); //calculate the input coordinates
+			in_y = (float)y / (out_l-1) * (in_l-1);
+
+			x1 = floor(in_x);
+			x2 = ceil(in_x);
+			y1 = floor(in_y);
+			y2 = ceil(in_y);
+			for ( int c = 0; c < chans; ++c ) { // output channels
+				p1 = in_d[ (y1 * in_w + x1) * chans + c ];
+				p2 = in_d[ (y1 * in_w + x2) * chans + c ];
+				p3 = in_d[ (y2 * in_w + x1) * chans + c ];
+				p4 = in_d[ (y2 * in_w + x2) * chans + c ];
+				p5 = p2 * (in_x - x1) + p1 * (x2 - in_x);
+				p6 = p4 * (in_x - x1) + p3 * (x2 - in_x);
+				if(x1 == x2){ p5 = p1; p6 = p3; }
+				p7 = p6 * (in_y - y1) + p5 * (y2 - in_y);
+				if(y1 == y2) p7 = p5;
+				out_d[ (y * out_l + x) * chans + c] = p7;
+
+			}
 	}
 
 	delete [] in_d;
