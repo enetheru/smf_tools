@@ -57,17 +57,26 @@ NVTTOutputHandler::writeData(const void *data, int size)
     return true;
 }
 
-unsigned char *
-uint8_image_convert(unsigned char *id, //input data
-	int iw, int il, int ic, // input width, length, channels
-	int ow, int ol, int oc, // output width, length, channels
-	int *map, int *fill); // channel map, fill map
+unsigned short *
+uint16_filter_bilinear(unsigned short *in_data,
+	int in_w, int in_l, int in_c,
+	int out_w, int out_l);
 
-//static void
-//HeightMapInvert(int mapx, int mapy);
+unsigned short *
+uint16_filter_trilinear(unsigned short *in_data,
+	int in_w, int in_l, int in_c,
+	int out_w, int out_l);
 
-//static void
-//HeightMapFilter(int mapx, int mapy);
+template <class T> T *
+map_channels(T *in_d, //input data
+	int width, int length, // input width, length
+   	int in_c, int out_c, // channels in,out
+   	int *map, int *fill); // channel map, fill values
+
+template <class T> T *
+interpolate_nearest(T *in_d, //input data
+	int in_w, int in_l, int in_c, // input width, length, channels
+	int out_w, int out_l); // output width and length
 
 #ifdef WIN32
 int
@@ -85,7 +94,7 @@ main( int argc, char **argv )
 //  -v --verbose <bool> Display extra output
 //  -q --quiet <bool> Supress standard output
 	string smf_ofn = "", smt_ofn = "";
-//	bool no_smt = true,
+	bool no_smt = false;
 	bool verbose = false, quiet = false;
 //
 //  Map Dimensions
@@ -140,7 +149,7 @@ main( int argc, char **argv )
 	ImageInput *in = NULL; 
 	ImageSpec *spec = NULL;
 	int xres, zres, channels;
-	int x, z, ox, oz;
+	int x, z;
 	unsigned short *uint16_pixels;
 	unsigned char *uint8_pixels;
 	int tiletotal = 0;
@@ -292,6 +301,7 @@ main( int argc, char **argv )
 		smt_ofn = arg_smt_ofn.getValue(); // SMT Output Filename
 
 		// Additional SMT Files
+		no_smt = arg_no_smt.getValue();
 		smt_in = arg_smt_in.getValue(); // SMT Input Filename
 
 		// Map Dimensions
@@ -356,10 +366,16 @@ main( int argc, char **argv )
 			smt_if.read(magic, 16);
 			if( strcmp(magic, "spring tilefile") ) {
 				if ( !quiet )printf( "ERROR: %s is not a valid smt\n", smt_in[i].c_str() );
+				fail = true;
 			} else {
 				smt_if.seekg(20);
 				smt_if.read((char *)&tilenum, 4);
-				if( verbose )printf( "INFO: %s has %i tiles.\n", smt_in[i].c_str(), tilenum );
+				if( tilenum < 1 ) {
+					printf( "ERROR: " ); fail = true;
+				}
+				else if( verbose )printf( "INFO: " );
+
+				if( verbose )printf( "%s has %i tiles.\n", smt_in[i].c_str(), tilenum );
 				tiletotal += tilenum;
 				smt_tilenums.push_back(tilenum);
 			}
@@ -405,7 +421,8 @@ main( int argc, char **argv )
 
 	// Test Diffuse //
 	if( !diffuse_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Diffuse unspecified.\n\tMap will be grey." << endl;
+		no_smt = true;
+		if ( verbose ) cout << "INFO: Diffuse unspecified.\n\tSMT file will not be built." << endl;
 	} else {
 		in = ImageInput::create( diffuse_fn.c_str() );
 		if ( !in ) {
@@ -449,6 +466,11 @@ main( int argc, char **argv )
 		featurelist = true;
 	}
 
+	if(no_smt && !smt_in.size() ) {
+		if ( !quiet ) cout << "ERROR: Either Diffuse or SMT files need to be specified." << endl;
+		fail = true;
+	}
+
 	in = NULL;
 	if( fail ) exit(-1);
 
@@ -459,9 +481,9 @@ main( int argc, char **argv )
 	else compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
 
-
 	// Build SMT Header //
 	//////////////////////
+	if( !no_smt) {
 	// SMT file comes before SMF because SMF relies on the tiles and filename
 	if( verbose ) printf("\n== Creating %s.smt ==\n", smt_ofn.c_str() );
 	ofstream smt_of( (smt_ofn+".smt").c_str(), ios::binary | ios::out);
@@ -481,7 +503,7 @@ main( int argc, char **argv )
 	int tcx = width * 16; // tile count x
 	int tcz = length * 16; // tile count z
 
-	int stw, stl, stc = 4; // source tile dimensions
+	int stw, stl, stc; // source tile dimensions
 	int dtw, dtl, dtc = 4; //destination tile dimensions
 	dtw = dtl = tileFileHeader.tileSize;
 
@@ -504,10 +526,10 @@ main( int argc, char **argv )
 
 
 		if( verbose ) {
-			printf( "INFO: Loaded %s (%i, %i)*%i\n",
+			printf( "INFO: Loaded %s (%i, %i)%i\n",
 				diffuse_fn.c_str(), spec->width, spec->height, spec->nchannels);
 			if( stw != dtw || stl != dtl )
-				printf( "WARNING: Converting tile size (%i,%i)*%i to (%i,%i)*%i\n",
+				printf( "WARNING: Converting tiles from (%i,%i)%i to (%i,%i)%i\n",
 					stw,stl,stc,dtw,dtl,dtc);
 		}
 
@@ -532,10 +554,10 @@ main( int argc, char **argv )
 				// convert tile
 				int map[] = {2,1,0,3};
 				int fill[] = {0,0,0,255};
-				dtd = uint8_image_convert(std,
-							stw, stl, stc,
-							dtw, dtl, dtc,
-							map, fill);
+//				printf("map channels\n");
+				dtd = map_channels(std, stw, stl, stc, dtc, map, fill);
+//				printf("interpolate nearest\n");
+				dtd = interpolate_nearest(dtd, stw, stl, dtc, dtw, dtl);
 
 				outputHandler->offset=0;
 				inputOptions.setTextureLayout( nvtt::TextureType_2D, dtw, dtl );
@@ -564,6 +586,7 @@ main( int argc, char **argv )
 	smt_tilenums.push_back( tileFileHeader.numTiles );
 	tiletotal += tileFileHeader.numTiles;
 
+	}// if(!no_smt)
 	
 /*	ifstream ifs;
 	int numNamedFeatures = 0;
@@ -683,35 +706,36 @@ main( int argc, char **argv )
 	// Build SMF header //
 	//////////////////
 	if( verbose ) printf("\n== Creating %s.smf ==\n", smf_ofn.c_str() );
-#ifdef WIN32
-	LARGE_INTEGER li;
-	QueryPerformanceCounter( &li );
-#endif
 
 	MapHeader header;
+
 	strcpy( header.magic, "spring map file" );
 	header.version = 1;
-
-#ifdef WIN32
-	// FIXME: this should be made better to make it depend on heightmap etc,
-	// but this should be enough to make each map unique
-	header.mapid = li.LowPart; 
-#else
 	header.mapid = time( NULL );
-#endif
+
 	header.mapx = width * 64;
 	header.mapy = length * 64;
+
+	// must be these values
 	header.squareSize = 8;
 	header.texelPerSquare = 8;
 	header.tilesize = 32;
+
 	header.minHeight = depth * 512;
 	header.maxHeight = height * 512;
 
-	header.numExtraHeaders = 1;
+
+	// we revisit these later to correctly set them.
+//	header.heightmapPtr = 0;
+//	header.typeMapPtr = 0;
+//	header.tilesPtr = 0;
+//	header.minimapPtr = 0;
+//	header.metalmapPtr = 0;
+//	header.featurePtr = 0;
 
 	int offset = sizeof( MapHeader );
 	// add size of vegetation extra header
-	if(grass)offset += 12;
+	if(grass)offset += sizeof(GrassHeader);
 	header.heightmapPtr = offset;
 
 	// add size of heightmap
@@ -734,13 +758,15 @@ main( int argc, char **argv )
 	offset += (int)(smf_ofn + ".smt").size() + 4; // new tilefile name
 	offset += width * length  * 1024;  // space needed for tile map
 	header.metalmapPtr = offset;
-
+ 
 	// add size of metalmap
 	offset += width * length * 1024;
-
+ 
 	// add size of grass map
-	if(grass)offset += width * length * 256;	
+	if(grass)offset += width * length * 256;        
 	header.featurePtr = offset;
+
+	if(grass)header.numExtraHeaders++;
 
 	// Write Header to file
 	ofstream smf_of( (smf_ofn + ".smf").c_str(), ios::out | ios::binary );
@@ -772,6 +798,7 @@ main( int argc, char **argv )
 	xres = width * 64 + 1;
 	zres = length * 64 + 1;
 	channels = 1;
+	int ox, oz;
 	unsigned short *displacement;
 
 	in = ImageInput::create( displacement_fn.c_str() );
@@ -800,23 +827,33 @@ main( int argc, char **argv )
 			displacement_fn.c_str(), spec->width, spec->height, spec->nchannels,
 			xres, zres);
 
+//		displacement = uint16_filter_trilinear(uint16_pixels,
+//			spec->width, spec->height, spec->nchannels, xres, zres);
+		int map[] = {0};
+		int fill[] = {0};
+		uint16_pixels = map_channels(uint16_pixels,
+			spec->width, spec->height, spec->nchannels,
+			channels, map, fill);
+
 		// resample nearest
 		displacement = new unsigned short[ xres * zres ];
 		for (int z = 0; z < zres; z++ ) // rows
-			for ( int x = 0; x < xres; x++ ) { // columns
+		for ( int x = 0; x < xres; x++ ) { // columns
 				ox = (float)x / xres * spec->width;
 				oz = (float)z / zres * spec->height;
 				displacement[ z * xres + x ] =
-					uint16_pixels[ (oz * spec->width + ox) * spec->nchannels ];
+					uint16_pixels[ oz * spec->width + ox];
 		}
 		delete [] uint16_pixels;
 	} else displacement = uint16_pixels;
 
 	// If inversion of height is specified in the arguments,
-	if ( displacement_invert && verbose ) cout << "WARNING: Height inversion not implemented yet" << endl;
+	if ( displacement_invert && verbose )
+		cout << "WARNING: Height inversion not implemented yet" << endl;
 
 	// If inversion of height is specified in the arguments,
-	if ( displacement_lowpass && verbose ) cout << "WARNING: Height lowpass filter not implemented yet" << endl;
+	if ( displacement_lowpass && verbose )
+		cout << "WARNING: Height lowpass filter not implemented yet" << endl;
 	
 	// write height data to smf.
 	smf_of.write( (char *)displacement, xres * zres * 2 );
@@ -827,7 +864,6 @@ main( int argc, char **argv )
 	/////////////
 	if( verbose ) cout << "INFO: Processing and writing typemap." << endl;
 
-//FIXME for some reason actually pointing to the correct start location makes spring crash
 //	header.typeMapPtr = smf_of.tellp();
 //	smf_of.seekp(60); //position of typemapPtr
 //	smf_of.write( (char *)&header.typeMapPtr, 4);
@@ -869,10 +905,12 @@ main( int argc, char **argv )
 		// convert image
 		int map[] = {1};
 		int fill[] = {0};
-		typemap = uint8_image_convert(uint8_pixels,
+		uint8_pixels = map_channels(uint8_pixels,
 			spec->width, spec->height, spec->nchannels,
-			xres, zres, channels,
-			map, fill);
+			channels, map, fill);
+		typemap = interpolate_nearest(uint8_pixels,
+			spec->width, spec->height, channels,
+			xres, zres);
 		
 	} else typemap = uint8_pixels;
 
@@ -938,10 +976,12 @@ main( int argc, char **argv )
 		// convert image
 		int map[] = {2, 1, 0, 3};
 		int fill[] = {0, 0, 0, 255};
-		minimap = uint8_image_convert(uint8_pixels,
+		uint8_pixels = map_channels(uint8_pixels,
 			spec->width, spec->height, spec->nchannels,
-			xres, zres, channels,
-			map, fill);
+			channels, map, fill);
+		minimap = interpolate_nearest(uint8_pixels,
+			spec->width, spec->height, channels,
+			xres, zres);
 
 	} else minimap = uint8_pixels;
 
@@ -982,7 +1022,7 @@ main( int argc, char **argv )
 
 	// add references to smt's
 	for(unsigned int i = 0; i < smt_in.size(); ++i) {
-		printf( "INFO: Adding %s to smf\n", smt_in[i].c_str() );
+		if( verbose )printf( "INFO: Adding %s to smf\n", smt_in[i].c_str() );
 		smf_of.write( (char *)&smt_tilenums[i], 4);
 		smf_of.write( smt_in[i].c_str(), smt_in[i].size() +1 );
 	}
@@ -991,7 +1031,7 @@ main( int argc, char **argv )
 	int i;
 	for ( int z = 0; z < length * 16; z++ )
 		for ( int x = 0; x < width * 16; x++) {
-			i = x + z * width * 16;
+			i = (x + z * width * 16) % tiletotal;
 			smf_of.write( (char *)&i, sizeof( int ) );
 	}
 
@@ -1039,10 +1079,12 @@ main( int argc, char **argv )
 		// convert image
 		int map[] = {0};
 		int fill[] = {255};
-		metalmap = uint8_image_convert(uint8_pixels,
+		uint8_pixels = map_channels(uint8_pixels,
 			spec->width, spec->height, spec->nchannels,
-			xres, zres, channels,
-			map, fill);
+			channels, map, fill);
+		metalmap = interpolate_nearest(uint8_pixels,
+			spec->width, spec->height, channels,
+			xres, zres);
 
 	} else metalmap = uint8_pixels;
 
@@ -1089,10 +1131,12 @@ main( int argc, char **argv )
 			// convert image
 			int map[] = {0};
 			int fill[] = {0};
-			grassmap = uint8_image_convert(uint8_pixels,
+			uint8_pixels = map_channels(uint8_pixels,
 				spec->width, spec->height, spec->nchannels,
-				xres, zres, channels,
-				map, fill);
+				channels, map, fill);
+			grassmap = interpolate_nearest(uint8_pixels,
+				spec->width, spec->height, channels,
+				xres, zres);
 
 		} else grassmap = uint8_pixels;
 
@@ -1102,27 +1146,27 @@ main( int argc, char **argv )
 
 	// Process Features //
 	//////////////////////
-	if( verbose ) cout << "INFO: Processing and writing features." << endl;
-
-	MapFeatureHeader mapFeatureHeader;
-	vector<MapFeatureStruct> features;
-	MapFeatureStruct *feature;
-	vector<string> featurenames;
-
-	string line;
-	string cell;
-	vector<string> tokens;
-	char value[256];
-
-	// build inbuilt list
-	for ( int i=0; i < 16; i++ ) {
-		sprintf(value, "TreeType%i", i);
-		featurenames.push_back(value);
-	}
-	featurenames.push_back("GeoVent");
-
-	// Parse the file
 	if( featurelist ) {
+		if( verbose ) cout << "INFO: Processing and writing features." << endl;
+
+		MapFeatureHeader mapFeatureHeader;
+		vector<MapFeatureStruct> features;
+		MapFeatureStruct *feature;
+		vector<string> featurenames;
+
+		string line;
+		string cell;
+		vector<string> tokens;
+		char value[256];
+
+		// build inbuilt list
+		for ( int i=0; i < 16; i++ ) {
+			sprintf(value, "TreeType%i", i);
+			featurenames.push_back(value);
+		}
+		featurenames.push_back("GeoVent");
+
+		// Parse the file
 		printf( "INFO: Reading %s\n", featurelist_fn.c_str() );
 		ifstream flist(featurelist_fn.c_str(), ifstream::in);
 
@@ -1181,22 +1225,6 @@ main( int argc, char **argv )
 
 /*
 static void
-HeightMapInvert(int mapx, int mapy)
-{
-	int x,y;
-	float *heightmap2;
-
-	printf( "Inverting height map\n" );
-	heightmap2 = heightmap;
-	heightmap = new float[ mapx * mapy ];
-	for ( y = 0; y < mapy; ++y )
-		for( x = 0; x < mapx; ++x )
-			heightmap[ y * mapx +x ] =	heightmap2[ (mapy -y -1) * mapx +x ];
-
-	delete[] heightmap2;
-}
-
-static void
 HeightMapFilter( int mapx, int mapy)
 {
 	float *heightmap2;
@@ -1227,32 +1255,160 @@ HeightMapFilter( int mapx, int mapy)
 
 */
 
-unsigned char *
-uint8_image_convert(unsigned char *id, //input data
-	int iw, int il, int ic, // input width, length, channels
-	int ow, int ol, int oc, // output width, length, channels
-	int *map, int *fill) // channel map, fill map
+unsigned short *
+uint16_filter_bilinear(unsigned short *in_data,
+	int in_w, int in_l, int in_c,
+	int out_w, int out_l)
 {
-	int ix, iy; // origin coordinates
-	int ip, op; // offsets to location in memory
-	if(ow == -1) ow = iw; 
-	if(ol == -1) ol = il;
-	if(oc == -1) oc = ic;
+	unsigned short *out_data = new unsigned short[out_w * out_l];
+	int ix1, ix2, iy1, iy2; //cornering vertices
+	float px,py; // sub pixel position on source map.
+	float i1, i2, i3; //interpolated values;
+	float p1, p2; // pixel colours to interpolate between.
 
-	unsigned char *od = new unsigned char[ow * ol * oc];
+	for( int y = 0; y < out_l; y++) { //iterate through rows
+		for( int x = 0; x < out_w; x++) { //iterate through columns
+			// sub pixel location on input map.
+			px = (float)x / out_w * in_w;
+			py = (float)y / out_l * in_l;
+			// bounding texels.
+			ix1 = floor( px ); ix2 = ceil( px );
+			iy1 = floor( py ); iy2 = ceil( py );
+			if( ix1 == ix2) ix2++;
+			if( iy1 == iy2) iy2++;
+			//get the first two points to interpolate between (ix1, iy1) & (ix2, iy1)
+			p1 = in_data[ (iy1 * in_w + ix1) * in_c ];
+			p2 = in_data[ (iy1 * in_w + ix2) * in_c ];
+			// interpolate
+			i1 = (p1 * (px - ix1) + p2 * (ix2 - px));
+//			printf("%.0f, %.0f, %.0f   ", p1, p2, i1);
 
-	for (int y = 0; y < ol; ++y ) // output rows
-		for ( int x = 0; x < ow; ++x ) { // output columns
-			ix = (float)x / ow * iw; //calculate the input coordinates
-			iy = (float)y / ol * il;
+			//get the second two points to interpolate between (ix1, iy2) & (ix2, iy2)
+			p1 = in_data[ iy2 * in_w + ix1];
+			p2 = in_data[ iy2 * in_w + ix2];
+			// interpolate
+			i2 = (p1 * (px - ix1) + p2 * (ix2 - px));
+//			printf("%.0f, %.0f, %.0f   ", p1, p2, i2);
 
-			op = (y * ow + x) * oc; // calculate output data location
-			ip = (iy * iw + ix) * ic; // calculate input data location
+			// Interpolate between those values
+			i3 = (i1 * (py - iy1) + i2 * (iy2 - py));
+//			printf("%0.0f, %.0f, %.0f\n", i1, i2, i3);
 
-			for ( int c = 0; c < oc; ++c ) // output channels
-				if( map[ c ] >= ic ) od[ op +c ] = fill[ c ];
-				else od[ op + c ] = id[ ip + map[ c ] ];
+			out_data[y * out_w + x] = (unsigned short)i3;
+		}
 	}
 
-	return od;
+	delete [] in_data;
+	return out_data;
+}
+
+unsigned short *
+uint16_filter_trilinear(unsigned short *in_data,
+	int in_w, int in_l, int in_c,
+	int out_w, int out_l)
+{
+	unsigned short *out_data = new unsigned short[out_w * out_l];
+	unsigned short *mip0 = new unsigned short[ in_w/2 * in_l/2];
+	int ix1, ix2, iy1, iy2; //cornering vertices
+	float px,py; // sub pixel position on source map.
+	float i1, i2, i3, i4; //interpolated values;
+	float p1, p2; // pixel colours to interpolate between.
+
+	// generate mip level 1 using nearest
+	for ( int y = 0; y < in_l /2 ; y++ ) {
+		for ( int x = 0; x < in_w /2 ; x++ ) {
+			// pixel position
+			px = (float)x / 2;
+			py = (float)y / 2;
+			mip0[ y * in_w / 2 + x ] = in_data[ (int)(py * in_w + px) * in_c];
+		}
+	}
+
+	// trilinear interpolation
+	for( int y = 0; y < out_l; y++) { //iterate through rows
+		for( int x = 0; x < out_w; x++) { //iterate through columns
+			// sub pixel location on input map.
+			px = (float)x / out_w * in_w;
+			py = (float)y / out_l * in_l;
+			// bounding texels.
+			ix1 = floor( px ); ix2 = ceil( px );
+			iy1 = floor( py ); iy2 = ceil( py );
+			if( ix1 == ix2) ix2++;
+			if( iy1 == iy2) iy2++;
+			//get the first two points to interpolate between (ix1, iy1) & (ix2, iy1)
+			p1 = in_data[ (iy1 * in_w + ix1) * in_c ];
+			p2 = in_data[ (iy1 * in_w + ix2) * in_c ];
+			// interpolate
+			i1 = (p1 * (px - ix1) + p2 * (ix2 - px));
+//			printf("%.0f, %.0f, %.0f   ", p1, p2, i1);
+
+			//get the second two points to interpolate between (ix1, iy2) & (ix2, iy2)
+			p1 = in_data[ iy2 * in_w + ix1];
+			p2 = in_data[ iy2 * in_w + ix2];
+			// interpolate
+			i2 = (p1 * (px - ix1) + p2 * (ix2 - px));
+//			printf("%.0f, %.0f, %.0f   ", p1, p2, i2);
+
+			// Interpolate between those values
+			i3 = (i1 * (py - iy1) + i2 * (iy2 - py));
+//			printf("%0.0f, %.0f, %.0f\n", i1, i2, i3);
+
+			// get pixel data from mip and interpolate again.
+			px = (float)x / out_w * in_w / 2;
+			py = (float)y / out_l * in_l / 2;
+			i4 = (i3 + mip0[(int)(py * in_w/2 + px)]) / 2;
+
+			out_data[y * out_w + x] = (unsigned short)i4;
+		}
+	}
+
+	delete [] in_data;
+	delete [] mip0;
+	return out_data;
+}
+
+
+template <class T> T *
+map_channels(T *in_d, //input data
+	int width, int length, // input width, length
+   	int in_c, int out_c, // channels in,out
+   	int *map, int *fill) // channel map, fill values
+{
+	T *out_d = new T[width * length * out_c];
+
+	for (int y = 0; y < length; ++y ) // rows
+		for ( int x = 0; x < width; ++x ) // columns
+			for ( int c = 0; c < out_c; ++c ) { // output channels
+				if( map[ c ] >= in_c )
+					out_d[ (y * width + x) * out_c + c ] = fill[ c ];
+				else
+					out_d[ (y * width + x) * out_c + c ] =
+						in_d[ (y * width + x) * in_c + map[ c ] ];
+	}
+
+	delete [] in_d;
+	return out_d;
+}
+
+template <class T> T *
+interpolate_nearest(T *in_d, //input data
+	int in_w, int in_l, int chans, // input width, length, channels
+	int out_w, int out_l) // output width and length
+{
+	int in_x, in_y; // origin coordinates
+
+	T *out_d = new T[out_w * out_l * chans];
+
+	for (int y = 0; y < out_l; ++y ) // output rows
+		for ( int x = 0; x < out_w; ++x ) { // output columns
+			in_x = (float)x / out_w * in_w; //calculate the input coordinates
+			in_y = (float)y / out_l * in_l;
+
+			for ( int c = 0; c < chans; ++c ) // output channels
+				out_d[ (y * out_w + x) * chans + c ] =
+					in_d[ (in_y * in_w + in_x) * chans + c ];
+	}
+
+	delete [] in_d;
+	return out_d;
 }
