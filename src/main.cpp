@@ -21,6 +21,11 @@ using namespace std;
 using namespace TCLAP;
 OIIO_NAMESPACE_USING
 
+struct tile_crc {
+	char d[8];
+	char n;
+};
+
 struct GrassHeader {
 	int size;
 	int type;
@@ -36,6 +41,14 @@ public:
 
 	bool
 	writeData(const void *data, int size);
+	struct mipinfo {
+		int offset;
+		int size;
+		int width, height, depth;
+		int face;
+	};
+
+	vector<mipinfo> mip;
 
 	char buffer[MINIMAP_SIZE+1024];
 	int offset;
@@ -45,6 +58,8 @@ void
 NVTTOutputHandler::beginImage( int size, int width, int height, int depth, int face,
 				int miplevel)
 {
+	mipinfo info = {offset, size, width, height, depth, face};
+	mip.push_back(info);
 	return;
 }
 
@@ -476,6 +491,8 @@ main( int argc, char **argv )
 	else compressionOptions.setQuality(nvtt::Quality_Normal); 
 	outputOptions.setOutputHeader(false);
 
+	int tilemap[width * 16 * length * 16];
+
 	// Build SMT Header //
 	//////////////////////
 	if( !no_smt) {
@@ -498,6 +515,7 @@ main( int argc, char **argv )
 	int tcx = width * 16; // tile count x
 	int tcz = length * 16; // tile count z
 
+
 	// Source tile dimensions
 	int stw, stl, stc;
 	float stw_f, stl_f;
@@ -507,8 +525,9 @@ main( int argc, char **argv )
 
 	unsigned char *std, *dtd; // source & destination tile pixel data
 
-	outputHandler = new NVTTOutputHandler();
-	outputOptions.setOutputHandler( outputHandler );
+	vector<tile_crc> tile_crcs;
+	tile_crc crc_t;
+	crc_t.n = '\0';
 
 	// Load up diffuse image
 	if( diffuse_fn.compare( "" ) ) {
@@ -540,8 +559,8 @@ main( int argc, char **argv )
 			in->read_scanlines( (int)z * stl_f, (int)z * stl_f + stl, 0, TypeDesc::UINT8, uint8_pixels);
 
 			for ( x = 0; x < tcx; x++) {
-				if( verbose ) printf("\033[0GINFO: Processing tile %i of %i",
-							z * tcx + x + 1, tcx * tcz);
+				if( verbose ) printf("\033[0GINFO: Processing tile %i of %i, Final Count = %i",
+					z * tcx + x + 1, tcx * tcz, tileFileHeader.numTiles );
 		
 				// copy from the scanline data our tile
 				std = new unsigned char [stw * stl * stc];
@@ -558,24 +577,49 @@ main( int argc, char **argv )
 				dtd = map_channels(std, stw, stl, stc, dtc, map, fill);
 				dtd = interpolate_bilinear(dtd, stw, stl, dtc, dtw, dtl);
 
-				outputHandler->offset=0;
+				outputHandler = new NVTTOutputHandler();
+				outputOptions.setOutputHandler( outputHandler );
+
 				inputOptions.setTextureLayout( nvtt::TextureType_2D, dtw, dtl );
 				inputOptions.setMipmapData( dtd, dtw, dtl );
+
 				compressor.process(inputOptions, compressionOptions,
 							outputOptions);
-				smt_of.write( (char *)outputHandler->buffer, SMALL_TILE_SIZE );
-				// write tile to file.
-				tileFileHeader.numTiles +=1;
+
+				//copy mipmap to use as checksum: 64bits
+				memcpy(&crc_t, &outputHandler->buffer[672] , 8);
+
+
+				bool match = false;
+				unsigned int i; //tile index
+				if( !tile_crcs.empty() ) {
+					for( i = 0; i < tile_crcs.size(); i++ ) {
+						if( !strcmp( (char *)&tile_crcs[i], (char *)&crc_t ) ) {
+							match = true;
+							break;
+						} 
+					}
+				}
+				if( !match ) {
+					tile_crcs.push_back(crc_t);
+					// write tile to file.
+					smt_of.write( (char *)outputHandler->buffer, SMALL_TILE_SIZE );
+					tileFileHeader.numTiles +=1;
+				}
+				// Write index to tilemap
+				tilemap[z * tcx + x] = i;
+
 				delete [] dtd;
+				delete outputHandler;
 			}
 			delete [] uint8_pixels;
 		}
 		printf("\n");
 		in->close();
 		delete in;
-		delete outputHandler;
 	}
 
+	// retroactively fix up the tile count.
 	smt_of.seekp( 20);
 	smt_of.write( (char *)&tileFileHeader.numTiles, 4);
 	smt_of.close();
@@ -1028,12 +1072,13 @@ main( int argc, char **argv )
 	}
 
 	// Write tile index
-	int i;
-	for ( int z = 0; z < length * 16; z++ )
-		for ( int x = 0; x < width * 16; x++) {
-			i = (x + z * width * 16) % tiletotal;
-			smf_of.write( (char *)&i, sizeof( int ) );
-	}
+	smf_of.write( (char *)tilemap, width * 16 * length * 16 * 4);
+//	int i;
+//	for ( int z = 0; z < length * 16; z++ )
+//		for ( int x = 0; x < width * 16; x++) {
+//			i = (x + z * width * 16) % tiletotal;
+//			smf_of.write( (char *)&i, sizeof( int ) );
+//	}
 
 	// Metal Map //
 	///////////////
