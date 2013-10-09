@@ -94,6 +94,9 @@ interpolate_bilinear(T *in_d, //input data
 	int in_w, int in_l, int chans, // input width, length, channels
 	int out_w, int out_l); // output width and length
 
+unsigned char *
+dxt1_load(unsigned char* data, int width, int height);
+
 #ifdef WIN32
 int
 _tmain( int argc, _TCHAR *argv[] )
@@ -109,9 +112,11 @@ main( int argc, char **argv )
 //     --no-smt <bool> Don't build smt file
 //  -v --verbose <bool> Display extra output
 //  -q --quiet <bool> Supress standard output
+//     --decompile <string> map name to decompile
 	string smf_ofn = "", smt_ofn = "";
 	bool no_smt = false;
 	bool verbose = false, quiet = false;
+	string decompile_fn = "";
 //
 //  Map Dimensions
 //	-w --width <int> Width in spring map units
@@ -153,7 +158,7 @@ main( int argc, char **argv )
 //
 // Grass
 //  -g --grassmap <image>
-	bool grass;
+	bool grass = false;
 	string grassmap_fn = "";
 //
 // Features
@@ -162,7 +167,13 @@ main( int argc, char **argv )
 	string featurelist_fn = "";
 
 	// Globals //
-	/////////////////////////////
+	/////////////
+	MapHeader smf_header;
+	MapTileHeader smf_tileheader;
+	GrassHeader smf_grassheader;
+//	MapFeatureHeader smf_featureheader;
+//	MapFeatureStruct smf_featurestruct;
+//	TileFileHeader smt_header;
 	char magic[16];
 	int x, z;
 
@@ -198,7 +209,7 @@ main( int argc, char **argv )
 		ValueArg<string> arg_smf_ofn(
 			"o", "outfilename",
 			"Output prefix for the spring map file(.smf)",
-			true, "", "string", cmd);
+			false, "", "string", cmd);
 
 		ValueArg<string> arg_smt_ofn(
 			"", "smt-outfilename",
@@ -231,18 +242,23 @@ main( int argc, char **argv )
 			"q", "quiet",
 			"Supress information printing to standard output.",
 			cmd, false );
+
+		ValueArg<string> arg_decompile_fn(
+			"", "decompile",
+			"The smf file to decompile.",
+			false, "", "filename", cmd);
 		
 		// Map Dimensions //
 		////////////////////
 		ValueArg<int> arg_width(
 			"w", "width",
 			"The Width of the map in spring map units. Must be multiples of 2",
-			true, 8, "int", cmd );
+			false, 0, "int", cmd );
 
 		ValueArg<int> arg_length(
 			"l", "length",
 			"The Length of the map in spring map units. Must be multiples of 2",
-			true, 8, "int", cmd );
+			false, 0, "int", cmd );
 
 		ValueArg<float> arg_depth(
 			"d", "depth",
@@ -324,11 +340,12 @@ main( int argc, char **argv )
 		// Generic Options
 		verbose = arg_verbose.getValue();
 		quiet = arg_quiet.getValue();
+		decompile_fn = arg_decompile_fn.getValue();
 
 		smf_ofn = arg_smf_ofn.getValue(); // SMF Output Filename
 		smt_ofn = arg_smt_ofn.getValue(); // SMT Output Filename
 
-		// Additional SMT Files
+		// SMT options
 		no_smt = arg_no_smt.getValue();
 		smt_filenames = arg_smt_add.getValue(); // SMT Input Filename
 		tileindex_fn = arg_tileindex_fn.getValue();
@@ -368,6 +385,246 @@ main( int argc, char **argv )
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
 		exit( -1 );
 	}
+
+
+	// Decompile SMF //
+	///////////////////
+	
+	if( decompile_fn.compare( "" ) ) {
+	
+	// Perform tests for file validity
+	ifstream smf_if(decompile_fn.c_str(), ifstream::in);
+	smf_if.read( magic, 16);
+	if( !smf_if.good() ) {
+		if ( !quiet )printf( "ERROR: Cannot open %s\n", decompile_fn.c_str() ); 
+		exit(-1);
+	}
+	
+	// perform test for file format
+	if( strcmp(magic, "spring map file") ) {
+		if( !quiet )printf("ERROR: %s is not a valid smf file.\n", decompile_fn.c_str() );
+		exit(-1);
+	}
+
+	smf_if.seekg(0);
+	smf_if.read( (char *)&smf_header, sizeof(MapHeader) );
+	if( verbose ) {
+	printf("INFO: Reading %s\n", decompile_fn.c_str() );
+	printf("\t%s: %s\n", smf_header.magic, decompile_fn.c_str() );
+	printf("\tVersion: %i\n", smf_header.version );
+	printf("\tID: %i\n", smf_header.mapid );
+
+	printf("\tWidth: %i\n", smf_header.mapx / 64 );
+	printf("\tLength: %i\n", smf_header.mapy / 64 );
+	printf("\tSquareSize: %i\n", smf_header.squareSize );
+	printf("\tTexelPerSquare: %i\n", smf_header.texelPerSquare );
+	printf("\tTileSize: %i\n", smf_header.tilesize );
+	printf("\tMinHeight: %f\n", smf_header.minHeight / 512 );
+	printf("\tMaxHeight: %f\n", smf_header.maxHeight / 512 );
+
+	printf("\tHeightMapPtr: %i\n", smf_header.heightmapPtr );
+	printf("\tTypeMapPtr: %i\n", smf_header.typeMapPtr );
+	printf("\tTilesPtr: %i\n", smf_header.tilesPtr );
+	printf("\tMiniMapPtr: %i\n", smf_header.minimapPtr );
+	printf("\tMetalMapPtr: %i\n", smf_header.metalmapPtr );
+	printf("\tFeaturePtr: %i\n", smf_header.featurePtr );
+
+	printf("\tExtraHeaders: %i\n", smf_header.numExtraHeaders );
+	} //fi verbose
+
+	int memloc;
+	int header_size;
+	int header_type;
+	for(int i = 0; i < smf_header.numExtraHeaders; ++i ) {
+		memloc = smf_if.tellg();
+		smf_if.read( (char *)&header_size, 4);
+		smf_if.read( (char *)&header_type, 4);
+		smf_if.seekg(memloc);
+		if(header_type == 1) {
+			smf_if.read( (char *)&smf_grassheader, sizeof(GrassHeader));
+			grass = true;
+		}
+		else if( verbose )printf("WARNING: %i is an unknown header type", i);
+		smf_if.seekg( memloc + header_size);
+	}
+
+
+	width = smf_header.mapx / 64;
+	length = smf_header.mapy / 64;
+	ImageOutput *out;
+
+	// output height map
+	if( verbose )printf("INFO: Dumping Height Map\n");
+	xres = width * 64 + 1;
+	yres = length * 64 + 1;
+	channels = 1;
+	int data_size = xres * yres * channels;
+	
+	uint16_pixels = new unsigned short[data_size];
+
+	smf_if.seekg(smf_header.heightmapPtr);
+	smf_if.read( (char *)uint16_pixels, data_size * 2);
+
+	const char *filename = "out_displacement.tif";
+
+	out = ImageOutput::create(filename);
+	if(!out) exit(-1);
+
+	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT16);
+	out->open( filename, *spec );
+	out->write_image( TypeDesc::UINT16, uint16_pixels );
+	out->close();
+
+	delete out;
+	delete spec;
+	delete uint16_pixels;
+
+	// output typemap.
+	if( verbose )printf("INFO: Dumping Type Map\n");
+	xres = width * 32;
+	yres = length * 32;
+	channels = 1;
+	data_size = xres * yres * channels;
+	
+	uint8_pixels = new unsigned char[data_size];
+
+	smf_if.seekg(smf_header.heightmapPtr);
+	smf_if.read( (char *)uint8_pixels, data_size);
+
+	filename = "out_typemap.tif";
+
+	out = ImageOutput::create(filename);
+	if(!out) exit(-1);
+
+	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
+	out->open( filename, *spec );
+	out->write_image( TypeDesc::UINT8, uint8_pixels );
+	out->close();
+
+	delete out;
+	delete spec;
+	delete uint8_pixels;
+
+	// Output Minimap
+	if( verbose )printf("INFO: Dumping Mini Map\n");
+	xres = 1024;
+	yres = 1024;
+	channels = 4;
+	
+	unsigned char *temp = new unsigned char[MINIMAP_SIZE];
+	uint8_pixels = new unsigned char[xres * yres * channels];
+
+	smf_if.seekg(smf_header.minimapPtr);
+	smf_if.read( (char *)temp, MINIMAP_SIZE);
+
+	uint8_pixels = dxt1_load(temp, xres, yres);
+	delete [] temp;
+
+	filename = "out_minimap.tif";
+
+	out = ImageOutput::create(filename);
+	if(!out) exit(-1);
+
+	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
+	out->open( filename, *spec );
+	out->write_image( TypeDesc::UINT8, uint8_pixels );
+	out->close();
+
+	delete out;
+	delete spec;
+	delete uint8_pixels;
+
+	// Output TileIndex
+	if( verbose )printf("INFO: Dumping Tile Index\n");
+	xres = width * 16;
+	yres = length * 16;
+	channels = 1;
+	
+	uint_pixels = new unsigned int[xres * yres * channels];
+
+	smf_if.seekg( smf_header.tilesPtr );
+	smf_if.read( (char *)&smf_tileheader, sizeof( MapTileHeader ) );
+
+	if( verbose )printf("INFO: %i SMT files referenced\n", smf_tileheader.numTileFiles);
+	
+	char smt_filename[256];
+	for ( int i=0; i < smf_tileheader.numTileFiles; ++i) {
+		smf_if.seekg( (int)smf_if.tellg() + 4 );
+		smf_if.getline( smt_filename, 255, '\0' );
+		if( verbose )printf( "\t%s\n", smt_filename );
+		smt_filenames.push_back(smt_filename);
+	}
+
+
+	smf_if.read( (char *)uint_pixels, xres * yres * channels * 4 );
+
+	filename = "out_tileindex.exr";
+
+	out = ImageOutput::create(filename);
+	if(!out) exit(-1);
+
+	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT);
+	out->open( filename, *spec );
+	out->write_image( TypeDesc::UINT, uint_pixels );
+	out->close();
+
+	delete out;
+	delete spec;
+	delete uint_pixels;
+
+	// Output Metal Map
+	if( verbose )printf("INFO: Dumping Metal Map\n");
+	xres = width * 32;
+	yres = length * 32;
+	channels = 1;
+	
+	uint8_pixels = new unsigned char[xres * yres * channels];
+
+	smf_if.seekg( smf_header.metalmapPtr );
+	smf_if.read( (char *)uint8_pixels, xres * yres * channels );
+
+	filename = "out_metalmap.tif";
+	out = ImageOutput::create(filename);
+	if(!out) exit(-1);
+
+	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
+	out->open( filename, *spec );
+	out->write_image( TypeDesc::UINT8, uint8_pixels );
+	out->close();
+
+	delete out;
+	delete spec;
+	delete uint8_pixels;
+
+	if( grass ) {
+		// Output Grass Map
+		if( verbose )printf("INFO: Dumping Grass Map\n");
+		xres = width * 32;
+		yres = length * 32;
+		channels = 1;
+	
+		uint8_pixels = new unsigned char[xres * yres * channels];
+
+		smf_if.seekg( smf_grassheader.grassPtr );
+		smf_if.read( (char *)uint8_pixels, xres * yres * channels );
+
+		filename = "out_grassmap.tif";
+		out = ImageOutput::create(filename);
+		if(!out) exit(-1);
+
+		spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
+		out->open( filename, *spec );
+		out->write_image( TypeDesc::UINT8, uint8_pixels );
+		out->close();
+
+		delete out;
+		delete spec;
+		delete uint8_pixels;
+	}
+
+	if( verbose )printf("INFO: Completed\n");
+	exit(0);
+	} //fi decompile_fn == ""
 
 	// Test arguments for validity before continuing //
 	///////////////////////////////////////////////////
@@ -524,12 +781,15 @@ main( int argc, char **argv )
 		featurelist = true;
 	}
 
+	// test for diffuse or smt
 	if(no_smt && !smt_filenames.size() ) {
 		if ( !quiet ) cout << "ERROR: Either Diffuse or SMT files need to be specified." << endl;
 		fail = true;
 	}
 
 	if( fail ) exit(-1);
+
+
 
 	// Setup Global variables //
 	////////////////////////////
@@ -701,6 +961,8 @@ main( int argc, char **argv )
 	header.minHeight = depth * 512;
 	header.maxHeight = height * 512;
 
+	header.numExtraHeaders = 0;
+
 
 	// we revisit these later to correctly set them.
 	//FIXME seems not to work for now. will have to solve.
@@ -754,15 +1016,14 @@ main( int argc, char **argv )
 
 	// Extra Headers //
 	///////////////////
-	GrassHeader grassHeader;
 
 	// Grass:  Byte offset to start of this header is 80
 	if ( grass ) {
 		if( verbose ) cout << "INFO: Adding grass extra header." << endl;
-		grassHeader.size = 12;
-		grassHeader.type = 1; // MEH_Vegetation
-		grassHeader.grassPtr = 0; // is written later.
-		smf_of.write( (char *)&grassHeader, sizeof( GrassHeader ) );
+		smf_grassheader.size = 12;
+		smf_grassheader.type = 1; // MEH_Vegetation
+		smf_grassheader.grassPtr = 0; // is written later.
+		smf_of.write( (char *)&smf_grassheader, sizeof( GrassHeader ) );
 	}
 
 	// Height Displacement //
@@ -980,10 +1241,9 @@ main( int argc, char **argv )
 	smf_of.seekp(header.tilesPtr);
 
 	// Write map tile header	
-	MapTileHeader mapTileHeader;
-	mapTileHeader.numTileFiles = smt_filenames.size(); 
-	mapTileHeader.numTiles = width * length * 256;
-	smf_of.write( (char *)&mapTileHeader, sizeof( MapTileHeader ) );
+	smf_tileheader.numTileFiles = smt_filenames.size(); 
+	smf_tileheader.numTiles = width * length * 256;
+	smf_of.write( (char *)&smf_tileheader, sizeof( MapTileHeader ) );
 
 	// Add references to smt's
 	for(unsigned int i = 0; i < smt_filenames.size(); ++i) {
@@ -1090,10 +1350,10 @@ main( int argc, char **argv )
 		if( verbose ) cout << "INFO: Processing and writing grass map." << endl;
 
 		// Set grassPtr to current position in output stream
-		grassHeader.grassPtr = smf_of.tellp();
+		smf_grassheader.grassPtr = smf_of.tellp();
 		smf_of.seekp(88); //position of grassPtr
-		smf_of.write( (char *)&grassHeader.grassPtr, 4);
-		smf_of.seekp(grassHeader.grassPtr);
+		smf_of.write( (char *)&smf_grassheader.grassPtr, 4);
+		smf_of.seekp(smf_grassheader.grassPtr);
 
 		// Dimensions of Grassmap
 		xres = width * 32;
@@ -1330,5 +1590,92 @@ interpolate_bilinear(T *in_d, //input data
 	}
 
 	delete [] in_d;
+	return out_d;
+}
+
+#define RM	0x0000F800
+#define GM  0x000007E0
+#define BM  0x0000001F
+
+#define RED_RGB565(x) ((x&RM)>>11)
+#define GREEN_RGB565(x) ((x&GM)>>5)
+#define BLUE_RGB565(x) (x&BM)
+#define PACKRGB(r, g, b) (((r<<11)&RM) | ((g << 5)&GM) | (b&BM) )
+
+unsigned char *
+dxt1_load(unsigned char* data, int width, int height)
+{
+	unsigned char *out_d = new unsigned char[width * height * 4];
+	memset( out_d, 0, width * height * 4 );
+
+	int numblocks = ( (width + 3) / 4) * ((height + 3) / 4);
+
+	for ( int i = 0; i < numblocks; i++ ) {
+
+		unsigned short color0 = *(unsigned short *)&data[0];
+		unsigned short color1 = *(unsigned short *)&data[2];
+
+		int r0 = RED_RGB565( color0 ) << 3;
+		int g0 = GREEN_RGB565( color0 ) << 2;
+		int b0 = BLUE_RGB565( color0 ) << 3;
+
+		int r1 = RED_RGB565( color1 ) << 3;
+		int g1 = GREEN_RGB565( color1 ) << 2;
+		int b1 = BLUE_RGB565( color1 ) << 3;
+
+		unsigned int bits = *(unsigned int*)&data[4];
+
+		for ( int a = 0; a < 4; a++ ) {
+			for ( int b = 0; b < 4; b++ ) {
+				int x = 4 * (i % ((width + 3) / 4)) + b;
+				int y = 4 * (i / ((width + 3) / 4)) + a;
+				bits >>= 2;
+				unsigned char code = bits & 0x3;
+
+				if ( color0 > color1 ) {
+					if ( code == 0 ) {
+						out_d[ (y * width + x) * 4 + 0 ] = r0;
+						out_d[ (y * width + x) * 4 + 1 ] = g0;
+						out_d[ (y * width + x) * 4 + 2 ] = b0;
+					}
+					else if ( code == 1 ) {
+						out_d[ (y * width + x ) * 4 + 0 ] = r1;
+						out_d[ (y * width + x ) * 4 + 1 ] = g1;
+						out_d[ (y * width + x ) * 4 + 2 ] = b1;
+					}
+					else if ( code == 2 ) {
+						out_d[ (y * width + x) * 4 + 0 ] = (r0 * 2 + r1) / 3;
+						out_d[ (y * width + x) * 4 + 1 ] = (g0 * 2 + g1) / 3;
+						out_d[ (y * width + x) * 4 + 2 ] = (b0 * 2 + b1) / 3;
+					} else {	
+						out_d[ (y * width + x) * 4 + 0 ] = (r0 + r1 * 2) / 3;
+						out_d[ (y * width + x) * 4 + 1 ] = (g0 + g1 * 2) / 3;
+						out_d[ (y * width + x) * 4 + 2 ] = (b0 + b1 * 2) / 3;
+					}
+				} else {
+					if ( code == 0 ) {
+						out_d[ (y * width + x) * 4 + 0 ] = r0;
+						out_d[ (y * width + x) * 4 + 1 ] = g0;
+						out_d[ (y * width + x) * 4 + 2 ] = b0;
+					}
+					else if ( code == 1 ) {
+						out_d[ (y * width + x) * 4 + 0 ] = r1;
+						out_d[ (y * width + x) * 4 + 1 ] = g1;
+						out_d[ (y * width + x) * 4 + 2 ] = b1;
+					}
+					else if ( code == 2 ) {
+						out_d[ (y * width + x) * 4 + 0 ] = (r0 + r1) / 2;
+						out_d[ (y * width + x) * 4 + 1 ] = (g0 + g1) / 2;
+						out_d[ (y * width + x) * 4 + 2 ] = (b0 + b1) / 2;
+					} else {	
+						out_d[ (y * width + x) * 4 + 0] = 0;
+						out_d[ (y * width + x) * 4 + 1] = 0;
+						out_d[ (y * width + x) * 4 + 2] = 0;
+					}
+				}
+			}
+		}
+		data += 8;
+	}
 	return out_d;
 }
