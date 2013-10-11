@@ -1,7 +1,7 @@
 CXXFLAGS=-g -Wall -L/usr/lib
 TCLAP=-I../include/tclap-1.2.1/include
 
-all: mapconv #tileconv
+all: mapconv tileconv
 
 clean:
 	rm -f mapconv *.o
@@ -10,11 +10,11 @@ clean:
 mapconv: main.o 
 	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
 
-main.o: main.cpp 
+main.o: main.cpp mapfile.h tools.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
 
-#tileconv: tileconv.o
-#	g++ $(CXXFLAGS) $^ -o $@ -lIL $(BOOSTLIBS) -lnvtt -lOpenImageIO
+tileconv: tileconv.o 
+	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
 
-#tileconv.o: tileconv.cpp
-#	g++ $(CXXFLAGS) -c $< $(TCLAP)
+tileconv.o: tileconv.cpp tileconv.h tools.h nvtt_output_handler.h
+	g++ $(CXXFLAGS) -c $< $(TCLAP)
