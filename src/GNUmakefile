@@ -16,5 +16,5 @@ main.o: main.cpp mapfile.h tools.h
 tileconv: tileconv.o 
 	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
 
-tileconv.o: tileconv.cpp tileconv.h tools.h nvtt_output_handler.h smt.h
+tileconv.o: tileconv.cpp tools.h nvtt_output_handler.h smt.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
