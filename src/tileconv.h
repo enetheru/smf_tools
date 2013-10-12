@@ -33,11 +33,11 @@ Tiles
 
 struct SMTHeader
 {
-	char magic[16];  //"spring tilefile\0"
-	int version; //must be 1 for now
-	int tiles; //total number of tiles in this file
-	int size; //must be 32 for now
-	int comp; //must be 1=dxt1 for now
+	char magic[16]; // "spring tilefile\0"
+	int version;    // must be 1 for now
+	int count;      // total number of tiles in this file
+	int res;        // must be 32 for now
+	int type;       // must be 1=dxt1 for now
 };
 
 #define READ_SMTHEADER(tfh,src)                     \
