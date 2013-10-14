@@ -17,6 +17,8 @@
 // local headers
 #include "mapfile.h"
 #include "tools.h"
+#include "smt.h"
+#include "smf.h"
 
 using namespace std;
 using namespace TCLAP;
@@ -150,7 +152,8 @@ main( int argc, char **argv )
 
 	// Globals //
 	/////////////
-	MapHeader smf_header;
+	SMT smt;
+	SMF smf(true, false);
 	MapTileHeader smf_tileheader;
 	GrassHeader smf_grassheader;
 //	MapFeatureHeader smf_featureheader;
@@ -368,244 +371,20 @@ main( int argc, char **argv )
 		exit( -1 );
 	}
 
-
+	// Test Functionality //
+	
 	// Decompile SMF //
 	///////////////////
 	
 	if( decompile_fn.compare( "" ) ) {
-	
-	// Perform tests for file validity
-	ifstream smf_if(decompile_fn.c_str(), ifstream::in);
-	smf_if.read( magic, 16);
-	if( !smf_if.good() ) {
-		if ( !quiet )printf( "ERROR: Cannot open %s\n", decompile_fn.c_str() ); 
-		exit(-1);
-	}
-	
-	// perform test for file format
-	if( strcmp(magic, "spring map file") ) {
-		if( !quiet )printf("ERROR: %s is not a valid smf file.\n", decompile_fn.c_str() );
-		exit(-1);
-	}
-
-	smf_if.seekg(0);
-	smf_if.read( (char *)&smf_header, sizeof(MapHeader) );
-	if( verbose ) {
-	printf("INFO: Reading %s\n", decompile_fn.c_str() );
-	printf("\t%s: %s\n", smf_header.magic, decompile_fn.c_str() );
-	printf("\tVersion: %i\n", smf_header.version );
-	printf("\tID: %i\n", smf_header.mapid );
-
-	printf("\tWidth: %i\n", smf_header.mapx / 64 );
-	printf("\tLength: %i\n", smf_header.mapy / 64 );
-	printf("\tSquareSize: %i\n", smf_header.squareSize );
-	printf("\tTexelPerSquare: %i\n", smf_header.texelPerSquare );
-	printf("\tTileSize: %i\n", smf_header.tilesize );
-	printf("\tMinHeight: %f\n", smf_header.minHeight / 512 );
-	printf("\tMaxHeight: %f\n", smf_header.maxHeight / 512 );
-
-	printf("\tHeightMapPtr: %i\n", smf_header.heightmapPtr );
-	printf("\tTypeMapPtr: %i\n", smf_header.typeMapPtr );
-	printf("\tTilesPtr: %i\n", smf_header.tilesPtr );
-	printf("\tMiniMapPtr: %i\n", smf_header.minimapPtr );
-	printf("\tMetalMapPtr: %i\n", smf_header.metalmapPtr );
-	printf("\tFeaturePtr: %i\n", smf_header.featurePtr );
-
-	printf("\tExtraHeaders: %i\n", smf_header.numExtraHeaders );
-	} //fi verbose
-
-	int memloc;
-	int header_size;
-	int header_type;
-	for(int i = 0; i < smf_header.numExtraHeaders; ++i ) {
-		memloc = smf_if.tellg();
-		smf_if.read( (char *)&header_size, 4);
-		smf_if.read( (char *)&header_type, 4);
-		smf_if.seekg(memloc);
-		if(header_type == 1) {
-			smf_if.read( (char *)&smf_grassheader, sizeof(GrassHeader));
-			grass = true;
+		bool fail = false;
+		fail |= smf.load(decompile_fn);
+		fail |= smf.decompileAll(1);
+		if(fail) {
+			cout << "something failed to export correctly" << endl;
 		}
-		else if( verbose )printf("WARNING: %i is an unknown header type", i);
-		smf_if.seekg( memloc + header_size);
+		exit(fail);
 	}
-
-
-	width = smf_header.mapx / 64;
-	length = smf_header.mapy / 64;
-	ImageOutput *out;
-
-	// output height map
-	if( verbose )printf("INFO: Dumping Height Map\n");
-	xres = width * 64 + 1;
-	yres = length * 64 + 1;
-	channels = 1;
-	int data_size = xres * yres * channels;
-	
-	uint16_pixels = new unsigned short[data_size];
-
-	smf_if.seekg(smf_header.heightmapPtr);
-	smf_if.read( (char *)uint16_pixels, data_size * 2);
-
-	const char *filename = "out_displacement.tif";
-
-	out = ImageOutput::create(filename);
-	if(!out) exit(-1);
-
-	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT16);
-	out->open( filename, *spec );
-	out->write_image( TypeDesc::UINT16, uint16_pixels );
-	out->close();
-
-	delete out;
-	delete spec;
-	delete uint16_pixels;
-
-	// output typemap.
-	if( verbose )printf("INFO: Dumping Type Map\n");
-	xres = width * 32;
-	yres = length * 32;
-	channels = 1;
-	data_size = xres * yres * channels;
-	
-	uint8_pixels = new unsigned char[data_size];
-
-	smf_if.seekg(smf_header.heightmapPtr);
-	smf_if.read( (char *)uint8_pixels, data_size);
-
-	filename = "out_typemap.tif";
-
-	out = ImageOutput::create(filename);
-	if(!out) exit(-1);
-
-	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	out->open( filename, *spec );
-	out->write_image( TypeDesc::UINT8, uint8_pixels );
-	out->close();
-
-	delete out;
-	delete spec;
-	delete uint8_pixels;
-
-	// Output Minimap
-	if( verbose )printf("INFO: Dumping Mini Map\n");
-	xres = 1024;
-	yres = 1024;
-	channels = 4;
-	
-	unsigned char *temp = new unsigned char[MINIMAP_SIZE];
-
-	smf_if.seekg(smf_header.minimapPtr);
-	smf_if.read( (char *)temp, MINIMAP_SIZE);
-
-	uint8_pixels = dxt1_load(temp, xres, yres);
-	delete [] temp;
-
-	filename = "out_minimap.tif";
-
-	out = ImageOutput::create(filename);
-	if(!out) exit(-1);
-
-	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	out->open( filename, *spec );
-	out->write_image( TypeDesc::UINT8, uint8_pixels );
-	out->close();
-
-	delete out;
-	delete spec;
-	delete uint8_pixels;
-
-	// Output TileIndex
-	if( verbose )printf("INFO: Dumping Tile Index\n");
-	xres = width * 16;
-	yres = length * 16;
-	channels = 1;
-	
-	uint_pixels = new unsigned int[xres * yres * channels];
-
-	smf_if.seekg( smf_header.tilesPtr );
-	smf_if.read( (char *)&smf_tileheader, sizeof( MapTileHeader ) );
-
-	if( verbose )printf("INFO: %i SMT files referenced\n", smf_tileheader.numTileFiles);
-	
-	char smt_filename[256];
-	for ( int i=0; i < smf_tileheader.numTileFiles; ++i) {
-		smf_if.seekg( (int)smf_if.tellg() + 4 );
-		smf_if.getline( smt_filename, 255, '\0' );
-		if( verbose )printf( "\t%s\n", smt_filename );
-		smt_filenames.push_back(smt_filename);
-	}
-
-
-	smf_if.read( (char *)uint_pixels, xres * yres * channels * 4 );
-
-	filename = "out_tileindex.exr";
-
-	out = ImageOutput::create(filename);
-	if(!out) exit(-1);
-
-	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT);
-	out->open( filename, *spec );
-	out->write_image( TypeDesc::UINT, uint_pixels );
-	out->close();
-
-	delete out;
-	delete spec;
-	delete uint_pixels;
-
-	// Output Metal Map
-	if( verbose )printf("INFO: Dumping Metal Map\n");
-	xres = width * 32;
-	yres = length * 32;
-	channels = 1;
-	
-	uint8_pixels = new unsigned char[xres * yres * channels];
-
-	smf_if.seekg( smf_header.metalmapPtr );
-	smf_if.read( (char *)uint8_pixels, xres * yres * channels );
-
-	filename = "out_metalmap.tif";
-	out = ImageOutput::create(filename);
-	if(!out) exit(-1);
-
-	spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	out->open( filename, *spec );
-	out->write_image( TypeDesc::UINT8, uint8_pixels );
-	out->close();
-
-	delete out;
-	delete spec;
-	delete uint8_pixels;
-
-	if( grass ) {
-		// Output Grass Map
-		if( verbose )printf("INFO: Dumping Grass Map\n");
-		xres = width * 32;
-		yres = length * 32;
-		channels = 1;
-	
-		uint8_pixels = new unsigned char[xres * yres * channels];
-
-		smf_if.seekg( smf_grassheader.grassPtr );
-		smf_if.read( (char *)uint8_pixels, xres * yres * channels );
-
-		filename = "out_grassmap.tif";
-		out = ImageOutput::create(filename);
-		if(!out) exit(-1);
-
-		spec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-		out->open( filename, *spec );
-		out->write_image( TypeDesc::UINT8, uint8_pixels );
-		out->close();
-
-		delete out;
-		delete spec;
-		delete uint8_pixels;
-	}
-
-	if( verbose )printf("INFO: Completed\n");
-	exit(0);
-	} //fi decompile_fn == ""
 
 	// Test arguments for validity before continuing //
 	///////////////////////////////////////////////////

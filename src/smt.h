@@ -4,9 +4,10 @@
 #include "byteorder.h"
 #include <OpenImageIO/imageio.h>
 
-OIIO_NAMESPACE_USING
+#define DXT1 1
 
-#define COMP_DXT1 1
+OIIO_NAMESPACE_USING
+using namespace std;
 
 // struct used when comparing tiles.
 struct TileMip
@@ -51,18 +52,18 @@ SMTHeader::SMTHeader()
 }
 
 
-#define READ_TILEFILEHEADER(tfh,src)                \
+#define READ_SMTHEADER(tfh,src)                \
 do {                                                \
 	unsigned int __tmpdw;                           \
 	(src).Read(&(tfh).magic,sizeof((tfh).magic));   \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
 	(tfh).version = (int)swabdword(__tmpdw);        \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
-	(tfh).numTiles = (int)swabdword(__tmpdw);       \
+	(tfh).count = (int)swabdword(__tmpdw);       \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
-	(tfh).tileSize = (int)swabdword(__tmpdw);       \
+	(tfh).res = (int)swabdword(__tmpdw);       \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
-	(tfh).compressionType = (int)swabdword(__tmpdw);\
+	(tfh).type = (int)swabdword(__tmpdw);\
 } while (0)
 
 //this is followed by the raw data for the tiles
@@ -164,7 +165,7 @@ SMT::load(string fileName)
 		cout << "\tTiles: " << header.count << endl;
 		cout << "\tTile Size: " << header.res << endl;
 		cout << "\tCompression: ";
-		if(header.type == 1)cout << "dxt1" << endl;
+		if(header.type == DXT1)cout << "dxt1" << endl;
 		else {
 			cout << "UNKNOWN" << endl;
 			fail = true;
@@ -233,7 +234,8 @@ SMT::decompileTiles(string prefix)
 		// Pull data
 		tile_data = new unsigned char[tileSize];
 		inFile.read( (char *)tile_data, tileSize);
-		pixels = dxt1_load(tile_data, header.res, header.res);
+		if(header.type == DXT1)
+			pixels = dxt1_load(tile_data, header.res, header.res);
 		delete [] tile_data;
 
 		char filename[256];
@@ -291,7 +293,7 @@ SMT::decompileCollate(string prefix)
 		// Pull data
 		tileData = new unsigned char[tileSize];
 		infile.read( (char *)tileData, tileSize);
-		if ( header.type == 1 ) {
+		if ( header.type == DXT1 ) {
 			tpixels = dxt1_load(tileData, header.res, header.res);
 		}
 		delete [] tileData;
@@ -346,7 +348,7 @@ SMT::decompileReconstruct(string prefix)
 			// Pull data from the tile file
 			infile.seekg( sizeof(SMTHeader) + tilenum * tileSize );
 			infile.read( (char *)tileData, tileSize);
-			if ( header.type == 1 )
+			if ( header.type == DXT1 )
 				tpixels = dxt1_load(tileData, header.res, header.res);
 			delete [] tileData;
 
@@ -394,7 +396,7 @@ SMT::setType(int type)
 	// size is the raw format of dxt1 with 4 mip levels
 	// 32x32, 16x16, 8x8, 4x4
 	// 512  + 128  + 32 + 8 = 680
-	if(header.type == 1) {
+	if(header.type == DXT1) {
 		int tile_res = header.res;
 		for( int i=1; i <= 4; i++) {
 			tileSize += tile_res/4 * tile_res/4 * 8;

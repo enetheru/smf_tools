@@ -3,6 +3,9 @@
 // Build SMT File (Vector<Images>, stride, width, length)
 //
 // TODO
+// Decompile from tile index maps that depend on more than one SMT
+//
+// TODO
 // Replace Tiles(SMT, startx, starty, endx, endy, Replacement Image)
 // Paste Decals(SMT, TileIndex, ListCSV, Decals)
 #include <string>
