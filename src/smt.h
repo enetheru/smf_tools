@@ -106,6 +106,16 @@ public:
 	bool decompileTiles(string prefix);
 	bool decompileCollate(string prefix);
 	bool decompileReconstruct(string prefix);
+	//TODO
+// Build SMT File (image, width, length)
+// Build SMT File (Vector<Images>, stride, width, length)
+//
+// TODO
+// Decompile from tile index maps that depend on more than one SMT
+//
+// TODO
+// Replace Tiles(SMT, startx, starty, endx, endy, Replacement Image)
+// Paste Decals(SMT, TileIndex, ListCSV, Decals)
 };
 
 SMT::SMT()

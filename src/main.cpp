@@ -41,46 +41,6 @@ struct GrassHeader {
 	int grassPtr;
 };
 
-class NVTTOutputHandler: public nvtt::OutputHandler
-{
-public:
-	void
-	beginImage( int size, int width, int height, int depth, int face,
-				int miplevel);
-
-	bool
-	writeData(const void *data, int size);
-	struct mipinfo {
-		int offset;
-		int size;
-		int width, height, depth;
-		int face;
-	};
-
-	vector<mipinfo> mip;
-
-	char buffer[MINIMAP_SIZE+1024];
-	int offset;
-};
-
-void
-NVTTOutputHandler::beginImage( int size, int width, int height, int depth, int face,
-				int miplevel)
-{
-	mipinfo info = {offset, size, width, height, depth, face};
-	mip.push_back(info);
-	return;
-}
-
-bool
-NVTTOutputHandler::writeData(const void *data, int size)
-{
-    // Copy mipmap data
-    memcpy( &buffer[offset], data, size );
-    offset += size;
-    return true;
-}
-
 #ifdef WIN32
 int
 _tmain( int argc, _TCHAR *argv[] )
@@ -375,6 +335,19 @@ main( int argc, char **argv )
 	
 	// Decompile SMF //
 	///////////////////
+	smf.load(decompile_fn);
+	smf.decompileAll(0);
+//	smf.heightFile = "displacement.tif";
+//	smf.metalFile = "displacement.tif";
+//	smf.minimapFile = "diffuse.png";
+//	smf.typeFile = "diffuse.png";
+//	smf.tileindexFile = "diffuse.png";
+	smf.grassFile = "";
+	smf.save();
+	smf.load("out.smf");
+	smf.outPrefix = "out2";
+	smf.decompileAll(0);
+	exit(0);
 	
 	if( decompile_fn.compare( "" ) ) {
 		bool fail = false;
@@ -385,6 +358,7 @@ main( int argc, char **argv )
 		}
 		exit(fail);
 	}
+
 
 	// Test arguments for validity before continuing //
 	///////////////////////////////////////////////////
@@ -877,7 +851,7 @@ main( int argc, char **argv )
 			memset( uint8_pixels, 0, xres * yres);
 
 	} else {
-		if( verbose ) printf("INFO: Reading %s\n", minimap_fn.c_str() );
+		if( verbose ) printf("INFO: Reading %s\n", typemap_fn.c_str() );
 		spec = new ImageSpec;
 		in->open( typemap_fn.c_str(), *spec );
 		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];

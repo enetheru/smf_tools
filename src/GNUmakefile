@@ -10,7 +10,7 @@ clean:
 mapconv: main.o 
 	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
 
-main.o: main.cpp mapfile.h tools.h smf.h
+main.o: main.cpp mapfile.h tools.h smf.h nvtt_output_handler.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
 
 tileconv: tileconv.o 

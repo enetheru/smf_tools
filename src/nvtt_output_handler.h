@@ -30,17 +30,19 @@ public:
 	vector<mipinfo> mip;
 
 	char *buffer;
+	int buffer_size;
 	int offset;
 };
 
 NVTTOutputHandler::NVTTOutputHandler()
 {
-	buffer = new char[16384];
+	offset = 0;
 }
 
-NVTTOutputHandler::NVTTOutputHandler(int buffer_size)
+NVTTOutputHandler::NVTTOutputHandler(int buffer_size) : buffer_size(buffer_size)
 {
 	buffer = new char[buffer_size];
+	offset = 0;
 }
 
 NVTTOutputHandler::~NVTTOutputHandler()
@@ -61,8 +63,10 @@ bool
 NVTTOutputHandler::writeData(const void *data, int size)
 {
     // Copy mipmap data
-    memcpy( &buffer[offset], data, size );
-    offset += size;
+	if(offset + size < buffer_size) {
+	    memcpy( &buffer[offset], data, size );
+    	offset += size;
+	}
     return true;
 }
 
