@@ -219,6 +219,7 @@ class SMF {
 	string in_fn;
 
 	// Saving
+	string outPrefix;
 	bool fast_dxt1;
 	vector<SMFEH *> extraHeaders;
 
@@ -227,42 +228,54 @@ class SMF {
 	float floor, ceiling; // values in spring map units
 
 	int heightPtr; 
+	string heightFile;
 	
 	int typePtr;
+	string typeFile;
 
 	int minimapPtr;
+	string minimapFile;
 
 	int metalPtr;
+	string metalFile;
 
-	int grassPtr;
+	string grassFile;
 
 	int tilesPtr;
 	int nTiles;			// number of tiles referenced
 	vector<string> smtList; // list of smt files references
 	vector<int> smtTiles;
+	string tileindexFile;
 
 	int featuresPtr;
 	vector<string> featureTypes;
 	vector<SMFFeature> features;
+	string featuresFile;
 
 	// Functions
 	bool recalculate();
 	bool is_smf(string filename);
 public:
-	string outPrefix;
-	string minimapFile;
-	string heightFile;
-	string grassFile;
-	string metalFile;
-	string typeFile;
-	string tileindexFile;
-	string featurelistFile;
 
 	SMF(bool v, bool q);
+	void setOutPrefix(string prefix);
 	bool setDimensions(int width, int length, float floor, float ceiling);
 
+	void setHeightFile( string filename );
+	void setTypeFile( string filename );
+	void setMinimapFile( string filename );
+	void setMetalFile( string filename );
+	void setTileindexFile( string filename );
+	void setFeaturesFile( string filename );
+	void addTileFile( string filename );
+
+	void setGrassFile(string filename);
+	void unsetGrassFile();
+
 	bool load(string filename);
+
 	bool save();
+	bool save(string filename);
 	bool saveHeight();
 	bool saveType();
 	bool saveMinimap();
@@ -318,11 +331,21 @@ SMF::recalculate()
 	// metalPtr
 	metalPtr = minimapPtr + MINIMAP_SIZE;
 
-	// grassPtr
-	grassPtr = metalPtr + width * 32 * length * 32;
+	// get optional grass header
+	SMFEHGrass *grassHeader = NULL;
+	for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if( extraHeaders[i]->type == 1) {
+			grassHeader = reinterpret_cast<SMFEHGrass *>(extraHeaders[i]);
+		}
+	}
 
-	// tilesPtr
-	tilesPtr = grassPtr + width * 16 * length * 16;
+	// set the tilesPtr and grassPtr
+	if(grassHeader) {
+		grassHeader->grassPtr = metalPtr + width * 32 * length * 32;
+		tilesPtr = grassHeader->grassPtr + width * 16 * length * 16;
+	} else {
+		tilesPtr = metalPtr + width * 32 * length * 32;
+	}
 
 	// featuresPtr
 	featuresPtr = tilesPtr + 8;
@@ -351,6 +374,12 @@ SMF::is_smf(string filename)
 	return false;
 }
 
+void
+SMF::setOutPrefix(string prefix)
+{
+	outPrefix = prefix.c_str();
+}
+
 bool
 SMF::setDimensions(int width, int length, float floor, float ceiling)
 {
@@ -362,59 +391,139 @@ SMF::setDimensions(int width, int length, float floor, float ceiling)
 	return false;
 }
 
+void SMF::setHeightFile(    string filename ) { heightFile    = filename.c_str(); }
+void SMF::setTypeFile(      string filename ) { typeFile      = filename.c_str(); }
+void SMF::setMinimapFile(   string filename ) { minimapFile   = filename.c_str(); }
+void SMF::setMetalFile(     string filename ) { metalFile     = filename.c_str(); }
+void SMF::setTileindexFile( string filename ) { tileindexFile = filename.c_str(); }
+void SMF::setFeaturesFile(  string filename ) { featuresFile  = filename.c_str(); }
+
+void
+SMF::addTileFile( string filename )
+{
+	char magic[16];
+	int nTiles;
+	//FIXME load up SMT and get number of tiles stored in the file. maybe.
+	fstream smt(filename.c_str(), ios::in | ios::binary);
+	smt.read(magic, 16);
+	if( strcmp(magic, "spring tilefile")) {
+		if( !quiet )printf( "ERROR: %s is not a valid smt file, ignoring.\n", filename.c_str());
+		return;
+	}
+	smt.ignore(4);
+	smt.read( (char *)&nTiles, 4);
+	smtTiles.push_back(nTiles);
+	smtList.push_back(filename);
+}
+
+void
+SMF::setGrassFile(string filename)
+{
+	SMFEHGrass *grassHeader = NULL;
+	for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if(extraHeaders[i]->type == 1) {
+			grassHeader = reinterpret_cast<SMFEHGrass *>(extraHeaders[i]);
+		}
+	}
+	if(grassHeader == NULL) {
+		grassHeader = new SMFEHGrass;
+		extraHeaders.push_back(reinterpret_cast<SMFEH *>(grassHeader));
+	}
+	grassFile = filename.c_str();
+	recalculate();
+}
+
+void
+SMF::unsetGrassFile()
+{
+	for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if(extraHeaders[i]->type == 1) {
+			extraHeaders.erase(extraHeaders.begin() + i);
+		}
+	}
+}
+
+bool
+SMF::save(string filename)
+{
+	outPrefix = filename.c_str();
+	cout << outPrefix << endl;
+	return save();
+}
+
 bool
 SMF::save()
 {
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 	ofstream smf(filename, ios::binary | ios::out);
+	if( verbose )printf( "\nINFO: Saving %s.\n", filename );
 
 	char magic[] = "spring map file\0";
 	smf.write( magic, 16 );
 
 	int version = 1;
 	smf.write( (char *)&version, 4);
+	if( verbose )printf( "\tVersion: %i.\n", version );
 
 	int id = rand();
 	smf.write( (char *)&id, 4);
+	if( verbose )printf( "\tMapID: %i.\n", id );
 
 	int width = this->width * 64;
 	smf.write( (char *)&width, 4);
+	if( verbose )printf( "\tWidth: %i.\n", width );
 
 	int length = this->length * 64;
 	smf.write( (char *)&length, 4);
+	if( verbose )printf( "\tLength: %i.\n", length );
 
 	int squareWidth = 8;
 	smf.write( (char *)&squareWidth, 4);
+	if( verbose )printf( "\tSquareWidth: %i.\n", squareWidth );
 
 	int squareTexels = 8;
 	smf.write( (char *)&squareTexels, 4);
+	if( verbose )printf( "\tSquareTexels: %i.\n", squareTexels );
 
 	int tileTexels = 32;
 	smf.write( (char *)&tileTexels, 4);
+	if( verbose )printf( "\tTileTexels: %i.\n", tileTexels );
 
 	float floor = this->floor * 512;
 	smf.write( (char *)&floor, 4);
+	if( verbose )printf( "\tMinHeight: %0.2f.\n", floor );
 
 	float ceiling = this->ceiling * 512;
 	smf.write( (char *)&ceiling, 4);
+	if( verbose )printf( "\tMaxHeight: %0.2f.\n", ceiling );
 
 	smf.write( (char *)&heightPtr, 4);
+	if( verbose )printf( "\tHeightPtr: %i.\n", heightPtr );
 	smf.write( (char *)&typePtr, 4);
+	if( verbose )printf( "\tTypePtr: %i.\n", typePtr );
 	smf.write( (char *)&tilesPtr, 4);
+	if( verbose )printf( "\tTilesPtr: %i.\n", tilesPtr );
 	smf.write( (char *)&minimapPtr, 4);
+	if( verbose )printf( "\tMinimapPtr: %i.\n", minimapPtr );
 	smf.write( (char *)&metalPtr, 4);
+	if( verbose )printf( "\tMetalPtr: %i.\n", metalPtr );
 	smf.write( (char *)&featuresPtr, 4);
+	if( verbose )printf( "\tFeaturesPtr: %i.\n", featuresPtr );
 
 	int nExtraHeaders = extraHeaders.size();
 	smf.write( (char *)&nExtraHeaders, 4);
+	if( verbose )printf( "\tExtraHeaders: %i.\n", nExtraHeaders );
 
-	if( strcmp(grassFile.c_str(), "") ){
-		int temp = 12;
-		smf.write( (char *)&temp, 4);
-		temp = 1;
-		smf.write( (char *)&temp, 4);
-		smf.write( (char *)&grassPtr, 4);
+	if(verbose) printf( "    Extra Headers:\n");
+	for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		smf.write((char *)extraHeaders[i], extraHeaders[i]->size);
+		if( verbose ) {
+			if(extraHeaders[i]->type == 1)
+				printf("\tGrassPtr: %i.\n",
+				((SMFEHGrass *)extraHeaders[i])->grassPtr );
+			else printf( "\t Unknown Header\n");
+		}
 	}
 	
 	smf.close();
@@ -423,7 +532,11 @@ SMF::save()
 	saveType();
 	saveMinimap();
 	saveMetal();
-	if( strcmp( grassFile.c_str(), "") ) saveGrass();
+
+	for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if(extraHeaders[i]->type == 1)saveGrass();
+	}
+
 	saveTileindex();
 	saveFeatures();
 
@@ -438,10 +551,12 @@ SMF::saveHeight()
 	ImageSpec *imageSpec;
 	unsigned short *pixels;
 
-	if( verbose ) cout << "INFO: Saving Height. " << heightPtr << endl;
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose )printf( "\nINFO: Saving Heightmap to %s at %i.\n",
+		   filename, heightPtr );
 
 	fstream smf(filename, ios::binary | ios::in| ios::out);
 	smf.seekp(heightPtr);
@@ -455,7 +570,7 @@ SMF::saveHeight()
 	imageInput = NULL;
 	if( is_smf(heightFile) ) {
 		// Load from SMF
-		if( verbose ) printf( "\tSource SMF: %s.\n", heightFile.c_str() );
+		if( verbose ) printf( "    Source: %s.\n", heightFile.c_str() );
 
 		imageSpec = new ImageSpec( header.width + 1, header.length + 1,
 			channels, TypeDesc::UINT16);
@@ -468,7 +583,7 @@ SMF::saveHeight()
 
 	} else if( (imageInput = ImageInput::create( heightFile.c_str() )) ) {
 		// load image file
-		if( verbose ) printf( "\tSource Image: %s.\n", heightFile.c_str() );
+		if( verbose ) printf( "    Source: %s.\n", heightFile.c_str() );
 
 		imageSpec = new ImageSpec;
 		imageInput->open( heightFile.c_str(), *imageSpec );
@@ -479,7 +594,7 @@ SMF::saveHeight()
 		delete imageInput;
 	} else {
 		// Generate blank
-		if( verbose ) cout << "\tGenerating flat displacement" << endl;
+		if( verbose ) cout << "    Generating flat displacement" << endl;
 
 		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT16);
 		pixels = new unsigned short[ xres * yres ];
@@ -532,10 +647,11 @@ SMF::saveType()
 	ImageSpec *imageSpec;
 	unsigned char *pixels;
 
-	if( verbose ) cout << "INFO: Saving Type. " << typePtr << endl;
-
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose )printf( "\nINFO: Saving Typemap to %s at %i.\n",
+	   	filename, typePtr );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out );
 	smf.seekp(typePtr);
@@ -549,7 +665,7 @@ SMF::saveType()
 	imageInput = NULL;
 	if( is_smf(typeFile) ) {
 		// Load from SMF
-		if( verbose ) printf( "\tSource SMF: %s.\n", typeFile.c_str() );
+		if( verbose ) printf( "    Source: %s.\n", typeFile.c_str() );
 
 		imageSpec = new ImageSpec(header.width / 2, header.length / 2,
 			channels, TypeDesc::UINT8);
@@ -562,7 +678,7 @@ SMF::saveType()
 
 	} else if((imageInput = ImageInput::create( typeFile.c_str() ))) {
 		// Load image file
-		if( verbose ) printf("\tSource Image: %s\n", typeFile.c_str() );
+		if( verbose ) printf("    Source: %s\n", typeFile.c_str() );
 
 		imageSpec = new ImageSpec;
 		imageInput->open( typeFile.c_str(), *imageSpec );
@@ -573,7 +689,7 @@ SMF::saveType()
 		delete imageInput;
 	} else {
 		// Generate blank
-		if( verbose ) cout << "\tGenerating blank typemap." << endl;
+		if( verbose ) cout << "    Generating blank typemap." << endl;
 		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
 		pixels = new unsigned char[size];
 		memset( pixels, 0, xres * yres);
@@ -624,10 +740,11 @@ SMF::saveMinimap()
 	ImageSpec *imageSpec;
 	unsigned char *pixels;
 
-	if( verbose ) cout << "INFO: Saving Minimap. " << minimapPtr << endl;
-
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose )printf( "\nINFO: Saving Minimap to %s at %i.\n",
+		   filename, minimapPtr );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(minimapPtr);
@@ -641,7 +758,7 @@ SMF::saveMinimap()
 	// Load minimap if possible or try alternatives
 	imageInput = NULL;
 	if( is_smf(minimapFile) ) { // Copy from SMF
-		if( verbose ) printf( "\tSource SMF: %s.\n", minimapFile.c_str() );
+		if( verbose ) printf( "    Source: %s.\n", minimapFile.c_str() );
 
 		pixels = new unsigned char[MINIMAP_SIZE];
 
@@ -656,7 +773,7 @@ SMF::saveMinimap()
 
 	} else if( (imageInput = ImageInput::create( minimapFile.c_str() ))) {
 		// Load from Image File
-		if( verbose ) printf("\tSource Image %s\n", minimapFile.c_str() );
+		if( verbose ) printf("    Source: %s\n", minimapFile.c_str() );
 
 		imageSpec = new ImageSpec;
 		imageInput->open( minimapFile.c_str(), *imageSpec );
@@ -670,7 +787,7 @@ SMF::saveMinimap()
 //FIXME attempt to create minimap from height
 	} else {
 		// Generate Blank
-		if( verbose ) cout << "\tCreating blank minimap." << endl;
+		if( verbose ) cout << "    Creating blank minimap." << endl;
 
 		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
 		pixels = new unsigned char[size];
@@ -729,10 +846,11 @@ SMF::saveMetal()
 	ImageSpec *imageSpec;
 	unsigned char *pixels;
 
-	if( verbose ) cout << "INFO: Saving Metal. " << metalPtr << endl;
-
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose )printf( "\nINFO: Saving Metal to %s at %i.\n",
+		   filename, metalPtr);
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(metalPtr);
@@ -746,7 +864,7 @@ SMF::saveMetal()
 	// Open image if possible, or create blank one.
 	imageInput = NULL;
 	if( is_smf(metalFile) ) {
-		if( verbose ) printf( "\tSource SMF %s.\n", metalFile.c_str() );
+		if( verbose ) printf( "    Source: %s.\n", metalFile.c_str() );
 
 		imageSpec = new ImageSpec( header.width / 2, header.length / 2,
 			channels, TypeDesc::UINT8);
@@ -760,7 +878,7 @@ SMF::saveMetal()
 
 	} else if( (imageInput = ImageInput::create( metalFile.c_str() ))) {
 		// Load image file
-		if( verbose ) printf("\tSource Image: %s\n", metalFile.c_str() );
+		if( verbose ) printf("    Source: %s\n", metalFile.c_str() );
 
 		imageSpec = new ImageSpec;
 		imageInput->open( metalFile.c_str(), *imageSpec );
@@ -771,7 +889,7 @@ SMF::saveMetal()
 		delete imageInput;
 
 	} else {
-		if( verbose ) cout << "\tGenerating blank metalmap." << endl;
+		if( verbose ) cout << "    Generating blank metalmap." << endl;
 
 		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
 		pixels = new unsigned char[size];
@@ -815,24 +933,27 @@ SMF::saveTileindex()
 	ImageSpec *imageSpec;
 	unsigned int *pixels;
 
-	if( verbose ) cout << "INFO: Saving Tileindex. " << tilesPtr << endl;
-
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose ) printf( "\nINFO: Saving Tileindex to %s at %i.\n", 
+		   filename, tilesPtr);
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(tilesPtr);
 
 	// Tiles Header
+	nTiles = width * 16 * length * 16;
 	int nTileFiles = smtList.size();
 	smf.write( (char *)&nTileFiles, 4);
 	smf.write( (char *)&nTiles, 4);
+	if(verbose)printf( "    %i tiles referenced in %i files\n", nTiles, nTileFiles );
 
 	// SMT Names
 	for(unsigned int i = 0; i < smtList.size(); ++i) {
-		if( verbose )printf( "\tAdding %s to list\n", smtList[i].c_str() );
+		if( verbose )printf( "\t%i %s\n", smtTiles[i], smtList[i].c_str() );
 		smf.write( (char *)&smtTiles[i], 4);
-		smf.write( smtList[i].c_str(), smtList[i].size() + 1 );
+		smf.write( smtList[i].c_str(), smtList[i].size() +1 );
 	}
 
 	// Dimensions of Tileindex
@@ -844,7 +965,7 @@ SMF::saveTileindex()
 	imageInput = NULL;
 	if( is_smf(tileindexFile) ) {
 		// Load from SMF
-		if( verbose ) printf("\tSource SMF %s\n", tileindexFile.c_str() );
+		if( verbose ) printf("    Tilemap Source: %s\n", tileindexFile.c_str() );
 
 		imageSpec = new ImageSpec( header.width / 4, header.length / 4,
 			channels, TypeDesc::UINT);
@@ -864,7 +985,7 @@ SMF::saveTileindex()
 
 	} else if ( (imageInput = ImageInput::create( tileindexFile.c_str() ))) {
 		// Load image file
-		if( verbose ) printf("\tSource Image: %s\n", tileindexFile.c_str() );
+		if( verbose ) printf("    Tilemap Source: %s\n", tileindexFile.c_str() );
 
 		imageSpec = new ImageSpec;
 		imageInput->open( tileindexFile.c_str(), *imageSpec );
@@ -875,7 +996,7 @@ SMF::saveTileindex()
 		delete imageInput;
 	} else {
 		// Generate Consecutive numbering
-		if( verbose ) printf( "\tGenerating basic tile index\n" );
+		if( verbose ) printf( "    Generating basic Tilemap\n" );
 
 		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT);
 		pixels = new unsigned int[ xres * yres * channels ];
@@ -921,7 +1042,21 @@ SMF::saveGrass()
 	ImageSpec *imageSpec;
 	unsigned char *pixels;
 
-	if( verbose ) cout << "INFO: Saving Grass. " << endl;
+	SMFEHGrass *grassHeader = NULL;
+	for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if(extraHeaders[i]->type == 1)
+			grassHeader = reinterpret_cast<SMFEHGrass *>(extraHeaders[i]);
+	}
+	if(!grassHeader)return true;
+
+	char filename[256];
+	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose ) {
+		printf( "\nINFO: Saving Grass to %s at %i.\n",
+				filename, grassHeader->grassPtr );
+		printf( "    Source: %s.\n", grassFile.c_str() );
+	}
 
 	// Dimensions of grass
 	xres = width * 16;
@@ -932,8 +1067,6 @@ SMF::saveGrass()
 	// Open image if possible, or create blank one.
 	imageInput = NULL;
 	if( is_smf(grassFile) ) {
-		if( verbose ) printf( "\tSource SMF %s.\n", grassFile.c_str() );
-
 		imageSpec = new ImageSpec( header.width / 4, header.length / 4,
 			channels, TypeDesc::UINT8);
 		pixels = new unsigned char [imageSpec->width * imageSpec->height
@@ -960,8 +1093,6 @@ SMF::saveGrass()
 
 	} else if( (imageInput = ImageInput::create( grassFile.c_str() ))) {
 		// Load image file
-		if( verbose ) printf("\tSource Image %s\n", grassFile.c_str() );
-
 		imageSpec = new ImageSpec;
 		imageInput->open( grassFile.c_str(), *imageSpec );
 		pixels = new unsigned char [imageSpec->width * imageSpec->height
@@ -993,11 +1124,9 @@ SMF::saveGrass()
 	delete imageSpec;
 
 	// write the data to the smf
-	char filename[256];
-	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
-	smf.seekp(grassPtr);
+	smf.seekp(grassHeader->grassPtr);
 
 	smf.write( (char *)pixels, size );
 	smf.close();
@@ -1010,10 +1139,12 @@ SMF::saveGrass()
 bool
 SMF::saveFeatures()
 {
-	if( verbose ) cout << "INFO: Saving Features. " << featuresPtr << endl;
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
+
+	if( verbose ) printf( "\nINFO: Saving Features to %s at position %i.\n",
+		   filename, featuresPtr);
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(featuresPtr);
@@ -1022,6 +1153,7 @@ SMF::saveFeatures()
 	smf.write( (char *)&nTypes, 4); //featuretypes
 	int nFeatures = features.size();
 	smf.write( (char *)&nFeatures, sizeof(nFeatures)); //numfeatures
+	if( verbose ) printf( "    %i features, %i types.\n", nFeatures, nTypes);
 
 	for(unsigned int i = 0; i < featureTypes.size(); ++i ) {
 		smf.write(featureTypes[i].c_str(), featureTypes[i].size() + 1 );
@@ -1063,7 +1195,7 @@ SMF::load(string filename)
 	if( ret ) return ret;
 
 	heightFile = typeFile = minimapFile = metalFile = grassFile
-		= tileindexFile = featurelistFile = filename;
+		= tileindexFile = featuresFile = filename;
 	in_fn = filename;
 
 	smf.seekg(0);
@@ -1082,7 +1214,7 @@ SMF::load(string filename)
 	featuresPtr = header.featuresPtr;
 
 	if( verbose ) {
-		printf("INFO: Reading %s\n", filename.c_str() );
+		printf("INFO: Loading %s\n", filename.c_str() );
 		printf("\tVersion: %i\n", header.version );
 		printf("\tID: %i\n", header.id );
 
@@ -1119,8 +1251,7 @@ SMF::load(string filename)
 		if(extraHeader.type == 1) {
 			SMFEHGrass *grassHeader = new SMFEHGrass;
 			smf.read( (char *)grassHeader, sizeof(SMFEHGrass));
-			grassPtr = grassHeader->grassPtr;
-			printf("\tGrass: Size %i, type %i, Ptr %i\n",
+			if( verbose )printf("\tGrass: Size %i, type %i, Ptr %i\n",
 				grassHeader->size, grassHeader->type, grassHeader->grassPtr);
 			extraHeaders.push_back( (SMFEH *)grassHeader );
 		} else {
@@ -1136,7 +1267,7 @@ SMF::load(string filename)
 	smf.read( (char *)&tilesHeader, sizeof( SMFHTiles ) );
 	nTiles = tilesHeader.nTiles;
 
-	if( verbose )printf("    SMT file(s) referenced: %i\n", tilesHeader.nFiles);
+	if( verbose )printf("    %i tiles referenced in %i files.\n", tilesHeader.nTiles, tilesHeader.nFiles);
 	
 	char temp_fn[256];
 	int nTiles;
@@ -1144,7 +1275,7 @@ SMF::load(string filename)
 		smf.read( (char *)&nTiles, 4);
 		smtTiles.push_back(nTiles);
 		smf.getline( temp_fn, 255, '\0' );
-		if( verbose )printf( "\t%s\n", temp_fn );
+		if( verbose )printf( "\t%i %s\n", nTiles, temp_fn );
 		smtList.push_back(temp_fn);
 	}
 
@@ -1154,9 +1285,22 @@ SMF::load(string filename)
 	smf.read( (char *)&nTypes, 4);
 	int nFeatures;
 	smf.read( (char *)&nFeatures, 4);
-	
+
 	if( verbose )printf("    Features: %i, Feature types: %i\n",
 			nFeatures, nTypes);
+	
+	offset = smf.tellg();
+	smf.seekg (0, ios::end);
+	int filesize = smf.tellg();
+	smf.seekg(offset);
+
+	int eeof = offset + nFeatures * sizeof(SMFFeature);
+	if( eeof > filesize ) {
+		if( !quiet )printf( "WARNING: Filesize is not large enough to contain the reported number of features. Ignoring feature data.\n");
+		nFeatures = 0;
+		nTypes = 0;
+	}
+
 
 	char temp[256];
 	for ( int i = 0; i < nTypes; ++i ) {
@@ -1450,6 +1594,7 @@ SMF::decompileGrass()
 	if( !smf.good() ) {
 		return true;
 	}
+	smf.seekg(80); // seek to beginning of extra headers
 
 	int offset;
 	SMFEH extraHeader;

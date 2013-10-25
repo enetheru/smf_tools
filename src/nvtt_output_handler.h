@@ -5,7 +5,6 @@
 
 using namespace std;
 
-
 class NVTTOutputHandler: public nvtt::OutputHandler
 {
 public:
@@ -13,12 +12,12 @@ public:
 	NVTTOutputHandler(int buffer_size);
 	~NVTTOutputHandler();
 
-	void
-	beginImage( int size, int width, int height, int depth, int face,
+	void beginImage( int size, int width, int height, int depth, int face,
 				int miplevel);
 
-	bool
-	writeData(const void *data, int size);
+	bool writeData(const void *data, int size);
+
+	void reset();
 
 	struct mipinfo {
 		int offset;
@@ -68,6 +67,13 @@ NVTTOutputHandler::writeData(const void *data, int size)
     	offset += size;
 	}
     return true;
+}
+
+void
+NVTTOutputHandler::reset()
+{
+	offset = 0;
+	mip.clear();
 }
 
 

@@ -51,96 +51,56 @@ main( int argc, char **argv )
 {
 	bool fail = false;
 // Generic Options
-//  -o --smf-ofn <string>
-//     --smt-ofn <string>
-//     --no-smt <bool> Don't build smt file
-//  -v --verbose <bool> Display extra output
-//  -q --quiet <bool> Supress standard output
-//     --decompile <string> map name to decompile
-	string smf_ofn = "", smt_ofn = "";
-	bool no_smt = false;
-	bool verbose = false, quiet = false;
-	string decompile_fn = "";
+//  -l --load <string>, smf file to load
+//  -s --save <string>, prefix for output
+//  -v --verbose, Display extra output
+//  -q --quiet, Supress standard output
+//  -d --decompile, Decompile loaded map
+//  -c --slowcomp, better quality but slower
+	string saveFile= "", loadFile = "";
+	bool verbose = false, quiet = false, decompile = false, slowcomp = false;
 //
 //  Map Dimensions
-//	-w --width <int> Width in spring map units
-//	-l --length <int> Length in spring map units
-//	-a --height <float> Height of the map in spring map units
-//	-d --depth <float> Depth of the map in spring map units
-	int width = 0, length = 0, height = 1, depth = 1;
+//	-x --width <int>, Width in spring map units
+//	-z --length <int>, Length in spring map units
+//	-y --floor <float>, Height of the map in spring map units
+//	-Y --ceiling <float>, Depth of the map in spring map units
+	int width = 2, length = 2;
+	float floor = 0, ceiling = 1;
 //
-// Additional Tile Files
-//     --smt-add <string>
-//     --smt-index <image>
-	vector<string> smt_filenames;
-	string tileindex_fn = "";
+// Tiles and Tileindex
+//  -a --add-smt <string>
+//  -i --tileindex <image>
+	vector<string> tileFiles;
+	string tileindexFile = "";
 //
-// Displacement
-//	-y --displacement <image>
-//	   --lowpass <bool>
-//	   --invert <bool>
-	string displacement_fn = "";
-	bool displacement_lowpass = false, displacement_invert = false;
+// Height
+//	-e --heightmap <image>
+//	   --lowpass, whether to filter the heightmap with a lowpass filter
+//	   --invert, whether to invert the heightmap values
+	string heightFile = "";
+//FIXME	bool lowpass = false, invert = false;
 //
 // Terrain Type
 //	-t --typemap <image>
-	string typemap_fn = "";
+	string typeFile = "";
 //
 // Minimap
-//     --minimap <image>
-	string minimap_fn = "";
-//
-// Diffuse Image
-//	-c --diffuse <image> 
-//	   --fast-dxt1 <bool> fast compression for dxt1 of diffuse image
-	bool fast_dxt1 = false;
-	string diffuse_fn = "";
+//  -m --minimap <image>
+	string minimapFile = "";
 //
 // Metal
-//	-m --metalmap <image>
-	string metalmap_fn = "";
+//	-r --metalmap <image> 
+	string metalFile = "";
 //
 // Grass
 //  -g --grassmap <image>
-	bool grass = false;
-	string grassmap_fn = "";
+	string grassFile = "";
 //
 // Features
-//	-f --featurelist <text>
-	bool featurelist;
-	string featurelist_fn = "";
+//	-f --features <text>
+	string featuresFile = "";
 
-	// Globals //
-	/////////////
-	SMT smt;
-	SMF smf(true, false);
-	MapTileHeader smf_tileheader;
-	GrassHeader smf_grassheader;
-//	MapFeatureHeader smf_featureheader;
-//	MapFeatureStruct smf_featurestruct;
-//	TileFileHeader smt_header;
-	char magic[16];
-	int x, z;
-
-	// Tile Generation
-	int tiletotal = 0;
-	int tilenum = 0;
-	vector<int> smt_tilenums;
-
-	// OpenImageIO
-	ImageInput *in = NULL; 
-	ImageSpec *spec = NULL;
-	int xres, yres, channels;
-	unsigned char *uint8_pixels;
-	unsigned short *uint16_pixels;
-	unsigned int *uint_pixels;
-
-	// NVTT
-	nvtt::InputOptions inputOptions;
-	nvtt::OutputOptions outputOptions;
-	nvtt::CompressionOptions compressionOptions;
-	nvtt::Compressor compressor;
-	NVTTOutputHandler *outputHandler;
 
 	try {
 		// Define the command line object.
@@ -151,32 +111,15 @@ main( int argc, char **argv )
 		
 		// Generic Options //		
 		/////////////////////
-		ValueArg<string> arg_smf_ofn(
-			"o", "outfilename",
+		ValueArg<string> arg_load(
+			"l", "load",
+			"Filename to load (.smf)",
+			false, "", ".smf", cmd);
+
+		ValueArg<string> arg_save(
+			"s", "save",
 			"Output prefix for the spring map file(.smf)",
-			false, "", "string", cmd);
-
-		ValueArg<string> arg_smt_ofn(
-			"", "smt-outfilename",
-			"Output prefix for the spring map tile file(.smt), will default "
-			" to the spring map file name",
-			false, "", "string", cmd);
-
-		MultiArg<string> arg_smt_add(
-			"", "smt-add",
-			"External tile file that will be used for finding tiles. Tiles"
-			"not found in this will be saved in a new tile file.",
-			false, "filename", cmd );
-
-		ValueArg<string> arg_tileindex_fn(
-			"", "smt-index",
-			"The index image to use for referencing tiles.",
-			false, "", "filename", cmd);
-
-		SwitchArg arg_no_smt(
-			"", "no-smt",
-			"Don't make spring tile file(smt).",
-			cmd, false );
+			false, "", "fileprefix", cmd);
 
 		SwitchArg arg_verbose(
 			"v", "verbose",
@@ -188,142 +131,146 @@ main( int argc, char **argv )
 			"Supress information printing to standard output.",
 			cmd, false );
 
-		ValueArg<string> arg_decompile_fn(
-			"", "decompile",
-			"The smf file to decompile.",
-			false, "", "filename", cmd);
-		
+		SwitchArg arg_decompile(
+			"d", "decompile",
+			"Supress information printing to standard output.",
+			cmd, false );
+
+		SwitchArg arg_slowcomp(
+			"c", "slowcomp",
+			"Use slower but better compression on DXT1 textures.",
+			cmd, false );
+
 		// Map Dimensions //
 		////////////////////
 		ValueArg<int> arg_width(
-			"w", "width",
+			"x", "width",
 			"The Width of the map in spring map units. Must be multiples of 2",
-			false, 0, "int", cmd );
+			false, 2, "int", cmd );
 
 		ValueArg<int> arg_length(
-			"l", "length",
+			"z", "length",
 			"The Length of the map in spring map units. Must be multiples of 2",
-			false, 0, "int", cmd );
+			false, 2, "int", cmd );
 
-		ValueArg<float> arg_depth(
-			"d", "depth",
+		ValueArg<float> arg_floor(
+			"y", "floor",
 			"The deepest point on the map in spring map units, with zero being sea level.",
-			false, 1, "float", cmd );
+			false, 0, "float", cmd );
 
-		ValueArg<float> arg_height(
-			"a", "height",
+		ValueArg<float> arg_ceiling(
+			"Y", "ceiling",
 			"The highest point on the map in spring map units, with zero being sea level.",
 			false, 1, "float", cmd );
 
-		// Diffuse Image //
-		///////////////////
-		ValueArg<string> arg_diffuse_fn(
-			"c", "diffuse",
-			"Image to use for the diffuse or colour of the map.",
-			false, "", "filename", cmd );
+		// Tiles and Tileindex //
+		/////////////////////////
+		MultiArg<string> arg_add_smt(
+			"a", "add-smt",
+			"External tile files.",
+			false, ".smt", cmd );
 
-		SwitchArg arg_fast_dxt1(
-			"", "fast-dxt1",
-			"Use Fast compression method of dxt1",
-			cmd, false);
+		ValueArg<string> arg_tileindex(
+			"i", "tileindex",
+			"The index image to use for referencing tiles.",
+			false, "", "image", cmd);
 
-		// Displacement Image //
-		////////////////////////
-		ValueArg<string> arg_displacement_fn(
-			"y", "displacment",
+		// Height //
+		////////////
+		ValueArg<string> arg_height(
+			"e", "heightmap",
 			"Image to use for vertical displacement of the terrain.",
-			false, "", "filename", cmd );
+			false, "", "image", cmd );
 
-		SwitchArg arg_displacement_invert(
+		SwitchArg arg_invert(
 			"", "invert",
 			"Invert the meaning of black and white.",
 			cmd, false );
 
-		SwitchArg arg_displacement_lowpass(
+		SwitchArg arg_lowpass(
 			"", "lowpass",
 			"Lowpass filter smoothing hard edges from 8bit colour.",
 			cmd, false );
 
-		// Metal //
-		///////////
-		ValueArg<string> arg_metalmap_fn(
-			"m", "metalmap",
-			"Image used for built in resourcing scheme.",
-			false, "", "filename", cmd);
-
 		// Terrain Type //
 		//////////////////
-		ValueArg<string> arg_typemap_fn(
+		ValueArg<string> arg_type(
 			"t", "typemap",
 			"Image to define terrain types.",
-			false, "", "filename", cmd );
-
-		// Features //
-		//////////////
-		ValueArg<string> arg_grassmap_fn(
-			"g", "grassmap",
-			"Image used to place grass.",
-			false, "", "filename", cmd );
-
-		ValueArg<string> arg_featurelist_fn(
-			"f", "featurelist",
-			"Text file defining type, location, rotation of feature and "
-			"decal to paint to diffuse texture.",
-			false, "", "filename", cmd );
+			false, "", "image", cmd );
 
 		// Minimap //
 		/////////////
-		ValueArg<string> arg_minimap_fn(
-			"", "minimap",
+		ValueArg<string> arg_minimap(
+			"m", "minimap",
 			"Image file to use for the minimap",
-			false, "", "filename", cmd );
+			false, "", "image", cmd );
+
+		// Metal //
+		///////////
+		ValueArg<string> arg_metal(
+			"r", "metalmap",
+			"Image used for built in resourcing scheme.",
+			false, "", "image", cmd);
+
+		// Grass //
+		///////////
+		ValueArg<string> arg_grass(
+			"g", "grassmap",
+			"Image used to place grass.",
+			false, "", "image", cmd );
+
+		// Features //
+		//////////////
+		ValueArg<string> arg_features(
+			"f", "featurelist",
+			"Text file defining type, location, rotation of feature and "
+			"decal to paint to diffuse texture.",
+			false, "", ".csv", cmd );
+
 
 		// Parse the args.
 		cmd.parse( argc, argv );
 
 		// Get the value parsed by each arg.
 		// Generic Options
+		loadFile = arg_load.getValue();
+		saveFile = arg_save.getValue();
+
 		verbose = arg_verbose.getValue();
 		quiet = arg_quiet.getValue();
-		decompile_fn = arg_decompile_fn.getValue();
-
-		smf_ofn = arg_smf_ofn.getValue(); // SMF Output Filename
-		smt_ofn = arg_smt_ofn.getValue(); // SMT Output Filename
-
-		// SMT options
-		no_smt = arg_no_smt.getValue();
-		smt_filenames = arg_smt_add.getValue(); // SMT Input Filename
-		tileindex_fn = arg_tileindex_fn.getValue();
+		decompile = arg_decompile.getValue();
+		slowcomp = arg_slowcomp.getValue();
 
 		// Map Dimensions
 		width = arg_width.getValue();
 		length = arg_length.getValue();
-		depth = arg_depth.getValue();
-		height = arg_height.getValue();
+		floor = arg_floor.getValue();
+		ceiling = arg_ceiling.getValue();
 
-		// Displacement
-		displacement_fn = arg_displacement_fn.getValue();
-		displacement_invert = arg_displacement_invert.getValue();
-		displacement_lowpass = arg_displacement_lowpass.getValue();
+		// SMT options
+		tileFiles = arg_add_smt.getValue(); // SMT Input Filenames
+		tileindexFile = arg_tileindex.getValue();
+
+		// Height
+		heightFile = arg_height.getValue();
+//FIXME		invert = arg_invert.getValue();
+//FIXME		lowpass = arg_lowpass.getValue();
 
 		// Terrain Type
-		typemap_fn = arg_typemap_fn.getValue();
+		typeFile = arg_type.getValue();
 
 		// Minimap
-		minimap_fn = arg_minimap_fn.getValue();
-
-		// Diffuse Image
-		diffuse_fn = arg_diffuse_fn.getValue();
-		fast_dxt1 = arg_fast_dxt1.getValue();
+		minimapFile = arg_minimap.getValue();
 
 		// Metal Map
-		metalmap_fn = arg_metalmap_fn.getValue();
+		metalFile = arg_metal.getValue();
 
 		// Grass Map
-		grassmap_fn = arg_grassmap_fn.getValue();
+		grassFile = arg_grass.getValue();
 
 		// Feature List
-		featurelist_fn = arg_featurelist_fn.getValue();
+		featuresFile = arg_features.getValue();
 
 
 	} catch ( ArgException &e ) {
@@ -331,807 +278,62 @@ main( int argc, char **argv )
 		exit( -1 );
 	}
 
-	// Test Functionality //
-	
-	// Decompile SMF //
-	///////////////////
-	smf.load(decompile_fn);
-	smf.decompileAll(0);
-//	smf.heightFile = "displacement.tif";
-//	smf.metalFile = "displacement.tif";
-//	smf.minimapFile = "diffuse.png";
-//	smf.typeFile = "diffuse.png";
-//	smf.tileindexFile = "diffuse.png";
-	smf.grassFile = "";
-	smf.save();
-	smf.load("out.smf");
-	smf.outPrefix = "out2";
-	smf.decompileAll(0);
-	exit(0);
-	
-	if( decompile_fn.compare( "" ) ) {
-		bool fail = false;
-		fail |= smf.load(decompile_fn);
-		fail |= smf.decompileAll(1);
-		if(fail) {
-			cout << "something failed to export correctly" << endl;
-		}
-		exit(fail);
-	}
-
-
 	// Test arguments for validity before continuing //
 	///////////////////////////////////////////////////
-	if( verbose )cout << "\n== Testing Arguments for validity ==\n";
 	if ( width < 2 || width > 256 || width % 2 ) {
-		cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
+		if( !quiet )cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
 		fail = true;
 	}
 	if ( length < 2 || length > 256 || length % 2 ) {
-		cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
+		if( !quiet )cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
 		fail = true;
 	}
 
-	// Test SMT name
-	if( !smt_ofn.compare( "" ) ) smt_ofn = smf_ofn;
-
-	// Test smt input files exist
-	for( unsigned int i=0; i < smt_filenames.size(); ++i) {
-		ifstream smt_if(smt_filenames[i].c_str(), ifstream::in);
-		if(!smt_if.good()) {
-			if ( !quiet )printf( "ERROR: Cannot open %s\n", smt_filenames[i].c_str() ); 
-			fail = true;
-		}
-		else {
-			smt_if.read(magic, 16);
-			if( strcmp(magic, "spring tilefile") ) {
-				if ( !quiet )printf( "ERROR: %s is not a valid smt\n", smt_filenames[i].c_str() );
-				fail = true;
-			} else {
-				smt_if.seekg(20);
-				smt_if.read((char *)&tilenum, 4);
-				if( tilenum < 1 ) {
-					printf( "ERROR: " ); fail = true;
-				}
-				else if( verbose )printf( "INFO: " );
-
-				if( verbose )printf( "%s has %i tiles.\n", smt_filenames[i].c_str(), tilenum );
-				tiletotal += tilenum;
-				smt_tilenums.push_back(tilenum);
-			}
-			smt_if.close();
-		}
-	}
-
-	// Test Displacement //
-	if( !displacement_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Displacement unspecified.\n\tMap will be flat." << endl;
-	} else {
-		in = NULL;
-		in = ImageInput::create( displacement_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: Displacement image missing or invalid format." << endl;
-			fail = true;
-		}
-		delete in;
-	}
-
-	// Test Typemap //
-	if( !typemap_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Typemap unspecified." << endl;
-	} else {
-		in = NULL;
-		in = ImageInput::create( typemap_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: Typemap image missing or invalid format." << endl;
-			fail = true;
-		}
-		delete in;
-	}
-	
-	// Test Minimap //
-	if( !minimap_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Minimap unspecified." << endl;
-	} else {
-		in = NULL;
-		in = ImageInput::create( minimap_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: Minimap image missing or invalid format." << endl;
-			fail = true;
-		}
-		delete in;
-	}
-
-	// Test TileIndex //
-	if( !tileindex_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Tileindex unspecified." << endl;
-	} else {
-		in = NULL;
-		in = ImageInput::create( tileindex_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: tileindex image missing or invalid format." << endl;
-			fail = true;
-		} else {
-			spec = new ImageSpec;
-			in->open( tileindex_fn.c_str(), *spec );
-			if( spec->width != width * 16 || spec->height != length ) {
-				if ( !quiet )
-					cout << "ERROR: tileindex image has incorrect dimensions." << endl;
-				fail = true;
-			}
-			in->close();
-			delete in;
-			delete spec;
-		}
-	}
-
-	// Test Diffuse //
-	if( !diffuse_fn.compare( "" ) ) {
-		no_smt = true;
-		if ( verbose ) cout << "INFO: Diffuse unspecified.\n\tSMT file will not be built." << endl;
-	} else {
-		in = NULL;
-		in = ImageInput::create( diffuse_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: Diffuse image missing or invalid format." << endl; 
-			fail = true;
-		}
-		delete in;
-	}
-
-	// Test Metalmap //
-	if( !metalmap_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Metalmap unspecified." << endl;
-	} else {
-		in = NULL;
-		in = ImageInput::create( metalmap_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: Metalmap image missing or invalid format." << endl;
-			fail = true;
-		}
-		delete in;
-	}
-
-	// Test Grassmap //
-	if( !grassmap_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Grassmap unspecified." << endl;
-		grass = false;
-	} else {
-		grass = true;
-		in = NULL;
-		in = ImageInput::create( grassmap_fn.c_str() );
-		if ( !in ) {
-			if ( !quiet )cout << "ERROR: Grassmap image missing or invalid format." << endl;
-			fail = true;
-		}
-		delete in;
-	}
-
-	// Test Featurelist //
-	if( !featurelist_fn.compare( "" ) ) {
-		if ( verbose ) cout << "INFO: Featurelist unspecified." << endl;
-		featurelist = false;
-	} else {
-		featurelist = true;
-	}
-
-	// test for diffuse or smt
-	if(no_smt && !smt_filenames.size() ) {
-		if ( !quiet ) cout << "ERROR: Either Diffuse or SMT files need to be specified." << endl;
+	if(decompile && !strcmp(loadFile.c_str(), "")) {
 		fail = true;
+		if( !quiet )cout << "ERROR: no file specified to decompile" << endl;
 	}
 
 	if( fail ) exit(-1);
 
-
-
-	// Setup Global variables //
-	////////////////////////////
-	compressionOptions.setFormat(nvtt::Format_DXT1a);
-	if( fast_dxt1 ) compressionOptions.setQuality(nvtt::Quality_Fastest); 
-	else compressionOptions.setQuality(nvtt::Quality_Normal); 
-	outputOptions.setOutputHeader(false);
-
-
-	// Build SMT Header //
-	//////////////////////
-	if( !no_smt) {
-
-	uint_pixels =  new unsigned int[width * 16 * length * 16];
-
-	// SMT file comes before SMF because SMF relies on the tiles and filename
-	if( verbose ) printf("\n== Creating %s.smt ==\n", smt_ofn.c_str() );
-	ofstream smt_of( (smt_ofn+".smt").c_str(), ios::binary | ios::out);
-	TileFileHeader tileFileHeader;
-
-	strcpy( tileFileHeader.magic, "spring tilefile" );
-	tileFileHeader.version = 1;
-	tileFileHeader.tileSize = 32; 
-	tileFileHeader.compressionType = 1; 
-	tileFileHeader.numTiles = 0; // we overwrite this later 
-	smt_of.write( (char *)&tileFileHeader, sizeof(TileFileHeader) );
-
-	xres = width * 512;
-	yres = length * 512;
-	channels = 4;
-
-	int tcx = width * 16; // tile count x
-	int tcz = length * 16; // tile count z
-
-
-	// Source tile dimensions
-	int stw, stl, stc;
-	float stw_f, stl_f;
-
-	int dtw, dtl, dtc = 4; //destination tile dimensions
-	dtw = dtl = tileFileHeader.tileSize;
-
-	unsigned char *std, *dtd; // source & destination tile pixel data
-
-	vector<tile_crc> tile_crcs;
-	tile_crc crc_t;
-
-	// Load up diffuse image
-	if( diffuse_fn.compare( "" ) ) {
-		in = NULL;
-		in = ImageInput::create( diffuse_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( diffuse_fn.c_str(), *spec );
-	}
-
-	if( in ) {
-		stw_f = (float)spec->width / tcx;
-		stl_f = (float)spec->height / tcz;
-		stw = (int)stw_f;
-		stl = (int)stl_f;
-
-		stc = spec->nchannels;
-
-
-		if( verbose ) {
-			printf( "INFO: Loaded %s (%i, %i)%i\n",
-				diffuse_fn.c_str(), spec->width, spec->height, spec->nchannels);
-			if( stw != dtw || stl != dtl )
-				printf( "WARNING: Converting tiles from (%i,%i)%i to (%i,%i)%i\n",
-					stw,stl,stc,dtw,dtl,dtc);
-		}
-
-		for ( z = 0; z < tcz; z++) {
-			// pull scanline data from source image
-			uint8_pixels = new unsigned char [ spec->width * stl * spec->nchannels ];
-			in->read_scanlines( (int)z * stl_f, (int)z * stl_f + stl, 0, TypeDesc::UINT8, uint8_pixels);
-
-			for ( x = 0; x < tcx; x++) {
-				if( verbose ) printf("\033[0GINFO: Processing tile %i of %i, Final Count = %i",
-					z * tcx + x + 1, tcx * tcz, tileFileHeader.numTiles );
-		
-				// copy from the scanline data our tile
-				std = new unsigned char [stw * stl * stc];
-				for( int i = 0; i < stw; ++i ) // rows
-					for( int j = 0; j < stl; ++j ) // columns
-						for( int c = 0; c < stc; ++c) {
-							std[ (i * stl + j) * stc + c] =
-								uint8_pixels[ ((i * spec->width) + (int)(x * stw_f) + j) * stc + c ];
-				}
-						
-				// convert tile
-				int map[] = {2,1,0,3};
-				int fill[] = {0,0,0,255};
-				dtd = map_channels(std, stw, stl, stc, dtc, map, fill);
-				dtd = interpolate_bilinear(dtd, stw, stl, dtc, dtw, dtl);
-
-				outputHandler = new NVTTOutputHandler();
-				outputOptions.setOutputHandler( outputHandler );
-
-				inputOptions.setTextureLayout( nvtt::TextureType_2D, dtw, dtl );
-				inputOptions.setMipmapData( dtd, dtw, dtl );
-
-				compressor.process(inputOptions, compressionOptions,
-							outputOptions);
-
-				//copy mipmap to use as checksum: 64bits
-				memcpy(&crc_t, &outputHandler->buffer[672] , 8);
-
-
-				bool match = false;
-				unsigned int i; //tile index
-				if( !tile_crcs.empty() ) {
-					for( i = 0; i < tile_crcs.size(); i++ ) {
-						if( !strcmp( (char *)&tile_crcs[i], (char *)&crc_t ) ) {
-							match = true;
-							break;
-						} 
-					}
-				}
-				if( !match ) {
-					tile_crcs.push_back(crc_t);
-					// write tile to file.
-					smt_of.write( (char *)outputHandler->buffer, SMALL_TILE_SIZE );
-					tileFileHeader.numTiles +=1;
-				}
-				// Write index to tilemap
-				uint_pixels[z * tcx + x] = i;
-
-				delete [] dtd;
-				delete outputHandler;
-			}
-			delete [] uint8_pixels;
-		}
-		printf("\n");
-		in->close();
-		delete in;
-	}
-
-	// retroactively fix up the tile count.
-	smt_of.seekp( 20);
-	smt_of.write( (char *)&tileFileHeader.numTiles, 4);
-	smt_of.close();
-
-	// add the tile file to the list of smt's used in this map
-	smt_filenames.push_back( smt_ofn.append(".smt") );
-	smt_tilenums.push_back( tileFileHeader.numTiles );
-	tiletotal += tileFileHeader.numTiles;
-
-	}// if(!no_smt)
-	
-	// Build SMF header //
-	//////////////////////
-	if( verbose ) printf("\n== Creating %s.smf ==\n", smf_ofn.c_str() );
-
-	MapHeader header;
-
-	strcpy( header.magic, "spring map file" );
-	header.version = 1;
-	header.mapid = time( NULL );
-
-	header.mapx = width * 64;
-	header.mapy = length * 64;
-
-	// must be these values
-	header.squareSize = 8;
-	header.texelPerSquare = 8;
-	header.tilesize = 32;
-
-	header.minHeight = depth * 512;
-	header.maxHeight = height * 512;
-
-	header.numExtraHeaders = 0;
-
-
-	// we revisit these later to correctly set them.
-	//FIXME seems not to work for now. will have to solve.
-//	header.heightmapPtr = 0;
-//	header.typeMapPtr = 0;
-//	header.tilesPtr = 0;
-//	header.minimapPtr = 0;
-//	header.metalmapPtr = 0;
-//	header.featurePtr = 0;
-
-	int offset = sizeof( MapHeader );
-	// add size of vegetation extra header
-	if(grass)offset += sizeof(GrassHeader);
-	header.heightmapPtr = offset;
-
-	// add size of heightmap
-	offset += (width * 64 +1) * (length * 64 +1) * 2;
-	header.typeMapPtr = offset;
-
-	// add size of typemap
-	offset += width * length * 1024;
-	header.minimapPtr = offset;
-
-	// add size of minimap
-	offset += MINIMAP_SIZE;
-	header.tilesPtr = offset;
-
-	// add size of tile information.
-	offset += sizeof( MapTileHeader );
-	// add up the space needed for additional tile files
-	for( unsigned int i = 0; i < smt_filenames.size(); ++i ) {
-		offset += 4 + smt_filenames[i].size();
-	}
-
-	offset += (int)(smf_ofn + ".smt").size() + 4; // new tilefile name
-	offset += width * length  * 1024;  // space needed for tile map
-	header.metalmapPtr = offset;
- 
-	// add size of metalmap
-	offset += width * length * 1024;
- 
-	// add size of grass map
-	if(grass)offset += width * length * 256;        
-	header.featurePtr = offset;
-
-	if(grass)header.numExtraHeaders++;
-
-	// Write Header to file
-	ofstream smf_of( (smf_ofn + ".smf").c_str(), ios::out | ios::binary );
-	smf_of.write( (char *)&header, sizeof( MapHeader ) );
-
-	// Extra Headers //
-	///////////////////
-
-	// Grass:  Byte offset to start of this header is 80
-	if ( grass ) {
-		if( verbose ) cout << "INFO: Adding grass extra header." << endl;
-		smf_grassheader.size = 12;
-		smf_grassheader.type = 1; // MEH_Vegetation
-		smf_grassheader.grassPtr = 0; // is written later.
-		smf_of.write( (char *)&smf_grassheader, sizeof( GrassHeader ) );
-	}
-
-	// Height Displacement //
-	/////////////////////////
-	if( verbose ) cout << "INFO: Processing and writing displacement." << endl;
-
-	// re-write heightPtr to be current position in output stream	
-	header.heightmapPtr = smf_of.tellp();
-	smf_of.seekp(56); //position of heightmapPtr
-	smf_of.write( (char *)&header.heightmapPtr, 4);
-	smf_of.seekp(header.heightmapPtr);
-	
-	// Dimensions of displacement map.
-	xres = width * 64 + 1;
-	yres = length * 64 + 1;
-	channels = 1;
-
-	// Open image if possible, or create blank one.
-	in = NULL;
-	in = ImageInput::create( displacement_fn.c_str() );
-	if( !in ) {
-		if( verbose ) cout << "INFO: Generating flat displacement" << endl;
-		spec = new ImageSpec(xres, yres, 1, TypeDesc::UINT16);
-		uint16_pixels = new unsigned short[ xres * yres ];
-		memset( uint16_pixels, 32767, xres * yres * 2);
-	} else {
-		if( verbose ) printf( "INFO: Reading %s.\n", displacement_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( displacement_fn.c_str(), *spec );
-		uint16_pixels = new unsigned short [spec->width * spec->height * spec->nchannels ];
-		in->read_image( TypeDesc::UINT16, uint16_pixels );
-		in->close();
-		delete in;
-	}
-
-	// Fix the number of channels
-	if( spec->nchannels != channels ) {
-		int map[] = {0};
-		int fill[] = {0};
-		uint16_pixels = map_channels(uint16_pixels,
-			spec->width, spec->height, spec->nchannels,
-			channels, map, fill);
-	}
-
-	// Fix the size
-	if ( spec->width != xres || spec->height != yres ) {
-		if( verbose )
-			printf( "WARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			displacement_fn.c_str(), spec->width, spec->height, xres, yres );
-		uint16_pixels = interpolate_bilinear( uint16_pixels,
-			spec->width, spec->height, channels,
-			xres, yres );
-	}
-
-	// If inversion of height is specified in the arguments,
-	if ( displacement_invert && verbose )
-		cout << "WARNING: Height inversion not implemented yet" << endl;
-
-	// If inversion of height is specified in the arguments,
-	if ( displacement_lowpass && verbose )
-		cout << "WARNING: Height lowpass filter not implemented yet" << endl;
-	
-	// write height data to smf.
-	smf_of.write( (char *)uint16_pixels, xres * yres * 2 );
-	delete [] uint16_pixels;
-	delete spec;
-
-	// Typemap //
+	// Globals //
 	/////////////
-	if( verbose ) cout << "INFO: Processing and writing typemap." << endl;
+	SMT smt(verbose, quiet, slowcomp);
+	SMF smf(verbose, quiet);
 
-	// Re-write the heightPtr to be current position in output stream
-	//FIXME dosnt work for some reason?
-//	header.typeMapPtr = smf_of.tellp();
-//	smf_of.seekp(60); //position of typemapPtr
-//	smf_of.write( (char *)&header.typeMapPtr, 4);
-//	smf_of.seekp(header.typeMapPtr);
+	// Load file 
+	if(strcmp(loadFile.c_str(), ""))smf.load(loadFile);
 
-	// Dimensions of Typemap
-	xres = width * 32;
-   	yres = length * 32;
-	channels = 1;
-
-	// Open image if possible, or create blank one.
-	in = NULL;
-	in = ImageInput::create( typemap_fn.c_str() );
-	if( !in ) {
-			if( verbose ) cout << "INFO: Generating blank typemap." << endl;
-			spec = new ImageSpec(xres, yres, 1, TypeDesc::UINT8);
-			uint8_pixels = new unsigned char[xres * yres];
-			memset( uint8_pixels, 0, xres * yres);
-
-	} else {
-		if( verbose ) printf("INFO: Reading %s\n", typemap_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( typemap_fn.c_str(), *spec );
-		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
-		in->read_image( TypeDesc::UINT8, uint8_pixels );
-		in->close();
-		delete in;
+	// decompile loaded file
+	if(decompile)
+	{
+		loadFile.erase(loadFile.size()-4);
+		smf.setOutPrefix(loadFile);
+		smf.decompileAll(0);
 	}
+	smf.setDimensions(width, length, floor, ceiling);
 
-	// Fix the number of channels
-	if( spec->nchannels != channels ) {
-		int map[] = {1};
-		int fill[] = {0};
-		uint8_pixels = map_channels(uint8_pixels,
-			spec->width, spec->height, spec->nchannels,
-			channels, map, fill);
+	// Change attributes
+	if( strcmp(heightFile.c_str(), "") ) smf.setHeightFile( heightFile );
+	if( strcmp(typeFile.c_str(), "") ) smf.setTypeFile( typeFile );
+	if( strcmp(minimapFile.c_str(), "") ) smf.setMinimapFile( minimapFile );
+	if( strcmp(metalFile.c_str(), "") ) smf.setMetalFile( metalFile );
+	if( strcmp(tileindexFile.c_str(), "") ) smf.setTileindexFile(tileindexFile );
+	if( strcmp(featuresFile.c_str(), "") ) smf.setFeaturesFile( featuresFile );
+
+	if( strcmp(grassFile.c_str(), "") ) smf.setGrassFile(grassFile);
+	if( !strcmp(grassFile.c_str(), "") ) smf.unsetGrassFile();
+
+	for(unsigned int i = 0; i < tileFiles.size(); ++i ) {
+		smf.addTileFile(tileFiles[i]);
 	}
-	// Fix the Dimensions
-	if ( spec->width != xres || spec->height != yres ) {
-		if( verbose )
-			printf( "WARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-			typemap_fn.c_str(), spec->width, spec->height, xres, yres);
-
-		uint8_pixels = interpolate_nearest(uint8_pixels,
-			spec->width, spec->height, channels,
-			xres, yres);	
-	}
-
-	// write the data to the smf
-	smf_of.write( (char *)uint8_pixels, xres * yres );
-	delete [] uint8_pixels;
-	delete spec;
-
-	// Minimap //
-	/////////////
-	if( verbose ) cout << "INFO: Processing and writing minimap." << endl;
-
-	// set the minimapPtr to the current position in the output stream
-	header.minimapPtr = smf_of.tellp();
-	smf_of.seekp(64); //position of minimapPtr
-	smf_of.write( (char *)&header.minimapPtr, 4);
-	smf_of.seekp(header.minimapPtr);
-
-	// minimap Dimensions
-	xres = 1024;
-	yres = 1024;
-	channels = 4;
-
-	// Load minimap if possible or try alternatives
-	in = NULL;
-	in = ImageInput::create( minimap_fn.c_str() );
-	if( !in ) {
-		if( verbose ) cout << "INFO: Attempting to create minimap from diffuse." << endl;
-		minimap_fn.assign(diffuse_fn);
-		in = ImageInput::create( minimap_fn.c_str() );
-	}
-	//FIXME attempt to generate minimap from tile files.
-
-	if( !in ) {
-		if( verbose ) cout << "WARNING: Creating blank minimap." << endl;
-		spec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
-		uint8_pixels = new unsigned char[xres * yres * channels];
-		memset( uint8_pixels, 127, xres * yres * channels); //grey
-	} else {
-		if( verbose ) printf("INFO: Reading %s\n", minimap_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( minimap_fn.c_str(), *spec );
-		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
-		in->read_image( TypeDesc::UINT8, uint8_pixels );
-		in->close();
-		delete in;
-	}
-
-	// Fix channels
-	if( spec->nchannels != channels ) {
-		int map[] = {2, 1, 0, 3};
-		int fill[] = {0, 0, 0, 255};
-		uint8_pixels = map_channels(uint8_pixels,
-			spec->width, spec->height, spec->nchannels,
-			channels, map, fill);
-	}
-	// Fix Dimensions
-	if ( spec->width != xres || spec->height != yres ) {
-		if( verbose )
-			printf( "WARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			minimap_fn.c_str(), spec->width, spec->height,
-			xres, yres);
-
-		uint8_pixels = interpolate_bilinear(uint8_pixels,
-			spec->width, spec->height, channels,
-			xres, yres);
-	} 
-
-	// setup DXT1 Compression
-	inputOptions.setTextureLayout( nvtt::TextureType_2D, 1024, 1024 );
-	compressionOptions.setFormat( nvtt::Format_DXT1 );
 	
-	if( fast_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Fastest ); 
-	else compressionOptions.setQuality( nvtt::Quality_Normal ); 
-	outputOptions.setOutputHeader( false );
+	//Save
+	if(strcmp(saveFile.c_str(), ""))smf.save(saveFile);
 
-	inputOptions.setMipmapData( uint8_pixels, 1024, 1024 );
+	
 
-	outputHandler = new NVTTOutputHandler();
-	outputOptions.setOutputHandler( outputHandler );
-	compressor.process( inputOptions, compressionOptions, outputOptions );
-
-	// Write data to smf
-	smf_of.write( outputHandler->buffer, MINIMAP_SIZE );
-	delete outputHandler;
-	delete [] uint8_pixels;
-	delete spec;
-
-	// Map Tile Index //
-	////////////////////
-	if( verbose ) cout << "INFO: Processing and writing maptile index." << endl;
-
-	// Re-write the tilesPtr to be the current position in the output stream
-	header.tilesPtr = smf_of.tellp();
-	smf_of.seekp(68); //position of tilesPtr
-	smf_of.write( (char *)&header.tilesPtr, 4);
-	smf_of.seekp(header.tilesPtr);
-
-	// Write map tile header	
-	smf_tileheader.numTileFiles = smt_filenames.size(); 
-	smf_tileheader.numTiles = width * length * 256;
-	smf_of.write( (char *)&smf_tileheader, sizeof( MapTileHeader ) );
-
-	// Add references to smt's
-	for(unsigned int i = 0; i < smt_filenames.size(); ++i) {
-		if( verbose )printf( "INFO: Adding %s to smf\n", smt_filenames[i].c_str() );
-		smf_of.write( (char *)&smt_tilenums[i], 4);
-		smf_of.write( smt_filenames[i].c_str(), smt_filenames[i].size() +1 );
-	}
-
-	xres = width * 16;
-	yres = length * 16;
-	channels = 1;
-
-	// Open image if possible, or create blank one.
-	in = NULL;
-	in = ImageInput::create( tileindex_fn.c_str() );
-	if( !in ) {
-		//if we have generated a tilemap when building the smt
-		if( uint_pixels ) {
-			if( verbose ) printf( "INFO: Using generated tile index\n" );
-			// Write tile index
-			smf_of.write( (char *)uint_pixels, width * 16 * length * 16 * 4);
-		} else { //generate a really generic one
-			if( verbose ) printf( "INFO: Generating basic tile index\n" );
-			int i;
-			for ( int z = 0; z < length * 16; z++ )
-				for ( int x = 0; x < width * 16; x++) {
-					i = (x + z * width * 16) % tiletotal;
-					smf_of.write( (char *)&i, sizeof( int ) );
-			}
-		}
-	} else {
-		if( verbose ) printf( "INFO: Reading %s.\n", tileindex_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( tileindex_fn.c_str(), *spec );
-		uint_pixels = new unsigned int[ spec->width * spec->height * spec->nchannels ];
-		in->read_image( TypeDesc::UINT, uint_pixels );
-		in->close();
-		smf_of.write( (char *)uint_pixels, xres * yres * 4);
-		delete in;
-		delete spec;
-	}	
-	delete [] uint_pixels;
-
-	// Metal Map //
-	///////////////
-	if( verbose ) cout << "INFO: Processing and writing metalmap." << endl;
-
-	// Re-write the metalmapPtr to be current position in the output stream	
-	header.metalmapPtr = smf_of.tellp();
-	smf_of.seekp(72); //position of metalmapPtr
-	smf_of.write( (char *)&header.metalmapPtr, 4);
-	smf_of.seekp(header.metalmapPtr);
-
-	// Dimensions of map
-	xres = width * 32;
-	yres = length * 32;
-	channels = 1;
-
-	// open image if possible or create blank one.
-	in = NULL;
-	in = ImageInput::create( metalmap_fn.c_str() );
-	if( !in ) {
-		if( verbose ) cout << "INFO: Creating blank metalmap." << endl;
-		spec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
-		uint8_pixels = new unsigned char[xres * yres * channels];
-		memset( uint8_pixels, 0, xres * yres * channels);
-	} else {
-		if( verbose ) printf("INFO: Reading %s\n", metalmap_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( metalmap_fn.c_str(), *spec );
-		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
-		in->read_image( TypeDesc::UINT8, uint8_pixels );
-		in->close();
-		delete in;
-	}
-
-	// Fix the channels
-	if( spec->nchannels != channels ) {
-		int map[] = {0};
-		int fill[] = {0};
-		uint8_pixels = map_channels( uint8_pixels,
-			spec->width, spec->height, spec->nchannels,
-			channels, map, fill );
-	}
-	// Fix the dimensions
-	if ( spec->width != xres || spec->height != yres ) {
-		if( verbose )
-			printf( "WARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			metalmap_fn.c_str(), spec->width, spec->height,
-			xres, yres );
-		uint8_pixels = interpolate_nearest(uint8_pixels,
-			spec->width, spec->height, channels,
-			xres, yres );
-	}
-
-	// Write the data to the smf
-	smf_of.write( (char *)uint8_pixels, xres * yres );
-	delete [] uint8_pixels;
-	delete spec;
-
-	// Vegetation //
-	////////////////
-	if( grass ) {
-		if( verbose ) cout << "INFO: Processing and writing grass map." << endl;
-
-		// Set grassPtr to current position in output stream
-		smf_grassheader.grassPtr = smf_of.tellp();
-		smf_of.seekp(88); //position of grassPtr
-		smf_of.write( (char *)&smf_grassheader.grassPtr, 4);
-		smf_of.seekp(smf_grassheader.grassPtr);
-
-		// Dimensions of Grassmap
-		xres = width * 32;
-		yres = length * 32;
-		channels = 1;
-
-		// Open image
-		in = NULL;
-		in = ImageInput::create( grassmap_fn.c_str() );
-
-		if( verbose ) printf("INFO: Reading %s\n", grassmap_fn.c_str() );
-		spec = new ImageSpec;
-		in->open( grassmap_fn.c_str(), *spec );
-		uint8_pixels = new unsigned char [spec->width * spec->height * spec->nchannels ];
-		in->read_image( TypeDesc::UINT8, uint8_pixels );
-		in->close();
-		delete in;
-
-		// Fix channels
-		if( spec->nchannels != channels ) {
-			int map[] = {0};
-			int fill[] = {0};
-			uint8_pixels = map_channels(uint8_pixels,
-				spec->width, spec->height, spec->nchannels,
-				channels, map, fill);
-		}
-		// Fix Dimensions
-		if ( spec->width != xres || spec->height != yres ) {
-			if( verbose )
-				printf( "WARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-				grassmap_fn.c_str(), spec->width, spec->height,
-				xres, yres);
-			uint8_pixels = interpolate_nearest(uint8_pixels,
-				spec->width, spec->height, channels,
-				xres, yres);
-		}
-
-		// Write data to smf
-		smf_of.write( (char *)uint8_pixels, xres * yres );
-		delete [] uint8_pixels;
-		delete spec;
-	}
-
-	// Process Features //
+/*	// Process Features //
 	//////////////////////
 	if( featurelist ) {
 		if( verbose ) cout << "INFO: Processing and writing features." << endl;
@@ -1206,7 +408,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	smf_of.close();
+	smf_of.close();*/
 	return 0;
 }
 
