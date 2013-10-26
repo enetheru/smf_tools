@@ -29,9 +29,6 @@ int
 main( int argc, char **argv )
 #endif
 {
-// Global Variables //
-//////////////////////
-
 	bool fail = false;
 	ifstream infile;
 
@@ -58,8 +55,7 @@ main( int argc, char **argv )
 // Map Dimensions
 // -x --width <int>
 // -z --length <int>
-// -r --res <int>
-	int width = 2, length = 2, res = 32;
+	int width = 2, length = 2;
 
 
 // TCLAP Command Line Arguments //
@@ -119,11 +115,6 @@ main( int argc, char **argv )
 			"length of the map used when constructing the tile index.",
 			false, 2, "int", cmd);
 
-		ValueArg<int> arg_res(
-			"r", "res",
-			"resolution of the individual tiles.",
-			false, 32, "int", cmd);
-
 		// Parse Arguments
 		cmd.parse( argc, argv );
 
@@ -140,7 +131,6 @@ main( int argc, char **argv )
 
 		length = arg_length.getValue();
 		width = arg_width.getValue();
-		res = arg_res.getValue();
 
 	} catch ( ArgException &e ) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -199,7 +189,6 @@ main( int argc, char **argv )
 	}
 
 	smt.setDim(width, length);
-	smt.setRes(res);
 
 	if( saveFile.compare("") ) {
 		printf( "TEST: smt.save()\n");

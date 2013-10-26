@@ -40,16 +40,16 @@ struct SMTHeader
 	char magic[16];   //"spring tilefile\0"
 	int version;      //must be 1 for now
 	int nTiles;        //total number of tiles in this file
-	int res;     //must be 32 for now
-	int type;     //must be 1=dxt1 for now
+	int tileRes;     //must be 32 for now
+	int comp;     //must be 1=dxt1 for now
 };
 
 SMTHeader::SMTHeader()
+:	version(1),
+	tileRes(32),
+	comp(1)
 {
 	strcpy(magic,"spring tilefile");
-	version = 1;
-	res = 32;
-	type = 1;
 }
 
 
@@ -62,9 +62,9 @@ do {                                                \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
 	(tfh).count = (int)swabdword(__tmpdw);       \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
-	(tfh).res = (int)swabdword(__tmpdw);       \
+	(tfh).tileRes = (int)swabdword(__tmpdw);       \
 	(src).Read(&__tmpdw,sizeof(unsigned int));      \
-	(tfh).type = (int)swabdword(__tmpdw);\
+	(tfh).comp = (int)swabdword(__tmpdw);\
 } while (0)
 
 //this is followed by the raw data for the tiles
@@ -79,7 +79,8 @@ class SMT {
 	// Saving
 	string outPrefix;
 	int nTiles;
-	int res, type;
+	int tileRes;
+	int comp;
 
 	// Construction
 	int width, length;
@@ -100,7 +101,7 @@ public:
 	void setPrefix(string prefix);
 	void setTileindex(string filename);
 	void setRes(int r); // square resolution of the tiles.
-	void setType(int type);
+	void setType(int comp);
 	void setDim(int w, int l); // width and length of tileindex to construct in spring map units.
 
 	void addImage(string filename);
@@ -124,7 +125,7 @@ public:
 // Paste Decals(SMT, TileIndex, ListCSV, Decals)
 };
 
-SMT::SMT(bool v, bool q, int c) : verbose(v), quiet(q), slowcomp(c), res(32)
+SMT::SMT(bool v, bool q, int c) : verbose(v), quiet(q), slowcomp(c), tileRes(32)
 {
 	nTiles = 0;
 	setType(1);
@@ -133,26 +134,26 @@ SMT::SMT(bool v, bool q, int c) : verbose(v), quiet(q), slowcomp(c), res(32)
 
 void SMT::setPrefix(string prefix) { outPrefix = prefix.c_str(); }
 void SMT::setTileindex(string filename) { tileindexFile = filename.c_str(); }
-void SMT::setRes(int r) { res = r; }
+void SMT::setRes(int r) { tileRes = r; }
 void SMT::setDim(int w, int l) { width = w; length = l; }
 
 void
-SMT::setType(int type)
+SMT::setType(int comp)
 {
-	this->type = type;
+	this->comp = comp;
 	tileSize = 0;
 	// Calculate the size of the tile data
 	// size is the raw format of dxt1 with 4 mip levels
 	// 32x32, 16x16, 8x8, 4x4
 	// 512  + 128  + 32 + 8 = 680
-	if(type == DXT1) {
-		int mip = res;
+	if(comp == DXT1) {
+		int mip = tileRes;
 		for( int i=0; i < 4; ++i) {
 			tileSize += mip/4 * mip/4 * 8;
 			mip /= 2;
 		}
 	} else {
-		if( !quiet )printf("ERROR: '%i' is not a valid type", type);
+		if( !quiet )printf("ERROR: '%i' is not a valid compression type", comp);
 		tileSize = -1;
 	}
 	if( verbose )printf("INFO: TileSize: %i bytes\n", tileSize);
@@ -196,15 +197,15 @@ SMT::load(string fileName)
 		cout << "INFO: " << fileName << endl;
 		cout << "\tSMT Version: " << header.version << endl;
 		cout << "\tTiles: " << header.nTiles << endl;
-		cout << "\tTileRes: " << header.res << endl;
+		cout << "\tTileRes: " << header.tileRes << endl;
 		cout << "\tCompression: ";
-		if(header.type == DXT1)cout << "dxt1" << endl;
+		if(header.comp == DXT1)cout << "dxt1" << endl;
 		else {
 			cout << "UNKNOWN" << endl;
 			fail = true;
 		}
 	}
-	setType(header.type);
+	setType(header.comp);
 
 	inFile.close();
 	return fail;
@@ -232,8 +233,8 @@ SMT::decompileTiles()
 		// Pull data
 		tile_data = new unsigned char[tileSize];
 		inFile.read( (char *)tile_data, tileSize);
-		if(header.type == DXT1)
-			pixels = dxt1_load(tile_data, header.res, header.res);
+		if(header.comp == DXT1)
+			pixels = dxt1_load(tile_data, header.tileRes, header.tileRes);
 		delete [] tile_data;
 
 		char filename[256];
@@ -243,7 +244,7 @@ SMT::decompileTiles()
 		imageOutput = ImageOutput::create(filename);
 		if(!imageOutput) fail = true;
 		else {
-			imageSpec = new ImageSpec(header.res, header.res, 4, TypeDesc::UINT8);
+			imageSpec = new ImageSpec(header.tileRes, header.tileRes, 4, TypeDesc::UINT8);
 			imageOutput->open( filename, *imageSpec );
 			imageOutput->write_image( TypeDesc::UINT8, pixels);
 			imageOutput->close();
@@ -274,7 +275,7 @@ SMT::decompileCollate()
 
 	// Allocate Image size large enough to accomodate the tiles,
 	tileindex_w = tileindex_l = ceil(sqrt(header.nTiles));
-	xres = yres = tileindex_w * header.res;
+	xres = yres = tileindex_w * header.tileRes;
 	channels = 4;
 	pixels = new unsigned char[xres * yres * channels];
 
@@ -295,17 +296,17 @@ SMT::decompileCollate()
 		// Pull data
 		tileData = new unsigned char[tileSize];
 		infile.read( (char *)tileData, tileSize);
-		if ( header.type == DXT1 ) {
-			tpixels = dxt1_load(tileData, header.res, header.res);
+		if ( header.comp == DXT1 ) {
+			tpixels = dxt1_load(tileData, header.tileRes, header.tileRes);
 		}
 		delete [] tileData;
 
-		for ( int y = 0; y < header.res; y++ ) {
-			for ( int x = 0; x < header.res; x++ ) {
+		for ( int y = 0; y < header.tileRes; y++ ) {
+			for ( int x = 0; x < header.tileRes; x++ ) {
 				// get pixel locations.
-				int tp = (y * header.res + x) * 4;
-				int dx = header.res * (i % tileindex_w) + x;
-				int dy = header.res * (i / tileindex_w) + y;
+				int tp = (y * header.tileRes + x) * 4;
+				int dx = header.tileRes * (i % tileindex_w) + x;
+				int dy = header.tileRes * (i / tileindex_w) + y;
 				int dp = (dy * xres + dx) * 4;
 
 				memcpy( (char *)&pixels[dp], (char *)&tpixels[tp], 4 );
@@ -372,18 +373,18 @@ SMT::decompileReconstruct()
 			// Pull data from the tile file
 			infile.seekg( sizeof(SMTHeader) + tilenum * tileSize );
 			infile.read( (char *)tileData, tileSize);
-			if ( header.type == DXT1 )
-				tpixels = dxt1_load(tileData, header.res, header.res);
+			if ( header.comp == DXT1 )
+				tpixels = dxt1_load(tileData, header.tileRes, header.tileRes);
 			delete [] tileData;
 
 			// Copy to our large image
 			// TODO save scanlines to large image once a row is filled to save memory
-			for ( int y = 0; y < header.res; y++ ) {
-				for ( int x = 0; x < header.res; x++ ) {
+			for ( int y = 0; y < header.tileRes; y++ ) {
+				for ( int x = 0; x < header.tileRes; x++ ) {
 					// get pixel locations.
-					int tp = (y * header.res + x) * 4;
-					int dx = header.res * tx + x;
-					int dy = header.res * ty + y;
+					int tp = (y * header.tileRes + x) * 4;
+					int dx = header.tileRes * tx + x;
+					int dy = header.tileRes * ty + y;
 					int dp = (dy * xres * 32 + dx) * 4;
 						memcpy( (char *)&pixels[dp], (char *)&tpixels[tp], 4 );
 				}
@@ -435,13 +436,13 @@ SMT::save()
 	}
 
 	SMTHeader header;
-	header.res = res;
-	header.type = type;
+	header.tileRes = tileRes;
+	header.comp = comp;
 	if( verbose ) {
 		printf( "\tVersion: %i.\n", header.version);
 		printf( "\tnTiles: tbc.\n");
-		printf( "\ttileRes: (%i,%i)%i.\n", res, res, 4);
-		printf( "\tcompType: %i.\n", type);
+		printf( "\ttileRes: (%i,%i)%i.\n", tileRes, tileRes, 4);
+		printf( "\tcompType: %i.\n", comp);
 		printf( "\ttileSize: %i bytes.\n", tileSize);
 	}
 
@@ -498,9 +499,9 @@ SMT::save()
 	if( verbose ) {
 		printf( "\tLoaded %s (%i, %i)%i\n",
 			sourceFiles[0].c_str(), imageSpec->width, imageSpec->height, imageSpec->nchannels);
-		if( stw != res || stl != res )
+		if( stw != tileRes || stl != tileRes )
 			printf( "WARNING: Converting tiles from (%i,%i)%i to (%i,%i)%i\n",
-				stw,stl,stc,res,res,4);
+				stw,stl,stc,tileRes,tileRes,4);
 	}
 
 	// Generate and write tiles
@@ -534,12 +535,12 @@ SMT::save()
 
 			// fix resolution
 			//FIXME dtd = interpolate_bilinear(dtd, stw, stl, dtc, dtw, dtl);
-			std = interpolate_nearest(std, stw, stl, 4, res, res);
+			std = interpolate_nearest(std, stw, stl, 4, tileRes, tileRes);
 
 			// process into dds
 			outputHandler.reset();
-			inputOptions.setTextureLayout( nvtt::TextureType_2D, res, res );
-			inputOptions.setMipmapData( std, res, res );
+			inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
+			inputOptions.setMipmapData( std, tileRes, tileRes );
 
 			compressor.process(inputOptions, compressionOptions,
 						outputOptions);
@@ -548,7 +549,7 @@ SMT::save()
 			//copy mipmap to use as checksum: 64bits
 			memcpy(&tileMip, &outputHandler.buffer[672], 8);
 
-//			bool match = false;
+//FIXME		bool match = false;
 			unsigned int i; //tile index
 //			if( !tileMips.empty() ) {
 				for( i = 0; i < tileMips.size(); i++ ) {

@@ -180,6 +180,37 @@ dxt1_load(unsigned char* data, int width, int height)
 	return out_d;
 }
 
+/* FIXME update
+static void
+HeightMapFilter( int mapx, int mapy)
+{
+	float *heightmap2;
+	int x,y,x2,y2,dx,dy;
+	float h,tmod,mod;
+
+	printf( "Applying lowpass filter to height map\n" );
+	heightmap2 = heightmap;
+	heightmap = new float[ mapx * mapy ];
+	for ( y = 0; y < mapy; ++y )
+		for ( x = 0; x < mapx; ++x ) {
+			h = 0;
+			tmod = 0;
+			for ( y2 = max( 0, y - 2 ); y2 < min( mapy, y + 3 ); ++y2 ) {
+				dy = y2 - y;
+				for ( x2 = max( 0, x - 2 ); x2 < min( mapx, x + 3 ); ++x2 ) {
+					dx = x2 - x;
+					mod = max( 0.0f,
+						1.0f - 0.4f * sqrtf( float( dx * dx + dy * dy ) ) );
+					tmod += mod;
+					h += heightmap2[ y2 * mapx + x2 ] * mod;
+				}
+			}
+			heightmap[ y * mapx + x ] = h / tmod;
+		}
+	delete[] heightmap2;
+}
+
+*/
 
 
 #endif //__TOOLS_H

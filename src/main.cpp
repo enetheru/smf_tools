@@ -15,7 +15,6 @@
 #include <OpenImageIO/imageio.h>
 
 // local headers
-#include "mapfile.h"
 #include "tools.h"
 #include "smt.h"
 #include "smf.h"
@@ -299,7 +298,7 @@ main( int argc, char **argv )
 	// Globals //
 	/////////////
 	SMT smt(verbose, quiet, slowcomp);
-	SMF smf(verbose, quiet);
+	SMF smf(verbose, quiet, slowcomp);
 
 	// Load file 
 	if(strcmp(loadFile.c_str(), ""))smf.load(loadFile);
@@ -330,117 +329,5 @@ main( int argc, char **argv )
 	
 	//Save
 	if(strcmp(saveFile.c_str(), ""))smf.save(saveFile);
-
-	
-
-/*	// Process Features //
-	//////////////////////
-	if( featurelist ) {
-		if( verbose ) cout << "INFO: Processing and writing features." << endl;
-
-		MapFeatureHeader mapFeatureHeader;
-		vector<MapFeatureStruct> features;
-		MapFeatureStruct *feature;
-		vector<string> featurenames;
-
-		string line;
-		string cell;
-		vector<string> tokens;
-		char value[256];
-
-		// build inbuilt list
-		for ( int i=0; i < 16; i++ ) {
-			sprintf(value, "TreeType%i", i);
-			featurenames.push_back(value);
-		}
-		featurenames.push_back("GeoVent");
-
-		// Parse the file
-		printf( "INFO: Reading %s\n", featurelist_fn.c_str() );
-		ifstream flist(featurelist_fn.c_str(), ifstream::in);
-
-		while ( getline( flist, line ) ) {
-		    stringstream lineStream( line );
-			feature = new MapFeatureStruct;
-			mapFeatureHeader.numFeatures++;
-
-			tokens.clear();
-		    while( getline( lineStream, cell, ',' ) ) tokens.push_back( cell );
-
-			if(!featurenames.empty()) {
-				for (unsigned int i=0; i < featurenames.size(); i++)
-					if( !featurenames[i].compare( tokens[0] ) ) {
-						feature->featureType = i;
-						break;
-					} else {
-						featurenames.push_back(tokens[0]);
-						feature->featureType = i;
-						break;
-					}
-			}
-			feature->xpos = atof(tokens[1].c_str());
-			feature->ypos = atof(tokens[2].c_str());
-			feature->zpos = atof(tokens[3].c_str());
-			feature->rotation = atof(tokens[4].c_str());
-			feature->relativeSize = atof(tokens[5].c_str());
-
-			features.push_back(*feature);
-		}
-		mapFeatureHeader.numFeatureType = featurenames.size();
-		printf("INFO: %i Features, %i Types\n", mapFeatureHeader.numFeatures,
-				   	mapFeatureHeader.numFeatureType );
-
-		header.featurePtr = smf_of.tellp();
-		smf_of.seekp(76);
-		smf_of.write( (char *)&header.featurePtr, 4);
-		smf_of.seekp(header.featurePtr);
-		smf_of.write( (char *)&mapFeatureHeader, sizeof( mapFeatureHeader ) );
-
-		vector<string>::iterator i;
-		for ( i = featurenames.begin(); i != featurenames.end(); ++i ) {
-			string c = *i;
-			smf_of.write( c.c_str(), (int)strlen( c.c_str() ) + 1 );
-		}
-
-		vector<MapFeatureStruct>::iterator fi;
-		for( fi = features.begin(); fi != features.end(); ++fi ) {
-			smf_of.write( (char *)&*fi, sizeof( MapFeatureStruct ) );
-		}
-	}
-
-	smf_of.close();*/
 	return 0;
 }
-
-/*
-static void
-HeightMapFilter( int mapx, int mapy)
-{
-	float *heightmap2;
-	int x,y,x2,y2,dx,dy;
-	float h,tmod,mod;
-
-	printf( "Applying lowpass filter to height map\n" );
-	heightmap2 = heightmap;
-	heightmap = new float[ mapx * mapy ];
-	for ( y = 0; y < mapy; ++y )
-		for ( x = 0; x < mapx; ++x ) {
-			h = 0;
-			tmod = 0;
-			for ( y2 = max( 0, y - 2 ); y2 < min( mapy, y + 3 ); ++y2 ) {
-				dy = y2 - y;
-				for ( x2 = max( 0, x - 2 ); x2 < min( mapx, x + 3 ); ++x2 ) {
-					dx = x2 - x;
-					mod = max( 0.0f,
-						1.0f - 0.4f * sqrtf( float( dx * dx + dy * dy ) ) );
-					tmod += mod;
-					h += heightmap2[ y2 * mapx + x2 ] * mod;
-				}
-			}
-			heightmap[ y * mapx + x ] = h / tmod;
-		}
-	delete[] heightmap2;
-}
-
-*/
-

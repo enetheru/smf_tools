@@ -52,13 +52,12 @@ struct SMFHeader {
 };
 
 SMFHeader::SMFHeader()
+:	version(1),
+	squareWidth(8),
+	squareTexels(8),
+	tileTexels(32)
 {
 	strcpy(magic, "spring map file");
-	version = 1;
-	squareWidth = 8;
-	squareTexels = 8;
-	tileTexels = 32;
-	return;
 }
 
 #define READPTR_SMTHEADER(mh,srcptr)                \
@@ -103,17 +102,9 @@ do {                                                \
 // start of every extra header must look like this, then comes data specific
 // for header type
 struct SMFEH {
-	SMFEH();
 	int size;
 	int type;
 };
-
-SMFEH::SMFEH()
-{
-	size = 0;
-	type = 0;
-}
-
 
 #define SMFEH_NONE 0
 
@@ -130,7 +121,6 @@ SMFEHGrass::SMFEHGrass()
 {
 	size = 12;
 	type = 1;
-	grassPtr = 0;	
 }
 
 //some structures used in the chunks of data later in the file
@@ -212,7 +202,7 @@ do {                                             \
 
 // Helper Class //
 class SMF {
-	bool verbose, quiet;
+	bool verbose, quiet, slowcomp;
 
 	// Loading
 	SMFHeader header;
@@ -220,7 +210,6 @@ class SMF {
 
 	// Saving
 	string outPrefix;
-	bool fast_dxt1;
 	vector<SMFEH *> extraHeaders;
 
 	// SMF Information
@@ -244,7 +233,7 @@ class SMF {
 	int tilesPtr;
 	int nTiles;			// number of tiles referenced
 	vector<string> smtList; // list of smt files references
-	vector<int> smtTiles;
+	vector<int> smtTiles; //number of tiles in files from smtList
 	string tileindexFile;
 
 	int featuresPtr;
@@ -257,20 +246,20 @@ class SMF {
 	bool is_smf(string filename);
 public:
 
-	SMF(bool v, bool q);
+	SMF(bool v, bool q, bool c);
 	void setOutPrefix(string prefix);
 	bool setDimensions(int width, int length, float floor, float ceiling);
-
 	void setHeightFile( string filename );
 	void setTypeFile( string filename );
 	void setMinimapFile( string filename );
 	void setMetalFile( string filename );
 	void setTileindexFile( string filename );
 	void setFeaturesFile( string filename );
-	void addTileFile( string filename );
-
 	void setGrassFile(string filename);
+
 	void unsetGrassFile();
+
+	void addTileFile( string filename );
 
 	bool load(string filename);
 
@@ -303,11 +292,12 @@ public:
 //	bool create(string filename, int width, int length, float floor, float ceiling, bool grass);
 };
 
-SMF::SMF(bool v, bool q)
-	: verbose(v), quiet(q)
+SMF::SMF(bool v, bool q, bool c)
+:	verbose(v),
+	quiet(q),
+	slowcomp(c)
 {
 	outPrefix = "out";
-	fast_dxt1 = true;
 }
 
 // This function makes sure that all file offsets are valid. and should be
@@ -414,6 +404,8 @@ SMF::addTileFile( string filename )
 	smt.read( (char *)&nTiles, 4);
 	smtTiles.push_back(nTiles);
 	smtList.push_back(filename);
+
+	recalculate();
 }
 
 void
@@ -441,6 +433,7 @@ SMF::unsetGrassFile()
 			extraHeaders.erase(extraHeaders.begin() + i);
 		}
 	}
+	recalculate();
 }
 
 bool
@@ -819,8 +812,8 @@ SMF::saveMinimap()
 	inputOptions.setTextureLayout( nvtt::TextureType_2D, 1024, 1024 );
 	compressionOptions.setFormat( nvtt::Format_DXT1 );
 
-	if( fast_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Fastest ); 
-	else compressionOptions.setQuality( nvtt::Quality_Normal ); 
+	if( slowcomp ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+	else compressionOptions.setQuality( nvtt::Quality_Fastest ); 
 	outputOptions.setOutputHeader( false );
 
 	inputOptions.setMipmapData( pixels, 1024, 1024 );
@@ -1700,4 +1693,82 @@ SMF::decompileFeaturelist(int format = 0)
 	return false;
 }
 #endif //__SMF_H
+
+//FIXME incorporate
+/*	// Process Features //
+	//////////////////////
+	if( featurelist ) {
+		if( verbose ) cout << "INFO: Processing and writing features." << endl;
+
+		MapFeatureHeader mapFeatureHeader;
+		vector<MapFeatureStruct> features;
+		MapFeatureStruct *feature;
+		vector<string> featurenames;
+
+		string line;
+		string cell;
+		vector<string> tokens;
+		char value[256];
+
+		// build inbuilt list
+		for ( int i=0; i < 16; i++ ) {
+			sprintf(value, "TreeType%i", i);
+			featurenames.push_back(value);
+		}
+		featurenames.push_back("GeoVent");
+
+		// Parse the file
+		printf( "INFO: Reading %s\n", featurelist_fn.c_str() );
+		ifstream flist(featurelist_fn.c_str(), ifstream::in);
+
+		while ( getline( flist, line ) ) {
+		    stringstream lineStream( line );
+			feature = new MapFeatureStruct;
+			mapFeatureHeader.numFeatures++;
+
+			tokens.clear();
+		    while( getline( lineStream, cell, ',' ) ) tokens.push_back( cell );
+
+			if(!featurenames.empty()) {
+				for (unsigned int i=0; i < featurenames.size(); i++)
+					if( !featurenames[i].compare( tokens[0] ) ) {
+						feature->featureType = i;
+						break;
+					} else {
+						featurenames.push_back(tokens[0]);
+						feature->featureType = i;
+						break;
+					}
+			}
+			feature->xpos = atof(tokens[1].c_str());
+			feature->ypos = atof(tokens[2].c_str());
+			feature->zpos = atof(tokens[3].c_str());
+			feature->rotation = atof(tokens[4].c_str());
+			feature->relativeSize = atof(tokens[5].c_str());
+
+			features.push_back(*feature);
+		}
+		mapFeatureHeader.numFeatureType = featurenames.size();
+		printf("INFO: %i Features, %i Types\n", mapFeatureHeader.numFeatures,
+				   	mapFeatureHeader.numFeatureType );
+
+		header.featurePtr = smf_of.tellp();
+		smf_of.seekp(76);
+		smf_of.write( (char *)&header.featurePtr, 4);
+		smf_of.seekp(header.featurePtr);
+		smf_of.write( (char *)&mapFeatureHeader, sizeof( mapFeatureHeader ) );
+
+		vector<string>::iterator i;
+		for ( i = featurenames.begin(); i != featurenames.end(); ++i ) {
+			string c = *i;
+			smf_of.write( c.c_str(), (int)strlen( c.c_str() ) + 1 );
+		}
+
+		vector<MapFeatureStruct>::iterator fi;
+		for( fi = features.begin(); fi != features.end(); ++fi ) {
+			smf_of.write( (char *)&*fi, sizeof( MapFeatureStruct ) );
+		}
+	}
+
+	smf_of.close();*/
 
