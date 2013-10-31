@@ -298,6 +298,7 @@ SMF::SMF(bool v, bool q, bool c)
 	slowcomp(c)
 {
 	outPrefix = "out";
+	nTiles = 0;
 }
 
 // This function makes sure that all file offsets are valid. and should be
@@ -402,6 +403,7 @@ SMF::addTileFile( string filename )
 	}
 	smt.ignore(4);
 	smt.read( (char *)&nTiles, 4);
+	this->nTiles += nTiles;
 	smtTiles.push_back(nTiles);
 	smtList.push_back(filename);
 
@@ -936,7 +938,6 @@ SMF::saveTileindex()
 	smf.seekp(tilesPtr);
 
 	// Tiles Header
-	nTiles = width * 16 * length * 16;
 	int nTileFiles = smtList.size();
 	smf.write( (char *)&nTileFiles, 4);
 	smf.write( (char *)&nTiles, 4);

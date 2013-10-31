@@ -310,9 +310,10 @@ main( int argc, char **argv )
 		smf.setOutPrefix(loadFile);
 		smf.decompileAll(0);
 	}
-	smf.setDimensions(width, length, floor, ceiling);
 
 	// Change attributes
+	smf.setDimensions(width, length, floor, ceiling);
+
 	if( strcmp(heightFile.c_str(), "") ) smf.setHeightFile( heightFile );
 	if( strcmp(typeFile.c_str(), "") ) smf.setTypeFile( typeFile );
 	if( strcmp(minimapFile.c_str(), "") ) smf.setMinimapFile( minimapFile );
@@ -328,6 +329,6 @@ main( int argc, char **argv )
 	}
 	
 	//Save
-	if(strcmp(saveFile.c_str(), ""))smf.save(saveFile);
+	if( strcmp(saveFile.c_str(), "") )smf.save( saveFile );
 	return 0;
 }

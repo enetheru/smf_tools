@@ -2,6 +2,8 @@
 #define __SMT_H
 
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include "byteorder.h"
 #include "nvtt_output_handler.h"
 
@@ -97,6 +99,7 @@ public:
 
 	bool load(string fileName);
 	bool save();
+	bool save2();
 
 	void setPrefix(string prefix);
 	void setTileindex(string filename);
@@ -413,7 +416,6 @@ SMT::decompileReconstruct()
 	return false;
 }
 
-
 bool
 SMT::save()
 {
@@ -451,28 +453,20 @@ SMT::save()
 
 	// Build Tileindex & Tiles //
 	/////////////////////////////
-	//
+	
 	// setup size for index dimensions
 	int tcx = width * 16; // tile count x
 	int tcz = length * 16; // tile count z
 	unsigned int *indexPixels = new unsigned int[tcx * tcz];
 
 	// Load source image
-	ImageInput *imageInput = NULL;
-	ImageSpec *imageSpec;
-	unsigned char *sourcePixels;
-
-	imageInput = ImageInput::create( sourceFiles[0].c_str() );
-	if( !imageInput ) {
-		if( !quiet )printf( "ERROR: Could no open source image %s.\n", sourceFiles[0].c_str() );
-		return true;
-	}
-
-	imageSpec = new ImageSpec;
-	imageInput->open( sourceFiles[0].c_str(), *imageSpec );
+	ImageBuf imageBuf( sourceFiles[0].c_str() );
+	imageBuf.read(0, 0, false, TypeDesc::UINT8);
+	const ImageSpec *imageSpec;
+	imageSpec = &imageBuf.spec();
 
 	// source tile data
-	unsigned char *std; 
+	unsigned char *std = NULL; 
 	int stw_f = (float)imageSpec->width / tcx;
 	int stl_f = (float)imageSpec->height / tcz;
 	int stw = (int)stw_f;
@@ -506,36 +500,57 @@ SMT::save()
 
 	// Generate and write tiles
 	smt.open(filename, ios::binary | ios::out | ios::app );
+	ROI roi;
 	// loop through tile columns
 	for ( int z = 0; z < tcz; z++) {
-
-		// pull scanlines data from source image
-		sourcePixels = new unsigned char [ imageSpec->width * stl * imageSpec->nchannels ];
-		imageInput->read_scanlines( (int)z * stl_f, (int)z * stl_f + stl, 0,
-			TypeDesc::UINT8, sourcePixels);
-
 		// loop through tile rows
 		for ( int x = 0; x < tcx; x++) {
 			if( verbose ) printf("\033[0GINFO: Processing tile %i of %i, Final Count = %i",
 				z * tcx + x + 1, tcx * tcz, nTiles );
-	
-			// copy a tile from the scanline data
-			std = new unsigned char [stw * stl * stc];
-			for( int i = 0; i < stw; ++i ) // rows
-				for( int j = 0; j < stl; ++j ) // columns
-					for( int c = 0; c < stc; ++c) {
-						std[ (i * stl + j) * stc + c] =
-							sourcePixels[ ((i * imageSpec->width) + (int)(x * stw_f) + j) * stc + c ];
-			}
-					
-			// fix channels
-			int map[] = {2,1,0,3};
-			int fill[] = {0,0,0,255};
-			std = map_channels(std, stw, stl, stc, 4, map, fill);
 
-			// fix resolution
-			//FIXME dtd = interpolate_bilinear(dtd, stw, stl, dtc, dtw, dtl);
-			std = interpolate_nearest(std, stw, stl, 4, tileRes, tileRes);
+			// copy a tile from the scanline data
+			roi.xbegin = (int)x * stw_f;
+			roi.xend = (int)x * stw_f + stw_f;
+			roi.ybegin = (int)z * stl_f;
+			roi.yend = (int)z * stl_f + stl_f;
+			roi.zbegin = 0;
+			roi.zend = 1;
+			roi.chbegin = 0;
+			roi.chend = 5;
+
+			ImageBuf tileBuf;
+			ImageBufAlgo::crop( tileBuf, imageBuf, roi );
+			imageSpec = &tileBuf.spec();
+					
+			// Fix channels
+			ImageBuf fixBuf;
+			bool boolean = false;
+			const int mapBGR[] = {2,1,0,-1};
+			const int mapBGRA[] = {2,1,0,3};
+			const float fill[] = {255,255,255,255};
+			if(imageSpec->nchannels < 4)
+				boolean = ImageBufAlgo::channels(fixBuf, tileBuf, 4, mapBGR, fill);
+			else
+				boolean = ImageBufAlgo::channels(fixBuf, tileBuf, 4, mapBGRA, fill);
+			if(!boolean)printf("ERROR: ImageBufAlgo::channels(...) Failed\n");
+			tileBuf.clear();
+			tileBuf.copy(fixBuf);
+			fixBuf.clear();
+			imageSpec = &tileBuf.spec();
+
+			// Fix resolution
+			if(imageSpec->width != tileRes || imageSpec->height != tileRes)
+			{
+				roi.xbegin = roi.ybegin = 0;
+				roi.xend = roi.yend = tileRes;
+				ImageBufAlgo::resample(fixBuf, tileBuf, true, roi);
+				tileBuf.clear();
+				tileBuf.copy(fixBuf);
+				fixBuf.clear();
+			}
+
+			// get handle to raw pixel data for dxt processing
+			std = (unsigned char *)tileBuf.localpixels();
 
 			// process into dds
 			outputHandler.reset();
@@ -544,38 +559,31 @@ SMT::save()
 
 			compressor.process(inputOptions, compressionOptions,
 						outputOptions);
-			delete [] std;
+			tileBuf.clear();
 
 			//copy mipmap to use as checksum: 64bits
 			memcpy(&tileMip, &outputHandler.buffer[672], 8);
 
-//FIXME		bool match = false;
+			bool match = false;
 			unsigned int i; //tile index
-//			if( !tileMips.empty() ) {
-				for( i = 0; i < tileMips.size(); i++ ) {
-//					if( !strcmp( (char *)&tileMips[i], (char *)&tileMip ) ) {
-//						match = true;
-//						break;
-//					} 
-				}
-//			}
-//			if( !match ) {
+			for( i = 0; i < tileMips.size(); i++ ) {
+				if( !strcmp( (char *)&tileMips[i], (char *)&tileMip ) ) {
+					match = true;
+					break;
+				} 
+			}
+			if( !match ) {
 				tileMips.push_back(tileMip);
 				// write tile to file.
 				smt.write( outputHandler.buffer, tileSize );
 				nTiles +=1;
-//			}
+			}
 			// Write index to tilemap
 			indexPixels[z * tcx + x] = i;
 		}
-		delete [] sourcePixels;
 	}
 	printf("\n");
 	smt.close();
-
-	imageInput->close();
-	delete imageInput;
-	delete imageSpec;
 
 	// retroactively fix up the tile count.
 	smt.open(filename, ios::binary | ios::in | ios::out );
@@ -603,6 +611,7 @@ SMT::save()
 	delete [] indexPixels;
 
 	return false;
+
 }
 
 #endif //ndef __SMT_H

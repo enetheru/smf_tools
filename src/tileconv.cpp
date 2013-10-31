@@ -172,6 +172,8 @@ main( int argc, char **argv )
 	}
 
 	if(decompile) {
+		loadFile.erase(loadFile.size()-4);
+		smt.setPrefix(loadFile);
 		if( tileindexFile.compare("") ) {
 			printf( "TEST: smt.setTileindex(%s)\n", tileindexFile.c_str());
 			smt.setTileindex(tileindexFile);
