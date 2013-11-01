@@ -1,7 +1,12 @@
 #ifndef __SMF_H
 #define __SMF_H
 
+#include <stdio.h>
+
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
 #include <nvtt/nvtt.h>
 
 #include "byteorder.h"
@@ -30,26 +35,26 @@ Chunk of data pointed to by header or extra headers
 
 struct SMFHeader {
 	SMFHeader();
-	char magic[16];     // "spring map file\0"
-	int version;        // must be 1 for now
-	int id;             // sort of a checksum of the file
-	int width;          // map width * 64
-	int length;         // map length * 64
-	int squareWidth;    // distance between vertices. must be 8
-	int squareTexels;   // number of texels per square, must be 8 for now
-	int tileTexels;     // number of texels in a tile, must be 32 for now
-	float floor;        // height value that 0 in the heightmap corresponds to	
-	float ceiling;      // height value that 0xffff in the heightmap corresponds to
+/*  0 */	char magic[16];     // "spring map file\0"
+/* 16 */	int version;        // must be 1 for now
+/* 20 */	int id;             // sort of a checksum of the file
+/* 24 */	int width;          // map width * 64
+/* 28 */	int length;         // map length * 64
+/* 32 */	int squareWidth;    // distance between vertices. must be 8
+/* 36 */	int squareTexels;   // number of texels per square, must be 8 for now
+/* 40 */	int tileTexels;     // number of texels in a tile, must be 32 for now
+/* 44 */	float floor;        // height value that 0 in the heightmap corresponds to	
+/* 48 */	float ceiling;      // height value that 0xffff in the heightmap corresponds to
 
-	int heightPtr;      // file offset to elevation data (short int[(mapy+1)*(mapx+1)])
-	int typePtr;        // file offset to typedata (unsigned char[mapy/2 * mapx/2])
-	int tilesPtr;   // file offset to tile data (see MapTileHeader)
-	int minimapPtr;     // file offset to minimap (always 1024*1024 dxt1 compresed data with 9 mipmap sublevels)
-	int metalPtr;       // file offset to metalmap (unsigned char[mapx/2 * mapy/2])
-	int featuresPtr; // file offset to feature data (see MapFeatureHeader)
+/* 52 */	int heightPtr;      // file offset to elevation data (short int[(mapy+1)*(mapx+1)])
+/* 56 */	int typePtr;        // file offset to typedata (unsigned char[mapy/2 * mapx/2])
+/* 60 */	int tilesPtr;   // file offset to tile data (see MapTileHeader)
+/* 64 */	int minimapPtr;     // file offset to minimap (always 1024*1024 dxt1 compresed data with 9 mipmap sublevels)
+/* 68 */	int metalPtr;       // file offset to metalmap (unsigned char[mapx/2 * mapy/2])
+/* 72 */	int featuresPtr; // file offset to feature data (see MapFeatureHeader)
 	
-	int nExtraHeaders;   // numbers of extra headers following main header
-};
+/* 76 */	int nExtraHeaders;   // numbers of extra headers following main header
+};/* 80 */
 
 SMFHeader::SMFHeader()
 :	version(1),
@@ -202,11 +207,10 @@ do {                                             \
 
 // Helper Class //
 class SMF {
-	bool verbose, quiet, slowcomp;
 
 	// Loading
 	SMFHeader header;
-	string in_fn;
+	string loadFile;
 
 	// Saving
 	string outPrefix;
@@ -218,6 +222,7 @@ class SMF {
 
 	int heightPtr; 
 	string heightFile;
+	bool invert;
 	
 	int typePtr;
 	string typeFile;
@@ -244,9 +249,12 @@ class SMF {
 	// Functions
 	bool recalculate();
 	bool is_smf(string filename);
-public:
 
-	SMF(bool v, bool q, bool c);
+public:
+	bool verbose, quiet, slowcomp;
+
+	SMF();
+	SMF( string loadFile );
 	void setOutPrefix(string prefix);
 	bool setDimensions(int width, int length, float floor, float ceiling);
 	void setHeightFile( string filename );
@@ -290,15 +298,27 @@ public:
 //
 // Create SMF(filename, width, length, floor ceiling) -> smf
 //	bool create(string filename, int width, int length, float floor, float ceiling, bool grass);
+
+	ImageBuf * getHeight();
 };
 
-SMF::SMF(bool v, bool q, bool c)
-:	verbose(v),
-	quiet(q),
-	slowcomp(c)
+SMF::SMF()
+:	verbose(true),
+	quiet(false),
+	slowcomp(false)
 {
 	outPrefix = "out";
 	nTiles = 0;
+}
+
+SMF::SMF(string loadFile)
+:	verbose(true),
+	quiet(false),
+	slowcomp(false)
+{
+	outPrefix = "out";
+	nTiles = 0;
+	load(loadFile);	
 }
 
 // This function makes sure that all file offsets are valid. and should be
@@ -541,95 +561,80 @@ SMF::save()
 bool
 SMF::saveHeight()
 {
-	int xres,yres,channels,size;
-	ImageInput *imageInput;
-	ImageSpec *imageSpec;
-	unsigned short *pixels;
+	// Dimensions of displacement map.
+	ImageBuf *imageBuf = NULL;
+	ROI roi(	0, width * 64 + 1,  // xbegin, xend
+				0, length * 64 + 1, // ybegin, yend
+				0, 1,               // zbegin, zend
+				0, 1);              // chbegin, chend
+	ImageSpec *imageSpec = new ImageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT16 );
 
+	if( is_smf(heightFile) ) {
+		// Load from SMF
+		SMF sourcesmf(heightFile);
+		imageBuf = sourcesmf.getHeight();
+	}
+   	if( !imageBuf ) {
+		// load image file
+		imageBuf = new ImageBuf( heightFile );
+		imageBuf->read(0,0,false,TypeDesc::UINT16);
+	}
+	if( !imageBuf ) {
+		// Generate blank
+		imageBuf = new ImageBuf( "height", *imageSpec );
+	}
 
+	imageSpec = &imageBuf->specmod();
+	ImageBuf fixBuf;
+	// Fix the number of channels
+	if( imageSpec->nchannels != roi.chend ) {
+		int map[] = {0};
+		ImageBufAlgo::channels(fixBuf, *imageBuf, 1, map);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
+	}
+
+	// Fix the size
+	if ( imageSpec->width != roi.xend || imageSpec->height != roi.yend ) {
+		if( verbose )
+			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
+			heightFile.c_str(), imageSpec->width, imageSpec->height, roi.xend, roi.yend );
+		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
+	}
+
+	// Invert height
+	if ( invert ) {
+		if( verbose ) fprintf(stderr, "INFO: Inverting\n");
+		ImageSpec fixSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT16);
+		fixBuf.reset( "fixBuf",  fixSpec );
+		const float fill[] = {65535};
+		ImageBufAlgo::fill(fixBuf, fill);
+		ImageBufAlgo::sub(*imageBuf, fixBuf, *imageBuf);
+		fixBuf.clear();
+	}
+
+	// FIXME filter to remove stepping artifacts from 8bit images,
+//	if ( lowpass ) {
+//	}
+	
+	unsigned short *pixels = (unsigned short *)imageBuf->localpixels();
+
+	// write height data to smf.
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
-	if( verbose )printf( "\nINFO: Saving Heightmap to %s at %i.\n",
+	if( verbose )fprintf(stderr, "\nINFO: Saving Heightmap to %s at %i.\n",
 		   filename, heightPtr );
 
 	fstream smf(filename, ios::binary | ios::in| ios::out);
 	smf.seekp(heightPtr);
-	
-	// Dimensions of displacement map.
-	xres = width * 64 + 1;
-	yres = length * 64 + 1;
-	channels = 1;
-	size = xres * yres * 2;
 
-	imageInput = NULL;
-	if( is_smf(heightFile) ) {
-		// Load from SMF
-		if( verbose ) printf( "    Source: %s.\n", heightFile.c_str() );
-
-		imageSpec = new ImageSpec( header.width + 1, header.length + 1,
-			channels, TypeDesc::UINT16);
-		pixels = new unsigned short [ imageSpec->width * imageSpec->height ];
-
-		ifstream inFile(heightFile.c_str(), ifstream::in);
-		inFile.seekg(header.heightPtr);
-		inFile.read( (char *)pixels, imageSpec->width * imageSpec->height * 2);
-		inFile.close();
-
-	} else if( (imageInput = ImageInput::create( heightFile.c_str() )) ) {
-		// load image file
-		if( verbose ) printf( "    Source: %s.\n", heightFile.c_str() );
-
-		imageSpec = new ImageSpec;
-		imageInput->open( heightFile.c_str(), *imageSpec );
-		pixels = new unsigned short [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT16, pixels );
-		imageInput->close();
-		delete imageInput;
-	} else {
-		// Generate blank
-		if( verbose ) cout << "    Generating flat displacement" << endl;
-
-		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT16);
-		pixels = new unsigned short[ xres * yres ];
-		memset( pixels, 0, size);
-	}
-
-	// Fix the number of channels
-	if( imageSpec->nchannels != channels ) {
-		int map[] = {0};
-		int fill[] = {0};
-		pixels = map_channels(pixels,
-			imageSpec->width, imageSpec->height, imageSpec->nchannels,
-			channels, map, fill);
-	}
-
-	// Fix the size
-	if ( imageSpec->width != xres || imageSpec->height != yres ) {
-		if( verbose )
-			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			heightFile.c_str(), imageSpec->width, imageSpec->height, xres, yres );
-		//FIXME Bilinear sampler is broken
-//		pixels = interpolate_bilinear( pixels,
-		pixels = interpolate_nearest( pixels,
-			imageSpec->width, imageSpec->height, channels,
-			xres, yres );
-	}
-	delete imageSpec;
-
-	// FIXME If inversion of height is specified in the arguments,
-//	if ( displacement_invert && verbose )
-//		cout << "WARNING: Height inversion not implemented yet" << endl;
-
-	// FIXME If inversion of height is specified in the arguments,
-//	if ( displacement_lowpass && verbose )
-//		cout << "WARNING: Height lowpass filter not implemented yet" << endl;
-	
-	// write height data to smf.
-	smf.write( (char *)pixels, size );
+	smf.write( (char *)pixels, roi.npixels() * 2 );
 	smf.close();
-	delete [] pixels;
+	delete imageBuf;
+	if( is_smf( heightFile ) ) delete [] pixels;
 
 	return false;
 }
@@ -1190,7 +1195,7 @@ SMF::load(string filename)
 
 	heightFile = typeFile = minimapFile = metalFile = grassFile
 		= tileindexFile = featuresFile = filename;
-	in_fn = filename;
+	loadFile = filename;
 
 	smf.seekg(0);
 	smf.read( (char *)&header, sizeof(SMFHeader) );
@@ -1345,7 +1350,7 @@ SMF::decompileHeight()
 	size = xres * yres * channels;
 	
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1388,7 +1393,7 @@ SMF::decompileType()
 	channels = 1;
 	size = xres * yres * channels;
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1432,7 +1437,7 @@ SMF::decompileMinimap()
 	channels = 4;
 	
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1482,7 +1487,7 @@ SMF::decompileMetal()
 	size = xres * yres * channels;
 	
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1528,7 +1533,7 @@ SMF::decompileTileindex()
 	channels = 1;
 	size = xres * yres * channels * 4;
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1584,7 +1589,7 @@ SMF::decompileGrass()
 	channels = 1;
 	size = xres * yres * channels;
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1647,7 +1652,7 @@ SMF::decompileFeaturelist(int format = 0)
 
 	ofstream outfile(filename);
 
-	ifstream smf(in_fn.c_str(), ifstream::in);
+	ifstream smf(loadFile.c_str(), ifstream::in);
 	if( !smf.good() ) {
 		return true;
 	}
@@ -1692,6 +1697,25 @@ SMF::decompileFeaturelist(int format = 0)
 	outfile.close();
 
 	return false;
+}
+
+ImageBuf *
+SMF::getHeight()
+{
+	ImageBuf *imageBuf = NULL;
+	ImageSpec imageSpec( header.width + 1, header.length + 1, 1, TypeDesc::UINT16 );
+	int size = (header.width + 1) * (header.length + 1);
+	unsigned short *data = new unsigned short[ size ];
+
+	ifstream smf( loadFile.c_str() );
+	if( smf.good() ) {
+		smf.seekg(header.heightPtr);
+		smf.read( (char *)data, size * 2 );
+
+		imageBuf = new ImageBuf( "height", imageSpec, data);
+	}
+	smf.close();
+	return imageBuf;
 }
 #endif //__SMF_H
 

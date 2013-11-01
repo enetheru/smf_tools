@@ -298,7 +298,7 @@ main( int argc, char **argv )
 	// Globals //
 	/////////////
 	SMT smt(verbose, quiet, slowcomp);
-	SMF smf(verbose, quiet, slowcomp);
+	SMF smf;
 
 	// Load file 
 	if(strcmp(loadFile.c_str(), ""))smf.load(loadFile);
