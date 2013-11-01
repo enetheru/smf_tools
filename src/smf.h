@@ -300,6 +300,8 @@ public:
 //	bool create(string filename, int width, int length, float floor, float ceiling, bool grass);
 
 	ImageBuf * getHeight();
+	ImageBuf * getType();
+
 };
 
 SMF::SMF()
@@ -309,6 +311,7 @@ SMF::SMF()
 {
 	outPrefix = "out";
 	nTiles = 0;
+	invert = false;
 }
 
 SMF::SMF(string loadFile)
@@ -318,7 +321,8 @@ SMF::SMF(string loadFile)
 {
 	outPrefix = "out";
 	nTiles = 0;
-	load(loadFile);	
+	invert = false;
+	load(loadFile);
 }
 
 // This function makes sure that all file offsets are valid. and should be
@@ -577,7 +581,7 @@ SMF::saveHeight()
    	if( !imageBuf ) {
 		// load image file
 		imageBuf = new ImageBuf( heightFile );
-		imageBuf->read(0,0,false,TypeDesc::UINT16);
+		imageBuf->read( 0, 0, false, TypeDesc::UINT16 );
 	}
 	if( !imageBuf ) {
 		// Generate blank
@@ -589,7 +593,7 @@ SMF::saveHeight()
 	// Fix the number of channels
 	if( imageSpec->nchannels != roi.chend ) {
 		int map[] = {0};
-		ImageBufAlgo::channels(fixBuf, *imageBuf, 1, map);
+		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
 		imageBuf->copy(fixBuf);
 		fixBuf.clear();
 	}
@@ -631,7 +635,7 @@ SMF::saveHeight()
 	fstream smf(filename, ios::binary | ios::in| ios::out);
 	smf.seekp(heightPtr);
 
-	smf.write( (char *)pixels, roi.npixels() * 2 );
+	smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
 	smf.close();
 	delete imageBuf;
 	if( is_smf( heightFile ) ) delete [] pixels;
@@ -642,11 +646,52 @@ SMF::saveHeight()
 bool
 SMF::saveType()
 {
-	int xres,yres,channels,size;
-	ImageInput *imageInput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
+	ImageBuf *imageBuf = NULL;
+	ROI roi(	0, width * 32,
+				0, length * 32,
+				0, 1,
+				0, 1);
+	ImageSpec *imageSpec = new ImageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
 
+	if( is_smf(typeFile) ) {
+		// Load from SMF
+		SMF sourcesmf(typeFile);
+		imageBuf = sourcesmf.getType();
+	}
+	if( !imageBuf ) {
+		// Load image file
+		imageBuf = new ImageBuf( typeFile );
+		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+	}
+	if( !imageBuf ) {
+		// Generate blank
+		imageBuf = new ImageBuf( "type", *imageSpec );
+	}
+
+	imageSpec = &imageBuf->specmod();
+	ImageBuf fixBuf;
+
+	// Fix the number of channels
+	if( imageSpec->nchannels != roi.chend ) {
+		int map[] = {0};
+		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map );
+		imageBuf->copy( fixBuf );
+		fixBuf.clear();
+	}
+
+	// Fix the Dimensions
+	if ( imageSpec->width != roi.xend || imageSpec->height != roi.yend ) {
+		if( verbose )
+			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
+			typeFile.c_str(), imageSpec->width, imageSpec->height, roi.xend, roi.yend);
+		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
+		imageBuf->copy( fixBuf );
+		fixBuf.clear();		
+	}
+
+	unsigned char *pixels = (unsigned char *)imageBuf->localpixels();
+
+	// write the data to the smf
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
@@ -656,70 +701,10 @@ SMF::saveType()
 	fstream smf(filename, ios::binary | ios::in | ios::out );
 	smf.seekp(typePtr);
 
-	// Dimensions of Typemap
-	xres = width * 32;
-   	yres = length * 32;
-	channels = 1;
-	size = xres * yres * channels;
-
-	imageInput = NULL;
-	if( is_smf(typeFile) ) {
-		// Load from SMF
-		if( verbose ) printf( "    Source: %s.\n", typeFile.c_str() );
-
-		imageSpec = new ImageSpec(header.width / 2, header.length / 2,
-			channels, TypeDesc::UINT8);
-		pixels = new unsigned char[ imageSpec->width * imageSpec->height ];
-
-		ifstream inFile(typeFile.c_str(), ifstream::in);
-		inFile.seekg(header.typePtr);
-		inFile.read( (char *)pixels, imageSpec->width * imageSpec->height);
-		inFile.close();
-
-	} else if((imageInput = ImageInput::create( typeFile.c_str() ))) {
-		// Load image file
-		if( verbose ) printf("    Source: %s\n", typeFile.c_str() );
-
-		imageSpec = new ImageSpec;
-		imageInput->open( typeFile.c_str(), *imageSpec );
-		pixels = new unsigned char [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT8, pixels );
-		imageInput->close();
-		delete imageInput;
-	} else {
-		// Generate blank
-		if( verbose ) cout << "    Generating blank typemap." << endl;
-		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
-		pixels = new unsigned char[size];
-		memset( pixels, 0, xres * yres);
-	}
-
-	// Fix the number of channels
-	if( imageSpec->nchannels != channels ) {
-		int map[] = {0};
-		int fill[] = {0};
-		pixels = map_channels(pixels,
-			imageSpec->width, imageSpec->height, imageSpec->nchannels,
-			channels, map, fill);
-	}
-
-	// Fix the Dimensions
-	if ( imageSpec->width != xres || imageSpec->height != yres ) {
-		if( verbose )
-			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-			typeFile.c_str(), imageSpec->width, imageSpec->height, xres, yres);
-
-		pixels = interpolate_nearest(pixels,
-			imageSpec->width, imageSpec->height, channels,
-			xres, yres);	
-	}
-	delete imageSpec;
-
-	// write the data to the smf
-	smf.write( (char *)pixels, size );
+	smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
 	smf.close();
-	delete [] pixels;
+	delete imageBuf;
+	if( is_smf(typeFile) )delete [] pixels;
 
 	return false;
 }
@@ -1704,15 +1689,30 @@ SMF::getHeight()
 {
 	ImageBuf *imageBuf = NULL;
 	ImageSpec imageSpec( header.width + 1, header.length + 1, 1, TypeDesc::UINT16 );
-	int size = (header.width + 1) * (header.length + 1);
-	unsigned short *data = new unsigned short[ size ];
+	unsigned short *data = new unsigned short[ imageSpec.image_pixels() ];
 
 	ifstream smf( loadFile.c_str() );
 	if( smf.good() ) {
 		smf.seekg(header.heightPtr);
-		smf.read( (char *)data, size * 2 );
-
+		smf.read( (char *)data, imageSpec.image_bytes() );
 		imageBuf = new ImageBuf( "height", imageSpec, data);
+	}
+	smf.close();
+	return imageBuf;
+}
+
+ImageBuf *
+SMF::getType()
+{
+	ImageBuf * imageBuf = NULL;
+	ImageSpec imageSpec( header.width / 2, header.length / 2, 1, TypeDesc::UINT8 );
+	unsigned char *data = new unsigned char[ imageSpec.image_pixels() ];
+
+	ifstream smf( loadFile.c_str() );
+	if( smf.good() ) {
+		smf.seekg( header.typePtr );
+		smf.read( (char *)data, imageSpec.image_bytes() );
+		imageBuf = new ImageBuf( "type", imageSpec, data );
 	}
 	smf.close();
 	return imageBuf;
