@@ -301,6 +301,8 @@ public:
 
 	ImageBuf * getHeight();
 	ImageBuf * getType();
+	ImageBuf * getMinimap();
+	ImageBuf * getMetal();
 
 };
 
@@ -571,7 +573,7 @@ SMF::saveHeight()
 				0, length * 64 + 1, // ybegin, yend
 				0, 1,               // zbegin, zend
 				0, 1);              // chbegin, chend
-	ImageSpec *imageSpec = new ImageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT16 );
+	ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT16 );
 
 	if( is_smf(heightFile) ) {
 		// Load from SMF
@@ -585,13 +587,13 @@ SMF::saveHeight()
 	}
 	if( !imageBuf ) {
 		// Generate blank
-		imageBuf = new ImageBuf( "height", *imageSpec );
+		imageBuf = new ImageBuf( "height", imageSpec );
 	}
 
-	imageSpec = &imageBuf->specmod();
+	imageSpec = imageBuf->specmod();
 	ImageBuf fixBuf;
 	// Fix the number of channels
-	if( imageSpec->nchannels != roi.chend ) {
+	if( imageSpec.nchannels != roi.chend ) {
 		int map[] = {0};
 		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
 		imageBuf->copy(fixBuf);
@@ -599,10 +601,10 @@ SMF::saveHeight()
 	}
 
 	// Fix the size
-	if ( imageSpec->width != roi.xend || imageSpec->height != roi.yend ) {
+	if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
 		if( verbose )
 			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			heightFile.c_str(), imageSpec->width, imageSpec->height, roi.xend, roi.yend );
+			heightFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
 		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
 		imageBuf->copy(fixBuf);
 		fixBuf.clear();
@@ -684,7 +686,7 @@ SMF::saveType()
 		if( verbose )
 			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
 			typeFile.c_str(), imageSpec->width, imageSpec->height, roi.xend, roi.yend);
-		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
+		ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
 		imageBuf->copy( fixBuf );
 		fixBuf.clear();		
 	}
@@ -712,19 +714,6 @@ SMF::saveType()
 bool
 SMF::saveMinimap()
 {
-	// NVTT
-	nvtt::InputOptions inputOptions;
-	nvtt::OutputOptions outputOptions;
-	nvtt::CompressionOptions compressionOptions;
-	nvtt::Compressor compressor;
-	NVTTOutputHandler *outputHandler;
-
-	//OpenImageIO
-	int xres,yres,channels,size;
-	ImageInput *imageInput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
-
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
@@ -734,17 +723,9 @@ SMF::saveMinimap()
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(minimapPtr);
 
-	// minimap Dimensions
-	xres = 1024;
-	yres = 1024;
-	channels = 4;
-	size = xres * yres * channels;
-
-	// Load minimap if possible or try alternatives
-	imageInput = NULL;
-	if( is_smf(minimapFile) ) { // Copy from SMF
-		if( verbose ) printf( "    Source: %s.\n", minimapFile.c_str() );
-
+	unsigned char *pixels;
+	if( is_smf(minimapFile) ) {
+		// Copy from SMF
 		pixels = new unsigned char[MINIMAP_SIZE];
 
 		ifstream inFile(minimapFile.c_str(), ifstream::in);
@@ -754,82 +735,137 @@ SMF::saveMinimap()
 
 		smf.write( (char *)pixels, MINIMAP_SIZE);
 		smf.close();
+		delete [] pixels;
 		return false;
-
-	} else if( (imageInput = ImageInput::create( minimapFile.c_str() ))) {
-		// Load from Image File
-		if( verbose ) printf("    Source: %s\n", minimapFile.c_str() );
-
-		imageSpec = new ImageSpec;
-		imageInput->open( minimapFile.c_str(), *imageSpec );
-		pixels = new unsigned char [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT8, pixels );
-		imageInput->close();
-		delete imageInput;
-//FIXME attempt to generate minimap from tile files.
-//FIXME attempt to create minimap from diffuse image
-//FIXME attempt to create minimap from height
-	} else {
-		// Generate Blank
-		if( verbose ) cout << "    Creating blank minimap." << endl;
-
-		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
-		pixels = new unsigned char[size];
-		memset( pixels, 127, size); //grey
 	}
 
-	// Fix channels
-	int map[] = {2, 1, 0, 3};
-	int fill[] = {0, 0, 0, 255};
-	pixels = map_channels(pixels,
-		imageSpec->width, imageSpec->height, imageSpec->nchannels,
-		channels, map, fill);
 
-	// Fix Dimensions
-	if ( imageSpec->width != xres || imageSpec->height != yres ) {
-		if( verbose )
-			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			minimapFile.c_str(), imageSpec->width, imageSpec->height,
-			xres, yres);
-//FIXME bilinear filter broken
-//		pixels = interpolate_bilinear(pixels,
-		pixels = interpolate_nearest(pixels,
-			imageSpec->width, imageSpec->height, channels,
-			xres, yres);
-	} 
-	delete imageSpec;
+	//OpenImageIO
+	ROI roi(	0, 1024,
+				0, 1024,
+				0, 1,
+				0, 4);
+	ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
+	
+
+	// Load image file
+	ImageBuf *imageBuf = new ImageBuf( minimapFile );
+	imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+//FIXME attempt to generate minimap from tile files.
+
+	if( !imageBuf->initialized() ) {
+		// Create from height
+		imageBuf->reset( heightFile );
+		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+	}
+
+	if( !imageBuf->initialized() ) {
+		// Create blank
+		imageBuf->reset( "minimap", imageSpec);
+	}
+
+	imageSpec = imageBuf->specmod();
+	ImageBuf fixBuf;
+	// Fix channels
+	if( imageSpec.nchannels != roi.chend ) {
+		int map[] = {2,1,0,3};
+		float fill[] = {0,0,0,255};
+		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map, fill);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
+	}
+
+	// Fix dimensions
+	if( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
+		printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
+			heightFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
+		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
+	}
+
+	pixels = (unsigned char *)imageBuf->localpixels();
 
 	// setup DXT1 Compression
+	nvtt::InputOptions inputOptions;
 	inputOptions.setTextureLayout( nvtt::TextureType_2D, 1024, 1024 );
-	compressionOptions.setFormat( nvtt::Format_DXT1 );
-
-	if( slowcomp ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
-	else compressionOptions.setQuality( nvtt::Quality_Fastest ); 
-	outputOptions.setOutputHeader( false );
-
 	inputOptions.setMipmapData( pixels, 1024, 1024 );
 
-	outputHandler = new NVTTOutputHandler(MINIMAP_SIZE + 1024);
+	nvtt::CompressionOptions compressionOptions;
+	compressionOptions.setFormat( nvtt::Format_DXT1 );
+	if( slowcomp ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+	else compressionOptions.setQuality( nvtt::Quality_Fastest ); 
+
+	nvtt::OutputOptions outputOptions;
+	outputOptions.setOutputHeader( false );
+
+	NVTTOutputHandler *outputHandler = new NVTTOutputHandler(MINIMAP_SIZE + 1);
 	outputOptions.setOutputHandler( outputHandler );
+
+	nvtt::Compressor compressor;
 	compressor.process( inputOptions, compressionOptions, outputOptions );
-	delete [] pixels;
 
 	// Write data to smf
 	smf.write( outputHandler->buffer, MINIMAP_SIZE );
 	delete outputHandler;
 
 	smf.close();
+	delete imageBuf;
 	return false;
 }
 
 bool
 SMF::saveMetal()
 {
-	int xres,yres,channels,size;
-	ImageInput *imageInput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
+	// Dimensions of displacement map.
+	ImageBuf *imageBuf = NULL;
+	ROI roi(	0, width * 32,  // xbegin, xend
+				0, length * 32, // ybegin, yend
+				0, 1,               // zbegin, zend
+				0, 1);              // chbegin, chend
+	ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
+
+	if( is_smf(metalFile) ) {
+		// Load from smf
+		SMF sourcesmf(metalFile);
+		imageBuf = sourcesmf.getMetal();
+	}
+	if( !imageBuf ) {
+		//load from image
+		imageBuf = new ImageBuf(metalFile);
+		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+		if( !imageBuf->initialized() ) {
+			delete imageBuf;
+			imageBuf = NULL;
+		}
+	}
+	if( !imageBuf ) {
+		// Generate blank
+		imageBuf = new ImageBuf( "metal", imageSpec );
+	}
+
+	imageSpec = imageBuf->specmod();
+	ImageBuf fixBuf;
+	// Fix the number of channels
+	if( imageSpec.nchannels != roi.chend ) {
+		int map[] = {0};
+		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
+	}
+
+	// Fix the size
+	if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
+		if( verbose )
+			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
+			heightFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
+		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
+	}
+
+	unsigned char *pixels = (unsigned char *)imageBuf->localpixels();
+
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
@@ -840,72 +876,12 @@ SMF::saveMetal()
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(metalPtr);
 
-	// Dimensions of Metal
-	xres = width * 32;
-   	yres = length * 32;
-	channels = 1;
-	size = xres * yres * channels;
-
-	// Open image if possible, or create blank one.
-	imageInput = NULL;
-	if( is_smf(metalFile) ) {
-		if( verbose ) printf( "    Source: %s.\n", metalFile.c_str() );
-
-		imageSpec = new ImageSpec( header.width / 2, header.length / 2,
-			channels, TypeDesc::UINT8);
-		pixels = new unsigned char [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-
-		ifstream inFile(metalFile.c_str(), ifstream::in);
-		inFile.seekg(header.metalPtr);
-		inFile.read( (char *)pixels, imageSpec->width * imageSpec->height);
-		inFile.close();
-
-	} else if( (imageInput = ImageInput::create( metalFile.c_str() ))) {
-		// Load image file
-		if( verbose ) printf("    Source: %s\n", metalFile.c_str() );
-
-		imageSpec = new ImageSpec;
-		imageInput->open( metalFile.c_str(), *imageSpec );
-		pixels = new unsigned char [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT8, pixels );
-		imageInput->close();
-		delete imageInput;
-
-	} else {
-		if( verbose ) cout << "    Generating blank metalmap." << endl;
-
-		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
-		pixels = new unsigned char[size];
-		memset( pixels, 0, size);
-	}
-
-	// Fix the number of channels
-	if( imageSpec->nchannels != channels ) {
-		int map[] = {1};
-		int fill[] = {0};
-		pixels = map_channels(pixels,
-			imageSpec->width, imageSpec->height, imageSpec->nchannels,
-			channels, map, fill);
-	}
-
-	// Fix the size
-	if ( imageSpec->width != xres || imageSpec->height != yres ) {
-		if( verbose )
-			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-			metalFile.c_str(), imageSpec->width, imageSpec->height, xres, yres);
-
-		pixels = interpolate_nearest(pixels,
-			imageSpec->width, imageSpec->height, channels,
-			xres, yres);	
-	}
-	delete imageSpec;
-
 	// write the data to the smf
-	smf.write( (char *)pixels, size );
+	smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
 	smf.close();
-	delete [] pixels;
+
+	delete imageBuf;
+	if( is_smf( heightFile ) ) delete [] pixels;
 
 	return false;
 }
@@ -1717,6 +1693,44 @@ SMF::getType()
 	smf.close();
 	return imageBuf;
 }
+
+ImageBuf *
+SMF::getMinimap()
+{
+	ImageBuf * imageBuf = NULL;
+	ImageSpec imageSpec( 1024, 1024, 3, TypeDesc::UINT8 );
+	unsigned char *data;
+
+	ifstream smf( loadFile.c_str() );
+	if( smf.good() ) {
+		unsigned char *temp = new unsigned char[MINIMAP_SIZE];
+		smf.seekg( header.minimapPtr );
+		smf.read( (char *)temp, MINIMAP_SIZE);
+		data = dxt1_load(temp, 1024, 1024);
+		delete [] temp;
+		imageBuf = new ImageBuf( "minimap", imageSpec, data );
+	}
+	smf.close();
+	return imageBuf;
+}
+
+ImageBuf *
+SMF::getMetal()
+{
+	ImageBuf * imageBuf = NULL;
+	ImageSpec imageSpec( header.width / 2, header.length / 2, 1, TypeDesc::UINT8 );
+	unsigned char *data = new unsigned char[ imageSpec.image_pixels() ];
+
+	ifstream smf( loadFile.c_str() );
+	if( smf.good() ) {
+		smf.seekg( header.metalPtr );
+		smf.read( (char *)data, imageSpec.image_bytes() );
+		imageBuf = new ImageBuf( "metal", imageSpec, data );
+	}
+	smf.close();
+	return imageBuf;
+}
+
 #endif //__SMF_H
 
 //FIXME incorporate
