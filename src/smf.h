@@ -239,7 +239,7 @@ class SMF {
 	int nTiles;			// number of tiles referenced
 	vector<string> smtList; // list of smt files references
 	vector<int> smtTiles; //number of tiles in files from smtList
-	string tileindexFile;
+	string tilemapFile;
 
 	int featuresPtr;
 	vector<string> featureTypes;
@@ -261,7 +261,7 @@ public:
 	void setTypeFile( string filename );
 	void setMinimapFile( string filename );
 	void setMetalFile( string filename );
-	void setTileindexFile( string filename );
+	void setTilemapFile( string filename );
 	void setFeaturesFile( string filename );
 	void setGrassFile(string filename);
 
@@ -277,7 +277,7 @@ public:
 	bool saveType();
 	bool saveMinimap();
 	bool saveMetal();
-	bool saveTileindex();
+	bool saveTilemap();
 	bool saveFeatures();
 	bool saveGrass();
 
@@ -303,6 +303,8 @@ public:
 	ImageBuf * getType();
 	ImageBuf * getMinimap();
 	ImageBuf * getMetal();
+	ImageBuf * getTilemap();
+	ImageBuf * getGrass();
 
 };
 
@@ -408,12 +410,12 @@ SMF::setDimensions(int width, int length, float floor, float ceiling)
 	return false;
 }
 
-void SMF::setHeightFile(    string filename ) { heightFile    = filename.c_str(); }
-void SMF::setTypeFile(      string filename ) { typeFile      = filename.c_str(); }
-void SMF::setMinimapFile(   string filename ) { minimapFile   = filename.c_str(); }
-void SMF::setMetalFile(     string filename ) { metalFile     = filename.c_str(); }
-void SMF::setTileindexFile( string filename ) { tileindexFile = filename.c_str(); }
-void SMF::setFeaturesFile(  string filename ) { featuresFile  = filename.c_str(); }
+void SMF::setHeightFile(   string filename ) { heightFile    = filename.c_str(); }
+void SMF::setTypeFile(     string filename ) { typeFile      = filename.c_str(); }
+void SMF::setMinimapFile(  string filename ) { minimapFile   = filename.c_str(); }
+void SMF::setMetalFile(    string filename ) { metalFile     = filename.c_str(); }
+void SMF::setTilemapFile(  string filename ) { tilemapFile   = filename.c_str(); }
+void SMF::setFeaturesFile( string filename ) { featuresFile  = filename.c_str(); }
 
 void
 SMF::addTileFile( string filename )
@@ -558,7 +560,7 @@ SMF::save()
 		if(extraHeaders[i]->type == 1)saveGrass();
 	}
 
-	saveTileindex();
+	saveTilemap();
 	saveFeatures();
 
 	return false;
@@ -567,6 +569,7 @@ SMF::save()
 bool
 SMF::saveHeight()
 {
+	if( verbose )cout << "INFO: saveHeight\n";
 	// Dimensions of displacement map.
 	ImageBuf *imageBuf = NULL;
 	ROI roi(	0, width * 64 + 1,  // xbegin, xend
@@ -584,6 +587,10 @@ SMF::saveHeight()
 		// load image file
 		imageBuf = new ImageBuf( heightFile );
 		imageBuf->read( 0, 0, false, TypeDesc::UINT16 );
+		if( !imageBuf->initialized() ) {
+			delete imageBuf;
+			imageBuf = NULL;
+		}
 	}
 	if( !imageBuf ) {
 		// Generate blank
@@ -612,7 +619,6 @@ SMF::saveHeight()
 
 	// Invert height
 	if ( invert ) {
-		if( verbose ) fprintf(stderr, "INFO: Inverting\n");
 		ImageSpec fixSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT16);
 		fixBuf.reset( "fixBuf",  fixSpec );
 		const float fill[] = {65535};
@@ -631,9 +637,6 @@ SMF::saveHeight()
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
-	if( verbose )fprintf(stderr, "\nINFO: Saving Heightmap to %s at %i.\n",
-		   filename, heightPtr );
-
 	fstream smf(filename, ios::binary | ios::in| ios::out);
 	smf.seekp(heightPtr);
 
@@ -648,12 +651,14 @@ SMF::saveHeight()
 bool
 SMF::saveType()
 {
+	if( verbose )cout << "INFO: saveType\n";
+
 	ImageBuf *imageBuf = NULL;
 	ROI roi(	0, width * 32,
 				0, length * 32,
 				0, 1,
 				0, 1);
-	ImageSpec *imageSpec = new ImageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
+	ImageSpec imageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
 
 	if( is_smf(typeFile) ) {
 		// Load from SMF
@@ -664,17 +669,21 @@ SMF::saveType()
 		// Load image file
 		imageBuf = new ImageBuf( typeFile );
 		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+		if( !imageBuf->initialized() ) {
+			delete imageBuf;
+			imageBuf = NULL;
+		}
 	}
 	if( !imageBuf ) {
 		// Generate blank
-		imageBuf = new ImageBuf( "type", *imageSpec );
+		imageBuf = new ImageBuf( "type", imageSpec );
 	}
 
-	imageSpec = &imageBuf->specmod();
+	imageSpec = imageBuf->specmod();
 	ImageBuf fixBuf;
 
 	// Fix the number of channels
-	if( imageSpec->nchannels != roi.chend ) {
+	if( imageSpec.nchannels != roi.chend ) {
 		int map[] = {0};
 		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map );
 		imageBuf->copy( fixBuf );
@@ -682,10 +691,10 @@ SMF::saveType()
 	}
 
 	// Fix the Dimensions
-	if ( imageSpec->width != roi.xend || imageSpec->height != roi.yend ) {
+	if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
 		if( verbose )
 			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-			typeFile.c_str(), imageSpec->width, imageSpec->height, roi.xend, roi.yend);
+			typeFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend);
 		ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
 		imageBuf->copy( fixBuf );
 		fixBuf.clear();		
@@ -696,9 +705,6 @@ SMF::saveType()
 	// write the data to the smf
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-	if( verbose )printf( "\nINFO: Saving Typemap to %s at %i.\n",
-	   	filename, typePtr );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out );
 	smf.seekp(typePtr);
@@ -714,11 +720,10 @@ SMF::saveType()
 bool
 SMF::saveMinimap()
 {
+	if( verbose )cout << "INFO: saveMinimap\n";
+
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-	if( verbose )printf( "\nINFO: Saving Minimap to %s at %i.\n",
-		   filename, minimapPtr );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(minimapPtr);
@@ -739,7 +744,6 @@ SMF::saveMinimap()
 		return false;
 	}
 
-
 	//OpenImageIO
 	ROI roi(	0, 1024,
 				0, 1024,
@@ -755,7 +759,7 @@ SMF::saveMinimap()
 
 	if( !imageBuf->initialized() ) {
 		// Create from height
-		imageBuf->reset( heightFile );
+		imageBuf->reset( minimapFile );
 		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
 	}
 
@@ -778,7 +782,7 @@ SMF::saveMinimap()
 	// Fix dimensions
 	if( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
 		printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			heightFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
+			minimapFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
 		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
 		imageBuf->copy(fixBuf);
 		fixBuf.clear();
@@ -810,13 +814,15 @@ SMF::saveMinimap()
 	delete outputHandler;
 
 	smf.close();
-	delete imageBuf;
+	delete imageBuf;		
 	return false;
 }
 
 bool
 SMF::saveMetal()
 {
+	if( verbose )cout << "INFO: saveMetal\n";
+
 	// Dimensions of displacement map.
 	ImageBuf *imageBuf = NULL;
 	ROI roi(	0, width * 32,  // xbegin, xend
@@ -858,7 +864,7 @@ SMF::saveMetal()
 	if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
 		if( verbose )
 			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-			heightFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
+			metalFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
 		ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
 		imageBuf->copy(fixBuf);
 		fixBuf.clear();
@@ -870,9 +876,6 @@ SMF::saveMetal()
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
-	if( verbose )printf( "\nINFO: Saving Metal to %s at %i.\n",
-		   filename, metalPtr);
-
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(metalPtr);
 
@@ -881,24 +884,18 @@ SMF::saveMetal()
 	smf.close();
 
 	delete imageBuf;
-	if( is_smf( heightFile ) ) delete [] pixels;
+	if( is_smf( metalFile ) ) delete [] pixels;
 
 	return false;
 }
 
 bool
-SMF::saveTileindex()
+SMF::saveTilemap()
 {
-	int xres,yres,channels,size;
-	ImageInput *imageInput;
-	ImageSpec *imageSpec;
-	unsigned int *pixels;
+	if( verbose )cout << "INFO: saveTilemap\n";
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-	if( verbose ) printf( "\nINFO: Saving Tileindex to %s at %i.\n", 
-		   filename, tilesPtr);
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(tilesPtr);
@@ -916,80 +913,64 @@ SMF::saveTileindex()
 		smf.write( smtList[i].c_str(), smtList[i].size() +1 );
 	}
 
-	// Dimensions of Tileindex
-	xres = width * 16;
-   	yres = length * 16;
-	channels = 1;
-	size = xres * yres * channels * 4;
+	// Dimensions of displacement map.
+	ImageBuf *imageBuf = NULL;
+	ROI roi(	0, width * 16,  // xbegin, xend
+				0, length * 16, // ybegin, yend
+				0, 1,               // zbegin, zend
+				0, 1);              // chbegin, chend
+	ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT );
 
-	imageInput = NULL;
-	if( is_smf(tileindexFile) ) {
+	if( is_smf(tilemapFile) ) {
 		// Load from SMF
-		if( verbose ) printf("    Tilemap Source: %s\n", tileindexFile.c_str() );
-
-		imageSpec = new ImageSpec( header.width / 4, header.length / 4,
-			channels, TypeDesc::UINT);
-		pixels = new unsigned int [imageSpec->width * imageSpec->height];
-
-		ifstream inFile(tileindexFile.c_str(), ifstream::in);
-		inFile.seekg(header.tilesPtr);
-		int numFiles = 0;
-		inFile.read( (char *)&numFiles, 4);
-		inFile.ignore(4);
-		for( int i = 0; i < numFiles; ++i ) { 
-			inFile.ignore(4);
-			inFile.ignore(255, '\0');
-		}
-		inFile.read( (char *)pixels, imageSpec->width * imageSpec->height * 4);
-		inFile.close();
-
-	} else if ( (imageInput = ImageInput::create( tileindexFile.c_str() ))) {
-		// Load image file
-		if( verbose ) printf("    Tilemap Source: %s\n", tileindexFile.c_str() );
-
-		imageSpec = new ImageSpec;
-		imageInput->open( tileindexFile.c_str(), *imageSpec );
-		pixels = new unsigned int [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT, pixels );
-		imageInput->close();
-		delete imageInput;
-	} else {
-		// Generate Consecutive numbering
-		if( verbose ) printf( "    Generating basic Tilemap\n" );
-
-		imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT);
-		pixels = new unsigned int[ xres * yres * channels ];
-		for ( int y = 0; y < yres; ++y )
-			for ( int x = 0; x < xres; ++x) {
-				pixels[ y * xres + x ] = y * xres + x;
+		SMF sourcesmf(tilemapFile);
+		imageBuf = sourcesmf.getTilemap();
+	}
+   	if( !imageBuf ) {
+		// load image file
+		imageBuf = new ImageBuf( tilemapFile );
+		imageBuf->read( 0, 0, false, TypeDesc::UINT );
+		if( !imageBuf->initialized() ) {
+			delete imageBuf;
+			imageBuf = NULL;
 		}
 	}
+	if( !imageBuf ) {
+		// Generate blank
+		imageBuf = new ImageBuf( "tilemap", imageSpec );
+		for ( unsigned int i = 0; i < imageSpec.image_pixels(); ++i )
+			((unsigned int *)imageBuf->localpixels())[ i ] = i;
+	}
 
+	imageSpec = imageBuf->specmod();
+	ImageBuf fixBuf;
 	// Fix the number of channels
-	if( imageSpec->nchannels != channels ) {
-		int map[] = {1};
-		int fill[] = {0};
-		pixels = map_channels(pixels,
-			imageSpec->width, imageSpec->height, imageSpec->nchannels,
-			channels, map, fill);
+	if( imageSpec.nchannels != roi.chend ) {
+		int map[] = {0};
+		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
 	}
-	// Fix the Dimensions
-	if ( imageSpec->width != xres || imageSpec->height != yres ) {
-		if( verbose )
-			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-			metalFile.c_str(), imageSpec->width, imageSpec->height, xres, yres);
 
-		pixels = interpolate_nearest(pixels,
-			imageSpec->width, imageSpec->height, channels,
-			xres, yres);	
+	// Fix the size
+	// FIXME image should never be resized, instead tiling either from an edge or centred.
+	if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
+		if( verbose )
+			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
+			tilemapFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
+		ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
+		imageBuf->copy(fixBuf);
+		fixBuf.clear();
 	}
-	delete imageSpec;
+
+	unsigned int *pixels = (unsigned int *)imageBuf->localpixels();
 
 	// write the data to the smf
-	smf.write( (char *)pixels, size );
-	delete [] pixels;
+	smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
 	smf.close();
+
+	delete imageBuf;
+	if( is_smf( tilemapFile ) ) delete [] pixels;
 
 	return false;
 }
@@ -997,100 +978,77 @@ SMF::saveTileindex()
 bool
 SMF::saveGrass()
 {
-	int xres,yres,channels,size;
-	ImageInput *imageInput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
+	if( verbose )cout << "INFO: saveGrass\n";
 
 	SMFEHGrass *grassHeader = NULL;
-	for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-		if(extraHeaders[i]->type == 1)
-			grassHeader = reinterpret_cast<SMFEHGrass *>(extraHeaders[i]);
+	for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if( extraHeaders[ i ]->type == 1 )
+			grassHeader = reinterpret_cast<SMFEHGrass *>( extraHeaders[ i ] );
 	}
-	if(!grassHeader)return true;
+	if( !grassHeader )return true;
+
+	ImageBuf *imageBuf = NULL;
+	ROI roi(	0, width * 16,
+				0, length * 16,
+				0, 1,
+				0, 1);
+	ImageSpec imageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
+
+	if( is_smf(grassFile) ) {
+		// Load from SMF
+		SMF sourcesmf(grassFile);
+		imageBuf = sourcesmf.getGrass();
+	}
+	if( !imageBuf ) {
+		// Load image file
+		imageBuf = new ImageBuf( grassFile );
+		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+		if( imageBuf->initialized() ) {
+			delete imageBuf;
+			imageBuf = NULL;
+		}
+	}
+	if( !imageBuf ) {
+		// Generate blank
+		imageBuf = new ImageBuf( "grass", imageSpec );
+	}
+
+	imageSpec = imageBuf->specmod();
+	ImageBuf fixBuf;
+
+	// Fix the number of channels
+	if( imageSpec.nchannels != roi.chend ) {
+		int map[] = {0};
+		ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map );
+		imageBuf->copy( fixBuf );
+		fixBuf.clear();
+	}
+
+	// Fix the Dimensions
+	if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
+		if( verbose )
+			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
+			typeFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend);
+		ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
+		imageBuf->copy( fixBuf );
+		fixBuf.clear();		
+	}
+
+	unsigned char *pixels = (unsigned char *)imageBuf->localpixels();
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
 
-	if( verbose ) {
-		printf( "\nINFO: Saving Grass to %s at %i.\n",
-				filename, grassHeader->grassPtr );
-		printf( "    Source: %s.\n", grassFile.c_str() );
-	}
-
-	// Dimensions of grass
-	xres = width * 16;
-   	yres = length * 16;
-	channels = 1;
-	size = xres * yres * channels;
-
-	// Open image if possible, or create blank one.
-	imageInput = NULL;
-	if( is_smf(grassFile) ) {
-		imageSpec = new ImageSpec( header.width / 4, header.length / 4,
-			channels, TypeDesc::UINT8);
-		pixels = new unsigned char [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-
-		ifstream inFile(grassFile.c_str(), ifstream::in);
-		inFile.seekg(80);
-
-		int offset;
-		SMFEH extraHeader;
-		SMFEHGrass grassHeader;
-		for(int i = 0; i < header.nExtraHeaders; ++i ) {
-			offset = inFile.tellg();
-			inFile.read( (char *)&extraHeader, sizeof(SMFEH) );
-			inFile.seekg(offset);
-			if(extraHeader.type == 1) {
-				inFile.read( (char *)&grassHeader, sizeof(SMFEHGrass));
-			}
-			inFile.seekg( offset + extraHeader.size);
-		}
-		inFile.seekg(grassHeader.grassPtr);
-		inFile.read( (char *)pixels, imageSpec->width * imageSpec->height);
-		inFile.close();
-
-	} else if( (imageInput = ImageInput::create( grassFile.c_str() ))) {
-		// Load image file
-		imageSpec = new ImageSpec;
-		imageInput->open( grassFile.c_str(), *imageSpec );
-		pixels = new unsigned char [imageSpec->width * imageSpec->height
-			* imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT8, pixels );
-		imageInput->close();
-		delete imageInput;
-	}
-
-	// Fix the number of channels
-	if( imageSpec->nchannels != channels ) {
-		int map[] = {0};
-		int fill[] = {0};
-		pixels = map_channels(pixels,
-			imageSpec->width, imageSpec->height, imageSpec->nchannels,
-			channels, map, fill);
-	}
-
-	// Fix the size
-	if ( imageSpec->width != xres || imageSpec->height != yres ) {
-		if( verbose )
-			printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-			metalFile.c_str(), imageSpec->width, imageSpec->height, xres, yres);
-
-		pixels = interpolate_nearest(pixels,
-			imageSpec->width, imageSpec->height, channels,
-			xres, yres);	
-	}
-	delete imageSpec;
-
-	// write the data to the smf
+	if( verbose )printf( "    Source: %s.\n", grassFile.c_str() );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(grassHeader->grassPtr);
 
-	smf.write( (char *)pixels, size );
+	smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
 	smf.close();
-	delete [] pixels;
+	
+	delete imageBuf;
+	if( is_smf( grassFile ) ) delete [] pixels;
 
 	return false;
 }
@@ -1099,12 +1057,10 @@ SMF::saveGrass()
 bool
 SMF::saveFeatures()
 {
+	if( verbose )cout << "INFO: saveFeatures\n";
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-	if( verbose ) printf( "\nINFO: Saving Features to %s at position %i.\n",
-		   filename, featuresPtr);
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(featuresPtr);
@@ -1127,10 +1083,6 @@ SMF::saveFeatures()
 	smf.close();
 	return false;
 }
-
-
-
-
 
 bool
 SMF::load(string filename)
@@ -1155,7 +1107,7 @@ SMF::load(string filename)
 	if( ret ) return ret;
 
 	heightFile = typeFile = minimapFile = metalFile = grassFile
-		= tileindexFile = featuresFile = filename;
+		= tilemapFile = featuresFile = filename;
 	loadFile = filename;
 
 	smf.seekg(0);
@@ -1731,6 +1683,61 @@ SMF::getMetal()
 	return imageBuf;
 }
 
+ImageBuf *
+SMF::getTilemap()
+{
+	ImageBuf * imageBuf = NULL;
+	ImageSpec imageSpec( header.width / 4, header.length / 4, 1, TypeDesc::UINT );
+	unsigned int *data = new unsigned int[ imageSpec.image_pixels() ];
+
+	ifstream smf( loadFile.c_str() );
+	if( smf.good() ) {
+		smf.seekg( header.tilesPtr );
+		int numFiles = 0;
+		smf.read( (char *)&numFiles, 4 );
+		smf.ignore( 4 );
+		for( int i = 0; i < numFiles; ++i ) { 
+			smf.ignore(4);
+			smf.ignore(255, '\0');
+		}
+
+		smf.read( (char *)data, imageSpec.image_bytes() );
+		imageBuf = new ImageBuf( "tilemap", imageSpec, data );
+	}
+	smf.close();
+	return imageBuf;
+}
+
+ImageBuf *
+SMF::getGrass()
+{
+	ImageBuf * imageBuf = NULL;
+	ImageSpec imageSpec( header.width / 4, header.length / 4, 1, TypeDesc::UINT8 );
+	unsigned char *data = new unsigned char[ imageSpec.image_pixels() ];
+
+	ifstream smf( loadFile.c_str() );
+	if( smf.good() ) {
+		smf.seekg(80);
+
+		int offset;
+		SMFEH extraHeader;
+		SMFEHGrass grassHeader;
+		for(int i = 0; i < header.nExtraHeaders; ++i ) {
+			offset = smf.tellg();
+			smf.read( (char *)&extraHeader, sizeof(SMFEH) );
+			smf.seekg(offset);
+			if(extraHeader.type == 1) {
+				smf.read( (char *)&grassHeader, sizeof(SMFEHGrass));
+			}
+			smf.seekg( offset + extraHeader.size);
+		}
+		smf.seekg(grassHeader.grassPtr);
+		smf.read( (char *)data, imageSpec.image_bytes() );
+		imageBuf = new ImageBuf( "grass", imageSpec, data );
+	}
+	smf.close();
+	return imageBuf;
+}
 #endif //__SMF_H
 
 //FIXME incorporate

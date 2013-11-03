@@ -71,7 +71,7 @@ main( int argc, char **argv )
 //  -a --add-smt <string>
 //  -i --tileindex <image>
 	vector<string> tileFiles;
-	string tileindexFile = "";
+	string tilemapFile = "";
 //
 // Height
 //	-e --heightmap <image>
@@ -249,7 +249,7 @@ main( int argc, char **argv )
 
 		// SMT options
 		tileFiles = arg_add_smt.getValue(); // SMT Input Filenames
-		tileindexFile = arg_tileindex.getValue();
+		tilemapFile = arg_tileindex.getValue();
 
 		// Height
 		heightFile = arg_height.getValue();
@@ -318,7 +318,7 @@ main( int argc, char **argv )
 	if( strcmp(typeFile.c_str(), "") ) smf.setTypeFile( typeFile );
 	if( strcmp(minimapFile.c_str(), "") ) smf.setMinimapFile( minimapFile );
 	if( strcmp(metalFile.c_str(), "") ) smf.setMetalFile( metalFile );
-	if( strcmp(tileindexFile.c_str(), "") ) smf.setTileindexFile(tileindexFile );
+	if( strcmp(tilemapFile.c_str(), "") ) smf.setTilemapFile(tilemapFile );
 	if( strcmp(featuresFile.c_str(), "") ) smf.setFeaturesFile( featuresFile );
 
 	if( strcmp(grassFile.c_str(), "") ) smf.setGrassFile(grassFile);
