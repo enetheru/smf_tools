@@ -205,6 +205,8 @@ do {                                             \
 	(mfs).s = swabfloat(__tmpfloat);  \
 } while (0)
 
+bool is_smf(string filename);
+
 // Helper Class //
 class SMF {
 
@@ -248,7 +250,6 @@ class SMF {
 
 	// Functions
 	bool recalculate();
-	bool is_smf(string filename);
 
 public:
 	bool verbose, quiet, slowcomp;
@@ -377,7 +378,7 @@ SMF::recalculate()
 }
 
 bool
-SMF::is_smf(string filename)
+is_smf(string filename)
 {
 	char magic[16];
 	// Perform tests for file validity

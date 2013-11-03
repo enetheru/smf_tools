@@ -6,6 +6,8 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include "byteorder.h"
 #include "nvtt_output_handler.h"
+#include "smf.h"
+#include "tools.h"
 
 #define DXT1 1
 
@@ -92,7 +94,7 @@ class SMT {
 	int tileSize;
 
 	// Reconstruction
-	string tileindexFile;
+	string tilemapFile;
 	
 public:
 	SMT(bool v, bool q, int c);
@@ -136,7 +138,7 @@ SMT::SMT(bool v, bool q, int c) : verbose(v), quiet(q), slowcomp(c), tileRes(32)
 }
 
 void SMT::setPrefix(string prefix) { outPrefix = prefix.c_str(); }
-void SMT::setTileindex(string filename) { tileindexFile = filename.c_str(); }
+void SMT::setTileindex(string filename) { tilemapFile = filename.c_str(); }
 void SMT::setRes(int r) { tileRes = r; }
 void SMT::setDim(int w, int l) { width = w; length = l; }
 
@@ -332,33 +334,30 @@ SMT::decompileReconstruct()
 {
 	// OpenImageIO
 	ImageOutput *imageOutput = NULL;
-	ImageInput *imageInput = NULL;
 	ImageSpec *imageSpec = NULL;
-	unsigned int *tileIndex;
 	unsigned char *pixels;
 	unsigned char *tpixels;
 	unsigned char *tileData;
-	int xres,yres;
 	ifstream infile;
 
-	//TODO, load from SMF, CSV
-	imageInput = NULL;
-	imageInput = ImageInput::create( tileindexFile.c_str() );
-	if( !imageInput ) {
-		if( !quiet )printf( "ERROR: %s cannto be read.", tileindexFile.c_str());
-		return true;
-	} else {
-		if( verbose ) printf( "INFO: Reading %s.\n", tileindexFile.c_str() );
-		imageSpec = new ImageSpec;
-		imageInput->open( tileindexFile.c_str(), *imageSpec );
-		xres = imageSpec->width;
-		yres = imageSpec->height;
-		tileIndex = new unsigned int[ imageSpec->width * imageSpec->height * imageSpec->nchannels ];
-		imageInput->read_image( TypeDesc::UINT, tileIndex );
-		imageInput->close();
-		delete imageInput;
-		delete imageSpec;
+	//TODO, load tile map from csv
+	ImageBuf *imageBuf = NULL;
+	if( is_smf( tilemapFile ) ) {
+		SMF sourcesmf(tilemapFile);
+		imageBuf = sourcesmf.getTilemap();
 	}
+	if( !imageBuf ) {
+		imageBuf = new ImageBuf( tilemapFile );
+		imageBuf->read(0,0,false,TypeDesc::UINT);
+		if( !imageBuf->initialized() ) {
+			delete imageBuf;
+			return true;
+		}
+	}
+
+	unsigned int *tilemap = (unsigned int *)imageBuf->localpixels();
+	int xres = imageBuf->spec().width;
+	int yres = imageBuf->spec().height;
 
 	// allocate enough data for our large image
 	pixels = new unsigned char[xres * 32 * yres * 32 * 4];
@@ -371,7 +370,7 @@ SMT::decompileReconstruct()
 			tileData = new unsigned char[tileSize];
 
 			// get the index value	
-			int tilenum = tileIndex[ty * xres + tx];
+			int tilenum = tilemap[ty * xres + tx];
 
 			// Pull data from the tile file
 			infile.seekg( sizeof(SMTHeader) + tilenum * tileSize );
