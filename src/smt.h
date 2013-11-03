@@ -1,6 +1,9 @@
 #ifndef __SMT_H
 #define __SMT_H
 
+#include <sys/time.h>
+#include <deque>
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -500,12 +503,19 @@ SMT::save()
 	// Generate and write tiles
 	smt.open(filename, ios::binary | ios::out | ios::app );
 	ROI roi;
+	timeval t1, t2;
+    double elapsedTime;
+	deque<double> readings;
+	double averageTime = 0;
+	double intervalTime = 0;
+	int totalTiles = tcx * tcz;
+	int currentTile;
 	// loop through tile columns
 	for ( int z = 0; z < tcz; z++) {
 		// loop through tile rows
 		for ( int x = 0; x < tcx; x++) {
-			if( verbose ) printf("\033[0GINFO: Processing tile %i of %i, Final Count = %i",
-				z * tcx + x + 1, tcx * tcz, nTiles );
+			currentTile = z * tcx + x + 1;
+    		gettimeofday(&t1, NULL);
 
 			// copy a tile from the scanline data
 			roi.xbegin = (int)x * stw_f;
@@ -579,6 +589,24 @@ SMT::save()
 			}
 			// Write index to tilemap
 			indexPixels[z * tcx + x] = i;
+
+    		gettimeofday(&t2, NULL);
+			// compute and print the elapsed time in millisec
+	    	elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+	    	elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+			readings.push_back(elapsedTime);
+			if(readings.size() > 1000)readings.pop_front();
+			intervalTime += elapsedTime;
+			if( verbose && intervalTime > 1 ) {
+				for(unsigned int i = 0; i < readings.size(); ++i)
+					averageTime+= readings[i];
+				averageTime /= readings.size();
+				intervalTime = 0;
+			   	printf("\033[0GINFO: Tile %i of %i %%%0.1f, %0.1fs",
+				currentTile, totalTiles, (float)currentTile / totalTiles * 100, 
+			    averageTime * (totalTiles - currentTile) / 1000);
+				cout << "             ";
+			}
 		}
 	}
 	printf("\n");
