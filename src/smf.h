@@ -285,7 +285,7 @@ public:
 	bool decompileType();
 	bool decompileMinimap();
 	bool decompileMetal();
-	bool decompileTileindex();
+	bool decompileTilemap();
 	bool decompileGrass();
 	bool decompileFeaturelist(int format); // 0=csv, 1=lua
 	bool decompileAll(int format); // all of the above
@@ -1240,7 +1240,7 @@ SMF::decompileAll(int format)
 	fail |= decompileType();
 	fail |= decompileMinimap();
 	fail |= decompileMetal();
-	fail |= decompileTileindex();
+	fail |= decompileTilemap();
 	fail |= decompileFeaturelist(format);
 	fail |= decompileGrass();
 	if(fail) {
@@ -1251,302 +1251,78 @@ SMF::decompileAll(int format)
 bool
 SMF::decompileHeight()
 {
-	int xres,yres,channels,size;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned short *pixels;
-
-	if( verbose )cout << "INFO: Decompiling Height Map. " << header.heightPtr << endl;
-	xres = width * 64 + 1;
-	yres = length * 64 + 1;
-	channels = 1;
-	size = xres * yres * channels;
-	
-
-	ifstream smf(loadFile.c_str(), ifstream::in);
-	if( !smf.good() ) {
-		return true;
-	}
-	pixels = new unsigned short[size];
-	smf.seekg( header.heightPtr );
-	smf.read( (char *)pixels, size * 2);
-	smf.close();
+	ImageBuf *imageBuf = getHeight();
+	if( !imageBuf ) return true;
 
 	char filename[256];
 	sprintf( filename, "%s_height.tif", outPrefix.c_str() );
 
-	imageOutput = ImageOutput::create(filename);
-	if( !imageOutput ) {
-		delete [] pixels;
-		return true;
-	}
-
-	imageSpec = new ImageSpec( xres, yres, channels, TypeDesc::UINT16);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT16, pixels );
-	imageOutput->close();
-
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
+	imageBuf->save( filename );
 	return false;
 }
 
 bool
 SMF::decompileType()
 {
-	int xres,yres,channels,size;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
-
-	if( verbose )cout << "INFO: Decompiling Type Map. " << header.typePtr << endl;
-	xres = width * 32;
-	yres = length * 32;
-	channels = 1;
-	size = xres * yres * channels;
-
-	ifstream smf(loadFile.c_str(), ifstream::in);
-	if( !smf.good() ) {
-		return true;
-	}
-
-	pixels = new unsigned char[size];
-	smf.seekg(header.typePtr);
-	smf.read( (char *)pixels, size);
-	smf.close();
+	ImageBuf *imageBuf = getType();
+	if( !imageBuf ) return true;
 
 	char filename[256];
 	sprintf( filename, "%s_type.png", outPrefix.c_str() );
 
-	imageOutput = ImageOutput::create( filename );
-	if( !imageOutput ) {
-		delete [] pixels;
-		return true;
-	}
-
-	imageSpec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT8, pixels );
-	imageOutput->close();
-
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
+	imageBuf->save( filename );
 	return false;
 }
 
 bool
 SMF::decompileMinimap()
 {
-	int xres,yres,channels;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
-
-	if( verbose )cout << "INFO: Decompiling Mini Map. " << header.minimapPtr << endl ;
-	xres = 1024;
-	yres = 1024;
-	channels = 4;
-	
-
-	ifstream smf(loadFile.c_str(), ifstream::in);
-	if( !smf.good() ) {
-		return true;
-	}
-
-	unsigned char *temp = new unsigned char[MINIMAP_SIZE];
-	smf.seekg(header.minimapPtr);
-	smf.read( (char *)temp, MINIMAP_SIZE);
-	smf.close();
-
-	pixels = dxt1_load(temp, xres, yres);
-	delete [] temp;
-
+	ImageBuf *imageBuf = getMinimap();
+	if( !imageBuf ) return true;
 
 	char filename[256];
 	sprintf( filename, "%s_minimap.png", outPrefix.c_str() );
 
-	imageOutput = ImageOutput::create(filename);
-	if( !imageOutput ) {
-		delete [] pixels;
-		return true;
-	}
-
-	imageSpec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT8, pixels );
-	imageOutput->close();
-
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
-
+	imageBuf->save( filename );
 	return false;
 }
 
 bool
 SMF::decompileMetal()
 {
-	int xres,yres,channels,size;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
-
-	if( verbose )cout << "INFO: Decompiling Metal Map. " << header.metalPtr << endl;
-	xres = width * 32;
-	yres = length * 32;
-	channels = 1;
-	size = xres * yres * channels;
-	
-
-	ifstream smf(loadFile.c_str(), ifstream::in);
-	if( !smf.good() ) {
-		return true;
-	}
-
-	pixels = new unsigned char[size];
-	smf.seekg( header.metalPtr );
-	smf.read( (char *)pixels, size );
-	smf.close();
+	ImageBuf *imageBuf = getMetal();
+	if( !imageBuf ) return true;
 
 	char filename[256];
 	sprintf( filename, "%s_metal.png", outPrefix.c_str() );
 
-	imageOutput = ImageOutput::create(filename);
-	if( !imageOutput ) {
-		delete [] pixels;
-		return true;
-	}
-
-	imageSpec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT8, pixels );
-	imageOutput->close();
-
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
-
+	imageBuf->save( filename );
 	return false;
 }
 
 bool
-SMF::decompileTileindex()
+SMF::decompileTilemap()
 {
-	int xres,yres,channels,size;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned int *pixels;
-
-	// Output TileIndex
-	if( verbose )cout << "INFO: Decompiling Tile Index. " << header.tilesPtr << endl;
-	xres = width * 16;
-	yres = length * 16;
-	channels = 1;
-	size = xres * yres * channels * 4;
-
-	ifstream smf(loadFile.c_str(), ifstream::in);
-	if( !smf.good() ) {
-		return true;
-	}
-	smf.seekg( header.tilesPtr );
-	int numFiles = 0;
-	smf.read( (char *)&numFiles, 4);
-	smf.ignore(4);
-	for( int i = 0; i < numFiles; ++i ) { 
-		smf.ignore(4);
-		smf.ignore(255, '\0');
-	}
-
-	pixels = new unsigned int[ size ];
-	smf.read( (char *)pixels, size );
-	smf.close();
+	ImageBuf *imageBuf = getTilemap();
+	if( !imageBuf ) return true;
 
 	char filename[256];
-	sprintf( filename, "%s_tileindex.exr", outPrefix.c_str() );
+	sprintf( filename, "%s_tilemap.exr", outPrefix.c_str() );
 
-	imageOutput = ImageOutput::create(filename);
-	if( !imageOutput ) {
-		delete [] pixels;
-		return true;
-	}
-
-	imageSpec = new ImageSpec( xres, yres, channels, TypeDesc::UINT);
-	string list;
-	for(unsigned int i = 0; i < smtList.size(); ++i) {
-		list += smtList[i] + ',';
-	}
-	imageSpec->attribute("smt_list", list);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT, pixels );
-	imageOutput->close();
-
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
+	imageBuf->save( filename );
 	return false;
 }
 
 bool
 SMF::decompileGrass()
 {
-	int xres,yres,channels,size;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned char *pixels;
-	bool grass = false;
-
-	xres = width * 16;
-	yres = length * 16;
-	channels = 1;
-	size = xres * yres * channels;
-
-	ifstream smf(loadFile.c_str(), ifstream::in);
-	if( !smf.good() ) {
-		return true;
-	}
-	smf.seekg(80); // seek to beginning of extra headers
-
-	int offset;
-	SMFEH extraHeader;
-	SMFEHGrass grassHeader;
-	for(int i = 0; i < header.nExtraHeaders; ++i ) {
-		offset = smf.tellg();
-		smf.read( (char *)&extraHeader, sizeof(SMFEH) );
-		smf.seekg(offset);
-		if(extraHeader.type == 1) {
-			grass = true;
-			smf.read( (char *)&grassHeader, sizeof(SMFEHGrass));
-		}
-		smf.seekg( offset + extraHeader.size);
-	}
-	if(!grass)return true;
-
-	if( verbose )cout << "INFO: Decompiling Grass Map. " << grassHeader.grassPtr << endl;
-
-	pixels = new unsigned char[size];
-	smf.seekg( grassHeader.grassPtr );
-	smf.read( (char *)pixels, size );
-	smf.close();
+	ImageBuf *imageBuf = getGrass();
+	if( !imageBuf ) return true;
 
 	char filename[256];
 	sprintf( filename, "%s_grass.png", outPrefix.c_str() );
 
-	imageOutput = ImageOutput::create(filename);
-	if( !imageOutput ) {
-		delete [] pixels;
-		return true;
-	}
-
-	imageSpec = new ImageSpec( xres, yres, channels, TypeDesc::UINT8);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT8, pixels );
-	imageOutput->close();
-
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
+	imageBuf->save( filename );
 	return false;
 }
 
@@ -1650,7 +1426,7 @@ ImageBuf *
 SMF::getMinimap()
 {
 	ImageBuf * imageBuf = NULL;
-	ImageSpec imageSpec( 1024, 1024, 3, TypeDesc::UINT8 );
+	ImageSpec imageSpec( 1024, 1024, 4, TypeDesc::UINT8 );
 	unsigned char *data;
 
 	ifstream smf( loadFile.c_str() );
