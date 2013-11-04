@@ -270,15 +270,6 @@ public:
 	bool decompileGrass();
 	bool decompileFeaturelist(int format); // 0=csv, 1=lua
 	bool decompileAll(int format); // all of the above
-//TODO
-// reconstructDiffuse(); -> image
-//
-// Compile Grass(image)->smf
-// Compile Featurelist(CSV, Lua)-> smf
-// Compile ALL() -> smf
-//
-// Create SMF(filename, width, length, floor ceiling) -> smf
-//	bool create(string filename, int width, int length, float floor, float ceiling, bool grass);
 
 	ImageBuf * getHeight();
 	ImageBuf * getType();
