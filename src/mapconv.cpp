@@ -49,7 +49,8 @@ main( int argc, char **argv )
 //	   --lowpass, whether to filter the heightmap with a lowpass filter
 //	   --invert, whether to invert the heightmap values
 	string heightFile = "";
-//FIXME	bool lowpass = false, invert = false;
+	bool invert = false;
+//FIXME	bool lowpass = false;
 //
 // Terrain Type
 //	-t --typemap <image>
@@ -157,10 +158,10 @@ main( int argc, char **argv )
 			"Invert the meaning of black and white.",
 			cmd, false );
 
-		SwitchArg arg_lowpass(
-			"", "lowpass",
-			"Lowpass filter smoothing hard edges from 8bit colour.",
-			cmd, false );
+//FIXME		SwitchArg arg_lowpass(
+//			"", "lowpass",
+//			"Lowpass filter smoothing hard edges from 8bit colour.",
+//			cmd, false );
 
 		// Terrain Type //
 		//////////////////
@@ -224,7 +225,7 @@ main( int argc, char **argv )
 
 		// Height
 		heightFile = arg_height.getValue();
-//FIXME		invert = arg_invert.getValue();
+		invert = arg_invert.getValue();
 //FIXME		lowpass = arg_lowpass.getValue();
 
 		// Terrain Type
@@ -268,8 +269,11 @@ main( int argc, char **argv )
 
 	// Globals //
 	/////////////
-	SMT smt(verbose, quiet, slowcomp);
 	SMF smf;
+	smf.verbose = verbose;
+	smf.quiet = quiet;
+	smf.slowcomp = slowcomp;
+	smf.invert = invert;
 
 	// Load file 
 	if(strcmp(loadFile.c_str(), ""))smf.load(loadFile);

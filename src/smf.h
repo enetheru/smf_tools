@@ -204,7 +204,6 @@ class SMF {
 
 	int heightPtr; 
 	string heightFile;
-	bool invert;
 	
 	int typePtr;
 	string typeFile;
@@ -232,7 +231,7 @@ class SMF {
 	bool recalculate();
 
 public:
-	bool verbose, quiet, slowcomp;
+	bool verbose, quiet, slowcomp, invert;
 
 	SMF();
 	SMF( string loadFile );

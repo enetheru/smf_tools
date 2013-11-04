@@ -1,16 +1,7 @@
 #ifndef __SMT_H
 #define __SMT_H
 
-#include <sys/time.h>
-#include <deque>
-
-#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
-#include "byteorder.h"
-#include "nvtt_output_handler.h"
-#include "smf.h"
-#include "dxt1load.h"
 
 #define DXT1 1
 
@@ -63,7 +54,6 @@ do {                                                \
 //this is followed by the raw data for the tiles
 
 class SMT {
-	bool verbose, quiet, slowcomp;
 	
 	// Loading
 	SMTHeader header;
@@ -78,7 +68,6 @@ class SMT {
 	// Construction
 	int width, length;
 	vector<string> sourceFiles;
-	int stride;
 	vector<TileMip> hash;
 	int tileSize;
 
@@ -86,7 +75,9 @@ class SMT {
 	string tilemapFile;
 	
 public:
-	SMT(bool v, bool q, int c);
+	bool verbose, quiet, slowcomp;
+	int stride, compare;
+	SMT();
 
 	bool load(string fileName);
 	bool save();
@@ -97,6 +88,8 @@ public:
 	void setRes(int r); // square resolution of the tiles.
 	void setType(int comp);
 	void setDim(int w, int l); // width and length of tileindex to construct in spring map units.
+
+	ImageBuf *getTile(int tile);
 
 	void addImage(string filename);
 

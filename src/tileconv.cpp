@@ -14,17 +14,16 @@ main( int argc, char **argv )
 #endif
 {
 	bool fail = false;
-	ifstream infile;
-
-	// OpenImageIO
-	ImageInput *imageInput = NULL;
 
 // Options
 // -v --verbose, display extra output
 // -q --quiet, supress standard output
-// -c --slowcomp, compress slowly but more accurately
+//    --slowcomp, compress slowly but more accurately
 // -d --decompile, decompile loaded smt
-	bool verbose = false, quiet = false, slowcomp = false, decompile = false;
+// -c --compare, compare tiles when saving
+	bool verbose = false, quiet = false, decompile = false;
+	int compare = -1;
+	bool slowcomp = false;
 
 // -l --load <string>, smt to load
 // -s --save <string>, prefix for output
@@ -34,7 +33,9 @@ main( int argc, char **argv )
 	string tileindexFile = "";
 
 // -a --add-image <string>, Source files to use when building tiles;
+// -? --stride <int>, number of images horizontally
 	vector<string> imageFiles;
+	int stride = 1;
 
 // Map Dimensions
 // -x --width <int>
@@ -60,9 +61,14 @@ main( int argc, char **argv )
 			cmd, false);
 
 		SwitchArg arg_slowcomp(
-			"c", "slowcomp",
+			"", "slowcomp",
 			"Use the higher quality, slower algorithm when generating tiles.",
 			cmd, false);
+
+		ValueArg<int> arg_compare(
+			"c", "compare",
+			"-1 is none, 0 is exact matches, > 0 is variance allowed.",
+			false, -1, "int", cmd);
 
 		SwitchArg arg_decompile(
 			"d", "decompile",
@@ -84,11 +90,6 @@ main( int argc, char **argv )
 			"Filename of the tile index to use when reconstructing the diffuse texture.",
 			false, "", "filename", cmd);
 
-		MultiArg<string> arg_add_source(
-			"a", "add-source",
-			"files.",
-			false, ".smt", cmd );
-
 		ValueArg<int> arg_width(
 			"x", "width",
 			"Width of the map used when constructing the tile index.",
@@ -99,6 +100,17 @@ main( int argc, char **argv )
 			"length of the map used when constructing the tile index.",
 			false, 2, "int", cmd);
 
+		ValueArg<int> arg_stride(
+			"", "stride",
+			"number of image horizontally.",
+			false, 1, "int", cmd);
+
+		UnlabeledMultiArg<string> arg_add_images(
+			"a",
+			"description",
+			false,
+			"images", cmd);
+
 		// Parse Arguments
 		cmd.parse( argc, argv );
 
@@ -106,12 +118,14 @@ main( int argc, char **argv )
 		verbose = arg_verbose.getValue();
 		quiet = arg_quiet.getValue();
 		slowcomp = arg_slowcomp.getValue();
+		compare = arg_compare.getValue();
 		decompile = arg_decompile.getValue();
 
 		loadFile = arg_load.getValue();
 		saveFile = arg_save.getValue();
 		tileindexFile = arg_tileindex.getValue();
-		imageFiles = arg_add_source.getValue();
+		stride = arg_stride.getValue();
+		imageFiles = arg_add_images.getValue();
 
 		length = arg_length.getValue();
 		width = arg_width.getValue();
@@ -121,37 +135,22 @@ main( int argc, char **argv )
 		exit( -1 );
 	}
 
-	SMT smt(verbose, quiet, slowcomp);
-
 // Test Arguments //
 ////////////////////
-	if ( width < 2 || width > 256 || width % 2 ) {
-		cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
-		fail = true;
-	}
-	if ( length < 2 || length > 256 || length % 2 ) {
-		cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
-		fail = true;
-	}
+//FIXME
 
-	// Test TileIndex //
-	if( tileindexFile.compare( "" ) ) {
-		imageInput = NULL;
-		imageInput = ImageInput::create( tileindexFile.c_str() );
-		if ( !imageInput ) {
-			if ( !quiet )cout << "ERROR: tileindex image missing or invalid format." << endl;
-			fail = true;
-		}
-		delete imageInput;
+	if( fail ) {
+		return true;
 	}
-
-	if( fail )exit ( -1 );
-
-// Decompile //
-///////////////
+	
+	SMT smt;
+	smt.verbose = verbose;
+	smt.quiet = quiet;
+	smt.slowcomp = slowcomp;
+	smt.compare = compare;
+	smt.stride = stride;
 
 	if( loadFile.compare("") ) {
-		printf( "TEST: smt.load(%s)\n", loadFile.c_str());
 		smt.load(loadFile);
 	}
 
@@ -159,25 +158,20 @@ main( int argc, char **argv )
 		loadFile.erase(loadFile.size()-4);
 		smt.setPrefix(loadFile);
 		if( tileindexFile.compare("") ) {
-			printf( "TEST: smt.setTileindex(%s)\n", tileindexFile.c_str());
 			smt.setTileindex(tileindexFile);
-			printf( "TEST: smt.decompileReconstruct()\n");
 			smt.decompileReconstruct();
 		} else {
-			printf( "TEST: smt.decompileCollate()\n");
 			smt.decompileCollate();
 		}
 	}
 
 	for(unsigned int i = 0; i < imageFiles.size(); ++i ) {
-		printf( "TEST: smt.addImage(%s)\n", imageFiles[i].c_str());
 		smt.addImage(imageFiles[i]);
 	}
 
 	smt.setDim(width, length);
 
 	if( saveFile.compare("") ) {
-		printf( "TEST: smt.save()\n");
 		smt.setPrefix(saveFile);
 		smt.save();
 	}

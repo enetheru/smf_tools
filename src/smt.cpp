@@ -1,6 +1,15 @@
 #include "smt.h"
 
 #include <fstream>
+#include <sys/time.h>
+#include <deque>
+
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include "nvtt_output_handler.h"
+#include "smf.h"
+#include "dxt1load.h"
 
 TileMip::TileMip()
 {
@@ -15,8 +24,14 @@ SMTHeader::SMTHeader()
 	strcpy(magic,"spring tilefile");
 }
 
-SMT::SMT(bool v, bool q, int c) : verbose(v), quiet(q), slowcomp(c), tileRes(32)
+SMT::SMT()
 {
+	verbose = true;
+	quiet = false;
+	slowcomp = false;
+	compare = -1;
+	stride = 1;
+	tileRes = 32;
 	nTiles = 0;
 	setType(1);
 	return;
@@ -46,7 +61,6 @@ SMT::setType(int comp)
 		if( !quiet )printf("ERROR: '%i' is not a valid compression type", comp);
 		tileSize = -1;
 	}
-	if( verbose )printf("INFO: TileSize: %i bytes\n", tileSize);
 	
 	return;
 }
@@ -102,200 +116,95 @@ SMT::load(string fileName)
 }
 
 bool
-SMT::decompileTiles()
-{
-	bool fail = false;
-	ImageOutput *imageOutput;
-	ImageSpec *imageSpec;
-	unsigned char *tile_data;
-	unsigned char *pixels;
-
-	if( !loadFile.compare("")) {
-		if( !quiet )cout << "ERROR: no smt file loaded" << endl;
-		return true;
-	}
-
-	ifstream inFile(loadFile.c_str(), ifstream::in);
-	inFile.seekg( sizeof(SMTHeader) );
-
-	// Save each tile to an individual file
-	for(int i = 0; i < header.nTiles && !fail; ++i ) {
-		// Pull data
-		tile_data = new unsigned char[tileSize];
-		inFile.read( (char *)tile_data, tileSize);
-		if(header.comp == DXT1)
-			pixels = dxt1_load(tile_data, header.tileRes, header.tileRes);
-		delete [] tile_data;
-
-		char filename[256];
-		sprintf(filename, "%s_tile_%010i.jpg", outPrefix.c_str(), i);
-
-		imageOutput = NULL;
-		imageOutput = ImageOutput::create(filename);
-		if(!imageOutput) fail = true;
-		else {
-			imageSpec = new ImageSpec(header.tileRes, header.tileRes, 4, TypeDesc::UINT8);
-			imageOutput->open( filename, *imageSpec );
-			imageOutput->write_image( TypeDesc::UINT8, pixels);
-			imageOutput->close();
-			delete imageOutput;
-			delete imageSpec;
-		}
-		delete [] pixels;
-	}
-	return fail;
-}
-
-bool
 SMT::decompileCollate()
 {
+	if( verbose )cout << "INFO: Collating tiles\n";
 	if( !loadFile.compare("") ) {
 		if( !quiet )cout << "ERROR: No SMT Loaded." << endl;
 		return true;
 	}
 	// OpenImageIO
-	ImageOutput *imageOutput = NULL;
-	ImageSpec *imageSpec = NULL;
-	int xres, yres, channels;
-	int tileindex_w, tileindex_l;
-	unsigned char *pixels;
-	unsigned char *tpixels;
-	unsigned char *tileData;
-	ifstream infile;
+	ImageBuf *tileBuf = NULL;
 
 	// Allocate Image size large enough to accomodate the tiles,
-	tileindex_w = tileindex_l = ceil(sqrt(header.nTiles));
-	xres = yres = tileindex_w * header.tileRes;
-	channels = 4;
-	pixels = new unsigned char[xres * yres * channels];
+	int collateStride = ceil(sqrt(header.nTiles));
+	int collateRes = collateStride * header.tileRes;
+	ImageSpec collateSpec(collateRes, collateRes, 4, TypeDesc::UINT8 );
+	ImageBuf collateBuf( "collate", collateSpec);
 
-	char filename[256];
-	sprintf(filename, "%s_tiles.jpg", loadFile.c_str());
-
-	imageOutput = NULL;
-	imageOutput = ImageOutput::create(filename);
-	if(!imageOutput) return true;
-	imageSpec = new ImageSpec(xres, yres, channels, TypeDesc::UINT8);
 
 	// Loop through tiles copying the data to our image buffer
-	//TODO save scanlines to file once a row is complete to
-	//save on memory
-	infile.open(loadFile.c_str(), ifstream::in);
-	infile.seekg( sizeof(SMTHeader) );
 	for(int i = 0; i < header.nTiles; ++i ) {
 		// Pull data
-		tileData = new unsigned char[tileSize];
-		infile.read( (char *)tileData, tileSize);
-		if ( header.comp == DXT1 ) {
-			tpixels = dxt1_load(tileData, header.tileRes, header.tileRes);
-		}
-		delete [] tileData;
+		tileBuf = getTile(i);
 
-		for ( int y = 0; y < header.tileRes; y++ ) {
-			for ( int x = 0; x < header.tileRes; x++ ) {
-				// get pixel locations.
-				int tp = (y * header.tileRes + x) * 4;
-				int dx = header.tileRes * (i % tileindex_w) + x;
-				int dy = header.tileRes * (i / tileindex_w) + y;
-				int dp = (dy * xres + dx) * 4;
+		int dx = header.tileRes * (i % collateStride);
+		int dy = header.tileRes * (i / collateStride);
 
-				memcpy( (char *)&pixels[dp], (char *)&tpixels[tp], 4 );
-			}
-		}
-		delete [] tpixels;
+		ImageBufAlgo::paste(collateBuf, dx, dy, 0, 0, *tileBuf);
+
+		delete [] (unsigned char *)tileBuf->localpixels();
+		delete tileBuf;
 	}
-	infile.close();
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT8, pixels);
-	imageOutput->close();
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
+
+	char filename[256];
+	sprintf(filename, "%s_tiles.png", outPrefix.c_str());
+	collateBuf.save(filename);
 	return false;
 }
 
 bool
 SMT::decompileReconstruct()
 {
-	// OpenImageIO
-	ImageOutput *imageOutput = NULL;
-	ImageSpec *imageSpec = NULL;
-	unsigned char *pixels;
-	unsigned char *tpixels;
-	unsigned char *tileData;
-	ifstream infile;
+	if( verbose )cout << "INFO: Reconstructing from tilemap\n";
+	ImageBuf *tileBuf = NULL;
 
 	//TODO, load tile map from csv
-	ImageBuf *imageBuf = NULL;
+	ImageBuf *tilemapBuf = NULL;
 	if( is_smf( tilemapFile ) ) {
 		SMF sourcesmf(tilemapFile);
-		imageBuf = sourcesmf.getTilemap();
+		tilemapBuf = sourcesmf.getTilemap();
 	}
-	if( !imageBuf ) {
-		imageBuf = new ImageBuf( tilemapFile );
-		imageBuf->read(0,0,false,TypeDesc::UINT);
-		if( !imageBuf->initialized() ) {
-			delete imageBuf;
+	if( !tilemapBuf ) {
+		tilemapBuf = new ImageBuf( tilemapFile );
+		tilemapBuf->read(0,0,false,TypeDesc::UINT);
+		if( !tilemapBuf->initialized() ) {
+			delete tilemapBuf;
+			if( !quiet )printf("ERROR: %s cannot be loaded.\n", tilemapFile.c_str());
 			return true;
 		}
 	}
 
-	unsigned int *tilemap = (unsigned int *)imageBuf->localpixels();
-	int xres = imageBuf->spec().width;
-	int yres = imageBuf->spec().height;
+	unsigned int *tilemap = (unsigned int *)tilemapBuf->localpixels();
+	int xres = tilemapBuf->spec().width;
+	int yres = tilemapBuf->spec().height;
 
 	// allocate enough data for our large image
-	pixels = new unsigned char[xres * 32 * yres * 32 * 4];
+	ImageSpec reconSpec( xres *32, yres * 32, 4, TypeDesc::UINT8 );
+	ImageBuf reconBuf( "reconstruct", reconSpec );
 
 	// Loop through tile index
-	infile.open( loadFile.c_str(), ifstream::in );
 	for( int ty = 0; ty < yres; ++ty ) {
 		for( int tx = 0; tx < xres; ++tx ) {
-			// allocate data for the tile
-			tileData = new unsigned char[tileSize];
-
-			// get the index value	
 			int tilenum = tilemap[ty * xres + tx];
+			tileBuf = getTile(tilenum);
 
-			// Pull data from the tile file
-			infile.seekg( sizeof(SMTHeader) + tilenum * tileSize );
-			infile.read( (char *)tileData, tileSize);
-			if ( header.comp == DXT1 )
-				tpixels = dxt1_load(tileData, header.tileRes, header.tileRes);
-			delete [] tileData;
+			int dx = header.tileRes * tx;
+			int dy = header.tileRes * ty;
+			ImageBufAlgo::paste(reconBuf, dx, dy, 0, 0, *tileBuf);
 
-			// Copy to our large image
-			// TODO save scanlines to large image once a row is filled to save memory
-			for ( int y = 0; y < header.tileRes; y++ ) {
-				for ( int x = 0; x < header.tileRes; x++ ) {
-					// get pixel locations.
-					int tp = (y * header.tileRes + x) * 4;
-					int dx = header.tileRes * tx + x;
-					int dy = header.tileRes * ty + y;
-					int dp = (dy * xres * 32 + dx) * 4;
-						memcpy( (char *)&pixels[dp], (char *)&tpixels[tp], 4 );
-				}
-			}
-			delete [] tpixels;
+			delete [] (unsigned char *)tileBuf->localpixels();
+			delete tileBuf;
 		}
 	}
-	infile.close();
+
+	delete tilemapBuf;
+	if( is_smf( tilemapFile ) ) delete [] tilemap;
+	
 
 	char filename[256];
-	sprintf(filename, "%s_tiles.jpg", outPrefix.c_str());
-
-	// Save the large image to disk
-	imageOutput = NULL;
-	imageOutput = ImageOutput::create(filename);
-	if(!imageOutput) return true;
-
-	imageSpec = new ImageSpec(xres * 32, yres * 32, 4, TypeDesc::UINT8);
-	imageOutput->open( filename, *imageSpec );
-	imageOutput->write_image( TypeDesc::UINT8, pixels);
-	imageOutput->close();
-	delete imageOutput;
-	delete imageSpec;
-	delete [] pixels;
+	sprintf(filename, "%s_tiles.png", outPrefix.c_str());
+	reconBuf.save( filename );
 
 	return false;
 }
@@ -521,4 +430,26 @@ SMT::save()
 
 	return false;
 
+}
+
+ImageBuf *
+SMT::getTile(int tile)
+{
+	ImageBuf *imageBuf = NULL;
+	ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
+	unsigned char *data;
+
+	ifstream smt( loadFile.c_str() );
+	if( smt.good() ) {
+		unsigned char *temp = new unsigned char[ tileSize ];
+		smt.seekg( sizeof(SMTHeader) + tile * tileSize );
+		smt.read( (char *)temp, tileSize );
+		data = dxt1_load( temp, header.tileRes, header.tileRes );
+		delete [] temp;
+		char name[11];
+		sprintf(name, "tile%6i", tile);
+		imageBuf = new ImageBuf( name, imageSpec, data);
+	}
+	smt.close();
+	return imageBuf;	
 }
