@@ -15,7 +15,6 @@
 #include <OpenImageIO/imageio.h>
 
 // local headers
-#include "tools.h"
 #include "smt.h"
 #include "smf.h"
 

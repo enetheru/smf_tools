@@ -1,25 +1,19 @@
-#include <string>
-#include <fstream>
-#include <vector>
+//#include <string>
+//#include <fstream>
+//#include <vector>
 
 // c headers
-#include <math.h>
-#include <stdio.h>
+//#include <stdio.h>
 
 // external
 #include "tclap/CmdLine.h"
-#include <nvtt/nvtt.h>
-#include <OpenImageIO/imageio.h>
 
 // Local
-//#include "tileconv.h"
-#include "nvtt_output_handler.h"
-#include "tools.h"
 #include "smt.h"
 
-using namespace std;
+//using namespace std;
 using namespace TCLAP;
-OIIO_NAMESPACE_USING
+//OIIO_NAMESPACE_USING
 
 #ifdef WIN32
 int

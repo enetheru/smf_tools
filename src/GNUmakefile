@@ -7,14 +7,27 @@ clean:
 	rm -f mapconv *.o
 	rm -f *~
 
-mapconv: main.o 
+mapconv: mapconv.o smt.o smf.o nvtt_output_handler.o dxt1load.o
 	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
 
-main.o: main.cpp tools.h smf.h nvtt_output_handler.h
+tileconv: tileconv.o smt.o smf.o nvtt_output_handler.o dxt1load.o
+	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
+
+
+dxt1load.o: dxt1load.cpp dxt1load.h 
+	g++ $(CXXFLAGS) -c $< 
+
+mapconv.o: mapconv.cpp dxt1load.h smf.h nvtt_output_handler.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
 
-tileconv: tileconv.o 
-	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
+nvtt_output_handler.o: nvtt_output_handler.cpp nvtt_output_handler.h 
+	g++ $(CXXFLAGS) -c $< 
 
-tileconv.o: tileconv.cpp tools.h nvtt_output_handler.h smt.h
+smf.o: smf.cpp smf.h dxt1load.h nvtt_output_handler.h
+	g++ $(CXXFLAGS) -c $< 
+
+smt.o: smt.cpp smt.h dxt1load.h nvtt_output_handler.h
+	g++ $(CXXFLAGS) -c $< 
+
+tileconv.o: tileconv.cpp dxt1load.h nvtt_output_handler.h smt.h
 	g++ $(CXXFLAGS) -c $< $(TCLAP)
