@@ -1,19 +1,9 @@
-//#include <string>
-//#include <fstream>
-//#include <vector>
-
-// c headers
-//#include <stdio.h>
-
-// external
-#include "tclap/CmdLine.h"
-
-// Local
 #include "smt.h"
 
-//using namespace std;
+#include <fstream>
+
+#include "tclap/CmdLine.h"
 using namespace TCLAP;
-//OIIO_NAMESPACE_USING
 
 #ifdef WIN32
 int

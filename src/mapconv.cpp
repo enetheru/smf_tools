@@ -1,43 +1,15 @@
-// MapConv.cpp : Defines the entry point for the console application.
-//#define WIN32 true
-
+// Built in headers
+#include <cstring>
 #include <string>
-#include <fstream>
-#include <vector>
-
-// c headers
-#include <math.h>
-#include <stdio.h>
 
 // external
 #include "tclap/CmdLine.h"
-#include <nvtt/nvtt.h>
-#include <OpenImageIO/imageio.h>
+using namespace TCLAP;
 
 // local headers
 #include "smt.h"
 #include "smf.h"
 
-using namespace std;
-using namespace TCLAP;
-OIIO_NAMESPACE_USING
-
-struct tile_crc {
-	char d[8];
-	char n;
-	tile_crc();
-};
-
-tile_crc::tile_crc()
-{
-	n = '\0';
-}
-
-struct GrassHeader {
-	int size;
-	int type;
-	int grassPtr;
-};
 
 #ifdef WIN32
 int

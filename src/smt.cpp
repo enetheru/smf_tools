@@ -1,5 +1,7 @@
 #include "smt.h"
 
+#include <fstream>
+
 TileMip::TileMip()
 {
 	n = '\0';

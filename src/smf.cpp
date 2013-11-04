@@ -1,5 +1,15 @@
 #include "smf.h"
 
+#include <fstream>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebufalgo.h>
+OIIO_NAMESPACE_USING
+
+#include <nvtt/nvtt.h>
+#include "nvtt_output_handler.h"
+#include "dxt1load.h"
+
+
 
 SMFHeader::SMFHeader()
 :	version(1),

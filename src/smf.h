@@ -1,26 +1,18 @@
 #ifndef __SMF_H
 #define __SMF_H
 
-#include <stdio.h>
-#include <fstream>
+#include <cstring>
+#include <string>
+#include <vector>
+using namespace std;
 
-#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
-
-#include <nvtt/nvtt.h>
-
-#include "byteorder.h"
-#include "nvtt_output_handler.h"
-#include "dxt1load.h"
+OIIO_NAMESPACE_USING
 
 // Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.
 // 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4
 // 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
 #define MINIMAP_SIZE 699048
-
-OIIO_NAMESPACE_USING
-using namespace std;
 
 /*
 map file (.smf) layout is like this
