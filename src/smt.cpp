@@ -39,7 +39,6 @@ SMT::SMT()
 
 void SMT::setPrefix(string prefix) { outPrefix = prefix.c_str(); }
 void SMT::setTileindex(string filename) { tilemapFile = filename.c_str(); }
-void SMT::setRes(int r) { tileRes = r; }
 void SMT::setDim(int w, int l) { width = w; length = l; }
 
 void
@@ -366,11 +365,13 @@ SMT::save()
 
 			bool match = false;
 			unsigned int i; //tile index
-			for( i = 0; i < tileMips.size(); i++ ) {
-				if( !strcmp( (char *)&tileMips[i], (char *)&tileMip ) ) {
-					match = true;
-					break;
-				} 
+			if(compare >=0 ) {
+				for( i = 0; i < tileMips.size(); i++ ) {
+					if( !strcmp( (char *)&tileMips[i], (char *)&tileMip ) ) {
+						match = true;
+						break;
+					} 
+				}
 			}
 			if( !match ) {
 				tileMips.push_back(tileMip);
@@ -393,10 +394,11 @@ SMT::save()
 					averageTime+= readings[i];
 				averageTime /= readings.size();
 				intervalTime = 0;
-			   	printf("\033[0GINFO: Tile %i of %i %%%0.1f, %0.1fs",
-				currentTile, totalTiles, (float)currentTile / totalTiles * 100, 
+			   	printf("\033[0GINFO: Tile %i of %i %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
+				currentTile, totalTiles,
+				(float)currentTile / totalTiles * 100,
+				(float)(1 - (float)nTiles / (float)currentTile) * 100,
 			    averageTime * (totalTiles - currentTile) / 1000);
-				cout << "             ";
 			}
 		}
 	}

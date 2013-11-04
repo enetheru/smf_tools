@@ -81,11 +81,9 @@ public:
 
 	bool load(string fileName);
 	bool save();
-	bool save2();
 
 	void setPrefix(string prefix);
 	void setTileindex(string filename);
-	void setRes(int r); // square resolution of the tiles.
 	void setType(int comp);
 	void setDim(int w, int l); // width and length of tileindex to construct in spring map units.
 
@@ -93,7 +91,6 @@ public:
 
 	void addImage(string filename);
 
-	bool decompileTiles();
 	bool decompileCollate();
 	bool decompileReconstruct();
 };
