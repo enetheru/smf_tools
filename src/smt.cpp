@@ -455,3 +455,51 @@ SMT::getTile(int tile)
 	smt.close();
 	return imageBuf;	
 }
+
+void
+SMT::constructBig()
+{
+	if( verbose ) {
+		printf("INFO Pre-processing source images\n");
+		printf("    number of source files: %i\n", (int)sourceFiles.size() );
+		printf("    stride: %i\n", stride );
+		if( sourceFiles.size() % stride != 0 )
+			printf("WARNING: number of source files isnt divisible by stride, black spots will exist\n");
+	}
+
+	// Get values to fix
+	ImageBuf regionBuf(sourceFiles[0]);
+	regionBuf.read(0,0,false, TypeDesc::UINT8);
+	ImageSpec regionSpec = regionBuf.spec();
+
+	ImageSpec bigSpec(regionSpec.width * stride, regionSpec.height * sourceFiles.size() / stride, 4, TypeDesc::UINT8 );
+	if( verbose )printf("    Constructed Image: (%i,%i)%i\n", bigSpec.width, bigSpec.height, bigSpec.nchannels );
+	bigBuf.reset( "big", bigSpec);
+
+	for( unsigned int i = 0; i < sourceFiles.size(); ++i ) {
+		if( verbose )printf("\033[0GINFO: Copying: %s to big image", sourceFiles[i].c_str() );
+		regionBuf.reset(sourceFiles[i]);
+		regionBuf.read(0,0,false, TypeDesc::UINT8);
+		regionSpec = regionBuf.spec();
+
+		int dx = regionSpec.width * (i % stride);
+		int dy = regionSpec.height * (i / stride);
+		dy = bigSpec.height - dy - regionSpec.height;
+
+		ImageBufAlgo::paste(bigBuf, dx, dy, 0, 0, regionBuf);	
+	}
+	cout << endl;
+
+	// rescale constructed big image to wanted size
+	ROI roi(0, width * 512 , 0, length * 512, 0, 1, 0, 4);
+	ImageBuf fixBuf;
+	if(bigSpec.width != roi.xend || bigSpec.height != roi.yend ) {
+		if( verbose )
+			printf( "WARNING: Constructed image is (%i,%i), wanted (%i, %i), Resampling.\n",
+			bigSpec.width, bigSpec.height, roi.xend, roi.yend );
+		ImageBufAlgo::resample( fixBuf, bigBuf, true, roi);
+		bigBuf.copy(fixBuf);
+	}
+
+	return;
+}
