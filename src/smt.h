@@ -88,11 +88,16 @@ public:
 	void setDim(int w, int l); // width and length of tileindex to construct in spring map units.
 
 	ImageBuf *getTile(int tile);
+	ImageBuf *getBig();
+	
+	ImageBuf *buildBig();
+	
+	ImageBuf *collateBig();
+	ImageBuf *reconstructBig();
 
-	void addImage(string filename);
+	void addTileSource(string filename);
 
-	bool decompileCollate();
-	bool decompileReconstruct();
+	bool decompile();
 };
 
 

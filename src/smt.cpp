@@ -64,7 +64,7 @@ SMT::setType(int comp)
 	return;
 }
 
-void SMT::addImage(string filename) { sourceFiles.push_back(filename); }
+void SMT::addTileSource(string filename) { sourceFiles.push_back(filename); }
 
 bool
 SMT::load(string fileName)
@@ -115,96 +115,13 @@ SMT::load(string fileName)
 }
 
 bool
-SMT::decompileCollate()
+SMT::decompile()
 {
-	if( verbose )cout << "INFO: Collating tiles\n";
-	if( !loadFile.compare("") ) {
-		if( !quiet )cout << "ERROR: No SMT Loaded." << endl;
-		return true;
-	}
-	// OpenImageIO
-	ImageBuf *tileBuf = NULL;
-
-	// Allocate Image size large enough to accomodate the tiles,
-	int collateStride = ceil(sqrt(header.nTiles));
-	int collateRes = collateStride * header.tileRes;
-	ImageSpec collateSpec(collateRes, collateRes, 4, TypeDesc::UINT8 );
-	ImageBuf collateBuf( "collate", collateSpec);
-
-
-	// Loop through tiles copying the data to our image buffer
-	for(int i = 0; i < header.nTiles; ++i ) {
-		// Pull data
-		tileBuf = getTile(i);
-
-		int dx = header.tileRes * (i % collateStride);
-		int dy = header.tileRes * (i / collateStride);
-
-		ImageBufAlgo::paste(collateBuf, dx, dy, 0, 0, *tileBuf);
-
-		delete [] (unsigned char *)tileBuf->localpixels();
-		delete tileBuf;
-	}
+	ImageBuf *bigBuf = getBig();
 
 	char filename[256];
 	sprintf(filename, "%s_tiles.png", outPrefix.c_str());
-	collateBuf.save(filename);
-	return false;
-}
-
-bool
-SMT::decompileReconstruct()
-{
-	if( verbose )cout << "INFO: Reconstructing from tilemap\n";
-	ImageBuf *tileBuf = NULL;
-
-	//TODO, load tile map from csv
-	ImageBuf *tilemapBuf = NULL;
-	if( is_smf( tilemapFile ) ) {
-		SMF sourcesmf(tilemapFile);
-		tilemapBuf = sourcesmf.getTilemap();
-	}
-	if( !tilemapBuf ) {
-		tilemapBuf = new ImageBuf( tilemapFile );
-		tilemapBuf->read(0,0,false,TypeDesc::UINT);
-		if( !tilemapBuf->initialized() ) {
-			delete tilemapBuf;
-			if( !quiet )printf("ERROR: %s cannot be loaded.\n", tilemapFile.c_str());
-			return true;
-		}
-	}
-
-	unsigned int *tilemap = (unsigned int *)tilemapBuf->localpixels();
-	int xres = tilemapBuf->spec().width;
-	int yres = tilemapBuf->spec().height;
-
-	// allocate enough data for our large image
-	ImageSpec reconSpec( xres *32, yres * 32, 4, TypeDesc::UINT8 );
-	ImageBuf reconBuf( "reconstruct", reconSpec );
-
-	// Loop through tile index
-	for( int ty = 0; ty < yres; ++ty ) {
-		for( int tx = 0; tx < xres; ++tx ) {
-			int tilenum = tilemap[ty * xres + tx];
-			tileBuf = getTile(tilenum);
-
-			int dx = header.tileRes * tx;
-			int dy = header.tileRes * ty;
-			ImageBufAlgo::paste(reconBuf, dx, dy, 0, 0, *tileBuf);
-
-			delete [] (unsigned char *)tileBuf->localpixels();
-			delete tileBuf;
-		}
-	}
-
-	delete tilemapBuf;
-	if( is_smf( tilemapFile ) ) delete [] tilemap;
-	
-
-	char filename[256];
-	sprintf(filename, "%s_tiles.png", outPrefix.c_str());
-	reconBuf.save( filename );
-
+	bigBuf->save(filename);
 	return false;
 }
 
@@ -252,43 +169,15 @@ SMT::save()
 	unsigned int *indexPixels = new unsigned int[tcx * tcz];
 
 	// Load source image
-	ImageBuf imageBuf( sourceFiles[0].c_str() );
-	imageBuf.read(0, 0, false, TypeDesc::UINT8);
-	const ImageSpec *imageSpec;
-	imageSpec = &imageBuf.spec();
+	ImageBuf *bigBuf = buildBig();
+	ImageSpec bigSpec = bigBuf->spec();
 
-	// source tile data
-	unsigned char *std = NULL; 
-	int stw_f = (float)imageSpec->width / tcx;
-	int stl_f = (float)imageSpec->height / tcz;
-	int stw = (int)stw_f;
-	int stl = (int)stl_f;
-	int stc = imageSpec->nchannels;
+	//FIXME process decal baking
 
-	NVTTOutputHandler outputHandler(tileSize);
-	nvtt::InputOptions inputOptions;
-	nvtt::OutputOptions outputOptions;
-	nvtt::CompressionOptions compressionOptions;
-	nvtt::Compressor compressor;
-
-	outputOptions.setOutputHeader(false);
-	outputOptions.setOutputHandler( &outputHandler );
-	compressionOptions.setFormat(nvtt::Format_DXT1a);
-
-	if( slowcomp ) compressionOptions.setQuality(nvtt::Quality_Normal); 
-	else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
+	//FIXME swizzle channels
 
 	vector<TileMip> tileMips;
 	TileMip tileMip;
-
-	// warn for re-sizing of source tiles.
-	if( verbose ) {
-		printf( "\tLoaded %s (%i, %i)%i\n",
-			sourceFiles[0].c_str(), imageSpec->width, imageSpec->height, imageSpec->nchannels);
-		if( stw != tileRes || stl != tileRes )
-			printf( "WARNING: Converting tiles from (%i,%i)%i to (%i,%i)%i\n",
-				stw,stl,stc,tileRes,tileRes,4);
-	}
 
 	// Generate and write tiles
 	smt.open(filename, ios::binary | ios::out | ios::app );
@@ -308,60 +197,46 @@ SMT::save()
     		gettimeofday(&t1, NULL);
 
 			// copy a tile from the scanline data
-			roi.xbegin = (int)x * stw_f;
-			roi.xend = (int)x * stw_f + stw_f;
-			roi.ybegin = (int)z * stl_f;
-			roi.yend = (int)z * stl_f + stl_f;
+			roi.xbegin = x * tileRes;
+			roi.xend = x * tileRes + tileRes;
+			roi.ybegin = z * tileRes;
+			roi.yend = z * tileRes + tileRes;
 			roi.zbegin = 0;
 			roi.zend = 1;
 			roi.chbegin = 0;
-			roi.chend = 5;
+			roi.chend = 4;
 
 			ImageBuf tileBuf;
-			ImageBufAlgo::crop( tileBuf, imageBuf, roi );
-			imageSpec = &tileBuf.spec();
+			ImageBufAlgo::crop( tileBuf, *bigBuf, roi );
+			ImageSpec tileSpec = tileBuf.spec();
 					
-			// Fix channels
-			ImageBuf fixBuf;
-			bool boolean = false;
-			const int mapBGR[] = {2,1,0,-1};
-			const int mapBGRA[] = {2,1,0,3};
-			const float fill[] = {255,255,255,255};
-			if(imageSpec->nchannels < 4)
-				boolean = ImageBufAlgo::channels(fixBuf, tileBuf, 4, mapBGR, fill);
-			else
-				boolean = ImageBufAlgo::channels(fixBuf, tileBuf, 4, mapBGRA, fill);
-			if(!boolean)printf("ERROR: ImageBufAlgo::channels(...) Failed\n");
-			tileBuf.clear();
-			tileBuf.copy(fixBuf);
-			fixBuf.clear();
-			imageSpec = &tileBuf.spec();
-
-			// Fix resolution
-			if(imageSpec->width != tileRes || imageSpec->height != tileRes)
-			{
-				roi.xbegin = roi.ybegin = 0;
-				roi.xend = roi.yend = tileRes;
-				ImageBufAlgo::resample(fixBuf, tileBuf, true, roi);
-				tileBuf.clear();
-				tileBuf.copy(fixBuf);
-				fixBuf.clear();
-			}
-
 			// get handle to raw pixel data for dxt processing
-			std = (unsigned char *)tileBuf.localpixels();
+			unsigned char *std = (unsigned char *)tileBuf.localpixels();
 
 			// process into dds
-			outputHandler.reset();
+			NVTTOutputHandler *nvttHandler = new NVTTOutputHandler(tileSize);
+
+			nvtt::InputOptions inputOptions;
 			inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
 			inputOptions.setMipmapData( std, tileRes, tileRes );
 
-			compressor.process(inputOptions, compressionOptions,
-						outputOptions);
+			nvtt::CompressionOptions compressionOptions;
+			compressionOptions.setFormat(nvtt::Format_DXT1a);
+
+			nvtt::OutputOptions outputOptions;
+			outputOptions.setOutputHeader(false);
+			outputOptions.setOutputHandler( nvttHandler );
+
+			nvtt::Compressor compressor;
+			if( slowcomp ) compressionOptions.setQuality(nvtt::Quality_Normal); 
+			else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
+			compressor.process(inputOptions, compressionOptions, outputOptions);
+			
 			tileBuf.clear();
 
+			// FIXME perform some better optimisation here
 			//copy mipmap to use as checksum: 64bits
-			memcpy(&tileMip, &outputHandler.buffer[672], 8);
+			memcpy(&tileMip, nvttHandler->buffer, 8);
 
 			bool match = false;
 			unsigned int i; //tile index
@@ -376,11 +251,12 @@ SMT::save()
 			if( !match ) {
 				tileMips.push_back(tileMip);
 				// write tile to file.
-				smt.write( outputHandler.buffer, tileSize );
+				smt.write( nvttHandler->buffer, tileSize );
 				nTiles +=1;
 			}
+			delete nvttHandler;
 			// Write index to tilemap
-			indexPixels[z * tcx + x] = i;
+			indexPixels[currentTile-1] = i;
 
     		gettimeofday(&t2, NULL);
 			// compute and print the elapsed time in millisec
@@ -421,13 +297,12 @@ SMT::save()
 		return true;
 	}
 
-	imageSpec = new ImageSpec( tcx, tcz, 1, TypeDesc::UINT);
-	imageOutput->open( filename, *imageSpec );
+	ImageSpec tilemapSpec( tcx, tcz, 1, TypeDesc::UINT);
+	imageOutput->open( filename, tilemapSpec );
 	imageOutput->write_image( TypeDesc::UINT, indexPixels );
 	imageOutput->close();
 
 	delete imageOutput;
-	delete imageSpec;
 	delete [] indexPixels;
 
 	return false;
@@ -456,37 +331,57 @@ SMT::getTile(int tile)
 	return imageBuf;	
 }
 
-void
-SMT::constructBig()
+ImageBuf *
+SMT::buildBig()
 {
 	if( verbose ) {
 		printf("INFO Pre-processing source images\n");
 		printf("    number of source files: %i\n", (int)sourceFiles.size() );
 		printf("    stride: %i\n", stride );
 		if( sourceFiles.size() % stride != 0 )
-			printf("WARNING: number of source files isnt divisible by stride, black spots will exist\n");
+			printf("WARNING: number of source files isnt divisible by stride,"
+				" black spots will exist\n");
 	}
 
 	// Get values to fix
-	ImageBuf regionBuf(sourceFiles[0]);
-	regionBuf.read(0,0,false, TypeDesc::UINT8);
-	ImageSpec regionSpec = regionBuf.spec();
+	ImageBuf *regionBuf = new ImageBuf(sourceFiles[0]);
+	regionBuf->read(0,0,false, TypeDesc::UINT8);
+	if( !regionBuf->initialized() ) {
+		if( !quiet )printf("ERROR: could not build big image\n");
+		return NULL;
+	}
+	ImageSpec regionSpec = regionBuf->spec();
+	delete regionBuf;
 
-	ImageSpec bigSpec(regionSpec.width * stride, regionSpec.height * sourceFiles.size() / stride, 4, TypeDesc::UINT8 );
-	if( verbose )printf("    Constructed Image: (%i,%i)%i\n", bigSpec.width, bigSpec.height, bigSpec.nchannels );
-	bigBuf.reset( "big", bigSpec);
+	// Construct the big buffer
+	ImageSpec bigSpec(regionSpec.width * stride,
+		regionSpec.height * sourceFiles.size() / stride, 4, TypeDesc::UINT8 );
+	if( verbose )printf("    Constructed Image: (%i,%i)%i\n", bigSpec.width,
+		bigSpec.height, bigSpec.nchannels );
+	ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
+	const float fill[] = {0,0,0,255};
+	ImageBufAlgo::fill( *bigBuf, fill);
 
+	// Collate the source Files
 	for( unsigned int i = 0; i < sourceFiles.size(); ++i ) {
-		if( verbose )printf("\033[0GINFO: Copying: %s to big image", sourceFiles[i].c_str() );
-		regionBuf.reset(sourceFiles[i]);
-		regionBuf.read(0,0,false, TypeDesc::UINT8);
-		regionSpec = regionBuf.spec();
+		if( verbose )printf("\033[0GINFO: Copying: %s to big image",
+			sourceFiles[i].c_str() );
+		regionBuf = new ImageBuf(sourceFiles[i]);
+		regionBuf->read(0,0,false, TypeDesc::UINT8);
+		if( !regionBuf->initialized() ) {
+			if( !quiet ) {
+					printf("\nERROR: %s could not be loaded.\n",
+						sourceFiles[i].c_str() );
+			}
+			continue;
+		}
+		regionSpec = regionBuf->spec();
 
 		int dx = regionSpec.width * (i % stride);
 		int dy = regionSpec.height * (i / stride);
 		dy = bigSpec.height - dy - regionSpec.height;
 
-		ImageBufAlgo::paste(bigBuf, dx, dy, 0, 0, regionBuf);	
+		ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *regionBuf);	
 	}
 	cout << endl;
 
@@ -495,11 +390,113 @@ SMT::constructBig()
 	ImageBuf fixBuf;
 	if(bigSpec.width != roi.xend || bigSpec.height != roi.yend ) {
 		if( verbose )
-			printf( "WARNING: Constructed image is (%i,%i), wanted (%i, %i), Resampling.\n",
+			printf( "WARNING: Constructed image is (%i,%i), wanted (%i, %i),"
+				" Resampling.\n",
 			bigSpec.width, bigSpec.height, roi.xend, roi.yend );
-		ImageBufAlgo::resample( fixBuf, bigBuf, true, roi);
-		bigBuf.copy(fixBuf);
+		ImageBufAlgo::resample( fixBuf, *bigBuf, true, roi);
+		bigBuf->copy(fixBuf);
 	}
 
-	return;
+	return bigBuf;
+}
+
+ImageBuf *
+SMT::getBig()
+{
+	ImageBuf *bigBuf = NULL;
+	if( !tilemapFile.compare("") ) {
+		bigBuf = collateBig();
+	} else {
+		bigBuf = reconstructBig();
+	}
+	return bigBuf;
+}
+
+ImageBuf *
+SMT::collateBig()
+{
+	if( verbose )cout << "INFO: Collating Big\n";
+	if( !loadFile.compare("") ) {
+		if( !quiet )cout << "ERROR: No SMT Loaded." << endl;
+		return NULL;
+	}
+	// OpenImageIO
+	ImageBuf *tileBuf = NULL;
+
+	// Allocate Image size large enough to accomodate the tiles,
+	int collateStride = ceil(sqrt(header.nTiles));
+	int bigRes = collateStride * header.tileRes;
+	ImageSpec bigSpec(bigRes, bigRes, 4, TypeDesc::UINT8 );
+	ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
+
+
+	// Loop through tiles copying the data to our image buffer
+	for(int i = 0; i < header.nTiles; ++i ) {
+		// Pull data
+		tileBuf = getTile(i);
+
+		int dx = header.tileRes * (i % collateStride);
+		int dy = header.tileRes * (i / collateStride);
+
+		ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *tileBuf);
+
+		delete [] (unsigned char *)tileBuf->localpixels();
+		delete tileBuf;
+	}
+
+	return bigBuf;
+}
+
+ImageBuf *
+SMT::reconstructBig()
+{
+	if( verbose )cout << "INFO: Reconstructing Big\n";
+	ImageBuf *tileBuf = NULL;
+
+	//Load tilemap from SMF
+	ImageBuf *tilemapBuf = NULL;
+	if( is_smf( tilemapFile ) ) {
+		SMF sourcesmf(tilemapFile);
+		tilemapBuf = sourcesmf.getTilemap();
+	}
+	// Else load tilemap from image
+	if( !tilemapBuf ) {
+		tilemapBuf = new ImageBuf( tilemapFile );
+		tilemapBuf->read(0,0,false,TypeDesc::UINT);
+		if( !tilemapBuf->initialized() ) {
+			delete tilemapBuf;
+			if( !quiet )printf("ERROR: %s cannot be loaded.\n",
+				tilemapFile.c_str());
+			return NULL;
+		}
+	}
+	//TODO Else load tilemap from csv
+
+	unsigned int *tilemap = (unsigned int *)tilemapBuf->localpixels();
+	int xtiles = tilemapBuf->spec().width;
+	int ztiles = tilemapBuf->spec().height;
+
+	// allocate enough data for our large image
+	ImageSpec bigSpec( xtiles * tileRes, ztiles * tileRes, 4, TypeDesc::UINT8 );
+	ImageBuf *bigBuf = new ImageBuf( "big", bigSpec );
+
+	// Loop through tile index
+	for( int z = 0; z < ztiles; ++z ) {
+		for( int x = 0; x < xtiles; ++x ) {
+			int tilenum = tilemap[z * xtiles + x];
+			tileBuf = getTile(tilenum);
+
+			int xbegin = tileRes * x;
+			int ybegin = tileRes * z;
+			ImageBufAlgo::paste(*bigBuf, xbegin, ybegin, 0, 0, *tileBuf);
+
+			delete [] (unsigned char *)tileBuf->localpixels();
+			delete tileBuf;
+		}
+	}
+
+	delete tilemapBuf;
+	if( is_smf( tilemapFile ) ) delete [] tilemap;
+	
+	return bigBuf;	
 }

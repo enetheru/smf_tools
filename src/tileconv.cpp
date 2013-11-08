@@ -150,23 +150,21 @@ main( int argc, char **argv )
 	smt.compare = compare;
 	smt.stride = stride;
 
+
 	if( loadFile.compare("") ) {
 		smt.load(loadFile);
-	}
-
-	if(decompile) {
 		loadFile.erase(loadFile.size()-4);
 		smt.setPrefix(loadFile);
-		if( tileindexFile.compare("") ) {
-			smt.setTileindex(tileindexFile);
-			smt.decompileReconstruct();
-		} else {
-			smt.decompileCollate();
-		}
 	}
 
+	if( tileindexFile.compare( "" ) ) {
+		smt.setTileindex(tileindexFile);
+	}
+
+	if(decompile) smt.decompile();
+
 	for(unsigned int i = 0; i < imageFiles.size(); ++i ) {
-		smt.addImage(imageFiles[i]);
+		smt.addTileSource(imageFiles[i]);
 	}
 
 	smt.setDim(width, length);
