@@ -174,7 +174,13 @@ SMT::save()
 
 	//FIXME process decal baking
 
-	//FIXME swizzle channels
+
+	// Swizzle channels
+	ImageBuf fixBuf;
+	int map[] = {2,1,0,3};
+	ImageBufAlgo::channels(fixBuf, *bigBuf, 4, map);
+	bigBuf->copy(fixBuf);
+	fixBuf.clear();
 
 	vector<TileMip> tileMips;
 	TileMip tileMip;
