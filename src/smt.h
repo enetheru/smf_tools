@@ -8,14 +8,6 @@
 OIIO_NAMESPACE_USING
 using namespace std;
 
-// struct used when comparing tiles.
-struct TileMip
-{
-	TileMip();
-	char crc[8];
-	char n;
-};
-
 /*
 map texture tile file (.smt) layout is like this
 
@@ -68,34 +60,49 @@ class SMT {
 	// Construction
 	int width, length;
 	vector<string> sourceFiles;
-	vector<TileMip> hash;
 	int tileSize;
+
+	string decalFile;
 
 	// Reconstruction
 	string tilemapFile;
+
 	
 public:
 	bool verbose, quiet, slowcomp;
-	int stride, compare;
+	int compare;
 	SMT();
 
 	bool load(string fileName);
 	bool save();
 
 	void setPrefix(string prefix);
-	void setTileindex(string filename);
-	void setType(int comp);
-	void setDim(int w, int l); // width and length of tileindex to construct in spring map units.
+	void setTilemap(string filename);
+	void setDecalFile(string filename);
+	void setType(int comp); // 1=DXT1
+	void addTileSource(string filename);
+	void setSize(int w, int l); // in spring map units.
 
+	// pull a RGBA tile from the loaded smt file.
 	ImageBuf *getTile(int tile);
+
+	// pull the whole set of tiles, either as a collated image, or if tilemap
+	// is specified as a reconstruction.
 	ImageBuf *getBig();
-	
-	ImageBuf *buildBig();
-	
 	ImageBuf *collateBig();
 	ImageBuf *reconstructBig();
+	
+	// Collate input images into one large buffer using stride
+	int stride;
+	ImageBuf *buildBig();
 
-	void addTileSource(string filename);
+	// using decalFile, paste images onto the bigBuf
+	void pasteDecals(ImageBuf *bigBuf);	
+
+
+	// comparisons
+	int compareNumeric(ImageBuf *tileBuf, ImageBuf *bigBuf);
+	int compareYee(ImageBuf *tileBuf, ImageBuf *bigBuf);
 
 	bool decompile();
 };

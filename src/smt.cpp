@@ -11,11 +11,6 @@
 #include "smf.h"
 #include "dxt1load.h"
 
-TileMip::TileMip()
-{
-	n = '\0';
-}
-
 SMTHeader::SMTHeader()
 :	version(1),
 	tileRes(32),
@@ -38,8 +33,8 @@ SMT::SMT()
 }
 
 void SMT::setPrefix(string prefix) { outPrefix = prefix.c_str(); }
-void SMT::setTileindex(string filename) { tilemapFile = filename.c_str(); }
-void SMT::setDim(int w, int l) { width = w; length = l; }
+void SMT::setTilemap(string filename) { tilemapFile = filename.c_str(); }
+void SMT::setSize(int w, int l) { width = w; length = l; }
 
 void
 SMT::setType(int comp)
@@ -160,9 +155,6 @@ SMT::save()
 	smt.write( (char *)&header, sizeof(SMTHeader) );
 	smt.close();
 
-	// Build Tileindex & Tiles //
-	/////////////////////////////
-	
 	// setup size for index dimensions
 	int tcx = width * 16; // tile count x
 	int tcz = length * 16; // tile count z
@@ -172,8 +164,10 @@ SMT::save()
 	ImageBuf *bigBuf = buildBig();
 	ImageSpec bigSpec = bigBuf->spec();
 
-	//FIXME process decal baking
-
+	// Process decals
+	if( decalFile.compare("") ) {
+		pasteDecals(bigBuf);
+	}
 
 	// Swizzle channels
 	ImageBuf fixBuf;
@@ -182,19 +176,19 @@ SMT::save()
 	bigBuf->copy(fixBuf);
 	fixBuf.clear();
 
-	vector<TileMip> tileMips;
-	TileMip tileMip;
 
-	// Generate and write tiles
-	smt.open(filename, ios::binary | ios::out | ios::app );
-	ROI roi;
+	// Time reporting vars
 	timeval t1, t2;
     double elapsedTime;
 	deque<double> readings;
 	double averageTime = 0;
 	double intervalTime = 0;
+
 	int totalTiles = tcx * tcz;
 	int currentTile;
+	ROI roi;
+	vector<string> hashTable;
+	smt.open(filename, ios::binary | ios::out | ios::app );
 	// loop through tile columns
 	for ( int z = 0; z < tcz; z++) {
 		// loop through tile rows
@@ -238,25 +232,25 @@ SMT::save()
 			else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
 			compressor.process(inputOptions, compressionOptions, outputOptions);
 			
-			tileBuf.clear();
-
-			// FIXME perform some better optimisation here
-			//copy mipmap to use as checksum: 64bits
-			memcpy(&tileMip, nvttHandler->buffer, 8);
-
 			bool match = false;
 			unsigned int i; //tile index
-			if(compare >=0 ) {
-				for( i = 0; i < tileMips.size(); i++ ) {
-					if( !strcmp( (char *)&tileMips[i], (char *)&tileMip ) ) {
+			if(compare < 0) { // no attempt at reducing tile sizes
+				i = nTiles;
+			} else if(compare >= 0) { // only exact matches will be referenced.
+				string hash = ImageBufAlgo::computePixelHashSHA1( tileBuf );
+				for( i = 0; i < hashTable.size(); ++i ) {
+					if( !hashTable[i].compare( hash ) ) {
 						match = true;
 						break;
 					} 
 				}
+				if( !match ) hashTable.push_back( hash );
+
 			}
+			//FIXME add numeric and perceptual comparison
+
+			// write tile to file.
 			if( !match ) {
-				tileMips.push_back(tileMip);
-				// write tile to file.
 				smt.write( nvttHandler->buffer, tileSize );
 				nTiles +=1;
 			}
@@ -284,6 +278,7 @@ SMT::save()
 			}
 		}
 	}
+	hashTable.clear();
 	printf("\n");
 	smt.close();
 
@@ -505,4 +500,108 @@ SMT::reconstructBig()
 	if( is_smf( tilemapFile ) ) delete [] tilemap;
 	
 	return bigBuf;	
+}
+
+struct coord {
+	int x,y;
+};
+struct type {
+	string imageName;
+	vector<coord> coordinates;
+};
+
+void SMT::setDecalFile(string filename) { decalFile = filename;}
+
+void
+SMT::pasteDecals(ImageBuf *bigBuf)
+{
+	printf("WARNING: decal pasting is not yet implemented\n");
+	return;
+	// load definitions file
+	vector<type> list;
+
+	// Parse the file
+	printf( "INFO: Reading %s\n", decalFile.c_str() );
+	ifstream decalList( decalFile.c_str() );
+
+	string line;
+	string cell;
+	vector<string> tokens;
+	while ( getline( decalList, line ) ) {
+		stringstream lineStream( line );
+		tokens.clear();
+		while( getline( lineStream, cell, ',' ) ) tokens.push_back( cell );
+
+		if(tokens.size() <2 ) continue;
+
+		// use parsed line
+		coord xy;
+		type *decal;
+		// search for existing decal filename
+		bool found = false;
+		for(unsigned int i = 0; i < list.size(); ++i ) {
+			if( !list[i].imageName.compare( tokens[0].c_str() ) ) {
+				decal = &list[i];
+				found = true;
+				break;
+			}
+		}
+		if( !found ) {
+			decal = new type;
+			decal->imageName = tokens[0].c_str();
+		}
+		xy.x = atoi( tokens[1].c_str() );
+		xy.y = atoi( tokens[2].c_str() );
+		decal->coordinates.push_back(xy);
+		if( !found ) list.push_back(*decal);
+	}
+
+	// loop through list of decals.
+	for(unsigned int i = 0; i < list.size(); ++i ) {
+		if( verbose )printf("     %i %s ", (int)list[i].coordinates.size(),
+			list[i].imageName.c_str() );
+
+		ImageBuf decalBuf( list[i].imageName );
+		decalBuf.read( 0, 0, false, TypeDesc::FLOAT );
+		if( !decalBuf.initialized() ) {
+			printf("ERROR: could not load %s\n", list[i].imageName.c_str() );
+			continue;
+		}
+		ImageSpec decalSpec = decalBuf.spec();
+
+		printf("(%i,%i)%i\n", decalSpec.width, decalSpec.height,
+			decalSpec.nchannels );
+
+		// loop through list of coordinates
+		for(unsigned int j = 0; j < list[i].coordinates.size(); ++j ) {
+			coord xy = list[i].coordinates[j];
+
+			ROI roi( xy.x, xy.x + decalSpec.width,
+					xy.y, xy.y + decalSpec.height,
+					0,1,
+					0,5);
+			ImageBuf pasteBuf;
+			ImageBufAlgo::crop(pasteBuf, *bigBuf, roi);
+
+			ImageBuf compBuf;
+			if( !ImageBufAlgo::over( compBuf, decalBuf, pasteBuf) ) {
+				cout << "ERROR with composite: ";
+				cout << compBuf.geterror() << endl;
+				continue;
+			}
+			char filename[256];
+			sprintf(filename, "test%i.png", j);
+			compBuf.save(filename);
+		}
+	}
+
+	
+	// parse lists
+		// copy area of interest from bigBuf
+		// load image specified
+		// porter duff over composite operation
+		// save back to bigBuf
+		// delete temp data
+	//
+	return;
 }

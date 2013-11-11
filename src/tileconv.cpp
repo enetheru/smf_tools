@@ -42,6 +42,10 @@ main( int argc, char **argv )
 // -z --length <int>
 	int width = 2, length = 2;
 
+// Decal Pasting
+// -p --paste <.csv>
+	string decalFile = "";
+
 
 // TCLAP Command Line Arguments //
 //////////////////////////////////
@@ -105,6 +109,11 @@ main( int argc, char **argv )
 			"number of image horizontally.",
 			false, 1, "int", cmd);
 
+		ValueArg<string> arg_paste(
+			"p", "paste",
+			"file to parse when pasting decals.",
+			false, "", "*.csv", cmd);
+
 		UnlabeledMultiArg<string> arg_add_images(
 			"a",
 			"description",
@@ -126,6 +135,7 @@ main( int argc, char **argv )
 		tileindexFile = arg_tileindex.getValue();
 		stride = arg_stride.getValue();
 		imageFiles = arg_add_images.getValue();
+		decalFile = arg_paste.getValue();
 
 		length = arg_length.getValue();
 		width = arg_width.getValue();
@@ -158,7 +168,7 @@ main( int argc, char **argv )
 	}
 
 	if( tileindexFile.compare( "" ) ) {
-		smt.setTileindex(tileindexFile);
+		smt.setTilemap(tileindexFile);
 	}
 
 	if(decompile) smt.decompile();
@@ -167,7 +177,8 @@ main( int argc, char **argv )
 		smt.addTileSource(imageFiles[i]);
 	}
 
-	smt.setDim(width, length);
+	smt.setSize(width, length);
+	smt.setDecalFile(decalFile.c_str());
 
 	if( saveFile.compare("") ) {
 		smt.setPrefix(saveFile);
