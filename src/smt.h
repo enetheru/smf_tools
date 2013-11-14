@@ -26,7 +26,7 @@ struct SMTHeader
 	int version;      //must be 1 for now
 	int nTiles;        //total number of tiles in this file
 	int tileRes;     //must be 32 for now
-	int comp;     //must be 1=dxt1 for now
+	int tileType;     //must be 1=dxt1 for now
 };
 
 #define READ_SMTHEADER(tfh,src)                \
@@ -46,7 +46,6 @@ do {                                                \
 //this is followed by the raw data for the tiles
 
 class SMT {
-	
 	// Loading
 	SMTHeader header;
 	string loadFile;
@@ -55,22 +54,22 @@ class SMT {
 	string outPrefix;
 	int nTiles;
 	int tileRes;
-	int comp;
+	int tileType;
 
 	// Construction
 	int width, length;
 	vector<string> sourceFiles;
 	int tileSize;
-
 	string decalFile;
 
 	// Reconstruction
 	string tilemapFile;
-
 	
 public:
-	bool verbose, quiet, slowcomp;
-	int compare;
+	bool verbose, quiet, slow_dxt1;
+	int stride;
+	float cpet;
+	int cnet, cnum;
 	SMT();
 
 	bool load(string fileName);
@@ -93,7 +92,6 @@ public:
 	ImageBuf *reconstructBig();
 	
 	// Collate input images into one large buffer using stride
-	int stride;
 	ImageBuf *buildBig();
 
 	// using decalFile, paste images onto the bigBuf

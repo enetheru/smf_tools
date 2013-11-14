@@ -14,7 +14,7 @@
 SMTHeader::SMTHeader()
 :	version(1),
 	tileRes(32),
-	comp(1)
+	tileType(1)
 {
 	strcpy(magic,"spring tilefile");
 }
@@ -23,8 +23,10 @@ SMT::SMT()
 {
 	verbose = true;
 	quiet = false;
-	slowcomp = false;
-	compare = -1;
+	slow_dxt1 = false;
+	cnum = 0;
+	cpet = 0.0f;
+	cnet = 0;
 	stride = 1;
 	tileRes = 32;
 	nTiles = 0;
@@ -37,22 +39,22 @@ void SMT::setTilemap(string filename) { tilemapFile = filename.c_str(); }
 void SMT::setSize(int w, int l) { width = w; length = l; }
 
 void
-SMT::setType(int comp)
+SMT::setType(int tileType)
 {
-	this->comp = comp;
+	this->tileType = tileType;
 	tileSize = 0;
 	// Calculate the size of the tile data
 	// size is the raw format of dxt1 with 4 mip levels
 	// 32x32, 16x16, 8x8, 4x4
 	// 512  + 128  + 32 + 8 = 680
-	if(comp == DXT1) {
+	if(tileType == DXT1) {
 		int mip = tileRes;
 		for( int i=0; i < 4; ++i) {
 			tileSize += mip/4 * mip/4 * 8;
 			mip /= 2;
 		}
 	} else {
-		if( !quiet )printf("ERROR: '%i' is not a valid compression type", comp);
+		if( !quiet )printf("ERROR: '%i' is not a valid compression type", tileType);
 		tileSize = -1;
 	}
 	
@@ -97,13 +99,13 @@ SMT::load(string fileName)
 		cout << "\tTiles: " << header.nTiles << endl;
 		cout << "\tTileRes: " << header.tileRes << endl;
 		cout << "\tCompression: ";
-		if(header.comp == DXT1)cout << "dxt1" << endl;
+		if(header.tileType == DXT1)cout << "dxt1" << endl;
 		else {
 			cout << "UNKNOWN" << endl;
 			fail = true;
 		}
 	}
-	setType(header.comp);
+	setType(header.tileType);
 
 	inFile.close();
 	return fail;
@@ -150,12 +152,12 @@ SMT::save()
 
 	SMTHeader header;
 	header.tileRes = tileRes;
-	header.comp = comp;
+	header.tileType = tileType;
 	if( verbose ) {
 		printf( "\tVersion: %i.\n", header.version);
 		printf( "\tnTiles: tbc.\n");
 		printf( "\ttileRes: (%i,%i)%i.\n", tileRes, tileRes, 4);
-		printf( "\tcompType: %i.\n", comp);
+		printf( "\tcompType: %i.\n", tileType);
 		printf( "\ttileSize: %i bytes.\n", tileSize);
 	}
 

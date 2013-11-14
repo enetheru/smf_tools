@@ -18,32 +18,37 @@ main( int argc, char **argv )
 // Options
 // -v --verbose, display extra output
 // -q --quiet, supress standard output
-//    --slowcomp, compress slowly but more accurately
-// -d --decompile, decompile loaded smt
-// -c --compare, compare tiles when saving
-	bool verbose = false, quiet = false, decompile = false;
-	int compare = -1;
-	bool slowcomp = false;
+// -e --extract, extract tiles from loaded smt
+//    --slow_dxt1, compress slowly but more accurately
+	bool verbose = false, quiet = false, extract = false;
+	bool slow_dxt1 = false;
+//    --cnum <int>, number of tiles to compare to -1 = no comparison, 0 = hashtable comparison, > 0 = numeric comparison.
+//    --cpet <float>, pixel error threshold 0.0f-1.0f
+//    --cnet <int>, number of errors threshold.
+	int compare_num = 32;
+	float compare_pixelThresh = 1.0f/255.0f;
+	int compare_numThresh = 4;
 
-// -l --load <string>, smt to load
-// -s --save <string>, prefix for output
-// -i --tileindex <string>, 
-	string loadFile = "";
-	string saveFile = "";
-	string tileindexFile = "";
+// -i --input <string>, smt to load
+// -o --output <string>, prefix for output
+// -t --tilemap <string>, 
+	string inputFile = "";
+	string outPrefix = "";
+	string tilemapFile = "";
 
-// -a --add-image <string>, Source files to use when building tiles;
-// -? --stride <int>, number of images horizontally
-	vector<string> imageFiles;
+// -a --add <string> ..., Source files to use when building tiles;
+// -s --stride <int>, number of images horizontally
+	vector<string> sourceFiles;
 	int stride = 1;
 
 // Map Dimensions
-// -x --width <int>
-// -z --length <int>
+// -w --width <int>
+// -l --length <int>
 	int width = 2, length = 2;
 
 // Decal Pasting
-// -p --paste <.csv>
+// -d --decals <.csv>, file describing the images to paste and where to paste
+//		them. in the format "filename,x,z" x and z describe the centre of the image.
 	string decalFile = "";
 
 
@@ -51,7 +56,8 @@ main( int argc, char **argv )
 //////////////////////////////////
 	try {
 		// Define the command line object.
-		CmdLine cmd( "Converts image(s) into a SpringRTS map tile (.smt) file.", ' ', "0.5" );
+		CmdLine cmd( "Converts image(s) into a SpringRTS map tile (.smt) file.",
+			' ', "0.5" );
 
 		// Add options	
 		SwitchArg arg_verbose(
@@ -64,59 +70,69 @@ main( int argc, char **argv )
 			"Supress error messages from being sent to stdout.",
 			cmd, false);
 
-		SwitchArg arg_slowcomp(
-			"", "slowcomp",
-			"Use the higher quality, slower algorithm when generating tiles.",
-			cmd, false);
-
-		ValueArg<int> arg_compare(
-			"c", "compare",
-			"-1 is none, 0 is exact matches, > 0 is variance allowed.",
-			false, -1, "int", cmd);
-
-		SwitchArg arg_decompile(
-			"d", "decompile",
+		SwitchArg arg_extract(
+			"e", "extract",
 			"decompile loaded SMT.",
 			cmd, false);
 
-		ValueArg<string> arg_load(
-			"l", "load",
+		SwitchArg arg_slow_dxt1(
+			"", "slow_dxt1",
+			"Use the higher quality, slower algorithm when generating tiles.",
+			cmd, false);
+
+		ValueArg<int> arg_cnum(
+			"", "cnum",
+			"comparison pixel error threshold. 0.0f-1.0f",
+			false, 1.0f/255.0f, "float", cmd);
+
+		ValueArg<float> arg_cpet(
+			"", "cpet",
+			"comparison pixel error threshold. 0.0f-1.0f",
+			false, 1.0f/255.0f, "float", cmd);
+
+		ValueArg<int> arg_cnet(
+			"", "cnet",
+			"comparison number of errors threshold 0-1024. -1=no comparison.",
+			false, 16, "int", cmd);
+
+		ValueArg<string> arg_input(
+			"i", "input",
 			"load an smt file.",
 			false, "", "filename", cmd);
 
-		ValueArg<string> arg_save(
-			"s", "save",
+		ValueArg<string> arg_output(
+			"o", "output",
 			"Prefix to use when saving files.",
 			false, "", "string", cmd);
 
-		ValueArg<string> arg_tileindex(
-			"i", "tileindex",
-			"Filename of the tile index to use when reconstructing the diffuse texture.",
+		ValueArg<string> arg_tilemap(
+			"t", "tilemap",
+			"The tilemap to use when reconstructing the diffuse texture.",
 			false, "", "filename", cmd);
 
 		ValueArg<int> arg_width(
-			"x", "width",
+			"w", "width",
 			"Width of the map used when constructing the tile index.",
 			false, 2, "int", cmd);
 
 		ValueArg<int> arg_length(
-			"z", "length",
+			"l", "length",
 			"length of the map used when constructing the tile index.",
 			false, 2, "int", cmd);
 
 		ValueArg<int> arg_stride(
-			"", "stride",
+			"s", "stride",
 			"number of image horizontally.",
 			false, 1, "int", cmd);
 
-		ValueArg<string> arg_paste(
-			"p", "paste",
+		ValueArg<string> arg_decals(
+			"d", "decals",
 			"file to parse when pasting decals.",
 			false, "", "*.csv", cmd);
 
-		UnlabeledMultiArg<string> arg_add_images(
+		UnlabeledMultiArg<string> arg_addSource(
 			"a",
-			"description",
+			"source files to use for tiles",
 			false,
 			"images", cmd);
 
@@ -126,19 +142,23 @@ main( int argc, char **argv )
 		// Get values
 		verbose = arg_verbose.getValue();
 		quiet = arg_quiet.getValue();
-		slowcomp = arg_slowcomp.getValue();
-		compare = arg_compare.getValue();
-		decompile = arg_decompile.getValue();
+		slow_dxt1 = arg_slow_dxt1.getValue();
+		extract = arg_extract.getValue();
 
-		loadFile = arg_load.getValue();
-		saveFile = arg_save.getValue();
-		tileindexFile = arg_tileindex.getValue();
+		inputFile = arg_input.getValue();
+		outPrefix = arg_output.getValue();
+		tilemapFile = arg_tilemap.getValue();
+
 		stride = arg_stride.getValue();
-		imageFiles = arg_add_images.getValue();
-		decalFile = arg_paste.getValue();
+		sourceFiles = arg_addSource.getValue();
+		decalFile = arg_decals.getValue();
 
 		length = arg_length.getValue();
 		width = arg_width.getValue();
+
+		compare_num = arg_cnum.getValue();
+		compare_pixelThresh = arg_cpet.getValue();
+		compare_numThresh = arg_cnet.getValue();
 
 	} catch ( ArgException &e ) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -156,32 +176,30 @@ main( int argc, char **argv )
 	SMT smt;
 	smt.verbose = verbose;
 	smt.quiet = quiet;
-	smt.slowcomp = slowcomp;
-	smt.compare = compare;
+	smt.slow_dxt1 = slow_dxt1;
+	smt.cnum = compare_num;
+	smt.cpet = compare_pixelThresh;
+	smt.cnet = compare_numThresh;
 	smt.stride = stride;
 
+	smt.setSize( width, length );
 
-	if( loadFile.compare("") ) {
-		smt.load(loadFile);
-		loadFile.erase(loadFile.size()-4);
-		smt.setPrefix(loadFile);
+	smt.setDecalFile( decalFile );
+	smt.setTilemap( tilemapFile );
+
+	if( !inputFile.empty() ) {
+		smt.load( inputFile );
+		inputFile.erase( inputFile.size() - 4 );
+		smt.setPrefix( inputFile );
+		if( extract ) smt.extract();
+	} else {
+		vector< string >::iterator it;
+		for(it = sourceFiles.begin(); it != sourceFiles.end(); it++ )
+			smt.addTileSource( *it );
 	}
 
-	if( tileindexFile.compare( "" ) ) {
-		smt.setTilemap(tileindexFile);
-	}
-
-	if(decompile) smt.decompile();
-
-	for(unsigned int i = 0; i < imageFiles.size(); ++i ) {
-		smt.addTileSource(imageFiles[i]);
-	}
-
-	smt.setSize(width, length);
-	smt.setDecalFile(decalFile.c_str());
-
-	if( saveFile.compare("") ) {
-		smt.setPrefix(saveFile);
+	if( !outPrefix.empty() ) {
+		smt.setPrefix( outPrefix );
 		smt.save();
 	}
 
