@@ -120,6 +120,13 @@ SMT::decompile()
 	return false;
 }
 
+class TileBufListEntry {
+public:
+	ImageBuf image;
+	ImageBufAlgo::PixelStats stats;
+	int tileNum;
+};
+
 bool
 SMT::save()
 {
@@ -188,7 +195,11 @@ SMT::save()
 	int currentTile;
 	ROI roi;
 	vector<string> hashTable;
+	TileBufListEntry *listEntry;
+	deque<TileBufListEntry *> tileList;
+	ImageSpec tileSpec(tileRes, tileRes, 4, TypeDesc::UINT8 );
 	smt.open(filename, ios::binary | ios::out | ios::app );
+	bool yee = false;
 	// loop through tile columns
 	for ( int z = 0; z < tcz; z++) {
 		// loop through tile rows
@@ -196,7 +207,7 @@ SMT::save()
 			currentTile = z * tcx + x + 1;
     		gettimeofday(&t1, NULL);
 
-			// copy a tile from the scanline data
+			// pull a region of the big image to use as a tile.
 			roi.xbegin = x * tileRes;
 			roi.xend = x * tileRes + tileRes;
 			roi.ybegin = z * tileRes;
@@ -206,38 +217,22 @@ SMT::save()
 			roi.chbegin = 0;
 			roi.chend = 4;
 
-			ImageBuf tileBuf;
-			ImageBufAlgo::crop( tileBuf, *bigBuf, roi );
-			ImageSpec tileSpec = tileBuf.spec();
-					
-			// get handle to raw pixel data for dxt processing
-			unsigned char *std = (unsigned char *)tileBuf.localpixels();
+			ImageBuf tempBuf;
+			ImageBufAlgo::crop( tempBuf, *bigBuf, roi );
 
-			// process into dds
-			NVTTOutputHandler *nvttHandler = new NVTTOutputHandler(tileSize);
+			char filename[32];
+			sprintf( filename, "tile%i.png", currentTile );
 
-			nvtt::InputOptions inputOptions;
-			inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
-			inputOptions.setMipmapData( std, tileRes, tileRes );
-
-			nvtt::CompressionOptions compressionOptions;
-			compressionOptions.setFormat(nvtt::Format_DXT1a);
-
-			nvtt::OutputOptions outputOptions;
-			outputOptions.setOutputHeader(false);
-			outputOptions.setOutputHandler( nvttHandler );
-
-			nvtt::Compressor compressor;
-			if( slowcomp ) compressionOptions.setQuality(nvtt::Quality_Normal); 
-			else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
-			compressor.process(inputOptions, compressionOptions, outputOptions);
+			ImageBuf *tileBuf = new ImageBuf( filename, tileSpec, tempBuf.localpixels() );
 			
+			// perform any relevant comparisons		
 			bool match = false;
 			unsigned int i; //tile index
+			i = nTiles;
 			if(compare < 0) { // no attempt at reducing tile sizes
 				i = nTiles;
-			} else if(compare >= 0) { // only exact matches will be referenced.
-				string hash = ImageBufAlgo::computePixelHashSHA1( tileBuf );
+			} else if(compare == 0) { // only exact matches will be referenced.
+				string hash = ImageBufAlgo::computePixelHashSHA1( *tileBuf );
 				for( i = 0; i < hashTable.size(); ++i ) {
 					if( !hashTable[i].compare( hash ) ) {
 						match = true;
@@ -246,15 +241,81 @@ SMT::save()
 				}
 				if( !match ) hashTable.push_back( hash );
 
+			} else if( compare > 0 && !yee ) {
+				//Comparison based on numerical differences of pixels
+				listEntry = new TileBufListEntry;
+				listEntry->image.copy(*tileBuf);
+				listEntry->tileNum = nTiles;
+
+				ImageBufAlgo::CompareResults result;
+				deque< TileBufListEntry * >::iterator it;
+
+				for(it = tileList.begin(); it != tileList.end(); it++ ) {
+					TileBufListEntry *listEntry2 = *it;
+					ImageBufAlgo::compare( *tileBuf, listEntry2->image,
+							compare/256.0f, 0.0f, result);
+					//TODO give control on tweaking matching
+					if(result.nfail == 0) {
+						match = true;
+						i = listEntry2->tileNum;
+						break;
+					}
+				}
+				if( !match ) {
+					tileList.push_back(listEntry);
+					if((int)tileList.size() > 32) tileList.pop_front();
+				}
+			} else if( compare > 0 ) {
+			//FIXME uncomment when OpenImageIO gets upgraded to v3
+/*				listEntry = new TileBufListEntry;
+				listEntry->image.copy(*tileBuf);
+				listEntry->tileNum = nTiles;
+
+				ImageBufAlgo::CompareResults result;
+				deque< TileBufListEntry * >::iterator it;
+
+				for(it = tileList.begin(); it != tileList.end(); it++ ) {
+					TileBufListEntry *listEntry2 = *it;
+					ImageBufAlgo::compare_yee( *tileBuf, listEntry2->image,
+							result, 1.0f, 1.0f );
+					if(result.nfail == 0) {
+						match = true;
+						i = listEntry2->tileNum;
+						break;
+					}
+				}
+				if( !match ) {
+					tileList.push_back(listEntry);
+					if((int)tileList.size() > 32) tileList.pop_front();
+				}*/
 			}
-			//FIXME add numeric and perceptual comparison
 
 			// write tile to file.
 			if( !match ) {
+				unsigned char *std = (unsigned char *)tileBuf->localpixels();
+				// process into dds
+				NVTTOutputHandler *nvttHandler = new NVTTOutputHandler(tileSize);
+
+				nvtt::InputOptions inputOptions;
+				inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
+				inputOptions.setMipmapData( std, tileRes, tileRes );
+
+				nvtt::CompressionOptions compressionOptions;
+				compressionOptions.setFormat(nvtt::Format_DXT1a);
+
+				nvtt::OutputOptions outputOptions;
+				outputOptions.setOutputHeader(false);
+				outputOptions.setOutputHandler( nvttHandler );
+
+				nvtt::Compressor compressor;
+				if( slowcomp ) compressionOptions.setQuality(nvtt::Quality_Normal); 
+				else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
+				compressor.process(inputOptions, compressionOptions, outputOptions);
+
 				smt.write( nvttHandler->buffer, tileSize );
+				delete nvttHandler;
 				nTiles +=1;
 			}
-			delete nvttHandler;
 			// Write index to tilemap
 			indexPixels[currentTile-1] = i;
 

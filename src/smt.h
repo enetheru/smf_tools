@@ -99,11 +99,6 @@ public:
 	// using decalFile, paste images onto the bigBuf
 	void pasteDecals(ImageBuf *bigBuf);	
 
-
-	// comparisons
-	int compareNumeric(ImageBuf *tileBuf, ImageBuf *bigBuf);
-	int compareYee(ImageBuf *tileBuf, ImageBuf *bigBuf);
-
 	bool decompile();
 };
 
