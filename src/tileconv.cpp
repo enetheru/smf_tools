@@ -191,7 +191,7 @@ main( int argc, char **argv )
 		smt.load( inputFile );
 		inputFile.erase( inputFile.size() - 4 );
 		smt.setPrefix( inputFile );
-		if( extract ) smt.extract();
+		if( extract ) smt.decompile();
 	} else {
 		vector< string >::iterator it;
 		for(it = sourceFiles.begin(); it != sourceFiles.end(); it++ )

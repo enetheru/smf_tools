@@ -118,6 +118,7 @@ SMT::decompile()
 
 	char filename[256];
 	sprintf(filename, "%s_tiles.png", outPrefix.c_str());
+	if(verbose )cout << "INFO: Saving to " << filename << endl; 
 	bigBuf->save(filename);
 	return false;
 }
@@ -231,9 +232,9 @@ SMT::save()
 			bool match = false;
 			unsigned int i; //tile index
 			i = nTiles;
-			if(compare < 0) { // no attempt at reducing tile sizes
+			if( cnum < 0)  { // no attempt at reducing tile sizes
 				i = nTiles;
-			} else if(compare == 0) { // only exact matches will be referenced.
+			} else if( cnum == 0) { // only exact matches will be referenced.
 				string hash = ImageBufAlgo::computePixelHashSHA1( *tileBuf );
 				for( i = 0; i < hashTable.size(); ++i ) {
 					if( !hashTable[i].compare( hash ) ) {
@@ -243,7 +244,7 @@ SMT::save()
 				}
 				if( !match ) hashTable.push_back( hash );
 
-			} else if( compare > 0 && !yee ) {
+			} else if( !yee ) {
 				//Comparison based on numerical differences of pixels
 				listEntry = new TileBufListEntry;
 				listEntry->image.copy(*tileBuf);
@@ -255,9 +256,9 @@ SMT::save()
 				for(it = tileList.begin(); it != tileList.end(); it++ ) {
 					TileBufListEntry *listEntry2 = *it;
 					ImageBufAlgo::compare( *tileBuf, listEntry2->image,
-							compare/256.0f, 0.0f, result);
+							cpet, 1.0f, result);
 					//TODO give control on tweaking matching
-					if(result.nfail == 0) {
+					if((int)result.nfail < cnet) {
 						match = true;
 						i = listEntry2->tileNum;
 						break;
@@ -265,9 +266,9 @@ SMT::save()
 				}
 				if( !match ) {
 					tileList.push_back(listEntry);
-					if((int)tileList.size() > 32) tileList.pop_front();
+					if((int)tileList.size() > cnum) tileList.pop_front();
 				}
-			} else if( compare > 0 ) {
+			} else {
 			//FIXME uncomment when OpenImageIO gets upgraded to v3
 /*				listEntry = new TileBufListEntry;
 				listEntry->image.copy(*tileBuf);
@@ -310,7 +311,7 @@ SMT::save()
 				outputOptions.setOutputHandler( nvttHandler );
 
 				nvtt::Compressor compressor;
-				if( slowcomp ) compressionOptions.setQuality(nvtt::Quality_Normal); 
+				if( slow_dxt1 ) compressionOptions.setQuality(nvtt::Quality_Normal); 
 				else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
 				compressor.process(inputOptions, compressionOptions, outputOptions);
 
@@ -342,7 +343,7 @@ SMT::save()
 		}
 	}
 	hashTable.clear();
-	printf("\n");
+	if( verbose ) cout << endl;
 	smt.close();
 
 	// retroactively fix up the tile count.
@@ -447,7 +448,7 @@ SMT::buildBig()
 
 		ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *regionBuf);	
 	}
-	cout << endl;
+	if( verbose )cout << endl;
 
 	// rescale constructed big image to wanted size
 	ROI roi(0, width * 512 , 0, length * 512, 0, 1, 0, 4);
@@ -506,7 +507,10 @@ SMT::collateBig()
 
 		delete [] (unsigned char *)tileBuf->localpixels();
 		delete tileBuf;
+		if( verbose )printf("\033[0GINFO: Processing tile %i of %i.",
+			i, header.nTiles );
 	}
+	if( verbose ) cout << endl;
 
 	return bigBuf;
 }
@@ -556,8 +560,11 @@ SMT::reconstructBig()
 
 			delete [] (unsigned char *)tileBuf->localpixels();
 			delete tileBuf;
+			if( verbose )printf("\033[0GINFO: Processing tile %i of %i.",
+				z * xtiles + x, xtiles * ztiles );
 		}
 	}
+	cout << endl;
 
 	delete tilemapBuf;
 	if( is_smf( tilemapFile ) ) delete [] tilemap;
@@ -568,6 +575,7 @@ SMT::reconstructBig()
 struct coord {
 	int x,y;
 };
+
 struct type {
 	string imageName;
 	vector<coord> coordinates;
@@ -657,14 +665,5 @@ SMT::pasteDecals(ImageBuf *bigBuf)
 			compBuf.save(filename);
 		}
 	}
-
-	
-	// parse lists
-		// copy area of interest from bigBuf
-		// load image specified
-		// porter duff over composite operation
-		// save back to bigBuf
-		// delete temp data
-	//
 	return;
 }
