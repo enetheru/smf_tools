@@ -155,11 +155,12 @@ SMT::save()
 	header.tileRes = tileRes;
 	header.tileType = tileType;
 	if( verbose ) {
-		printf( "\tVersion: %i.\n", header.version);
-		printf( "\tnTiles: tbc.\n");
-		printf( "\ttileRes: (%i,%i)%i.\n", tileRes, tileRes, 4);
-		printf( "\tcompType: %i.\n", tileType);
-		printf( "\ttileSize: %i bytes.\n", tileSize);
+		cout << "    Version: " << header.version << endl;
+		cout << "    nTiles: n/a\n";
+		printf( "    tileRes: (%i,%i)%i.\n", tileRes, tileRes, 4);
+		cout << "    tileType: ";
+		if( tileType == DXT1 ) cout << "DXT1" << endl;
+		cout << "    tileSize: " << tileSize << " bytes" << endl;
 	}
 
 	smt.write( (char *)&header, sizeof(SMTHeader) );
@@ -171,21 +172,26 @@ SMT::save()
 	unsigned int *indexPixels = new unsigned int[tcx * tcz];
 
 	// Load source image
+	if( verbose )cout << "INFO: Loading Source Image(s)\n";
 	ImageBuf *bigBuf = buildBig();
 	ImageSpec bigSpec = bigBuf->spec();
 
 	// Process decals
-	if( decalFile.compare("") ) {
-		pasteDecals(bigBuf);
+	if( !decalFile.empty() ) {
+		if( verbose )cout << "INFO: Processing decals\n";
+		pasteDecals( bigBuf );
 	}
 
 	// Swizzle channels
+	if( verbose )cout << "INFO: Swizzling channels\n";
 	ImageBuf fixBuf;
-	int map[] = {2,1,0,3};
-	ImageBufAlgo::channels(fixBuf, *bigBuf, 4, map);
-	bigBuf->copy(fixBuf);
+	int map[] = { 2, 1, 0, 3 };
+	ImageBufAlgo::channels( fixBuf, *bigBuf, 4, map );
+	bigBuf->copy( fixBuf );
 	fixBuf.clear();
 
+	// Process Tiles
+	if( verbose )cout << "INFO: Processing tiles\n";
 
 	// Time reporting vars
 	timeval t1, t2;
@@ -194,15 +200,26 @@ SMT::save()
 	double averageTime = 0;
 	double intervalTime = 0;
 
+	// Loop vars
 	int totalTiles = tcx * tcz;
 	int currentTile;
+
+	// Tile Vars
 	ROI roi;
+	ImageSpec tileSpec(tileRes, tileRes, 4, TypeDesc::UINT8 );
+
+	// Comparison vars
+	bool match;
+	bool yee = false;
+	unsigned int i;
+	string hash;
 	vector<string> hashTable;
 	TileBufListEntry *listEntry;
 	deque<TileBufListEntry *> tileList;
-	ImageSpec tileSpec(tileRes, tileRes, 4, TypeDesc::UINT8 );
+
+	// Open smt file for writing tiles
 	smt.open(filename, ios::binary | ios::out | ios::app );
-	bool yee = false;
+
 	// loop through tile columns
 	for ( int z = 0; z < tcz; z++) {
 		// loop through tile rows
@@ -222,20 +239,18 @@ SMT::save()
 
 			ImageBuf tempBuf;
 			ImageBufAlgo::crop( tempBuf, *bigBuf, roi );
-
-			char filename[32];
-			sprintf( filename, "tile%i.png", currentTile );
-
 			ImageBuf *tileBuf = new ImageBuf( filename, tileSpec, tempBuf.localpixels() );
-			
-			// perform any relevant comparisons		
-			bool match = false;
-			unsigned int i; //tile index
+
+			// reset match variables
+			match = false;
 			i = nTiles;
-			if( cnum < 0)  { // no attempt at reducing tile sizes
+
+			if( cnum < 0)  {
+				// no attempt at reducing tile sizes
 				i = nTiles;
-			} else if( cnum == 0) { // only exact matches will be referenced.
-				string hash = ImageBufAlgo::computePixelHashSHA1( *tileBuf );
+			} else if( cnum == 0) {
+				// only exact matches will be referenced.
+				hash = ImageBufAlgo::computePixelHashSHA1( *tileBuf );
 				for( i = 0; i < hashTable.size(); ++i ) {
 					if( !hashTable[i].compare( hash ) ) {
 						match = true;
@@ -261,12 +276,16 @@ SMT::save()
 					if((int)result.nfail < cnet) {
 						match = true;
 						i = listEntry2->tileNum;
+						delete listEntry;
 						break;
 					}
 				}
 				if( !match ) {
 					tileList.push_back(listEntry);
-					if((int)tileList.size() > cnum) tileList.pop_front();
+					if((int)tileList.size() > cnum) {
+						delete tileList[0];
+						tileList.pop_front();
+					}
 				}
 			} else {
 			//FIXME uncomment when OpenImageIO gets upgraded to v3
@@ -319,6 +338,7 @@ SMT::save()
 				delete nvttHandler;
 				nTiles +=1;
 			}
+			delete tileBuf;
 			// Write index to tilemap
 			indexPixels[currentTile-1] = i;
 
@@ -334,7 +354,7 @@ SMT::save()
 					averageTime+= readings[i];
 				averageTime /= readings.size();
 				intervalTime = 0;
-			   	printf("\033[0GINFO: Tile %i of %i %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
+			   	printf("\033[0G    %i of %i %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
 				currentTile, totalTiles,
 				(float)currentTile / totalTiles * 100,
 				(float)(1 - (float)nTiles / (float)currentTile) * 100,
@@ -399,13 +419,13 @@ SMT::getTile(int tile)
 ImageBuf *
 SMT::buildBig()
 {
-	if( verbose ) {
-		printf("INFO Pre-processing source images\n");
-		printf("    number of source files: %i\n", (int)sourceFiles.size() );
-		printf("    stride: %i\n", stride );
+	if( verbose && sourceFiles.size() > 1 ) {
+		cout << "INFO: Collating source images\n";
+		cout << "    nFiles: " << sourceFiles.size() << endl;
+		cout << "    stride: " << stride << endl;
 		if( sourceFiles.size() % stride != 0 )
-			printf("WARNING: number of source files isnt divisible by stride,"
-				" black spots will exist\n");
+			cout << "WARNING: number of source files isnt divisible by stride,"
+				" black spots will exist\n";
 	}
 
 	// Get values to fix
@@ -419,47 +439,51 @@ SMT::buildBig()
 	delete regionBuf;
 
 	// Construct the big buffer
-	ImageSpec bigSpec(regionSpec.width * stride,
-		regionSpec.height * sourceFiles.size() / stride, 4, TypeDesc::UINT8 );
-	if( verbose )printf("    Constructed Image: (%i,%i)%i\n", bigSpec.width,
-		bigSpec.height, bigSpec.nchannels );
-	ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
-	const float fill[] = {0,0,0,255};
-	ImageBufAlgo::fill( *bigBuf, fill);
+	ImageSpec bigSpec(
+		regionSpec.width * stride,
+		regionSpec.height * sourceFiles.size() / stride,
+		4,
+		TypeDesc::UINT8 );
+	if( verbose )printf("    Allocating: (%i,%i)%i\n",
+		bigSpec.width, bigSpec.height, bigSpec.nchannels );
+	ImageBuf *bigBuf = new ImageBuf( "big", bigSpec );
+
+	// Fill the alpha channel
+	const float fill[] = { 0, 0, 0, 255 };
+	ImageBufAlgo::fill( *bigBuf, fill );
 
 	// Collate the source Files
-	for( unsigned int i = 0; i < sourceFiles.size(); ++i ) {
-		if( verbose )printf("\033[0GINFO: Copying: %s to big image",
-			sourceFiles[i].c_str() );
-		regionBuf = new ImageBuf(sourceFiles[i]);
-		regionBuf->read(0,0,false, TypeDesc::UINT8);
+	int nFiles = sourceFiles.size();
+	for( int i = 0; i < nFiles; ++i ) {
+		if( verbose )printf( "\033[0G    copying %i of %i, %s",
+			i + 1, nFiles, sourceFiles[i].c_str() );
+		regionBuf = new ImageBuf( sourceFiles[i] );
+		regionBuf->read( 0, 0, false, TypeDesc::UINT8 );
 		if( !regionBuf->initialized() ) {
-			if( !quiet ) {
-					printf("\nERROR: %s could not be loaded.\n",
-						sourceFiles[i].c_str() );
-			}
+			if( !quiet )printf( "\nERROR: %s could not be loaded.\n",
+				sourceFiles[i].c_str() );
 			continue;
 		}
 		regionSpec = regionBuf->spec();
 
-		int dx = regionSpec.width * (i % stride);
-		int dy = regionSpec.height * (i / stride);
-		dy = bigSpec.height - dy - regionSpec.height;
+		int x = regionSpec.width * (i % stride);
+		int y = regionSpec.height * (i / stride);
+		y = bigSpec.height - y - regionSpec.height;
 
-		ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *regionBuf);	
+		ImageBufAlgo::paste( *bigBuf, x, y, 0, 0, *regionBuf );	
 	}
 	if( verbose )cout << endl;
 
 	// rescale constructed big image to wanted size
-	ROI roi(0, width * 512 , 0, length * 512, 0, 1, 0, 4);
+	ROI roi( 0, width * 512 , 0, length * 512, 0, 1, 0, 4 );
 	ImageBuf fixBuf;
-	if(bigSpec.width != roi.xend || bigSpec.height != roi.yend ) {
+	if( bigSpec.width != roi.xend || bigSpec.height != roi.yend ) {
 		if( verbose )
-			printf( "WARNING: Constructed image is (%i,%i), wanted (%i, %i),"
+			printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
 				" Resampling.\n",
 			bigSpec.width, bigSpec.height, roi.xend, roi.yend );
-		ImageBufAlgo::resample( fixBuf, *bigBuf, true, roi);
-		bigBuf->copy(fixBuf);
+		ImageBufAlgo::resample( fixBuf, *bigBuf, true, roi );
+		bigBuf->copy( fixBuf );
 	}
 
 	return bigBuf;
