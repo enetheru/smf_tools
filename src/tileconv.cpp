@@ -181,18 +181,10 @@ main( int argc, char **argv )
 	smt.cpet = compare_pixelThresh;
 	smt.cnet = compare_numThresh;
 	smt.stride = stride;
-
 	smt.setSize( width, length );
-
 	smt.setDecalFile( decalFile );
-	smt.setTilemap( tilemapFile );
 
-	if( !inputFile.empty() ) {
-		smt.load( inputFile );
-		inputFile.erase( inputFile.size() - 4 );
-		smt.setPrefix( inputFile );
-		if( extract ) smt.decompile();
-	} else {
+	if( sourceFiles.size() > 0) {
 		vector< string >::iterator it;
 		for(it = sourceFiles.begin(); it != sourceFiles.end(); it++ )
 			smt.addTileSource( *it );
@@ -201,6 +193,15 @@ main( int argc, char **argv )
 	if( !outPrefix.empty() ) {
 		smt.setPrefix( outPrefix );
 		smt.save();
+	}
+
+	smt.setTilemap( tilemapFile );
+
+	if( !inputFile.empty() ) {
+		smt.load( inputFile );
+		inputFile.erase( inputFile.size() - 4 );
+		smt.setPrefix( inputFile );
+		if( extract ) smt.decompile();
 	}
 
 	exit(0);
