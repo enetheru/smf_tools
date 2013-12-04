@@ -8,11 +8,10 @@ clean:
 	rm -f *~
 
 mapconv: mapconv.o smt.o smf.o nvtt_output_handler.o dxt1load.o
-	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
+	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO -lboost_system
 
 tileconv: tileconv.o smt.o smf.o nvtt_output_handler.o dxt1load.o
-	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO
-
+	g++ $(CXXFLAGS) $^ -o $@ -lnvtt -lOpenImageIO -lboost_system
 
 dxt1load.o: dxt1load.cpp dxt1load.h 
 	g++ $(CXXFLAGS) -c $< 
