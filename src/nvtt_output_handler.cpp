@@ -4,37 +4,37 @@
 using namespace std;
 
 NVTTOutputHandler::NVTTOutputHandler(int buffer_size)
-:	buffer_size(buffer_size),
-	offset(0)
+:    buffer_size(buffer_size),
+    offset(0)
 {
-	buffer = new char[buffer_size];
+    buffer = new char[buffer_size];
 }
 
 NVTTOutputHandler::~NVTTOutputHandler()
 {
-	delete [] buffer;
+    delete [] buffer;
 }
 
 void
 NVTTOutputHandler::beginImage( int size, int width, int height, int depth,
-		int face, int miplevel)
+        int face, int miplevel)
 {
-	return;
+    return;
 }
 
 bool
 NVTTOutputHandler::writeData(const void *data, int size)
 {
     // Copy mipmap data
-	if(offset + size <= buffer_size) {
-	    memcpy( &buffer[offset], data, size );
-    	offset += size;
-	}
+    if(offset + size <= buffer_size) {
+        memcpy( &buffer[offset], data, size );
+        offset += size;
+    }
     return true;
 }
 
 void
 NVTTOutputHandler::reset()
 {
-	offset = 0;
+    offset = 0;
 }

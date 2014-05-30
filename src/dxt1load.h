@@ -1,7 +1,7 @@
 #ifndef __DXTLOAD_H
 #define __DXTLOAD_H
 
-#define RM	0x0000F800
+#define RM  0x0000F800
 #define GM  0x000007E0
 #define BM  0x0000001F
 
