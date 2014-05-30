@@ -15,3 +15,8 @@ add_executable( tileconv
 	smt.cpp smt.h )
 
 target_link_libraries( tileconv ${LIBS} )
+
+INSTALL(PROGRAMS
+	${CMAKE_CURRENT_BINARY_DIR}/mapconv
+	${CMAKE_CURRENT_BINARY_DIR}/tileconv
+       	DESTINATION bin)
