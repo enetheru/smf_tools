@@ -7,7 +7,6 @@ find_package(OpenImageIO REQUIRED)
 find_package(NVTT REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
-include_directories(${CMAKE_SOURCE_DIR}/include/tclap-1.2.1/include)
 include_directories(${OpenImageIO_INCLUDE_DIRS})
 include_directories(${NVTT_INCLUDE_DIRS})
 

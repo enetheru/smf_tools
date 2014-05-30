@@ -1,15 +1,146 @@
 // Built in headers
 #include <cstring>
 #include <string>
-
-// external
-#include "tclap/CmdLine.h"
-using namespace TCLAP;
+#include <fstream>
 
 // local headers
 #include "smt.h"
 #include "smf.h"
+#include "optionparser.h"
 
+
+// Argument tests //
+////////////////////
+struct Arg: public option::Arg
+{
+	static void printError(const char* msg1, const option::Option& opt, const char* msg2)
+	{
+		fprintf(stderr, "%s", msg1);
+		fwrite(opt.name, opt.namelen, 1, stderr);
+		fprintf(stderr, "%s", msg2);
+	}
+
+	static option::ArgStatus Unknown(const option::Option& option, bool msg)
+	{
+		if (msg) printError("Unknown option '", option, "'\n");
+		return option::ARG_ILLEGAL;
+	}
+
+	static option::ArgStatus Required(const option::Option& option, bool msg)
+	{
+		if (option.arg != 0)
+			return option::ARG_OK;
+
+		if (msg) printError("Option '", option, "' requires an argument\n");
+		return option::ARG_ILLEGAL;
+	}
+
+	static option::ArgStatus Numeric(const option::Option& option, bool msg)
+	{
+		char* endptr = 0;
+		if (option.arg != 0 && strtof(option.arg, &endptr)){};
+		if (endptr != option.arg && *endptr == 0)
+			return option::ARG_OK;
+
+		if (msg) printError("Option '", option, "' requires a numeric argument\n");
+		return option::ARG_ILLEGAL;
+	}
+
+	static option::ArgStatus SMT(const option::Option& option, bool smg)
+	{
+		char magic[16];
+		ifstream file(option.arg, ios::in | ios::binary);
+		file.read(magic, 16);
+		if( !strcmp(magic, "spring tilefile") )
+			file.close();
+			return option::ARG_OK;
+
+		fprintf(stderr, "ERROR: '%s' is not a valid spring tile file\n", option.arg);
+		return option::ARG_ILLEGAL;
+	}
+
+	static option::ArgStatus SMF(const option::Option& option, bool smg)
+	{
+		char magic[16];
+		ifstream file(option.arg, ios::in | ios::binary);
+		file.read(magic, 16);
+		if( !strcmp(magic, "spring map file") )
+			file.close();
+			return option::ARG_OK;
+
+		fprintf(stderr, "ERROR: '%s' is not a valid spring map file\n", option.arg);
+		return option::ARG_ILLEGAL;
+	}
+
+	static option::ArgStatus Image(const option::Option& option, bool msg)
+	{
+		/* attempt to load image file */
+		ImageInput *in = ImageInput::open (option.arg);
+		if (! in) {
+			fprintf(stderr, "ERROR: '%s' is not a valid image file\n", option.arg);
+			return option::ARG_ILLEGAL;
+		}
+		in->close();
+		delete in;
+		return option::ARG_OK;
+	}
+};
+
+enum optionsIndex {UNKNOWN, VERBOSE, HELP, QUIET, EXTRACT, SLOW_DXT1, OUTPUT,
+	INPUT, WIDTH, LENGTH, FLOOR, CEILING, SMTS, TILEMAP, HEIGHT, INVERT, TYPE,
+	MINI, METAL, GRASS, FEATURES };
+
+const option::Descriptor usage[] = {
+	{ UNKNOWN, 0, "", "", Arg::None,
+		"USAGE: mapconv [options]\n\n"
+		"OPTIONS:" },
+	{ HELP, 0, "h", "help", Arg::None,
+		"  -h,  \t--help  \tPrint usage and exit." },
+	{ VERBOSE, 0, "v", "verbose", Arg::None,
+		"  -v,  \t--verbose  \tPrint extra information." },
+	{ QUIET, 0, "q", "quiet", Arg::None,
+		"  -q,  \t--quiet  \tSupress output." },
+	{ INPUT, 0, "i", "input", Arg::SMF,
+		"  -i,  \t--input  \tSMF filename to load." },
+	{ OUTPUT, 0, "o", "output", Arg::Required,
+		"  -o,  \t--output  \tOutput prefix used when saving." },
+	{ EXTRACT, 0, "e", "extract", Arg::None,
+		"  -e,  \t--extract  \tExtract images from loaded SMF." },
+	{ SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
+		"\t--slow_dxt1  \tUse slower but better analytics when compressing DXT1 textures" },
+	{ WIDTH, 0, "x", "width", Arg::Numeric,
+		"  -x,  \t--width  \tWidth of the map in spring map units, Must be multiples of two." },
+	{ LENGTH, 0, "z", "length", Arg::Numeric,
+		"  -z,  \t--length  \tLength of the map in spring map units, Must be multiples of two." },
+	{ FLOOR, 0, "y", "floor", Arg::Numeric,
+		"  -y,  \t--floor  \tMinimum height of the map." },
+	{ CEILING, 0, "Y", "ceiling", Arg::Numeric,
+		"  -Y,  \t--ceiling  \tMaximum height of the map." },
+	{ SMTS, 0, "", "smt", Arg::SMT,
+		"\t--smt  \tlist of SMT files referenced." },
+	{ TILEMAP, 0, "", "tilemap", Arg::Image,
+		"\t--tilemap  \tImage to use for tilemap." },
+	{ HEIGHT, 0, "", "height", Arg::Image,
+		"\t--height  \tImage to use for heightmap." },
+	{ INVERT, 0, "", "invert", Arg::None,
+		"\t--invert \tInvert the heightmap."},
+	{ TYPE, 0, "", "type", Arg::Image,
+		"\t--type  \tImage to use for typemap." },
+	{ MINI, 0, "", "mini", Arg::Image,
+		"\t--mini  \tImage to use for minimap." },
+	{ METAL, 0, "", "metal", Arg::Image,
+		"\t--metal  \tImage to use for metalmap." },
+	{ GRASS, 0, "", "grass", Arg::Image,
+		"\t--grass  \tImage to use for grassmap." },
+	{ FEATURES, 0, "", "features", Arg::Required,
+		"\t--features  \tList of features."},
+	{ UNKNOWN, 0, "", "", Arg::None,
+		"\nEXAMPLES:\n"
+		"  mapconv -x 8 -z 8 -y -10 -Y 256 --height height.tif --metal"
+		" metal.png -smts tiles.smt -tilemap tilemap.tif -o mymap.smf\n"
+		"  mapconv -i oldmap.smf -o prefix" },
+	{0,0,0,0,0,0}
+};
 
 #ifdef WIN32
 int
@@ -19,270 +150,105 @@ int
 main( int argc, char **argv )
 #endif
 {
-	bool fail = false;
-// Generic Options
-//  -l --load <string>, smf file to load
-//  -s --save <string>, prefix for output
-//  -v --verbose, Display extra output
-//  -q --quiet, Supress standard output
-//  -d --decompile, Decompile loaded map
-//  -c --slowcomp, better quality but slower
-	string saveFile= "", loadFile = "";
-	bool verbose = false, quiet = false, decompile = false, slowcomp = false;
-//
-//  Map Dimensions
-//	-x --width <int>, Width in spring map units
-//	-z --length <int>, Length in spring map units
-//	-y --floor <float>, Height of the map in spring map units
-//	-Y --ceiling <float>, Depth of the map in spring map units
-	int width = 2, length = 2;
-	float floor = 0, ceiling = 1;
-//
-// Tiles and Tileindex
-//  -a --add-smt <string>
-//  -i --tileindex <image>
+	argc-=(argc>0); argv+=(argc>0);
+	option::Stats stats(usage, argc, argv);
+	option::Option* options = new option::Option[stats.options_max];
+	option::Option* buffer = new option::Option[stats.buffer_max];
+	option::Parser parse(usage, argc, argv, options, buffer);
+
+	for (option::Option* opt = options[UNKNOWN]; opt; opt = opt->next())
+    	std::cout << "Unknown option: " << std::string(opt->name,opt->namelen) << "\n";
+
+	for (int i = 0; i < parse.nonOptionsCount(); ++i)
+    	std::cout << "Non-option #" << i << ": " << parse.nonOption(i) << "\n";
+	if( parse.error() ) exit( 1 );
+
+	if(options[HELP] || argc == 0) {
+	    int columns = getenv("COLUMNS")? atoi(getenv("COLUMNS")) : 80;
+		option::printUsage(std::cout, usage, columns);
+		exit( 1 );
+	}
+
+	bool verbose, quiet, extract, slow_dxt1, invert;
+	options[VERBOSE]   ? verbose = true   : verbose = false;
+	options[QUIET]     ? quiet = true     : quiet = false;
+	options[EXTRACT]   ? extract = true   : extract = false;
+	options[SLOW_DXT1] ? slow_dxt1 = true : slow_dxt1 = false;
+	options[INVERT]    ? invert = true    : invert = false;
+
 	vector<string> tileFiles;
-	string tilemapFile = "";
-//
-// Height
-//	-e --heightmap <image>
-//	   --lowpass, whether to filter the heightmap with a lowpass filter
-//	   --invert, whether to invert the heightmap values
-	string heightFile = "";
-	bool invert = false;
-//FIXME	bool lowpass = false;
-//
-// Terrain Type
-//	-t --typemap <image>
-	string typeFile = "";
-//
-// Minimap
-//  -m --minimap <image>
-	string minimapFile = "";
-//
-// Metal
-//	-r --metalmap <image> 
-	string metalFile = "";
-//
-// Grass
-//  -g --grassmap <image>
-	string grassFile = "";
-//
-// Features
-//	-f --features <text>
-	string featuresFile = "";
+	for (option::Option* opt = options[SMTS]; opt; opt = opt->next())
+		tileFiles.push_back(opt->arg);
 
+	int width = 8, length = 8;
+	float floor = -1, ceiling = 1;
+	string outputPrefix, inputFile, tilemapFile, heightFile, typeFile, miniFile,
+		metalFile, grassFile, featuresFile;
 
-	try {
-		// Define the command line object.
-		CmdLine cmd( "Converts a series of image and text files to .smf and"
-						".smt files used in SpringRTS maps.", ' ', "0.5" );
-
-		// Define a value argument and add it to the command line.
-		
-		// Generic Options //		
-		/////////////////////
-		ValueArg<string> arg_load(
-			"l", "load",
-			"Filename to load (.smf)",
-			false, "", ".smf", cmd);
-
-		ValueArg<string> arg_save(
-			"s", "save",
-			"Output prefix for the spring map file(.smf)",
-			false, "", "fileprefix", cmd);
-
-		SwitchArg arg_verbose(
-			"v", "verbose",
-			"Extra information printed to standard output.",
-			cmd, false );
-
-		SwitchArg arg_quiet(
-			"q", "quiet",
-			"Supress information printing to standard output.",
-			cmd, false );
-
-		SwitchArg arg_decompile(
-			"d", "decompile",
-			"Supress information printing to standard output.",
-			cmd, false );
-
-		SwitchArg arg_slowcomp(
-			"c", "slowcomp",
-			"Use slower but better compression on DXT1 textures.",
-			cmd, false );
-
-		// Map Dimensions //
-		////////////////////
-		ValueArg<int> arg_width(
-			"x", "width",
-			"The Width of the map in spring map units. Must be multiples of 2",
-			false, 2, "int", cmd );
-
-		ValueArg<int> arg_length(
-			"z", "length",
-			"The Length of the map in spring map units. Must be multiples of 2",
-			false, 2, "int", cmd );
-
-		ValueArg<float> arg_floor(
-			"y", "floor",
-			"The deepest point on the map in spring map units, with zero being sea level.",
-			false, 0, "float", cmd );
-
-		ValueArg<float> arg_ceiling(
-			"Y", "ceiling",
-			"The highest point on the map in spring map units, with zero being sea level.",
-			false, 1, "float", cmd );
-
-		// Tiles and Tileindex //
-		/////////////////////////
-		MultiArg<string> arg_add_smt(
-			"a", "add-smt",
-			"External tile files.",
-			false, ".smt", cmd );
-
-		ValueArg<string> arg_tileindex(
-			"i", "tileindex",
-			"The index image to use for referencing tiles.",
-			false, "", "image", cmd);
-
-		// Height //
-		////////////
-		ValueArg<string> arg_height(
-			"e", "heightmap",
-			"Image to use for vertical displacement of the terrain.",
-			false, "", "image", cmd );
-
-		SwitchArg arg_invert(
-			"", "invert",
-			"Invert the meaning of black and white.",
-			cmd, false );
-
-//FIXME		SwitchArg arg_lowpass(
-//			"", "lowpass",
-//			"Lowpass filter smoothing hard edges from 8bit colour.",
-//			cmd, false );
-
-		// Terrain Type //
-		//////////////////
-		ValueArg<string> arg_type(
-			"t", "typemap",
-			"Image to define terrain types.",
-			false, "", "image", cmd );
-
-		// Minimap //
-		/////////////
-		ValueArg<string> arg_minimap(
-			"m", "minimap",
-			"Image file to use for the minimap",
-			false, "", "image", cmd );
-
-		// Metal //
-		///////////
-		ValueArg<string> arg_metal(
-			"r", "metalmap",
-			"Image used for built in resourcing scheme.",
-			false, "", "image", cmd);
-
-		// Grass //
-		///////////
-		ValueArg<string> arg_grass(
-			"g", "grassmap",
-			"Image used to place grass.",
-			false, "", "image", cmd );
-
-		// Features //
-		//////////////
-		ValueArg<string> arg_features(
-			"f", "featurelist",
-			"Text file defining type, location, rotation of feature and "
-			"decal to paint to diffuse texture.",
-			false, "", ".csv", cmd );
-
-
-		// Parse the args.
-		cmd.parse( argc, argv );
-
-		// Get the value parsed by each arg.
-		// Generic Options
-		loadFile = arg_load.getValue();
-		saveFile = arg_save.getValue();
-
-		verbose = arg_verbose.getValue();
-		quiet = arg_quiet.getValue();
-		decompile = arg_decompile.getValue();
-		slowcomp = arg_slowcomp.getValue();
-
-		// Map Dimensions
-		width = arg_width.getValue();
-		length = arg_length.getValue();
-		floor = arg_floor.getValue();
-		ceiling = arg_ceiling.getValue();
-
-		// SMT options
-		tileFiles = arg_add_smt.getValue(); // SMT Input Filenames
-		tilemapFile = arg_tileindex.getValue();
-
-		// Height
-		heightFile = arg_height.getValue();
-		invert = arg_invert.getValue();
-//FIXME		lowpass = arg_lowpass.getValue();
-
-		// Terrain Type
-		typeFile = arg_type.getValue();
-
-		// Minimap
-		minimapFile = arg_minimap.getValue();
-
-		// Metal Map
-		metalFile = arg_metal.getValue();
-
-		// Grass Map
-		grassFile = arg_grass.getValue();
-
-		// Feature List
-		featuresFile = arg_features.getValue();
-
-
-	} catch ( ArgException &e ) {
-		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
-		exit( -1 );
+	for (int i = 0; i < parse.optionsCount(); ++i) {
+		option::Option& opt = buffer[i];
+		switch(opt.index()) {
+		case WIDTH:
+			width = atoi(opt.arg);
+			break;
+		case LENGTH:
+			length = atoi(opt.arg);
+			break;
+		case FLOOR:
+			floor = atof(opt.arg);
+			break;
+		case CEILING:
+			ceiling = atof(opt.arg);
+			break;
+		case INPUT:
+			inputFile = opt.arg;
+			break;
+		case OUTPUT:
+			outputPrefix = opt.arg;
+			break;
+		case TILEMAP:
+			tilemapFile = opt.arg;
+			break;
+		case HEIGHT:
+			heightFile = opt.arg;
+			break;
+		case TYPE:
+			typeFile = opt.arg;
+			break;
+		case MINI:
+			miniFile = opt.arg;
+			break;
+		case METAL:
+			metalFile = opt.arg;
+			break;
+		case GRASS:
+			grassFile = opt.arg;
+			break;
+		case FEATURES:
+			featuresFile = opt.arg;
+			break;
+		}
 	}
 
-	// Test arguments for validity before continuing //
-	///////////////////////////////////////////////////
-	if ( width < 2 || width > 256 || width % 2 ) {
-		if( !quiet )cout << "ERROR: Width needs to be multiples of 2 between and including 2 and 64" << endl;
-		fail = true;
-	}
-	if ( length < 2 || length > 256 || length % 2 ) {
-		if( !quiet )cout << "ERROR: Length needs to be multiples of 2 between and including 2 and 64" << endl;
-		fail = true;
-	}
-
-	if(decompile && !strcmp(loadFile.c_str(), "")) {
-		fail = true;
-		if( !quiet )cout << "ERROR: no file specified to decompile" << endl;
-	}
-
-	if( fail ) exit(-1);
+	delete[] options;
+	delete[] buffer;
 
 	// Globals //
 	/////////////
 	SMF smf;
 	smf.verbose = verbose;
 	smf.quiet = quiet;
-	smf.slowcomp = slowcomp;
+	smf.slowcomp = slow_dxt1;
 	smf.invert = invert;
 
 	// Load file 
-	if(strcmp(loadFile.c_str(), ""))smf.load(loadFile);
+	if(strcmp(inputFile.c_str(), ""))smf.load(inputFile);
 
 	// decompile loaded file
-	if(decompile)
+	if(extract)
 	{
-		loadFile.erase(loadFile.size()-4);
-		smf.setOutPrefix(loadFile);
+		inputFile.erase(inputFile.size()-4);
+		smf.setOutPrefix(inputFile);
 		smf.decompileAll(0);
 	}
 
@@ -291,7 +257,7 @@ main( int argc, char **argv )
 
 	if( strcmp(heightFile.c_str(), "") ) smf.setHeightFile( heightFile );
 	if( strcmp(typeFile.c_str(), "") ) smf.setTypeFile( typeFile );
-	if( strcmp(minimapFile.c_str(), "") ) smf.setMinimapFile( minimapFile );
+	if( strcmp(miniFile.c_str(), "") ) smf.setMinimapFile( miniFile );
 	if( strcmp(metalFile.c_str(), "") ) smf.setMetalFile( metalFile );
 	if( strcmp(tilemapFile.c_str(), "") ) smf.setTilemapFile(tilemapFile );
 	if( strcmp(featuresFile.c_str(), "") ) smf.setFeaturesFile( featuresFile );
@@ -304,6 +270,6 @@ main( int argc, char **argv )
 	}
 	
 	//Save
-	if( strcmp(saveFile.c_str(), "") )smf.save( saveFile );
+	if( strcmp(outputPrefix.c_str(), "") )smf.save( outputPrefix );
 	return 0;
 }

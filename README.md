@@ -4,58 +4,88 @@ A cross platform SMF and SMT compiler for SpringRTS http://www.springrts.com
 
 Dependencies
 ============
-Tclap 1.2.1<br>
-http://tclap.sourceforge.net/
+The Lean Mean C++ Option Parser<br>
+http://optionparser.sourceforge.net/index.html
 
 OpenImageIO 1.2<br>
-https://sites.google.com/site/openimageio/home
+https://sites.google.com/site/openimageio/home<br>
 
 NVTT 2.0<br>
 http://code.google.com/p/nvidia-texture-tools/
 
+Boost<br>
+Boost_system<br>
+
+Building
+========
+Tested on linux mint 17
+<pre>sudo apt-get install libopenimageio-dev libnvtt-dev libboost-dev libboost-system-dev
+git clone https://github.com/enetheru/MapConv.git
+mkdir mapconv-build
+cd mapconv-build
+cmake ../MapConv
+make</pre>
+
 Programs
 ========
-<pre>
-tileconv [options] image1 ... imageN
+<pre>USAGE: mapconv [options]
 
-Options
- -v --verbose, display extra output
- -q --quiet, supress standard output
- -e --extract, extract tiles from loaded smt
-    --slow_dxt1, compress slowly but more accurately
-    --cnum <int>, n = -1 no comparison, n = 0 hashtable comparison, n > 0 = tiles to compare to
-    --cpet <float>, pixel error threshold 0.0f-1.0f
-    --cnet <int>, number of errors threshold
- -i --input <string>, smt to load
- -o --output <string>, prefix for output
- -t --tilemap <string>, 
- -s --stride <int>, number of images horizontally
- -w --width <int>
- -l --length <int>
- -d --decals <.csv>, Decal file with format "filename,x,z"
+OPTIONS:
+  -h,  --help       Print usage and exit.
+  -v,  --verbose    Print extra information.
+  -q,  --quiet      Supress output.
+  -i,  --input      SMF filename to load.
+  -o,  --output     Output prefix used when saving.
+  -e,  --extract    Extract images from loaded SMF.
+       --slow_dxt1  Use slower but better analytics when compressing DXT1
+                    textures
+  -x,  --width      Width of the map in spring map units, Must be multiples of
+                    two.
+  -z,  --length     Length of the map in spring map units, Must be multiples of
+                    two.
+  -y,  --floor      Minimum height of the map.
+  -Y,  --ceiling    Maximum height of the map.
+       --smt        list of SMT files referenced.
+       --tilemap    Image to use for tilemap.
+       --height     Image to use for heightmap.
+       --invert     Invert the heightmap.
+       --type       Image to use for typemap.
+       --mini       Image to use for minimap.
+       --metal      Image to use for metalmap.
+       --grass      Image to use for grassmap.
+       --features   List of features.
+
+EXAMPLES:
+  mapconv -x 8 -z 8 -y -10 -Y 256 --height height.tif --metal metal.png -smts
+tiles.smt -tilemap tilemap.tif -o mymap.smf
+  mapconv -i oldmap.smf -o prefix
 </pre>
-<pre>
-mapconv [options]
 
-Options
- -l --load <string>, smf file to load
- -s --save <string>, prefix for output
- -v --verbose, Display extra output
- -q --quiet, Supress standard output
- -d --decompile, Decompile loaded map
- -c --slowcomp, better quality but slower
- -x --width <int>, Width in spring map units
- -z --length <int>, Length in spring map units
- -y --floor <float>, Height of the map in spring map units
- -Y --ceiling <float>, Depth of the map in spring map units
- -a --add-smt <string>
- -i --tileindex <image>
- -e --heightmap <image>
-    --lowpass, whether to filter the heightmap with a lowpass filter
-    --invert, whether to invert the heightmap values
- -t --typemap <image>
- -m --minimap <image>
- -r --metalmap <image> 
- -g --grassmap <image>
- -f --features <text>
+<pre>USAGE: tileconv [options]
+
+OPTIONS:
+  -h,  --help       Print usage and exit.
+  -v,  --verbose    Print extra information.
+  -q,  --quiet      Supress output.
+  -i,  --input      SMT filename to load.
+  -o,  --output     Output prefix used when saving.
+       --extract    Extract images from loaded SMT.
+       --slow_dxt1  Use slower but better analytics when compressing DXT1
+                    textures
+  -x,  --width      Width of the map in spring map units, Must be multiples of
+                    two.
+  -z,  --length     Length of the map in spring map units, Must be multiples of
+                    two.
+       --cnum       Number of tiles to compare; n=-1, no comparison; n=0,
+                    hashtable exact comparison; n > 0, numeric comparison
+                    between n tiles
+       --cpet       Pixel error threshold. 0.0f-1.0f
+       --cnet       Errors threshold 0-1024.
+       --tilemap    Image to use for tilemap.
+       --stride     Number of image horizontally.
+       --decals     File to parse when pasting decals.
+       --sources    Source files to use for tiles
+
+EXAMPLES:
+  tileconv ...
 </pre>

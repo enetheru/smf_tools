@@ -141,7 +141,6 @@ SMF::addTileFile( string filename )
 {
 	char magic[16];
 	int nTiles;
-	//FIXME load up SMT and get number of tiles stored in the file. maybe.
 	fstream smt(filename.c_str(), ios::in | ios::binary);
 	smt.read(magic, 16);
 	if( strcmp(magic, "spring tilefile")) {
@@ -214,11 +213,11 @@ SMF::save()
 
 	int width = this->width * 64;
 	smf.write( (char *)&width, 4);
-	if( verbose )printf( "\tWidth: %i.\n", width );
+	if( verbose )printf( "\tWidth: %i.\n", width / 64 );
 
 	int length = this->length * 64;
 	smf.write( (char *)&length, 4);
-	if( verbose )printf( "\tLength: %i.\n", length );
+	if( verbose )printf( "\tLength: %i.\n", length / 64 );
 
 	int squareWidth = 8;
 	smf.write( (char *)&squareWidth, 4);
@@ -234,11 +233,11 @@ SMF::save()
 
 	float floor = this->floor * 512;
 	smf.write( (char *)&floor, 4);
-	if( verbose )printf( "\tMinHeight: %0.2f.\n", floor );
+	if( verbose )printf( "\tMinHeight: %0.2f.\n", floor / 512 );
 
 	float ceiling = this->ceiling * 512;
 	smf.write( (char *)&ceiling, 4);
-	if( verbose )printf( "\tMaxHeight: %0.2f.\n", ceiling );
+	if( verbose )printf( "\tMaxHeight: %0.2f.\n", ceiling / 512 );
 
 	smf.write( (char *)&heightPtr, 4);
 	if( verbose )printf( "\tHeightPtr: %i.\n", heightPtr );
@@ -257,7 +256,7 @@ SMF::save()
 	smf.write( (char *)&nExtraHeaders, 4);
 	if( verbose )printf( "\tExtraHeaders: %i.\n", nExtraHeaders );
 
-	if(verbose) printf( "    Extra Headers:\n");
+	if(verbose && extraHeaders.size() > 0) printf( "    Extra Headers:\n");
 	for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
 		smf.write((char *)extraHeaders[i], extraHeaders[i]->size);
 		if( verbose ) {
@@ -314,6 +313,7 @@ SMF::saveHeight()
 	if( !imageBuf ) {
 		// Generate blank
 		imageBuf = new ImageBuf( "height", imageSpec );
+		ImageBufAlgo::zero(*imageBuf);
 	}
 
 	imageSpec = imageBuf->specmod();
@@ -346,7 +346,7 @@ SMF::saveHeight()
 		fixBuf.clear();
 	}
 
-	// FIXME filter to remove stepping artifacts from 8bit images,
+	// TODO filter to remove stepping artifacts from 8bit images,
 //	if ( lowpass ) {
 //	}
 	
@@ -396,6 +396,7 @@ SMF::saveType()
 	if( !imageBuf ) {
 		// Generate blank
 		imageBuf = new ImageBuf( "type", imageSpec );
+		ImageBufAlgo::zero(*imageBuf);
 	}
 
 	imageSpec = imageBuf->specmod();
@@ -464,6 +465,7 @@ SMF::saveMinimap()
 	}
 
 	//OpenImageIO
+	ImageBuf *imageBuf;
 	ROI roi(	0, 1024,
 				0, 1024,
 				0, 1,
@@ -472,19 +474,20 @@ SMF::saveMinimap()
 	
 
 	// Load image file
-	ImageBuf *imageBuf = new ImageBuf( minimapFile );
+	imageBuf = new ImageBuf( minimapFile );
 	imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-//FIXME attempt to generate minimap from tile files.
-
 	if( !imageBuf->initialized() ) {
-		// Create from height
-		imageBuf->reset( minimapFile );
-		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+		delete imageBuf;
+		imageBuf = NULL;
 	}
 
-	if( !imageBuf->initialized() ) {
+//TODO attempt to generate minimap from whatever is available and overlay the
+// map title
+
+	if( !imageBuf ) {
 		// Create blank
-		imageBuf->reset( "minimap", imageSpec);
+		imageBuf = new ImageBuf( "minimap", imageSpec);
+		ImageBufAlgo::zero(*imageBuf);		
 	}
 
 	imageSpec = imageBuf->specmod();
@@ -567,6 +570,7 @@ SMF::saveMetal()
 	if( !imageBuf ) {
 		// Generate blank
 		imageBuf = new ImageBuf( "metal", imageSpec );
+		ImageBufAlgo::zero(*imageBuf);
 	}
 
 	imageSpec = imageBuf->specmod();
@@ -718,18 +722,21 @@ SMF::saveGrass()
 		SMF sourcesmf(grassFile);
 		imageBuf = sourcesmf.getGrass();
 	}
+
 	if( !imageBuf ) {
 		// Load image file
 		imageBuf = new ImageBuf( grassFile );
 		imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-		if( imageBuf->initialized() ) {
+		if( !imageBuf->initialized() ) {
 			delete imageBuf;
 			imageBuf = NULL;
 		}
 	}
+	
 	if( !imageBuf ) {
 		// Generate blank
 		imageBuf = new ImageBuf( "grass", imageSpec );
+		ImageBufAlgo::zero(*imageBuf);		
 	}
 
 	imageSpec = imageBuf->specmod();
@@ -757,8 +764,6 @@ SMF::saveGrass()
 
 	char filename[256];
 	sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-	if( verbose )printf( "    Source: %s.\n", grassFile.c_str() );
 
 	fstream smf(filename, ios::binary | ios::in | ios::out);
 	smf.seekp(grassHeader->grassPtr);
@@ -854,8 +859,8 @@ SMF::load(string filename)
 		printf("\tSquareSize: %i\n", header.squareWidth );
 		printf("\tTexelPerSquare: %i\n", header.squareTexels );
 		printf("\tTileSize: %i\n", header.tileTexels );
-		printf("\tMinHeight: %f\n", floor );
-		printf("\tMaxHeight: %f\n", ceiling );
+		printf("\tMinHeight: %0.2f\n", floor );
+		printf("\tMaxHeight: %0.2f\n", ceiling );
 
 		printf("\tHeightMapPtr: %i\n", heightPtr );
 		printf("\tTypeMapPtr: %i\n", typePtr );
@@ -954,18 +959,34 @@ SMF::load(string filename)
 bool
 SMF::decompileAll(int format)
 {
-	bool fail = false;
-	fail |= decompileHeight();
-	fail |= decompileType();
-	fail |= decompileMinimap();
-	fail |= decompileMetal();
-	fail |= decompileTilemap();
-	fail |= decompileFeaturelist(format);
-	fail |= decompileGrass();
-	if(fail) {
-		if(verbose)cout << "WARNING: something failed to export correctly" << endl;
+	if(verbose)printf("INFO: exporting Heightmap\n");
+	decompileHeight();
+
+	if(verbose)printf("INFO: exporting Typemap\n");
+	decompileType();
+
+	if(verbose)printf("INFO: exporting Minimap\n");
+	decompileMinimap();
+
+	if(verbose)printf("INFO: exporting Metalmap\n");
+	decompileMetal();
+
+	if(verbose)printf("INFO: exporting Tilemap\n");
+	decompileTilemap();
+
+	for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
+		if(extraHeaders[i]->type == 1) {
+			if(verbose)printf("INFO: exporting Grassmap\n");
+			decompileGrass();
+		}
 	}
-	return fail;
+
+	if(features.size() > 0) {
+		if(verbose)printf("INFO: exporting Featurelist\n");
+		decompileFeaturelist(format);
+	}
+
+	return false;
 }
 bool
 SMF::decompileHeight()
