@@ -11,6 +11,6 @@
 #define PACKRGB(r, g, b) (((r<<11)&RM) | ((g << 5)&GM) | (b&BM) )
 
 unsigned char *
-dxt1_load(unsigned char* data, int width, int height);
+dxt1_load( unsigned char* data, int width, int height );
 
 #endif //__DXTLOAD_H

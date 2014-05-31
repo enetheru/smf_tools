@@ -3,11 +3,10 @@
 
 using namespace std;
 
-NVTTOutputHandler::NVTTOutputHandler(int buffer_size)
-:    buffer_size(buffer_size),
-    offset(0)
+NVTTOutputHandler::NVTTOutputHandler( int buffer_size )
+:    buffer_size( buffer_size ), offset( 0 )
 {
-    buffer = new char[buffer_size];
+    buffer = new char[ buffer_size ];
 }
 
 NVTTOutputHandler::~NVTTOutputHandler()
@@ -17,17 +16,17 @@ NVTTOutputHandler::~NVTTOutputHandler()
 
 void
 NVTTOutputHandler::beginImage( int size, int width, int height, int depth,
-        int face, int miplevel)
+        int face, int miplevel )
 {
     return;
 }
 
 bool
-NVTTOutputHandler::writeData(const void *data, int size)
+NVTTOutputHandler::writeData( const void *data, int size )
 {
     // Copy mipmap data
-    if(offset + size <= buffer_size) {
-        memcpy( &buffer[offset], data, size );
+    if( offset + size <= buffer_size ) {
+        memcpy( &buffer[ offset ], data, size );
         offset += size;
     }
     return true;

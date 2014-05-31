@@ -1,6 +1,7 @@
 #include "smf.h"
 
 #include <fstream>
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
 OIIO_NAMESPACE_USING
@@ -9,55 +10,28 @@ OIIO_NAMESPACE_USING
 #include "nvtt_output_handler.h"
 #include "dxt1load.h"
 
-
-
 SMFHeader::SMFHeader()
-:    version(1),
-    squareWidth(8),
-    squareTexels(8),
-    tileTexels(32)
+:    version( 1 ), squareWidth( 8 ), squareTexels( 8 ), tileTexels( 32 )
 {
-    strcpy(magic, "spring map file");
+    strcpy( magic, "spring map file" );
 }
 
-
-SMFEHGrass::SMFEHGrass()
+SMF::SMF(string loadFile): SMF()
 {
-    size = 12;
-    type = 1;
-}
-
-SMF::SMF()
-:    verbose(true),
-    quiet(false),
-    slowcomp(false)
-{
-    outPrefix = "out";
-    nTiles = 0;
-    invert = false;
-}
-
-SMF::SMF(string loadFile)
-:    verbose(true),
-    quiet(false),
-    slowcomp(false)
-{
-    outPrefix = "out";
-    nTiles = 0;
-    invert = false;
     load(loadFile);
 }
 
-// This function makes sure that all file offsets are valid. and should be
-// called whenever changes to the class are made that will effect its values.
 bool
 SMF::recalculate()
+// This function makes sure that all data offset pointers are pointing to the
+// correct location and should be called whenever changes to the class are
+// made that will effect its values.
 {
     // heightPtr
     int offset = 0;
-    for (unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        offset += extraHeaders[i]->size;
-    }
+    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
+        offset += extraHeaders[ i ]->size;
+
     heightPtr = sizeof(SMFHeader) + offset;
 
     // TypePtr
@@ -71,40 +45,37 @@ SMF::recalculate()
 
     // get optional grass header
     SMFEHGrass *grassHeader = NULL;
-    for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if( extraHeaders[i]->type == 1) {
-            grassHeader = reinterpret_cast<SMFEHGrass *>(extraHeaders[i]);
-        }
-    }
+    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
+        if( extraHeaders[ i ]->type == 1)
+            grassHeader = reinterpret_cast<SMFEHGrass *>( extraHeaders[ i ] );
 
     // set the tilesPtr and grassPtr
-    if(grassHeader) {
+    if( grassHeader ) {
         grassHeader->grassPtr = metalPtr + width * 32 * length * 32;
         tilesPtr = grassHeader->grassPtr + width * 16 * length * 16;
-    } else {
+    } else
         tilesPtr = metalPtr + width * 32 * length * 32;
-    }
 
     // featuresPtr
     featuresPtr = tilesPtr + 8;
-    for (unsigned int i = 0; i < smtList.size(); ++i ) {
-        featuresPtr += smtList[i].size() + 5;
-    }
+    for( unsigned int i = 0; i < smtList.size(); ++i )
+        featuresPtr += smtList[ i ].size() + 5;
+
     featuresPtr += width * 16 * length * 16 * 4;
 
     return false;
 }
 
 bool
-is_smf(string filename)
+is_smf( string filename )
 {
-    char magic[16];
+    char magic[ 16 ];
     // Perform tests for file validity
-    ifstream smf(filename.c_str(), ifstream::in);
+    ifstream smf( filename.c_str(), ifstream::in );
     if( smf.good() ) {
-        smf.read( magic, 16);
+        smf.read( magic, 16 );
         // perform test for file format
-        if( !strcmp(magic, "spring map file") ) {
+        if(! strcmp( magic, "spring map file" ) ) {
             smf.close();
             return true;
         }
@@ -113,13 +84,13 @@ is_smf(string filename)
 }
 
 void
-SMF::setOutPrefix(string prefix)
+SMF::setOutPrefix( string prefix )
 {
     outPrefix = prefix.c_str();
 }
 
 bool
-SMF::setDimensions(int width, int length, float floor, float ceiling)
+SMF::setDimensions( int width, int length, float floor, float ceiling )
 {
     this->width = width;
     this->length = length;
@@ -139,36 +110,37 @@ void SMF::setFeaturesFile( string filename ) { featuresFile  = filename.c_str();
 void
 SMF::addTileFile( string filename )
 {
-    char magic[16];
+    char magic[ 16 ];
     int nTiles;
-    fstream smt(filename.c_str(), ios::in | ios::binary);
-    smt.read(magic, 16);
-    if( strcmp(magic, "spring tilefile")) {
-        if( !quiet )printf( "ERROR: %s is not a valid smt file, ignoring.\n", filename.c_str());
+    fstream smt( filename.c_str(), ios::in | ios::binary );
+    smt.read( magic, 16 );
+    if( strcmp( magic, "spring tilefile" ) ) {
+        if(! quiet )
+            printf( "ERROR: %s is not a valid smt file, ignoring.\n", filename.c_str() );
         return;
     }
-    smt.ignore(4);
-    smt.read( (char *)&nTiles, 4);
+    smt.ignore( 4 );
+    smt.read( (char *)&nTiles, 4 );
     this->nTiles += nTiles;
-    smtTiles.push_back(nTiles);
-    smtList.push_back(filename);
+    smtTiles.push_back( nTiles );
+    smtList.push_back( filename );
 
     recalculate();
 }
 
 void
-SMF::setGrassFile(string filename)
+SMF::setGrassFile( string filename )
 {
     SMFEHGrass *grassHeader = NULL;
-    for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if(extraHeaders[i]->type == 1) {
-            grassHeader = reinterpret_cast<SMFEHGrass *>(extraHeaders[i]);
-        }
-    }
-    if(grassHeader == NULL) {
+    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
+        if( extraHeaders[ i ]->type == 1 )
+            grassHeader = reinterpret_cast<SMFEHGrass *>( extraHeaders[ i ] );
+
+    if( grassHeader == NULL ) {
         grassHeader = new SMFEHGrass;
-        extraHeaders.push_back(reinterpret_cast<SMFEH *>(grassHeader));
+        extraHeaders.push_back( reinterpret_cast<SMFEH *>( grassHeader ) );
     }
+
     grassFile = filename.c_str();
     recalculate();
 }
@@ -176,16 +148,15 @@ SMF::setGrassFile(string filename)
 void
 SMF::unsetGrassFile()
 {
-    for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if(extraHeaders[i]->type == 1) {
-            extraHeaders.erase(extraHeaders.begin() + i);
-        }
-    }
+    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
+        if( extraHeaders[ i ]->type == 1 )
+            extraHeaders.erase( extraHeaders.begin() + i );
+
     recalculate();
 }
 
 bool
-SMF::save(string filename)
+SMF::save( string filename )
 {
     outPrefix = filename.c_str();
     cout << outPrefix << endl;
@@ -195,74 +166,79 @@ SMF::save(string filename)
 bool
 SMF::save()
 {
-    char filename[256];
+    char filename[ 256 ];
     sprintf( filename, "%s.smf", outPrefix.c_str() );
-    ofstream smf(filename, ios::binary | ios::out);
+    ofstream smf( filename, ios::binary | ios::out );
     if( verbose )printf( "\nINFO: Saving %s.\n", filename );
 
     char magic[] = "spring map file\0";
     smf.write( magic, 16 );
 
     int version = 1;
-    smf.write( (char *)&version, 4);
+    smf.write( (char *)&version, 4 );
     if( verbose )printf( "\tVersion: %i.\n", version );
 
     int id = rand();
-    smf.write( (char *)&id, 4);
+    smf.write( (char *)&id, 4 );
     if( verbose )printf( "\tMapID: %i.\n", id );
 
     int width = this->width * 64;
-    smf.write( (char *)&width, 4);
+    smf.write( (char *)&width, 4 );
     if( verbose )printf( "\tWidth: %i.\n", width / 64 );
 
     int length = this->length * 64;
-    smf.write( (char *)&length, 4);
+    smf.write( (char *)&length, 4 );
     if( verbose )printf( "\tLength: %i.\n", length / 64 );
 
     int squareWidth = 8;
-    smf.write( (char *)&squareWidth, 4);
+    smf.write( (char *)&squareWidth, 4 );
     if( verbose )printf( "\tSquareWidth: %i.\n", squareWidth );
 
     int squareTexels = 8;
-    smf.write( (char *)&squareTexels, 4);
+    smf.write( (char *)&squareTexels, 4 );
     if( verbose )printf( "\tSquareTexels: %i.\n", squareTexels );
 
     int tileTexels = 32;
-    smf.write( (char *)&tileTexels, 4);
+    smf.write( (char *)&tileTexels, 4 );
     if( verbose )printf( "\tTileTexels: %i.\n", tileTexels );
 
     float floor = this->floor * 512;
-    smf.write( (char *)&floor, 4);
+    smf.write( (char *)&floor, 4 );
     if( verbose )printf( "\tMinHeight: %0.2f.\n", floor / 512 );
 
     float ceiling = this->ceiling * 512;
-    smf.write( (char *)&ceiling, 4);
+    smf.write( (char *)&ceiling, 4 );
     if( verbose )printf( "\tMaxHeight: %0.2f.\n", ceiling / 512 );
 
-    smf.write( (char *)&heightPtr, 4);
+    smf.write( (char *)&heightPtr, 4 );
     if( verbose )printf( "\tHeightPtr: %i.\n", heightPtr );
-    smf.write( (char *)&typePtr, 4);
+
+    smf.write( (char *)&typePtr, 4 );
     if( verbose )printf( "\tTypePtr: %i.\n", typePtr );
-    smf.write( (char *)&tilesPtr, 4);
+
+    smf.write( (char *)&tilesPtr, 4 );
     if( verbose )printf( "\tTilesPtr: %i.\n", tilesPtr );
-    smf.write( (char *)&minimapPtr, 4);
+    
+    smf.write( (char *)&minimapPtr, 4 );
     if( verbose )printf( "\tMinimapPtr: %i.\n", minimapPtr );
-    smf.write( (char *)&metalPtr, 4);
+    
+    smf.write( (char *)&metalPtr, 4 );
     if( verbose )printf( "\tMetalPtr: %i.\n", metalPtr );
-    smf.write( (char *)&featuresPtr, 4);
+    
+    smf.write( (char *)&featuresPtr, 4 );
     if( verbose )printf( "\tFeaturesPtr: %i.\n", featuresPtr );
 
     int nExtraHeaders = extraHeaders.size();
-    smf.write( (char *)&nExtraHeaders, 4);
+    smf.write( (char *)&nExtraHeaders, 4 );
     if( verbose )printf( "\tExtraHeaders: %i.\n", nExtraHeaders );
 
-    if(verbose && extraHeaders.size() > 0) printf( "    Extra Headers:\n");
+    if( verbose && extraHeaders.size() > 0 ) printf( "    Extra Headers:\n");
     for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        smf.write((char *)extraHeaders[i], extraHeaders[i]->size);
+        smf.write( (char *)extraHeaders[ i ], extraHeaders[ i ]->size );
         if( verbose ) {
-            if(extraHeaders[i]->type == 1)
+            if( extraHeaders[ i ]->type == 1 )
                 printf("\tGrassPtr: %i.\n",
-                ((SMFEHGrass *)extraHeaders[i])->grassPtr );
+                ((SMFEHGrass *)extraHeaders[ i ])->grassPtr );
             else printf( "\t Unknown Header\n");
         }
     }
@@ -275,7 +251,7 @@ SMF::save()
     saveMetal();
 
     for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if(extraHeaders[i]->type == 1)saveGrass();
+        if( extraHeaders[ i ]->type == 1 ) saveGrass();
     }
 
     saveTilemap();

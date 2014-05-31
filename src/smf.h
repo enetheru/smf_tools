@@ -94,6 +94,8 @@ do {                                                \
 struct SMFEH {
     int size;
     int type;
+    SMFEH(): size(0), type(0) {};
+    SMFEH(int i, int j): size(i), type(j) {} ;
 };
 
 #define SMFEH_NONE 0
@@ -103,8 +105,8 @@ struct SMFEH {
 // that defines ground vegetation.
 struct SMFEHGrass: public SMFEH
 {
-    SMFEHGrass();
     int grassPtr;
+    SMFEHGrass(): SMFEH(12, 1) {};
 };
 
 
@@ -233,7 +235,8 @@ class SMF {
 public:
     bool verbose, quiet, slowcomp, invert;
 
-    SMF();
+    SMF(): verbose( true ), quiet( false ), slowcomp( false ), outPrefix( "out" ),
+        nTiles( 0 ), invert( false ) {};
     SMF( string loadFile );
     void setOutPrefix(string prefix);
     bool setDimensions(int width, int length, float floor, float ceiling);

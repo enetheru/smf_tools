@@ -1,20 +1,22 @@
-#include <cstring>
-
 #include "dxt1load.h"
 
+#include <cstring>
+
+
 unsigned char *
-dxt1_load(unsigned char* data, int width, int height)
-    //
+dxt1_load( unsigned char* data, int width, int height )
+// Decodes a dxt1 encoded image
+// Returns: bitmap data in RGBA8888 format
 {
-    unsigned char *out_d = new unsigned char[width * height * 4];
+    unsigned char *out_d = new unsigned char[ width * height * 4 ];
     memset( out_d, 0, width * height * 4 );
 
     int numblocks =  width * height / 16;
 
     for ( int i = 0; i < numblocks; i++ ) {
 
-        unsigned short color0 = *(unsigned short *)&data[0];
-        unsigned short color1 = *(unsigned short *)&data[2];
+        unsigned short color0 = *(unsigned short *)&data[ 0 ];
+        unsigned short color1 = *(unsigned short *)&data[ 2 ];
 
         int r0 = RED_RGB565( color0 ) << 3;
         int g0 = GREEN_RGB565( color0 ) << 2;
@@ -24,7 +26,7 @@ dxt1_load(unsigned char* data, int width, int height)
         int g1 = GREEN_RGB565( color1 ) << 2;
         int b1 = BLUE_RGB565( color1 ) << 3;
 
-        unsigned int bits = *(unsigned int*)&data[4];
+        unsigned int bits = *(unsigned int*)&data[ 4 ];
 
         for ( int a = 0; a < 4; a++ ) {
             for ( int b = 0; b < 4; b++ ) {

@@ -70,6 +70,7 @@ public:
     int stride;
     float cpet;
     int cnet, cnum;
+
     SMT();
 
     bool load(string fileName);

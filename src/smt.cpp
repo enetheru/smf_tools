@@ -19,24 +19,17 @@ SMTHeader::SMTHeader()
     strcpy(magic,"spring tilefile");
 }
 
-SMT::SMT()
-{
-    verbose = true;
-    quiet = false;
-    slow_dxt1 = false;
-    cnum = 0;
-    cpet = 0.0f;
-    cnet = 0;
-    stride = 1;
-    tileRes = 32;
-    nTiles = 0;
-    setType(1);
-    return;
-}
-
-void SMT::setPrefix(string prefix) { outPrefix = prefix.c_str(); }
-void SMT::setTilemap(string filename) { tilemapFile = filename.c_str(); }
+void SMT::setPrefix(string prefix) { outPrefix = prefix; }
+void SMT::setTilemap(string filename) { tilemapFile = filename; }
 void SMT::setSize(int w, int l) { width = w; length = l; }
+
+SMT::SMT(): verbose( true ), quiet( false ), slow_dxt1( false ), cnum( 0 ), 
+        cpet( 0.0f ), cnet( 0 ), stride( 1 ), tileRes( 32 ), nTiles( 0 )
+{
+    setType( DXT1 );
+};
+
+
 
 void
 SMT::setType(int tileType)
@@ -493,7 +486,7 @@ ImageBuf *
 SMT::getBig()
 {
     ImageBuf *bigBuf = NULL;
-    if( !tilemapFile.compare("") ) {
+    if(! tilemapFile.compare("") ) {
         bigBuf = collateBig();
     } else {
         bigBuf = reconstructBig();

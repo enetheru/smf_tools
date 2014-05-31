@@ -6,11 +6,11 @@
 class NVTTOutputHandler: public nvtt::OutputHandler
 {
 public:
-    NVTTOutputHandler(int buffer_size);
+    NVTTOutputHandler( int buffer_size );
     ~NVTTOutputHandler();
 
-    void beginImage( int size, int width, int height, int depth, int face, int miplevel);
-    bool writeData(const void *data, int size);
+    void beginImage( int size, int width, int height, int depth, int face, int miplevel );
+    bool writeData( const void *data, int size );
     void reset();
 
     char *buffer;

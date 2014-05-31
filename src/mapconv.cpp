@@ -1,12 +1,12 @@
-// Built in headers
-#include <cstring>
-#include <string>
-#include <fstream>
-
 // local headers
 #include "smt.h"
 #include "smf.h"
 #include "optionparser.h"
+
+// Built in headers
+#include <cstring>
+#include <string>
+#include <fstream>
 
 
 // Argument tests //
@@ -142,30 +142,25 @@ const option::Descriptor usage[] = {
     {0,0,0,0,0,0}
 };
 
-#ifdef WIN32
-int
-_tmain( int argc, _TCHAR *argv[] )
-#else
 int
 main( int argc, char **argv )
-#endif
 {
-    argc-=(argc>0); argv+=(argc>0);
-    option::Stats stats(usage, argc, argv);
-    option::Option* options = new option::Option[stats.options_max];
-    option::Option* buffer = new option::Option[stats.buffer_max];
-    option::Parser parse(usage, argc, argv, options, buffer);
+    argc -= (argc > 0); argv += (argc > 0);
+    option::Stats stats( usage, argc, argv );
+    option::Option* options = new option::Option[ stats.options_max ];
+    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    option::Parser parse( usage, argc, argv, options, buffer );
 
-    for (option::Option* opt = options[UNKNOWN]; opt; opt = opt->next())
-        std::cout << "Unknown option: " << std::string(opt->name,opt->namelen) << "\n";
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() )
+        std::cout << "Unknown option: " << std::string( opt->name, opt->namelen ) << "\n";
 
-    for (int i = 0; i < parse.nonOptionsCount(); ++i)
-        std::cout << "Non-option #" << i << ": " << parse.nonOption(i) << "\n";
+    for( int i = 0; i < parse.nonOptionsCount(); ++i )
+        std::cout << "Non-option #" << i << ": " << parse.nonOption( i ) << "\n";
     if( parse.error() ) exit( 1 );
 
-    if(options[HELP] || argc == 0) {
-        int columns = getenv("COLUMNS")? atoi(getenv("COLUMNS")) : 80;
-        option::printUsage(std::cout, usage, columns);
+    if( options[ HELP ] || argc == 0) {
+        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+        option::printUsage( std::cout, usage, columns );
         exit( 1 );
     }
 
@@ -177,28 +172,29 @@ main( int argc, char **argv )
     options[INVERT]    ? invert = true    : invert = false;
 
     vector<string> tileFiles;
-    for (option::Option* opt = options[SMTS]; opt; opt = opt->next())
-        tileFiles.push_back(opt->arg);
+    for( option::Option *opt = options[ SMTS ]; opt; opt = opt->next() )
+        tileFiles.push_back( opt->arg );
 
     int width = 8, length = 8;
     float floor = -1, ceiling = 1;
     string outputPrefix, inputFile, tilemapFile, heightFile, typeFile, miniFile,
         metalFile, grassFile, featuresFile;
 
-    for (int i = 0; i < parse.optionsCount(); ++i) {
-        option::Option& opt = buffer[i];
-        switch(opt.index()) {
+    for( int i = 0; i < parse.optionsCount(); ++i )
+    {
+        option::Option &opt = buffer[ i ];
+        switch( opt.index() ) {
         case WIDTH:
-            width = atoi(opt.arg);
+            width = atoi( opt.arg );
             break;
         case LENGTH:
-            length = atoi(opt.arg);
+            length = atoi( opt.arg );
             break;
         case FLOOR:
-            floor = atof(opt.arg);
+            floor = atof( opt.arg );
             break;
         case CEILING:
-            ceiling = atof(opt.arg);
+            ceiling = atof( opt.arg );
             break;
         case INPUT:
             inputFile = opt.arg;
@@ -242,32 +238,30 @@ main( int argc, char **argv )
     smf.invert = invert;
 
     // Load file 
-    if(strcmp(inputFile.c_str(), ""))smf.load(inputFile);
+    if( strcmp( inputFile.c_str(), "" ) ) smf.load( inputFile );
 
     // decompile loaded file
-    if(extract)
+    if( extract )
     {
-        inputFile.erase(inputFile.size()-4);
-        smf.setOutPrefix(inputFile);
-        smf.decompileAll(0);
+        inputFile.erase( inputFile.size() - 4 );
+        smf.setOutPrefix( inputFile );
+        smf.decompileAll( 0 );
     }
 
     // Change attributes
-    smf.setDimensions(width, length, floor, ceiling);
+    smf.setDimensions( width, length, floor, ceiling );
 
-    if( strcmp(heightFile.c_str(), "") ) smf.setHeightFile( heightFile );
-    if( strcmp(typeFile.c_str(), "") ) smf.setTypeFile( typeFile );
-    if( strcmp(miniFile.c_str(), "") ) smf.setMinimapFile( miniFile );
-    if( strcmp(metalFile.c_str(), "") ) smf.setMetalFile( metalFile );
-    if( strcmp(tilemapFile.c_str(), "") ) smf.setTilemapFile(tilemapFile );
-    if( strcmp(featuresFile.c_str(), "") ) smf.setFeaturesFile( featuresFile );
+    if( strcmp( heightFile.c_str(),   "") ) smf.setHeightFile(   heightFile   );
+    if( strcmp( typeFile.c_str(),     "") ) smf.setTypeFile(     typeFile     );
+    if( strcmp( miniFile.c_str(),     "") ) smf.setMinimapFile(  miniFile     );
+    if( strcmp( metalFile.c_str(),    "") ) smf.setMetalFile(    metalFile    );
+    if( strcmp( tilemapFile.c_str(),  "") ) smf.setTilemapFile(  tilemapFile  );
+    if( strcmp( featuresFile.c_str(), "") ) smf.setFeaturesFile( featuresFile );
 
-    if( strcmp(grassFile.c_str(), "") ) smf.setGrassFile(grassFile);
-    if( !strcmp(grassFile.c_str(), "") ) smf.unsetGrassFile();
+    if( strcmp( grassFile.c_str(),    "") ) smf.setGrassFile(    grassFile    );
+    else                                    smf.unsetGrassFile();
 
-    for(unsigned int i = 0; i < tileFiles.size(); ++i ) {
-        smf.addTileFile(tileFiles[i]);
-    }
+    for( unsigned int i = 0; i < tileFiles.size(); ++i ) smf.addTileFile( tileFiles[ i ] );
     
     //Save
     if( strcmp(outputPrefix.c_str(), "") )smf.save( outputPrefix );

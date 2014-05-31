@@ -228,6 +228,7 @@ main( int argc, char **argv )
     }
 
     smt.setTilemap( tilemapFile );
+    printf("%s\n", tilemapFile.c_str() );
 
     if( !inputFile.empty() ) {
         smt.load( inputFile );
