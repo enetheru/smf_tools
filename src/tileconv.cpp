@@ -59,9 +59,10 @@ struct Arg: public option::Arg
         char magic[16];
         ifstream file(option.arg, ios::in | ios::binary);
         file.read(magic, 16);
-        if( !strcmp(magic, "spring map file") )
+        if(! strcmp(magic, "spring map file") ) {
             file.close();
             return option::ARG_OK;
+        }
 
         fprintf(stderr, "ERROR: '%s' is not a valid spring map file\n", option.arg);
         return option::ARG_ILLEGAL;
@@ -78,6 +79,21 @@ struct Arg: public option::Arg
         in->close();
         delete in;
         return option::ARG_OK;
+    }
+
+    static option::ArgStatus File(const option::Option& option, bool msg)
+    {
+        /* attempt to load image file */
+        if( SMF(option, msg) == option::ARG_OK )
+        {
+            return option::ARG_OK;
+        }
+        if( Image(option, msg) == option::ARG_OK )
+        {
+            return option::ARG_OK;
+        }
+
+        return option::ARG_ILLEGAL;
     }
 };
 
@@ -106,7 +122,7 @@ const option::Descriptor usage[] = {
         "  -x,  \t--width  \tWidth of the map in spring map units, Must be multiples of two." },
     { LENGTH, 0, "z", "length", Arg::Numeric,
         "  -z,  \t--length  \tLength of the map in spring map units, Must be multiples of two." },
-    { TILEMAP, 0, "", "tilemap", Arg::Image,
+    { TILEMAP, 0, "", "tilemap", Arg::File,
         "\t--tilemap  \tImage to use for tilemap." },
     { SOURCES, 0, "", "sources", Arg::Image,
         "\t--sources  \tSource files to use for tiles" },
@@ -199,6 +215,9 @@ main( int argc, char **argv )
         case DECALS:
             decalFile = opt.arg;
             break;
+        case TILEMAP:
+            tilemapFile = opt.arg;
+            break;
         }
     }
 
@@ -228,7 +247,6 @@ main( int argc, char **argv )
     }
 
     smt.setTilemap( tilemapFile );
-    printf("%s\n", tilemapFile.c_str() );
 
     if( !inputFile.empty() ) {
         smt.load( inputFile );

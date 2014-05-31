@@ -536,22 +536,25 @@ ImageBuf *
 SMT::reconstructBig()
 {
     if( verbose )cout << "INFO: Reconstructing Big\n";
-    ImageBuf *tileBuf = NULL;
+    if( verbose )cout << "INFO: Loading tilemap from: " << tilemapFile << endl;
 
     //Load tilemap from SMF
     ImageBuf *tilemapBuf = NULL;
     if( is_smf( tilemapFile ) ) {
-        SMF sourcesmf(tilemapFile);
+        SMF sourcesmf( tilemapFile );
         tilemapBuf = sourcesmf.getTilemap();
     }
+
     // Else load tilemap from image
-    if( !tilemapBuf ) {
+    if(! tilemapBuf )
+    {
         tilemapBuf = new ImageBuf( tilemapFile );
-        tilemapBuf->read(0,0,false,TypeDesc::UINT);
-        if( !tilemapBuf->initialized() ) {
+        tilemapBuf->read( 0, 0, true, TypeDesc::UINT );
+        if(! tilemapBuf->initialized() )
+        {
             delete tilemapBuf;
-            if( !quiet )printf("ERROR: %s cannot be loaded.\n",
-                tilemapFile.c_str());
+            if(! quiet ) printf( "ERROR: %s cannot be loaded.\n",
+                tilemapFile.c_str() );
             return NULL;
         }
     }
@@ -566,6 +569,7 @@ SMT::reconstructBig()
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec );
 
     // Loop through tile index
+    ImageBuf *tileBuf = NULL;
     for( int z = 0; z < ztiles; ++z ) {
         for( int x = 0; x < xtiles; ++x ) {
             int tilenum = tilemap[z * xtiles + x];
