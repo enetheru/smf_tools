@@ -23,8 +23,16 @@ void SMT::setPrefix(string prefix) { outPrefix = prefix; }
 void SMT::setTilemap(string filename) { tilemapFile = filename; }
 void SMT::setSize(int w, int l) { width = w; length = l; }
 
-SMT::SMT(): verbose( true ), quiet( false ), slow_dxt1( false ), cnum( 0 ), 
-        cpet( 0.0f ), cnet( 0 ), stride( 1 ), tileRes( 32 ), nTiles( 0 )
+SMT::SMT():
+    nTiles( 0 ),
+    tileRes( 32 ),
+    verbose( true ),
+    quiet( false ),
+    slow_dxt1( false ),
+    stride( 1 ),
+    cpet( 0.0f ),
+    cnet( 0 ),
+    cnum( 0 )
 {
     setType( DXT1 );
 };

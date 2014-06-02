@@ -235,8 +235,14 @@ class SMF {
 public:
     bool verbose, quiet, slowcomp, invert;
 
-    SMF(): verbose( true ), quiet( false ), slowcomp( false ), outPrefix( "out" ),
-        nTiles( 0 ), invert( false ) {};
+    SMF(): outPrefix("out"),
+        nTiles( 0 ),
+        verbose( true ),
+        quiet( false ),
+        slowcomp( false ),
+        invert( false )
+    {};
+
     SMF( string loadFile );
     void setOutPrefix(string prefix);
     bool setDimensions(int width, int length, float floor, float ceiling);
