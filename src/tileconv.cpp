@@ -84,14 +84,9 @@ struct Arg: public option::Arg
     static option::ArgStatus File(const option::Option& option, bool msg)
     {
         /* attempt to load image file */
-        if( SMF(option, msg) == option::ARG_OK )
-        {
+        if(   (SMF(option, msg) == option::ARG_OK)
+            | (Image(option, msg) == option::ARG_OK) )
             return option::ARG_OK;
-        }
-        if( Image(option, msg) == option::ARG_OK )
-        {
-            return option::ARG_OK;
-        }
 
         return option::ARG_ILLEGAL;
     }
@@ -144,67 +139,63 @@ const option::Descriptor usage[] = {
     { 0, 0, 0, 0, 0, 0 }
 };
 
-#ifdef WIN32
-int
-_tmain( int argc, _TCHAR *argv[] )
-#else
 int
 main( int argc, char **argv )
-#endif
 {
-    argc-=(argc>0); argv+=(argc>0);
-    option::Stats stats(usage, argc, argv);
-    option::Option* options = new option::Option[stats.options_max];
-    option::Option* buffer = new option::Option[stats.buffer_max];
-    option::Parser parse(usage, argc, argv, options, buffer);
+    argc -= (argc > 0); argv += (argc > 0);
+    option::Stats stats( usage, argc, argv );
+    option::Option* options = new option::Option[ stats.options_max ];
+    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    option::Parser parse( usage, argc, argv, options, buffer );
 
-    for (option::Option* opt = options[UNKNOWN]; opt; opt = opt->next())
-        std::cout << "Unknown option: " << std::string(opt->name,opt->namelen) << "\n";
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() )
+        std::cout << "Unknown option: " << std::string( opt->name,opt->namelen ) << "\n";
 
-    for (int i = 0; i < parse.nonOptionsCount(); ++i)
+    for( int i = 0; i < parse.nonOptionsCount(); ++i )
         std::cout << "Non-option #" << i << ": " << parse.nonOption(i) << "\n";
+
     if( parse.error() ) exit( 1 );
 
-    if(options[HELP] || argc == 0) {
-        int columns = getenv("COLUMNS")? atoi(getenv("COLUMNS")) : 80;
-        option::printUsage(std::cout, usage, columns);
+    if( options[ HELP ] || argc == 0 ) {
+        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+        option::printUsage( std::cout, usage, columns );
         exit( 1 );
     }
 
     bool verbose, quiet, extract, slow_dxt1;
-    options[VERBOSE]   ? verbose = true   : verbose = false;
-    options[QUIET]     ? quiet = true     : quiet = false;
-    options[EXTRACT]   ? extract = true   : extract = false;
-    options[SLOW_DXT1] ? slow_dxt1 = true : slow_dxt1 = false;
+    options[ VERBOSE   ] ? verbose   = true : verbose   = false;
+    options[ QUIET     ] ? quiet     = true : quiet     = false;
+    options[ EXTRACT   ] ? extract   = true : extract   = false;
+    options[ SLOW_DXT1 ] ? slow_dxt1 = true : slow_dxt1 = false;
 
     vector<string> sourceFiles;
-    for (option::Option* opt = options[SOURCES]; opt; opt = opt->next())
-        sourceFiles.push_back(opt->arg);
+    for( option::Option* opt = options[ SOURCES ]; opt; opt = opt->next() )
+        sourceFiles.push_back( opt->arg );
 
-    int width = 8, length = 8, cnum = 32, cnet = 4, stride = 1;
-    float cpet = 1.0f/255.0f;
+    int width = 0, length = 0, cnum = 32, cnet = 4, stride = 1;
+    float cpet = 1.0f / 255.0f;
     string outputPrefix, inputFile, tilemapFile, decalFile;
 
-    for (int i = 0; i < parse.optionsCount(); ++i) {
-        option::Option& opt = buffer[i];
-        switch(opt.index()) {
+    for( int i = 0; i < parse.optionsCount(); ++i ) {
+        option::Option& opt = buffer[ i ];
+        switch( opt.index() ) {
         case WIDTH:
-            width = atoi(opt.arg);
+            width = atoi( opt.arg );
             break;
         case LENGTH:
-            length = atoi(opt.arg);
+            length = atoi( opt.arg );
             break;
         case CNUM:
-            cnum = atoi(opt.arg);
+            cnum = atoi( opt.arg );
             break;
         case CNET:
-            cnet = atoi(opt.arg);
+            cnet = atoi( opt.arg );
             break;
         case CPET:
-            cpet = atof(opt.arg);
+            cpet = atof( opt.arg );
             break;
         case STRIDE:
-            stride = atoi(opt.arg);
+            stride = atoi( opt.arg );
             break;
         case INPUT:
             inputFile = opt.arg;
@@ -256,7 +247,7 @@ main( int argc, char **argv )
 
     if( sourceFiles.size() > 0) {
         vector< string >::iterator it;
-        for(it = sourceFiles.begin(); it != sourceFiles.end(); it++ )
+        for( it = sourceFiles.begin(); it != sourceFiles.end(); it++ )
             smt.addTileSource( *it );
     }
 
