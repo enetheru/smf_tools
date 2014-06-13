@@ -88,12 +88,13 @@ SMT::load()
 bool
 SMT::decompile()
 {
-    ImageBuf *bigBuf = getBig();
+    cout << loadFile << endl;
+    string fileName = this->loadFile.substr(0,this->loadFile.size()-4) + "_tiles.jpg";
+    if(verbose )cout << "INFO: Saving to " << fileName << endl;
 
-    char filename[256];
-    sprintf(filename, "%s_tiles.png", outPrefix.c_str());
-    if(verbose )cout << "INFO: Saving to " << filename << endl; 
-    bigBuf->save(filename);
+    ImageBuf *bigBuf = getBig();
+    bigBuf->save(fileName);
+
     return false;
 }
 
@@ -108,16 +109,16 @@ bool
 SMT::append( ImageBuf &tile )
 // Code assumes that tiles are DXT1 compressed at this stage
 {
-    fstream smtFile( saveFile, ios::binary | ios::out | ios::app );
+    fstream smtFile( this->saveFile, ios::binary | ios::out | ios::app );
    
     unsigned char *std = (unsigned char *)tile.localpixels();
 
     // process into dds
-    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( tileSize );
+    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( this->tileSize );
 
     nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
-    inputOptions.setMipmapData( std, tileRes, tileRes );
+    inputOptions.setTextureLayout( nvtt::TextureType_2D, this->tileRes, this->tileRes );
+    inputOptions.setMipmapData( std, this->tileRes, this->tileRes );
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1a );
@@ -127,21 +128,21 @@ SMT::append( ImageBuf &tile )
     outputOptions.setOutputHandler( nvttHandler );
 
     nvtt::Compressor compressor;
-    if( slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+    if( this->slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
     else           compressionOptions.setQuality( nvtt::Quality_Fastest ); 
     compressor.process( inputOptions, compressionOptions, outputOptions );
 
-    smtFile.write( nvttHandler->buffer, tileSize );
+    smtFile.write( nvttHandler->buffer, this->tileSize );
     smtFile.close();
 
     delete nvttHandler;
 
-    nTiles += 1;
+    this->nTiles += 1;
 
     // retroactively fix up the tile count.
-    smtFile.open( saveFile, ios::binary | ios::in | ios::out );
+    smtFile.open( this->saveFile, ios::binary | ios::in | ios::out );
     smtFile.seekp( 20 );
-    smtFile.write( (char *)&nTiles, 4 );
+    smtFile.write( (char *)&(this->nTiles), 4 );
     smtFile.close();
 
     return false;
@@ -237,12 +238,9 @@ SMT::save()
 
     // Build SMT Header //
     //////////////////////
-    char filename[256];
-    sprintf(filename, "%s.smt", outPrefix.c_str());
-    saveFile = filename;
 
-    if( verbose ) printf("\nINFO: Creating %s\n", filename );
-    fstream smt( filename, ios::binary | ios::out );
+    if( verbose ) cout << "\nINFO: Creating " << saveFile << endl;
+    fstream smt( saveFile, ios::binary | ios::out );
     if( !smt.good() ) {
         cout << "ERROR: fstream error." << endl;
         return true;
@@ -314,7 +312,7 @@ SMT::save()
     deque<TileBufListEntry *> tileList;
 
     // Open smt file for writing tiles
-    smt.open(filename, ios::binary | ios::out | ios::app );
+    smt.open(saveFile, ios::binary | ios::out | ios::app );
 
     // loop through tile columns
     for ( int z = 0; z < tcz; z++) {
@@ -335,7 +333,7 @@ SMT::save()
 
             ImageBuf tempBuf;
             ImageBufAlgo::crop( tempBuf, *bigBuf, roi );
-            ImageBuf *tileBuf = new ImageBuf( filename, tileSpec, tempBuf.localpixels() );
+            ImageBuf *tileBuf = new ImageBuf( saveFile, tileSpec, tempBuf.localpixels() );
 
             // reset match variables
             match = false;
@@ -420,16 +418,16 @@ SMT::save()
 
     // Save tileindex
     ImageOutput *imageOutput;
-    sprintf( filename, "%s_tilemap.exr", outPrefix.c_str() );
+    string tilemapFN = saveFile.substr( 0, saveFile.size() - 4 ) + "_tilemap.exr";
     
-    imageOutput = ImageOutput::create(filename);
-    if( !imageOutput ) {
+    imageOutput = ImageOutput::create( tilemapFN );
+    if(! imageOutput ) {
         delete [] indexPixels;
         return true;
     }
 
     ImageSpec tilemapSpec( tcx, tcz, 1, TypeDesc::UINT);
-    imageOutput->open( filename, tilemapSpec );
+    imageOutput->open( tilemapFN, tilemapSpec );
     imageOutput->write_image( TypeDesc::UINT, indexPixels );
     imageOutput->close();
 

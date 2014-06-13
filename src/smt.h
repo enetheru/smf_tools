@@ -46,7 +46,6 @@ do {                                                \
 
 class SMT {
     SMTHeader header;
-    string outPrefix = "";
     int   width     = 8,
           length    = 8;
 
@@ -77,7 +76,6 @@ public:
 
     void setLoadFile(   string s ) { loadFile    = s;             };
     void setSaveFile(   string s ) { saveFile    = s;             };
-    void setPrefix(     string s ) { outPrefix   = s;             };
     void setTilemap(    string s ) { tilemapFile = s;             };
     void setDecalFile(  string s ) { decalFile   = s;             };
     void addTileSource( string s ) { sourceFiles.push_back( s );  };

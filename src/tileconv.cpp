@@ -108,7 +108,7 @@ const option::Descriptor usage[] = {
     { INPUT, 0, "i", "input", Arg::SMT,
         "  -i,  \t--input  \tSMT filename to load." },
     { OUTPUT, 0, "o", "output", Arg::Required,
-        "  -o,  \t--output  \tOutput prefix used when saving." },
+        "  -o,  \t--output  \tOutput filename used when saving." },
     { EXTRACT, 0, "e", "extract", Arg::None,
         "  -e,  \t--extract  \tExtract images from loaded SMT." },
     { SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
@@ -174,7 +174,7 @@ main( int argc, char **argv )
 
     int width = 0, length = 0, cnum = 32, cnet = 4, stride = 1;
     float cpet = 1.0f / 255.0f;
-    string outputPrefix, inputFile, tilemapFile, decalFile;
+    string outputFN, inputFile, tilemapFile, decalFile;
 
     for( int i = 0; i < parse.optionsCount(); ++i ) {
         option::Option& opt = buffer[ i ];
@@ -201,7 +201,7 @@ main( int argc, char **argv )
             inputFile = opt.arg;
             break;
         case OUTPUT:
-            outputPrefix = opt.arg;
+            outputFN = opt.arg;
             break;
         case DECALS:
             decalFile = opt.arg;
@@ -239,8 +239,8 @@ main( int argc, char **argv )
             smt.addTileSource( *it );
     }
 
-    if( !outputPrefix.empty() ) {
-        smt.setPrefix( outputPrefix );
+    if(! outputFN.empty() ) {
+        smt.setSaveFile( outputFN );
         smt.save();
     }
 
@@ -248,8 +248,6 @@ main( int argc, char **argv )
 
     if( !inputFile.empty() ) {
         smt.load( inputFile );
-        inputFile.erase( inputFile.size() - 4 );
-        smt.setPrefix( inputFile );
         if( extract ) smt.decompile();
     }
 
