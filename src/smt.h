@@ -21,24 +21,23 @@ Tiles
 
 struct SMTHeader
 {
-    SMTHeader();
-    char magic[16];   //"spring tilefile\0"
-    int version;      //must be 1 for now
-    int nTiles;        //total number of tiles in this file
-    int tileRes;     //must be 32 for now
-    int tileType;     //must be 1=dxt1 for now
+    char magic[16] = "spring tilefile";   // "spring tilefile\0"
+    int version = 1;      // must be 1 for now
+    int nTiles = 0;       // total number of tiles in this file
+    int tileRes = 32;      // x and y dimension of tiles, must remain 32 for now.
+    int tileType = DXT1;     // must be 1=dxt1 for now
 };
 
-#define READ_SMTHEADER(tfh,src)                \
+#define READ_SMTHEADER(tfh,src)                     \
 do {                                                \
     unsigned int __tmpdw;                           \
     (src).Read(&(tfh).magic,sizeof((tfh).magic));   \
     (src).Read(&__tmpdw,sizeof(unsigned int));      \
     (tfh).version = (int)swabdword(__tmpdw);        \
     (src).Read(&__tmpdw,sizeof(unsigned int));      \
-    (tfh).count = (int)swabdword(__tmpdw);       \
+    (tfh).count = (int)swabdword(__tmpdw);          \
     (src).Read(&__tmpdw,sizeof(unsigned int));      \
-    (tfh).tileRes = (int)swabdword(__tmpdw);       \
+    (tfh).tileRes = (int)swabdword(__tmpdw);        \
     (src).Read(&__tmpdw,sizeof(unsigned int));      \
     (tfh).comp = (int)swabdword(__tmpdw);\
 } while (0)
@@ -46,42 +45,57 @@ do {                                                \
 //this is followed by the raw data for the tiles
 
 class SMT {
-    // Loading
     SMTHeader header;
-    string loadFile;
+    string outPrefix = "";
+    int   width     = 8,
+          length    = 8;
 
-    // Saving
-    string outPrefix;
-    int nTiles;
-    int tileRes;
-    int tileType;
+    // Tiles
+    int   nTiles    = 0,
+          tileType  = 1,
+          tileRes   = 32,
+          tileSize;
 
-    // Construction
-    int width, length;
+    // Input Files
+    string loadFile    = "";
+    string saveFile    = "";
+    string tilemapFile = "";
+    string decalFile   = "";
     vector<string> sourceFiles;
-    int tileSize;
-    string decalFile;
-
-    // Reconstruction
-    string tilemapFile;
     
 public:
-    bool verbose, quiet, slow_dxt1;
-    int stride;
-    float cpet;
-    int cnet, cnum;
+    bool  verbose   = true,
+          quiet     = false,
+          slow_dxt1 = false;
+    float cpet      = 0.0f;
+    int   cnet      = 0,
+          cnum      = 0,
+          stride    = 1;
 
-    SMT();
+    SMT() { setType( DXT1 ); };
+    SMT( string file ) { load( file ); };
 
-    bool load(string fileName);
+    void setLoadFile(   string s ) { loadFile    = s;             };
+    void setSaveFile(   string s ) { saveFile    = s;             };
+    void setPrefix(     string s ) { outPrefix   = s;             };
+    void setTilemap(    string s ) { tilemapFile = s;             };
+    void setDecalFile(  string s ) { decalFile   = s;             };
+    void addTileSource( string s ) { sourceFiles.push_back( s );  };
+
+    // size is in spring map units.
+    void setSize( int w, int l )    { width = w; length = l; };
+
+    bool load();
+    bool load( string s )    { loadFile = s; return load(); };
+
     bool save();
+    bool save( string s )    { saveFile = s; return save(); };
 
-    void setPrefix(string prefix);
-    void setTilemap(string filename);
-    void setDecalFile(string filename);
-    void setType(int comp); // 1=DXT1
-    void addTileSource(string filename);
-    void setSize(int w, int l); // in spring map units.
+    bool save2();
+
+    bool append(ImageBuf &);
+
+    void setType( int comp ); // 1=DXT1
 
     // pull a RGBA tile from the loaded smt file.
     ImageBuf *getTile(int tile);

@@ -227,7 +227,7 @@ main( int argc, char **argv )
     // if either the image width or length is nor specified then load the
     // diffuse image and guess the size based on that. or else set the sizes
     // to 8x8
-    if(! (width && length) )
+/*    if(! (width && length) )
     {
         ImageSpec imageSpec;
         ImageBuf *imageBuf = new ImageBuf( sourceFiles[ 0 ] );
@@ -238,7 +238,7 @@ main( int argc, char **argv )
             if(! length ) length = imageSpec.height / 512 * stride;
         }
         delete imageBuf;
-    }
+    }*/
     if( width < 2 ) width = 8;
     if( length < 2 ) length = 8;
 

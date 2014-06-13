@@ -11,34 +11,6 @@
 #include "smf.h"
 #include "dxt1load.h"
 
-SMTHeader::SMTHeader()
-:    version(1),
-    tileRes(32),
-    tileType(1)
-{
-    strcpy(magic,"spring tilefile");
-}
-
-void SMT::setPrefix(string prefix) { outPrefix = prefix; }
-void SMT::setTilemap(string filename) { tilemapFile = filename; }
-void SMT::setSize(int w, int l) { width = w; length = l; }
-
-SMT::SMT():
-    nTiles( 0 ),
-    tileRes( 32 ),
-    verbose( true ),
-    quiet( false ),
-    slow_dxt1( false ),
-    stride( 1 ),
-    cpet( 0.0f ),
-    cnet( 0 ),
-    cnum( 0 )
-{
-    setType( DXT1 );
-};
-
-
-
 void
 SMT::setType(int tileType)
 {
@@ -62,54 +34,55 @@ SMT::setType(int tileType)
     return;
 }
 
-void SMT::addTileSource(string filename) { sourceFiles.push_back(filename); }
-
 bool
-SMT::load(string fileName)
+SMT::load()
 {
-    loadFile = fileName;
     ifstream inFile;
     char magic[16];
-    bool fail = false;
+    bool status = false;
+
     // Test File
-    if( fileName.compare("") ) {
-        inFile.open(fileName.c_str(), ifstream::in);
-        if(!inFile.good()) {
-            if ( !quiet )printf( "ERROR: Cannot open '%s'\n", fileName.c_str() ); 
-            fail = true;
+    if( loadFile.compare( "" ) )
+    {
+        inFile.open( loadFile.c_str(), ifstream::in );
+        if(! inFile.good() )
+        {
+            if(! quiet )printf( "ERROR: Cannot open '%s'\n", loadFile.c_str() ); 
+            status = true;
         } else {
-            inFile.read(magic, 16);
-            if( strcmp(magic, "spring tilefile") ) {
-                if ( !quiet )printf( "ERROR: %s is not a valid smt\n", fileName.c_str() );
-                fail = true;
+            inFile.read( magic, 16 );
+            if( strcmp( magic, "spring tilefile" ) )
+            {
+                if(! quiet ) printf( "ERROR: %s is not a valid smt\n", loadFile.c_str() );
+                status = true;
             }
         }
-    } //fileName.compare("")
-    if ( fail ) {
-        inFile.close();
-        return fail;
+    } else status = true; // loadFile.compare( "" )
 
+    if( status ) {
+        inFile.close();
+        return status;
     }
 
     inFile.seekg(0);
     inFile.read( (char *)&header, sizeof(SMTHeader) );
+    inFile.close();
 
     if( verbose ) {
-        cout << "INFO: " << fileName << endl;
+        cout << "INFO: " << loadFile << endl;
         cout << "\tSMT Version: " << header.version << endl;
         cout << "\tTiles: " << header.nTiles << endl;
         cout << "\tTileRes: " << header.tileRes << endl;
         cout << "\tCompression: ";
-        if(header.tileType == DXT1)cout << "dxt1" << endl;
+        if( header.tileType == DXT1 )cout << "dxt1" << endl;
         else {
             cout << "UNKNOWN" << endl;
-            fail = true;
+            status = true;
         }
     }
-    setType(header.tileType);
 
-    inFile.close();
-    return fail;
+    setType( header.tileType );
+    return status;
 }
 
 bool
@@ -132,6 +105,133 @@ public:
 };
 
 bool
+SMT::append( ImageBuf &tile )
+// Code assumes that tiles are DXT1 compressed at this stage
+{
+    fstream smtFile( saveFile, ios::binary | ios::out | ios::app );
+   
+    if(! tile.localpixels() ) {
+        printf("ERROR: tile pixels are not local\n");
+        return true;
+    }
+    cout << tileSize << endl;
+    unsigned char *std = (unsigned char *)tile.localpixels();
+
+    // process into dds
+    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( tileSize );
+
+    nvtt::InputOptions inputOptions;
+    inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
+    inputOptions.setMipmapData( std, tileRes, tileRes );
+
+    nvtt::CompressionOptions compressionOptions;
+    compressionOptions.setFormat( nvtt::Format_DXT1a );
+
+    nvtt::OutputOptions outputOptions;
+    outputOptions.setOutputHeader( false );
+    outputOptions.setOutputHandler( nvttHandler );
+
+    nvtt::Compressor compressor;
+    if( slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+    else           compressionOptions.setQuality( nvtt::Quality_Fastest ); 
+    compressor.process( inputOptions, compressionOptions, outputOptions );
+
+    smtFile.write( nvttHandler->buffer, tileSize );
+    smtFile.close();
+
+    delete nvttHandler;
+
+    nTiles += 1;
+
+    // retroactively fix up the tile count.
+    smtFile.open( saveFile, ios::binary | ios::in | ios::out );
+    smtFile.seekp( 20 );
+    smtFile.write( (char *)&nTiles, 4 );
+    smtFile.close();
+
+    return false;
+}
+
+bool
+SMT::save2()
+{
+    if( verbose ) cout << "\nINFO: Creating " << saveFile << endl;
+
+    fstream smtFile( saveFile, ios::binary | ios::out );
+    if( !smtFile.good() ) {
+        cout << "ERROR: fstream error." << endl;
+        return true;
+    }
+
+    SMTHeader smtHeader;
+    smtHeader.tileRes = tileRes;
+    smtHeader.tileType = tileType;
+
+    if( verbose ) {
+        cout << "    Version: " << smtHeader.version << endl;
+        cout << "    nTiles: n/a\n";
+        printf( "    tileRes: (%i,%i)%i.\n", tileRes, tileRes, 4);
+        cout << "    tileType: ";
+        if( tileType == DXT1 ) cout << "DXT1" << endl;
+        cout << "    tileSize: " << tileSize << " bytes" << endl;
+    }
+
+    // Writing initial header information.
+    smtFile.write( (char *)&smtHeader, sizeof(SMTHeader) );
+    smtFile.close();
+
+    // for each source image, load, scale, swizzle, etc.
+    ImageBuf imageBuf;
+    ImageSpec imageSpec;
+    ImageBuf fixBuf; 
+    ROI roi( 0, tileRes, 0, tileRes, 0, 1, 0, 4 );
+    for( unsigned int i = 0; i < sourceFiles.size(); ++i)
+    {
+        // Load
+        imageBuf.reset( sourceFiles[ i ] );
+        imageBuf.read( 0, 0, true, TypeDesc::UINT8 );
+        if(! imageBuf.initialized() ) {
+            if(! quiet ) printf("ERROR: cannot read: %s\n", sourceFiles[ i ].c_str() );
+            continue;
+        }
+        imageSpec = imageBuf.spec();
+
+        // Scale
+        roi.chbegin = 0; roi.chend = 4;
+        if( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
+            if( verbose )
+                printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
+                    " Resampling.\n",
+                    imageSpec.width, imageSpec.height, roi.xend, roi.yend );
+            ImageBufAlgo::resample( fixBuf, imageBuf, false, roi );
+            imageBuf.copy( fixBuf );
+            fixBuf.clear();
+        }
+
+        // Fill the alpha channel
+        roi.chend = 3;
+        roi.chbegin = 3;
+        ImageBufAlgo::add( fixBuf, imageBuf, 1, roi );
+        imageBuf.copy(fixBuf);
+        fixBuf.clear();
+
+        // Swizzle
+        if( verbose )cout << "INFO: Swizzling channels\n";
+        int map[] = { 2, 1, 0, 3 };
+        ImageBufAlgo::channels( fixBuf, imageBuf, 4, map );
+        imageBuf.copy( fixBuf );
+        fixBuf.clear();
+
+
+        append(imageBuf);
+
+        imageBuf.clear();
+    }
+
+    return true;
+}
+
+bool
 SMT::save()
 {
     // Make sure we have some source images before continuing
@@ -144,6 +244,7 @@ SMT::save()
     //////////////////////
     char filename[256];
     sprintf(filename, "%s.smt", outPrefix.c_str());
+    saveFile = filename;
 
     if( verbose ) printf("\nINFO: Creating %s\n", filename );
     fstream smt( filename, ios::binary | ios::out );
@@ -533,7 +634,7 @@ SMT::collateBig()
         delete [] (unsigned char *)tileBuf->localpixels();
         delete tileBuf;
         if( verbose )printf("\033[0GINFO: Processing tile %i of %i.",
-            i, header.nTiles );
+            i+1, header.nTiles );
     }
     if( verbose ) cout << endl;
 
@@ -609,8 +710,6 @@ struct type {
     string imageName;
     vector<coord> coordinates;
 };
-
-void SMT::setDecalFile(string filename) { decalFile = filename;}
 
 void
 SMT::pasteDecals(ImageBuf *bigBuf)
