@@ -110,11 +110,6 @@ SMT::append( ImageBuf &tile )
 {
     fstream smtFile( saveFile, ios::binary | ios::out | ios::app );
    
-    if(! tile.localpixels() ) {
-        printf("ERROR: tile pixels are not local\n");
-        return true;
-    }
-    cout << tileSize << endl;
     unsigned char *std = (unsigned char *)tile.localpixels();
 
     // process into dds
@@ -312,7 +307,6 @@ SMT::save()
 
     // Comparison vars
     bool match;
-    bool yee = false;
     unsigned int i;
     string hash;
     vector<string> hashTable;
@@ -361,7 +355,7 @@ SMT::save()
                 }
                 if( !match ) hashTable.push_back( hash );
 
-            } else if( !yee ) {
+            } else {
                 //Comparison based on numerical differences of pixels
                 listEntry = new TileBufListEntry;
                 listEntry->image.copy(*tileBuf);
@@ -389,57 +383,13 @@ SMT::save()
                         tileList.pop_front();
                     }
                 }
-            } else {
-            //FIXME uncomment when OpenImageIO gets upgraded to v3
-/*                listEntry = new TileBufListEntry;
-                listEntry->image.copy(*tileBuf);
-                listEntry->tileNum = nTiles;
-
-                ImageBufAlgo::CompareResults result;
-                deque< TileBufListEntry * >::iterator it;
-
-                for(it = tileList.begin(); it != tileList.end(); it++ ) {
-                    TileBufListEntry *listEntry2 = *it;
-                    ImageBufAlgo::compare_yee( *tileBuf, listEntry2->image,
-                            result, 1.0f, 1.0f );
-                    if(result.nfail == 0) {
-                        match = true;
-                        i = listEntry2->tileNum;
-                        break;
-                    }
-                }
-                if( !match ) {
-                    tileList.push_back(listEntry);
-                    if((int)tileList.size() > 32) tileList.pop_front();
-                }*/
             }
 
             // write tile to file.
             if( !match ) {
-                unsigned char *std = (unsigned char *)tileBuf->localpixels();
-                // process into dds
-                NVTTOutputHandler *nvttHandler = new NVTTOutputHandler(tileSize);
-
-                nvtt::InputOptions inputOptions;
-                inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
-                inputOptions.setMipmapData( std, tileRes, tileRes );
-
-                nvtt::CompressionOptions compressionOptions;
-                compressionOptions.setFormat(nvtt::Format_DXT1a);
-
-                nvtt::OutputOptions outputOptions;
-                outputOptions.setOutputHeader(false);
-                outputOptions.setOutputHandler( nvttHandler );
-
-                nvtt::Compressor compressor;
-                if( slow_dxt1 ) compressionOptions.setQuality(nvtt::Quality_Normal); 
-                else           compressionOptions.setQuality(nvtt::Quality_Fastest); 
-                compressor.process(inputOptions, compressionOptions, outputOptions);
-
-                smt.write( nvttHandler->buffer, tileSize );
-                delete nvttHandler;
-                nTiles +=1;
+                append(*tileBuf);
             }
+
             delete tileBuf;
             // Write index to tilemap
             indexPixels[currentTile-1] = i;
@@ -466,12 +416,6 @@ SMT::save()
     }
     hashTable.clear();
     if( verbose ) cout << endl;
-    smt.close();
-
-    // retroactively fix up the tile count.
-    smt.open(filename, ios::binary | ios::in | ios::out );
-    smt.seekp( 20);
-    smt.write( (char *)&nTiles, 4);
     smt.close();
 
     // Save tileindex

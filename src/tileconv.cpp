@@ -224,21 +224,9 @@ main( int argc, char **argv )
     smt.cnet = cnet;
     smt.stride = stride;
 
-    // if either the image width or length is nor specified then load the
-    // diffuse image and guess the size based on that. or else set the sizes
-    // to 8x8
-/*    if(! (width && length) )
-    {
-        ImageSpec imageSpec;
-        ImageBuf *imageBuf = new ImageBuf( sourceFiles[ 0 ] );
-        imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-        if( imageBuf->initialized() ) {
-            imageSpec = imageBuf->spec();
-            if(! width ) width = imageSpec.width / 512 * stride;
-            if(! length ) length = imageSpec.height / 512 * stride;
-        }
-        delete imageBuf;
-    }*/
+    // FIXME - auto detect stride
+    // FIXME - auto detect map size
+
     if( width < 2 ) width = 8;
     if( length < 2 ) length = 8;
 
