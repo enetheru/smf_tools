@@ -198,13 +198,13 @@ main( int argc, char **argv )
             smt.load( opt.arg );
             break;
         case OUTPUT:
-            smt.setSaveFile( opt.arg );
+            smt.setSaveFN( opt.arg );
             break;
         case DECALS:
-            smt.setDecalFile( opt.arg );
+            smt.setDecalFN( opt.arg );
             break;
         case TILEMAP:
-            smt.setTilemap( opt.arg );
+            smt.setTilemapFN( opt.arg );
             break;
         }
     }

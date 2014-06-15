@@ -56,10 +56,10 @@ class SMT {
           tileSize;
 
     // Input Files
-    string loadFile    = "";
-    string saveFile    = "";
-    string tilemapFile = "";
-    string decalFile   = "";
+    string loadFN    = "";
+    string saveFN    = "";
+    string tilemapFN = "";
+    string decalFN   = "";
     vector<string> sourceFiles;
     
 public:
@@ -74,15 +74,15 @@ public:
     SMT() { setType( DXT1 ); };
     SMT( string file ) { load( file ); };
 
-    void   setLoadFile ( string s ){ loadFile    = s; };
-    void   setSaveFile ( string s ){ saveFile    = s; };
-    void   setTilemap  ( string s ){ tilemapFile = s; };
-    void   setDecalFile( string s ){ decalFile   = s; };
+    void   setLoadFN    ( string s ){ loadFN    = s; };
+    void   setSaveFN    ( string s ){ saveFN    = s; };
+    void   setTilemapFN ( string s ){ tilemapFN = s; };
+    void   setDecalFN   ( string s ){ decalFN   = s; };
 
-    string getLoadFN   ( ){ return loadFile; };
-    string getSaveFN   ( ){ return saveFile; };
-    string getTilemapFN( ){ return tilemapFile; };
-    string getDecalFN  ( ){ return decalFile; };
+    string getLoadFN   ( ){ return loadFN; };
+    string getSaveFN   ( ){ return saveFN; };
+    string getTilemapFN( ){ return tilemapFN; };
+    string getDecalFN  ( ){ return decalFN; };
 
 
     // size is in spring map units.
@@ -95,10 +95,10 @@ public:
     void setType( int comp ); // 1=DXT1
 
     bool load();
-    bool load( string s ){ loadFile = s; return load(); };
+    bool load( string s ){ loadFN = s; return load(); };
 
     bool save();
-    bool save( string s ){ saveFile = s; return save(); };
+    bool save( string s ){ saveFN = s; return save(); };
 
     bool save2();
 
@@ -117,7 +117,7 @@ public:
     // Collate input images into one large buffer using stride
     ImageBuf *buildBig();
 
-    // using decalFile, paste images onto the bigBuf
+    // using decalFN, paste images onto the bigBuf
     void pasteDecals(ImageBuf *bigBuf);    
 
     bool decompile();

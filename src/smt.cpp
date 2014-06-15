@@ -42,22 +42,22 @@ SMT::load()
     bool status = false;
 
     // Test File
-    if( loadFile.compare( "" ) )
+    if( loadFN.compare( "" ) )
     {
-        inFile.open( loadFile.c_str(), ifstream::in );
+        inFile.open( loadFN, ifstream::in );
         if(! inFile.good() )
         {
-            if(! quiet )printf( "ERROR: Cannot open '%s'\n", loadFile.c_str() ); 
+            if(! quiet ) cout << "ERROR: Cannot open " << loadFN << endl; 
             status = true;
         } else {
             inFile.read( magic, 16 );
             if( strcmp( magic, "spring tilefile" ) )
             {
-                if(! quiet ) printf( "ERROR: %s is not a valid smt\n", loadFile.c_str() );
+                if(! quiet ) cout << "ERROR: invalid smt " << loadFN << endl;
                 status = true;
             }
         }
-    } else status = true; // loadFile.compare( "" )
+    } else status = true; // loadFN.compare( "" )
 
     if( status ) {
         inFile.close();
@@ -69,7 +69,7 @@ SMT::load()
     inFile.close();
 
     if( verbose ) {
-        cout << "INFO: " << loadFile << endl;
+        cout << "INFO: " << loadFN << endl;
         cout << "\tSMT Version: " << header.version << endl;
         cout << "\tTiles: " << header.nTiles << endl;
         cout << "\tTileRes: " << header.tileRes << endl;
@@ -88,8 +88,8 @@ SMT::load()
 bool
 SMT::decompile()
 {
-    cout << loadFile << endl;
-    string fileName = this->loadFile.substr(0,this->loadFile.size()-4) + "_tiles.jpg";
+    cout << loadFN << endl;
+    string fileName = this->loadFN.substr(0,this->loadFN.size()-4) + "_tiles.jpg";
     if(verbose )cout << "INFO: Saving to " << fileName << endl;
 
     ImageBuf *bigBuf = getBig();
@@ -109,7 +109,7 @@ bool
 SMT::append( ImageBuf &tile )
 // Code assumes that tiles are DXT1 compressed at this stage
 {
-    fstream smtFile( this->saveFile, ios::binary | ios::out | ios::app );
+    fstream smtFile( this->saveFN, ios::binary | ios::out | ios::app );
    
     unsigned char *std = (unsigned char *)tile.localpixels();
 
@@ -140,7 +140,7 @@ SMT::append( ImageBuf &tile )
     this->nTiles += 1;
 
     // retroactively fix up the tile count.
-    smtFile.open( this->saveFile, ios::binary | ios::in | ios::out );
+    smtFile.open( this->saveFN, ios::binary | ios::in | ios::out );
     smtFile.seekp( 20 );
     smtFile.write( (char *)&(this->nTiles), 4 );
     smtFile.close();
@@ -151,9 +151,9 @@ SMT::append( ImageBuf &tile )
 bool
 SMT::save2()
 {
-    if( verbose ) cout << "\nINFO: Creating " << saveFile << endl;
+    if( verbose ) cout << "\nINFO: Creating " << saveFN << endl;
 
-    fstream smtFile( saveFile, ios::binary | ios::out );
+    fstream smtFile( saveFN, ios::binary | ios::out );
     if( !smtFile.good() ) {
         cout << "ERROR: fstream error." << endl;
         return true;
@@ -244,8 +244,8 @@ SMT::save()
     // Build SMT Header //
     //////////////////////
 
-    if( verbose ) cout << "\nINFO: Creating " << saveFile << endl;
-    fstream smt( saveFile, ios::binary | ios::out );
+    if( verbose ) cout << "\nINFO: Creating " << saveFN << endl;
+    fstream smt( saveFN, ios::binary | ios::out );
     if( !smt.good() ) {
         cout << "ERROR: fstream error." << endl;
         return true;
@@ -277,7 +277,7 @@ SMT::save()
     ImageSpec bigSpec = bigBuf->spec();
 
     // Process decals
-    if( !decalFile.empty() ) {
+    if( !decalFN.empty() ) {
         if( verbose )cout << "INFO: Processing decals\n";
         pasteDecals( bigBuf );
     }
@@ -317,7 +317,7 @@ SMT::save()
     deque<TileBufListEntry *> tileList;
 
     // Open smt file for writing tiles
-    smt.open(saveFile, ios::binary | ios::out | ios::app );
+    smt.open(saveFN, ios::binary | ios::out | ios::app );
 
     // loop through tile columns
     for ( int z = 0; z < tcz; z++) {
@@ -338,7 +338,7 @@ SMT::save()
 
             ImageBuf tempBuf;
             ImageBufAlgo::crop( tempBuf, *bigBuf, roi );
-            ImageBuf *tileBuf = new ImageBuf( saveFile, tileSpec, tempBuf.localpixels() );
+            ImageBuf *tileBuf = new ImageBuf( saveFN, tileSpec, tempBuf.localpixels() );
 
             // reset match variables
             match = false;
@@ -423,7 +423,7 @@ SMT::save()
 
     // Save tileindex
     ImageOutput *imageOutput;
-    string tilemapFN = saveFile.substr( 0, saveFile.size() - 4 ) + "_tilemap.exr";
+    string tilemapFN = saveFN.substr( 0, saveFN.size() - 4 ) + "_tilemap.exr";
     
     imageOutput = ImageOutput::create( tilemapFN );
     if(! imageOutput ) {
@@ -450,7 +450,7 @@ SMT::getTile(int tile)
     ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
     unsigned char *data;
 
-    ifstream smt( loadFile.c_str() );
+    ifstream smt( loadFN );
     if( smt.good() ) {
         unsigned char *temp = new unsigned char[ tileSize ];
         smt.seekg( sizeof(SMTHeader) + tile * tileSize );
@@ -543,7 +543,7 @@ ImageBuf *
 SMT::getBig()
 {
     ImageBuf *bigBuf = NULL;
-    if(! tilemapFile.compare("") ) {
+    if(! tilemapFN.compare("") ) {
         bigBuf = collateBig();
     } else {
         bigBuf = reconstructBig();
@@ -555,7 +555,7 @@ ImageBuf *
 SMT::collateBig()
 {
     if( verbose )cout << "INFO: Collating Big\n";
-    if( !loadFile.compare("") ) {
+    if( !loadFN.compare("") ) {
         if( !quiet )cout << "ERROR: No SMT Loaded." << endl;
         return NULL;
     }
@@ -593,25 +593,24 @@ ImageBuf *
 SMT::reconstructBig()
 {
     if( verbose )cout << "INFO: Reconstructing Big\n";
-    if( verbose )cout << "INFO: Loading tilemap from: " << tilemapFile << endl;
+    if( verbose )cout << "INFO: Loading tilemap from: " << tilemapFN << endl;
 
     //Load tilemap from SMF
     ImageBuf *tilemapBuf = NULL;
-    if( is_smf( tilemapFile ) ) {
-        SMF sourcesmf( tilemapFile );
+    if( is_smf( tilemapFN ) ) {
+        SMF sourcesmf( tilemapFN );
         tilemapBuf = sourcesmf.getTilemap();
     }
 
     // Else load tilemap from image
     if(! tilemapBuf )
     {
-        tilemapBuf = new ImageBuf( tilemapFile );
+        tilemapBuf = new ImageBuf( tilemapFN );
         tilemapBuf->read( 0, 0, true, TypeDesc::UINT );
         if(! tilemapBuf->initialized() )
         {
             delete tilemapBuf;
-            if(! quiet ) printf( "ERROR: %s cannot be loaded.\n",
-                tilemapFile.c_str() );
+            if(! quiet ) cout << "ERROR: cannot load " <<  tilemapFN << endl;
             return NULL;
         }
     }
@@ -645,7 +644,7 @@ SMT::reconstructBig()
     cout << endl;
 
     delete tilemapBuf;
-    if( is_smf( tilemapFile ) ) delete [] tilemap;
+    if( is_smf( tilemapFN ) ) delete [] tilemap;
     
     return bigBuf;    
 }
@@ -668,8 +667,8 @@ SMT::pasteDecals(ImageBuf *bigBuf)
     vector<type> list;
 
     // Parse the file
-    printf( "INFO: Reading %s\n", decalFile.c_str() );
-    ifstream decalList( decalFile.c_str() );
+    cout << "INFO: Reading " << decalFN << endl;
+    ifstream decalList( decalFN );
 
     string line;
     string cell;
