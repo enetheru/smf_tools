@@ -176,21 +176,30 @@ SMT::save2()
     smtFile.write( (char *)&smtHeader, sizeof(SMTHeader) );
     smtFile.close();
 
+    // Tile buffer
+    ImageSpec tileSpec(tileRes, tileRes, 4, TypeDesc::UINT8 );
+    ImageBuf *tileBuf = new ImageBuf( "tileBuf", tileSpec );
+
+    // Fill the alpha channel
+    const float fill[] = {0,0,0,255};
+    ImageBufAlgo::fill( *tileBuf, fill );
+
     // for each source image, load, scale, swizzle, etc.
-    ImageBuf imageBuf;
+    ImageBuf *imageBuf;
     ImageSpec imageSpec;
     ImageBuf fixBuf; 
     ROI roi( 0, tileRes, 0, tileRes, 0, 1, 0, 4 );
     for( unsigned int i = 0; i < sourceFiles.size(); ++i)
     {
         // Load
-        imageBuf.reset( sourceFiles[ i ] );
-        imageBuf.read( 0, 0, true, TypeDesc::UINT8 );
-        if(! imageBuf.initialized() ) {
-            if(! quiet ) printf("ERROR: cannot read: %s\n", sourceFiles[ i ].c_str() );
+        imageBuf = new ImageBuf( sourceFiles[ i ] );
+        imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
+        if(! imageBuf->initialized() ) {
+            if(! quiet ) cout << "ERROR: cannot read: " << sourceFiles[ i ] << endl;
             continue;
         }
-        imageSpec = imageBuf.spec();
+        imageSpec = imageBuf->spec();
+
 
         // Scale
         roi.chbegin = 0; roi.chend = 4;
@@ -199,30 +208,26 @@ SMT::save2()
                 printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
                     " Resampling.\n",
                     imageSpec.width, imageSpec.height, roi.xend, roi.yend );
-            ImageBufAlgo::resample( fixBuf, imageBuf, false, roi );
-            imageBuf.copy( fixBuf );
+            ImageBufAlgo::resample( fixBuf, *imageBuf, false, roi );
+            imageBuf->copy( fixBuf );
             fixBuf.clear();
         }
 
-        // Fill the alpha channel
-        roi.chend = 3;
-        roi.chbegin = 3;
-        ImageBufAlgo::add( fixBuf, imageBuf, 1, roi );
-        imageBuf.copy(fixBuf);
-        fixBuf.clear();
+        ImageBufAlgo::paste( *tileBuf ,0, 0, 0, 0, *imageBuf );
 
         // Swizzle
         if( verbose )cout << "INFO: Swizzling channels\n";
         int map[] = { 2, 1, 0, 3 };
-        ImageBufAlgo::channels( fixBuf, imageBuf, 4, map );
-        imageBuf.copy( fixBuf );
+        ImageBufAlgo::channels( fixBuf, *tileBuf, 4, map );
+        tileBuf->copy( fixBuf );
         fixBuf.clear();
 
+        tileBuf->save(sourceFiles[ i ].substr(0,sourceFiles[i].size()-4) + "_processed.jpg","jpg");
 
-        append(imageBuf);
-
-        imageBuf.clear();
+        append(*tileBuf);
+        delete imageBuf;
     }
+    delete tileBuf;
 
     return true;
 }
@@ -514,7 +519,8 @@ SMT::buildBig()
         int y = regionSpec.height * (i / stride);
         y = bigSpec.height - y - regionSpec.height;
 
-        ImageBufAlgo::paste( *bigBuf, x, y, 0, 0, *regionBuf );    
+        ImageBufAlgo::paste( *bigBuf, x, y, 0, 0, *regionBuf );
+        delete regionBuf;
     }
     if( verbose )cout << endl;
 

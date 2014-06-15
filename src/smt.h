@@ -74,26 +74,36 @@ public:
     SMT() { setType( DXT1 ); };
     SMT( string file ) { load( file ); };
 
-    void setLoadFile(   string s ) { loadFile    = s;             };
-    void setSaveFile(   string s ) { saveFile    = s;             };
-    void setTilemap(    string s ) { tilemapFile = s;             };
-    void setDecalFile(  string s ) { decalFile   = s;             };
-    void addTileSource( string s ) { sourceFiles.push_back( s );  };
+    void   setLoadFile ( string s ){ loadFile    = s; };
+    void   setSaveFile ( string s ){ saveFile    = s; };
+    void   setTilemap  ( string s ){ tilemapFile = s; };
+    void   setDecalFile( string s ){ decalFile   = s; };
+
+    string getLoadFN   ( ){ return loadFile; };
+    string getSaveFN   ( ){ return saveFile; };
+    string getTilemapFN( ){ return tilemapFile; };
+    string getDecalFN  ( ){ return decalFile; };
+
 
     // size is in spring map units.
-    void setSize( int w, int l )    { width = w; length = l; };
+    void setWidth ( int w ){ width  = w; };
+    void setLength( int l ){ length = l; };
+    void setSize  ( int s ){ width  = length = s; };
+    void setSize  ( int w, int l ){ width = w; length = l; };
+
+    void addTileSource( string s ){ sourceFiles.push_back( s ); };
+    void setType( int comp ); // 1=DXT1
 
     bool load();
-    bool load( string s )    { loadFile = s; return load(); };
+    bool load( string s ){ loadFile = s; return load(); };
 
     bool save();
-    bool save( string s )    { saveFile = s; return save(); };
+    bool save( string s ){ saveFile = s; return save(); };
 
     bool save2();
 
     bool append(ImageBuf &);
 
-    void setType( int comp ); // 1=DXT1
 
     // pull a RGBA tile from the loaded smt file.
     ImageBuf *getTile(int tile);

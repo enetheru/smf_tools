@@ -162,52 +162,49 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
-    bool verbose, quiet, extract, slow_dxt1;
-    options[ VERBOSE   ] ? verbose   = true : verbose   = false;
-    options[ QUIET     ] ? quiet     = true : quiet     = false;
-    options[ EXTRACT   ] ? extract   = true : extract   = false;
-    options[ SLOW_DXT1 ] ? slow_dxt1 = true : slow_dxt1 = false;
+    SMT smt;
+    bool extract;
 
-    vector<string> sourceFiles;
+    options[ VERBOSE   ] ? smt.verbose   = true : smt.verbose   = false;
+    options[ QUIET     ] ? smt.quiet     = true : smt.quiet     = false;
+    options[ SLOW_DXT1 ] ? smt.slow_dxt1 = true : smt.slow_dxt1 = false;
+    options[ EXTRACT   ] ? extract       = true : extract       = false;
+
     for( option::Option* opt = options[ SOURCES ]; opt; opt = opt->next() )
-        sourceFiles.push_back( opt->arg );
-
-    int width = 0, length = 0, cnum = 32, cnet = 4, stride = 1;
-    float cpet = 1.0f / 255.0f;
-    string outputFN, inputFile, tilemapFile, decalFile;
+        smt.addTileSource( opt->arg );
 
     for( int i = 0; i < parse.optionsCount(); ++i ) {
         option::Option& opt = buffer[ i ];
         switch( opt.index() ) {
         case WIDTH:
-            width = atoi( opt.arg );
+            smt.setWidth( stoi( opt.arg ) );
             break;
         case LENGTH:
-            length = atoi( opt.arg );
+            smt.setLength( stoi( opt.arg ) );
             break;
         case CNUM:
-            cnum = atoi( opt.arg );
+            smt.cnum = stoi( opt.arg );
             break;
         case CNET:
-            cnet = atoi( opt.arg );
+            smt.cnet = stoi( opt.arg );
             break;
         case CPET:
-            cpet = atof( opt.arg );
+            smt.cpet = stof( opt.arg );
             break;
         case STRIDE:
-            stride = atoi( opt.arg );
+            smt.stride = stoi( opt.arg );
             break;
         case INPUT:
-            inputFile = opt.arg;
+            smt.load( opt.arg );
             break;
         case OUTPUT:
-            outputFN = opt.arg;
+            smt.setSaveFile( opt.arg );
             break;
         case DECALS:
-            decalFile = opt.arg;
+            smt.setDecalFile( opt.arg );
             break;
         case TILEMAP:
-            tilemapFile = opt.arg;
+            smt.setTilemap( opt.arg );
             break;
         }
     }
@@ -215,41 +212,12 @@ main( int argc, char **argv )
     delete[] options;
     delete[] buffer;
     
-    SMT smt;
-    smt.verbose = verbose;
-    smt.quiet = quiet;
-    smt.slow_dxt1 = slow_dxt1;
-    smt.cnum = cnum;
-    smt.cpet = cpet;
-    smt.cnet = cnet;
-    smt.stride = stride;
-
     // FIXME - auto detect stride
     // FIXME - auto detect map size
 
-    if( width < 2 ) width = 8;
-    if( length < 2 ) length = 8;
+    if(! smt.getSaveFN().empty() ) smt.save2();
 
-    smt.setSize( width, length );
-    smt.setDecalFile( decalFile );
-
-    if( sourceFiles.size() > 0) {
-        vector< string >::iterator it;
-        for( it = sourceFiles.begin(); it != sourceFiles.end(); it++ )
-            smt.addTileSource( *it );
-    }
-
-    if(! outputFN.empty() ) {
-        smt.setSaveFile( outputFN );
-        smt.save();
-    }
-
-    smt.setTilemap( tilemapFile );
-
-    if( !inputFile.empty() ) {
-        smt.load( inputFile );
-        if( extract ) smt.decompile();
-    }
+    if( extract ) smt.decompile();
 
     exit(0);
 }
