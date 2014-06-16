@@ -45,7 +45,6 @@ do {                                                \
 //this is followed by the raw data for the tiles
 
 class SMT {
-    SMTHeader header;
     int   width     = 8,
           length    = 8;
 
@@ -92,6 +91,7 @@ public:
 
     // Tile
     void addTileSource( string s ){ sourceFiles.push_back( s ); };
+    vector<string> getSourceFiles(){ return sourceFiles; };
     void setTileRes( int s    ){ tileRes = s; setType(tileType); };
     void setType   ( int comp ); // 1=DXT1
 

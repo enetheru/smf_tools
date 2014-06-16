@@ -39,6 +39,8 @@ SMT::setType(int tileType)
 bool
 SMT::load()
 {
+    SMTHeader header;
+
     ifstream inFile;
     char magic[16];
     bool status = false;
@@ -82,7 +84,9 @@ SMT::load()
             status = true;
         }
     }
+
     this->tileRes = header.tileRes;
+    this->nTiles = header.nTiles;
     setType( header.tileType );
     return status;
 }
@@ -456,7 +460,7 @@ ImageBuf *
 SMT::getTile(int t)
 {
     ImageBuf *imageBuf = NULL; // resulting tile
-    ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
+    ImageSpec imageSpec( tileRes, tileRes, 4, TypeDesc::UINT8 );
     unsigned char *rgba8888; //decompressed rgba8888
     unsigned char *raw_dxt1a; //raw dxt1a data from source file.
 
@@ -468,7 +472,7 @@ SMT::getTile(int t)
         smtFile.seekg( sizeof(SMTHeader) + tileSize * t );
         smtFile.read( (char *)raw_dxt1a, tileSize );
 
-        rgba8888 = dxt1_load( raw_dxt1a, header.tileRes, header.tileRes );
+        rgba8888 = dxt1_load( raw_dxt1a, tileRes, tileRes );
         delete [] raw_dxt1a;
 
         imageBuf = new ImageBuf( loadFN + "_" + to_string(t), imageSpec, rgba8888);
@@ -580,26 +584,26 @@ SMT::collateBig()
     ImageBuf *tileBuf = NULL;
 
     // Allocate Image size large enough to accomodate the tiles,
-    int collateStride = ceil(sqrt(header.nTiles));
-    int bigRes = collateStride * header.tileRes;
+    int collateStride = ceil(sqrt(nTiles));
+    int bigRes = collateStride * tileRes;
     ImageSpec bigSpec(bigRes, bigRes, 4, TypeDesc::UINT8 );
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
 
 
     // Loop through tiles copying the data to our image buffer
-    for(int i = 0; i < header.nTiles; ++i ) {
+    for(int i = 0; i < nTiles; ++i ) {
         // Pull data
         tileBuf = getTile(i);
 
-        int dx = header.tileRes * (i % collateStride);
-        int dy = header.tileRes * (i / collateStride);
+        int dx = tileRes * (i % collateStride);
+        int dy = tileRes * (i / collateStride);
 
         ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *tileBuf);
 
         delete [] (unsigned char *)tileBuf->localpixels();
         delete tileBuf;
         if( verbose )printf("\033[0GINFO: Processing tile %i of %i.",
-            i+1, header.nTiles );
+            i+1, nTiles );
     }
     if( verbose ) cout << endl;
 

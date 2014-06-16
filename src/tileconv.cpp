@@ -275,7 +275,14 @@ main( int argc, char **argv )
     for( int i = 0; i < parse.nonOptionsCount(); ++i )
         smt.addTileSource( parse.nonOption( i ) );
 
+    if(! options[ STRIDE ] ){
+        if( options[ SOURCE ] ){
+           smt.stride = ceil( sqrt( smt.getSourceFiles().size() ) );
+        }
+    }
     // FIXME - auto detect stride
+
+///    if(! options[ MAPSIZE ] )
     // FIXME - auto detect map size
 
     if( options[ OUTPUT ] )
@@ -324,7 +331,6 @@ valxval( string s, int &x, int &y)
 {
     unsigned int d;
     d = s.find_first_of( 'x', 0 );
-    cout << d << " " << s.size() << endl;
 
     if(d) x = stoi( s.substr( 0, d ) );
     else x = 0;
