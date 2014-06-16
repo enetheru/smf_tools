@@ -79,46 +79,50 @@ public:
     void   setTilemapFN ( string s ){ tilemapFN = s; };
     void   setDecalFN   ( string s ){ decalFN   = s; };
 
-    string getLoadFN   ( ){ return loadFN; };
-    string getSaveFN   ( ){ return saveFN; };
+    string getLoadFN   ( ){ return loadFN;    };
+    string getSaveFN   ( ){ return saveFN;    };
     string getTilemapFN( ){ return tilemapFN; };
-    string getDecalFN  ( ){ return decalFN; };
+    string getDecalFN  ( ){ return decalFN;   };
 
+    // Map
+    void setWidth  ( int w ){ width  = w; };
+    void setLength ( int l ){ length = l; };
+    void setSize   ( int s ){ width  = length = s; };
+    void setSize   ( int w, int l ){ width = w; length = l; };
 
-    // size is in spring map units.
-    void setWidth ( int w ){ width  = w; };
-    void setLength( int l ){ length = l; };
-    void setSize  ( int s ){ width  = length = s; };
-    void setSize  ( int w, int l ){ width = w; length = l; };
-
+    // Tile
     void addTileSource( string s ){ sourceFiles.push_back( s ); };
-    void setType( int comp ); // 1=DXT1
+    void setTileRes( int s    ){ tileRes = s; setType(tileType); };
+    void setType   ( int comp ); // 1=DXT1
 
+    int getTileType( ){ return tileType; };
+    int getTileRes ( ){ return tileRes;  };
+    int getTileSize( ){ return tileSize; };
+
+    // === Actions input ===
     bool load();
     bool load( string s ){ loadFN = s; return load(); };
+    ImageBuf *getTile(int tile);
 
+    // === Actions modify ===
+    // stitch the tiles loaded from the smt together
+    ImageBuf *getBig(); // calls either collate or reconstruct
+    ImageBuf *collateBig();
+    ImageBuf *reconstructBig();
+
+    // stitch the tiles from source images together
+    ImageBuf *buildBig();
+
+    // paste decals onto tiles.
+    void pasteDecals(ImageBuf *bigBuf);    
+
+    // === Actions output ===
     bool save();
     bool save( string s ){ saveFN = s; return save(); };
 
     bool save2();
 
     bool append(ImageBuf &);
-
-
-    // pull a RGBA tile from the loaded smt file.
-    ImageBuf *getTile(int tile);
-
-    // pull the whole set of tiles, either as a collated image, or if tilemap
-    // is specified as a reconstruction.
-    ImageBuf *getBig();
-    ImageBuf *collateBig();
-    ImageBuf *reconstructBig();
-    
-    // Collate input images into one large buffer using stride
-    ImageBuf *buildBig();
-
-    // using decalFN, paste images onto the bigBuf
-    void pasteDecals(ImageBuf *bigBuf);    
 
     bool decompile();
 };

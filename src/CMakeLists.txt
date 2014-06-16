@@ -1,4 +1,5 @@
 add_executable( mapconv
+    config.h
 	mapconv.cpp
 	nvtt_output_handler.cpp nvtt_output_handler.h
 	dxt1load.cpp dxt1load.h
@@ -8,6 +9,7 @@ add_executable( mapconv
 target_link_libraries( mapconv ${LIBS} )
 
 add_executable( tileconv
+    config.h
 	tileconv.cpp
 	nvtt_output_handler.cpp nvtt_output_handler.h
 	dxt1load.cpp dxt1load.h

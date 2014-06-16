@@ -93,7 +93,7 @@ struct Arg: public option::Arg
 };
 
 enum optionsIndex { UNKNOWN, HELP, VERBOSE, QUIET, EXTRACT, SLOW_DXT1, CNUM, CPET,
-    CNET, INPUT, OUTPUT, TILEMAP, STRIDE, WIDTH, LENGTH, DECALS, SOURCES };
+    CNET, INPUT, OUTPUT, TILEMAP, STRIDE, WIDTH, LENGTH, DECALS, SOURCES, TILERES };
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
@@ -131,6 +131,8 @@ const option::Descriptor usage[] = {
         "\t--cnet  \tErrors threshold 0-1024." },
     { DECALS, 0, "", "decals", Arg::Required,
         "\t--decals  \tFile to parse when pasting decals." },
+    { TILERES, 0, "", "tileres", Arg::Numeric,
+        "\t--tileres  \tthe width and length of a tile." },
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
         "  tileconv --sources diffuse.jpg -o filename\n"
@@ -205,6 +207,8 @@ main( int argc, char **argv )
             break;
         case TILEMAP:
             smt.setTilemapFN( opt.arg );
+        case TILERES:
+            smt.setTileRes( stoi(opt.arg) );
             break;
         }
     }

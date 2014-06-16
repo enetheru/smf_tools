@@ -1,3 +1,4 @@
+#include "config.h"
 #include "smt.h"
 
 #include <fstream>
@@ -18,12 +19,13 @@ SMT::setType(int tileType)
     tileSize = 0;
     // Calculate the size of the tile data
     // size is the raw format of dxt1 with 4 mip levels
+    // DXT1 consists of 64 bits per 4x4 block of pixels.
     // 32x32, 16x16, 8x8, 4x4
     // 512  + 128  + 32 + 8 = 680
     if(tileType == DXT1) {
         int mip = tileRes;
         for( int i=0; i < 4; ++i) {
-            tileSize += mip/4 * mip/4 * 8;
+            tileSize += (mip * mip)/2;
             mip /= 2;
         }
     } else {
@@ -80,7 +82,7 @@ SMT::load()
             status = true;
         }
     }
-
+    this->tileRes = header.tileRes;
     setType( header.tileType );
     return status;
 }
@@ -114,7 +116,7 @@ SMT::append( ImageBuf &tile )
     unsigned char *std = (unsigned char *)tile.localpixels();
 
     // process into dds
-    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( this->tileSize );
+    nvtt::Compressor compressor;
 
     nvtt::InputOptions inputOptions;
     inputOptions.setTextureLayout( nvtt::TextureType_2D, this->tileRes, this->tileRes );
@@ -122,17 +124,27 @@ SMT::append( ImageBuf &tile )
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1a );
-
-    nvtt::OutputOptions outputOptions;
-    outputOptions.setOutputHeader( false );
-    outputOptions.setOutputHandler( nvttHandler );
-
-    nvtt::Compressor compressor;
     if( this->slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
     else           compressionOptions.setQuality( nvtt::Quality_Fastest ); 
+
+    nvtt::OutputOptions outputOptions;
+
+#ifdef DEBUG_IMG    
+    static int i = 0;    
+    outputOptions.setOutputHeader( true );
+    outputOptions.setFileName( ("append(...)" + to_string(i) + ".dds").c_str() );
+    ++i;
+
+    compressor.process( inputOptions, compressionOptions, outputOptions );
+#endif //DEBUG_IMG
+
+    outputOptions.setOutputHeader( false );
+    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( this->tileSize );
+    outputOptions.setOutputHandler( nvttHandler );
+
     compressor.process( inputOptions, compressionOptions, outputOptions );
 
-    smtFile.write( nvttHandler->buffer, this->tileSize );
+    smtFile.write( nvttHandler->getBuffer(), this->tileSize );
     smtFile.close();
 
     delete nvttHandler;
@@ -216,13 +228,10 @@ SMT::save2()
         ImageBufAlgo::paste( *tileBuf ,0, 0, 0, 0, *imageBuf );
 
         // Swizzle
-        if( verbose )cout << "INFO: Swizzling channels\n";
         int map[] = { 2, 1, 0, 3 };
         ImageBufAlgo::channels( fixBuf, *tileBuf, 4, map );
         tileBuf->copy( fixBuf );
         fixBuf.clear();
-
-        tileBuf->save(sourceFiles[ i ].substr(0,sourceFiles[i].size()-4) + "_processed.jpg","jpg");
 
         append(*tileBuf);
         delete imageBuf;
@@ -444,24 +453,32 @@ SMT::save()
 }
 
 ImageBuf *
-SMT::getTile(int tile)
+SMT::getTile(int t)
 {
-    ImageBuf *imageBuf = NULL;
+    ImageBuf *imageBuf = NULL; // resulting tile
     ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
-    unsigned char *data;
+    unsigned char *rgba8888; //decompressed rgba8888
+    unsigned char *raw_dxt1a; //raw dxt1a data from source file.
 
-    ifstream smt( loadFN );
-    if( smt.good() ) {
-        unsigned char *temp = new unsigned char[ tileSize ];
-        smt.seekg( sizeof(SMTHeader) + tile * tileSize );
-        smt.read( (char *)temp, tileSize );
-        data = dxt1_load( temp, header.tileRes, header.tileRes );
-        delete [] temp;
-        char name[11];
-        sprintf(name, "tile%6i", tile);
-        imageBuf = new ImageBuf( name, imageSpec, data);
+    ifstream smtFile( loadFN );
+    if( smtFile.good() )
+    {
+        raw_dxt1a = new unsigned char[ tileSize ];
+
+        smtFile.seekg( sizeof(SMTHeader) + tileSize * t );
+        smtFile.read( (char *)raw_dxt1a, tileSize );
+
+        rgba8888 = dxt1_load( raw_dxt1a, header.tileRes, header.tileRes );
+        delete [] raw_dxt1a;
+
+        imageBuf = new ImageBuf( loadFN + "_" + to_string(t), imageSpec, rgba8888);
     }
-    smt.close();
+    smtFile.close();
+
+#ifdef DEBUG_IMG
+    imageBuf->write("getTile(" + to_string(t) + ").jpg", "jpg");
+#endif //DEBUG_IMG
+
     return imageBuf;    
 }
 

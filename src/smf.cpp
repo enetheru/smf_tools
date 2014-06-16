@@ -508,7 +508,7 @@ SMF::saveMinimap()
     compressor.process( inputOptions, compressionOptions, outputOptions );
 
     // Write data to smf
-    smf.write( outputHandler->buffer, MINIMAP_SIZE );
+    smf.write( outputHandler->getBuffer(), MINIMAP_SIZE );
     delete outputHandler;
 
     smf.close();
