@@ -276,8 +276,8 @@ SMT::save()
     smt.close();
 
     // setup size for index dimensions
-    int tcx = width * 16; // tile count x
-    int tcz = length * 16; // tile count z
+    int tcx = width * 512/tileRes; // tile count x
+    int tcz = length * 512/tileRes; // tile count z
     unsigned int *indexPixels = new unsigned int[tcx * tcz];
 
     // Load source image
