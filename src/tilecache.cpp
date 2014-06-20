@@ -14,14 +14,15 @@ ImageBuf *
 TileCache::getTile( unsigned int n )
 {
     ImageBuf *tileBuf = NULL;
+    SMT *smt = NULL;
     if( n > nTiles ) return NULL;
 
     unsigned int i = 0;
     while( map[ i ] < n ) ++i;
 
-    if( isSMT( filenames[ i ] ) ){
-        SMT smt( filenames[ i ] );
-        tileBuf = smt.getTile( map[ i ] - n );
+    if( (smt = SMT::open( filenames[ i ] )) ){
+        tileBuf = smt->getTile( map[ i ] - n );
+        delete smt;
     }
     else if( isImage( filenames[ i ] ) ){
         tileBuf =  new ImageBuf( filenames[ i ] );
@@ -37,7 +38,7 @@ TileCache::getTile( unsigned int n )
 
     // Scale the tile to match output requirements
     ImageBuf fixBuf; 
-    ROI roi( 0, tileSize, 0, tileSize, 0, 1, 0, 4 );
+    ROI roi( 0, tileRes, 0, tileRes, 0, 1, 0, 4 );
     if( spec.width != roi.xend || spec.height != roi.yend ) {
 //            printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
 //                " Resampling.\n",
@@ -67,19 +68,33 @@ TileCache::getTile( unsigned int n )
 }
 
 void
-TileCache::push_back( string s )
+TileCache::push_back( string fileName )
 {
-    if( isImage( s ) ){
+    ImageInput *image;
+    ImageSpec spec;
+    if( (image = ImageInput::open( fileName )) ){
         nTiles++;
         map.push_back( nTiles );
-        filenames.push_back( s );
+        filenames.push_back( fileName );
+
+        if(! tileRes ){
+            spec = image->spec();
+            tileRes = fmin( spec.width, spec.height );
+        }
+        delete image;
+        return;
     }
 
-    if( isSMT( s ) ){
-        SMT smt( s, verbose, quiet );
-        nTiles += smt.getNTiles();
+    SMT *smt = NULL;
+    if( (smt = SMT::open( fileName )) ){
+        nTiles += smt->getNTiles();
         map.push_back( nTiles );
-        filenames.push_back( s );
+        filenames.push_back( fileName );
+
+        if(! tileRes ){
+            tileRes = smt->getTileRes();
+        }
+        delete smt;
+        return;
     }
-    return;
 }

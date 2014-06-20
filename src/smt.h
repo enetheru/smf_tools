@@ -28,13 +28,19 @@ class SMT {
     string fileName    = "output.smt";
     
 public:
-    bool  verbose, quiet,
-          slow_dxt1 = false;
+    bool  verbose = false, quiet = false, slow_dxt1 = false;
 
-    SMT( bool v = false, bool q = false ) : verbose(v), quiet(q) { };
-    SMT( string fileName, bool v = false, bool q = false ) : SMT(v, q) { load( fileName ); };
+    static SMT *create( string fileName,
+            bool overwrite = false,
+            bool verbose = false,
+            bool quiet = false );
 
-    void setFileName( string s );
+    static SMT *open( string fileName,
+            bool verbose = false,
+            bool quiet = false );
+
+    void reset();
+
     string getFileName( ){ return fileName; };
 
     void setTileRes( int s    ){ tileRes = s; setType(tileType); };
@@ -47,7 +53,6 @@ public:
 
     // === Actions input ===
     bool load();
-    bool load( string s ){ setFileName(s); return load(); };
 
     ImageBuf *getTile( int tile );
     bool append( ImageBuf * );

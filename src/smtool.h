@@ -18,7 +18,7 @@ namespace SMTool
     ImageBuf *openTilemap( string filename );
     bool create( string fileName, bool overwrite=false );
     bool consolidate( SMT &smt, TileCache &cache, ImageBuf * tilemap);
-    void imageToSMT( ImageBuf *buf, SMT &smt);
+    void imageToSMT( ImageBuf *buf, SMT *smt);
 
 }
 

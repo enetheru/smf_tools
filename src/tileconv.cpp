@@ -59,7 +59,7 @@ enum optionsIndex
 {
     UNKNOWN,
     // General Options
-    HELP, VERBOSE, QUIET,
+    HELP, VERBOSE, QUIET, FORCE,
     //Specification
     MAPSIZE,
     TILESIZE,
@@ -89,6 +89,8 @@ const option::Descriptor usage[] = {
         "  -v,  \t--verbose  \tPrint extra information." },
     { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress output." },
+    { FORCE, 0, "f", "force", Arg::None,
+        "  -f,  \t--force  \toverwrite existing files." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nSPECIFICATIONS:" },
@@ -161,21 +163,29 @@ main( int argc, char **argv )
     // Setup
     // =====
     //
-    bool verbose = false, quiet = false;
+    bool verbose = false, quiet = false, force = false;
     if( options[ VERBOSE   ] ) verbose = true;
     if( options[ QUIET     ] ) quiet = true;
+    if( options[ FORCE     ] ) force = true;
 
-    SMT smt( verbose, quiet );
+    SMT *smt = NULL;
     SMTool::verbose = verbose;
     SMTool::quiet = quiet;
     TileCache tileCache( verbose, quiet );
 
     // output creation
     if( options[ OUTPUT ] ){
-        if( SMTool::create( options[ OUTPUT ].arg ) ){
+        string fileName = options[ OUTPUT ].arg;
+        if( (smt = SMT::open( fileName, verbose, quiet )) ){
+            cout << "INFO: opened " << fileName << endl;
+        }
+        else if( (smt = SMT::create( fileName, force, verbose, quiet )) ){
+            cout << "INFO: created " << fileName << endl;
+        }
+        else {
+            cout << "ERROR: unable to create " << fileName << endl;
             exit(1);
         }
-        smt.setFileName( options[ OUTPUT ].arg );
     }
 
     // Add to TileCache
@@ -194,21 +204,19 @@ main( int argc, char **argv )
         tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
     }
 
-    // Process Options
-    if( options[ SLOW_DXT1 ] ) smt.slow_dxt1 = true;
+    // fast or normal dxt1 compression, default is fast.
+    if( options[ SLOW_DXT1 ] ) smt->slow_dxt1 = true;
 
     //TileSize
     if( options[ TILESIZE ] ){
-        tileCache.tileSize = stoi( options[ TILESIZE ].arg );
-        smt.setTileRes( tileCache.tileSize );
+        tileCache.tileRes = stoi( options[ TILESIZE ].arg );
+        smt->setTileRes( tileCache.tileRes );
     }
 
     //filter list
     vector<unsigned int> filter;
     if( options[ FILTER ] ){
         filter = expandString( options[ FILTER ].arg );
-        for( auto i = filter.begin(); i != filter.end(); ++i)
-            cout << *i << endl;
     }
     else {
         // have to generate a vector with consecutive numbering;
@@ -221,8 +229,8 @@ main( int argc, char **argv )
     unsigned int hstride = 0, vstride = 0;
     if( options[ MAPSIZE ] ){
         valxval( options[ MAPSIZE ].arg, mx, my);
-        hstride = mx * 512 / tileCache.tileSize;
-        vstride = my * 512 / tileCache.tileSize;
+        hstride = mx * 512 / tileCache.tileRes;
+        vstride = my * 512 / tileCache.tileRes;
     }
     else if( options[ STRIDE ] ){
         hstride = stoi( options[ STRIDE ].arg );
@@ -246,7 +254,7 @@ main( int argc, char **argv )
         for(auto i = filter.begin(); i != filter.end(); ++i ){
             buf = tileCache.getTile( *i );
             if( options[ OUTPUT ] ){
-                smt.append( buf );
+                smt->append( buf );
             }
             else {
                 buf->save( "tile_" + to_string( *i ) + ".tif", "tif");
@@ -263,7 +271,8 @@ main( int argc, char **argv )
         imagename = "reconstruct.tif";
     }
     else if( options[ COLLATE ] ){
-        buf = SMTool::collate( tileCache, hstride, vstride );
+        if( tileCache.getNTiles() == 1) buf = tileCache.getTile(0);
+        else buf = SMTool::collate( tileCache, hstride, vstride );
         imagename = "collate.tif";
     }
     if( buf ) fix.copy( *buf );
@@ -271,6 +280,8 @@ main( int argc, char **argv )
 
     if(! options[ OUTPUT ] ){
         if( options[ IMAGESIZE ] ){
+            cout << "INFO: Scaling to " << iroi.xend << "x" << iroi.yend << endl;
+            buf->clear();
             ImageBufAlgo::resample( *buf, fix, false, iroi);
         }
         buf->save( imagename, "tif" );
@@ -278,6 +289,8 @@ main( int argc, char **argv )
     }
     else {
         if( options[ MAPSIZE ] ){
+            cout << "INFO: Scaling to " << mroi.xend << "x" << mroi.yend << endl;
+            buf->clear();
             ImageBufAlgo::resample( *buf, fix, false, mroi);
         }
         // TODO PROCESS

@@ -130,11 +130,11 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *tilemapBuf)
     tilemapBuf->get_pixels( 0, spec.width, 0, spec.height, 0, 1, TypeDesc::UINT, tilemap );
 
     // allocate enough data for our large image
-    if( verbose ) cout << "\tGenerating " << spec.width * cache.tileSize << "x"
-        << spec.height * cache.tileSize << endl;
+    if( verbose ) cout << "\tGenerating " << spec.width * cache.tileRes << "x"
+        << spec.height * cache.tileRes << endl;
 
-    ImageSpec bigSpec( spec.width * cache.tileSize,
-            spec.height * cache.tileSize, 4, TypeDesc::UINT8 );
+    ImageSpec bigSpec( spec.width * cache.tileRes,
+            spec.height * cache.tileRes, 4, TypeDesc::UINT8 );
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec );
 
     // Loop through tile index
@@ -146,8 +146,8 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *tilemapBuf)
             tileBuf = cache.getTile( tilenum );
             if(! tileBuf ) continue;
 
-            unsigned int xbegin = cache.tileSize * x;
-            unsigned int ybegin = cache.tileSize * y;
+            unsigned int xbegin = cache.tileRes * x;
+            unsigned int ybegin = cache.tileRes * y;
             ImageBufAlgo::paste(*bigBuf, xbegin, ybegin, 0, 0, *tileBuf);
 
             delete tileBuf;
@@ -175,8 +175,8 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
     else if(! vstride ) vstride = ceil( (float)cache.getNTiles() / (float)hstride);
 
     ImageSpec bigSpec(
-            hstride * cache.tileSize,
-            vstride * cache.tileSize,
+            hstride * cache.tileRes,
+            vstride * cache.tileRes,
             4, TypeDesc::UINT8 );
 
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
@@ -190,8 +190,8 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
         // Pull data
         tileBuf = cache.getTile( i );
 
-        unsigned int dx = cache.tileSize * (i % hstride);
-        unsigned int dy = cache.tileSize * (i / hstride);
+        unsigned int dx = cache.tileRes * (i % hstride);
+        unsigned int dy = cache.tileRes * (i / hstride);
 
         ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *tileBuf);
 
@@ -300,12 +300,15 @@ public:
 };
 
 void
-SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
+SMTool::imageToSMT( ImageBuf *buf, SMT *smt )
 {
+    if( verbose )
+        cout << "INFO: Converting image to tiles and saving to smt" << endl;
+    
     // oiio vars
     ImageBuf *tbuf = NULL;
     ImageSpec spec = buf->spec();
-    ImageSpec tspec(smt.getTileRes(), smt.getTileRes(), 4, TypeDesc::UINT8 );
+    ImageSpec tspec( smt->getTileRes(), smt->getTileRes(), 4, TypeDesc::UINT8 );
     ROI roi( 0, 1, 0, 1, 0, 1, 0, 4 );
 
     // setup size for index dimensions
@@ -324,7 +327,6 @@ SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
     fixBuf.clear();
 */
     // Process Tiles
-    if( verbose )cout << "INFO: Processing tiles\n";
 
     // Time reporting vars
     timeval t1, t2;
@@ -345,6 +347,13 @@ SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
     TileBufListEntry *listEntry;
     deque<TileBufListEntry *> tileList;
 
+    if( verbose ){
+        cout << "\tSource: " << spec.width << "x" << spec.height << endl;
+        cout << "\ttileRes: " << tspec.width << "x" << tspec.height << endl;
+        cout << "\ttilemap: " << tcx << "x" << tcz << endl;
+        cout << "\tmaxTiles: " << totalTiles << endl;
+        cout << "  Processing tiles:\n";
+    }
     // loop through tile columns
     for ( int z = 0; z < tcz; z++) {
         // loop through tile rows
@@ -365,7 +374,7 @@ SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
 
             // reset match variables
             match = false;
-            i = smt.getNTiles();
+            i = smt->getNTiles();
 
             if( cnum == 0) {
                 // only exact matches will be referenced.
@@ -382,7 +391,7 @@ SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
                 //Comparison based on numerical differences of pixels
                 listEntry = new TileBufListEntry;
                 listEntry->image.copy(*tbuf);
-                listEntry->tileNum = smt.getNTiles();
+                listEntry->tileNum = smt->getNTiles();
 
                 ImageBufAlgo::CompareResults result;
 
@@ -409,7 +418,7 @@ SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
 
             // write tile to file.
             if( !match ) {
-                smt.append( tbuf );
+                smt->append( tbuf );
             }
 
             delete tbuf;
@@ -432,7 +441,7 @@ SMTool::imageToSMT( ImageBuf *buf, SMT &smt )
                 printf("\033[0G    %i of %i %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
                         currentTile, totalTiles,
                         (float)currentTile / totalTiles * 100,
-                    (float)(1 - (float)smt.getNTiles() / (float)currentTile) * 100,
+                    (float)(1 - (float)smt->getNTiles() / (float)currentTile) * 100,
                     averageTime * (totalTiles - currentTile) / 1000);
             }
         }

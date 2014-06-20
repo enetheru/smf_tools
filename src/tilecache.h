@@ -17,7 +17,7 @@ class TileCache
     vector<string> filenames; 
 public:
     bool verbose, quiet;
-    unsigned int tileSize = 32;
+    unsigned int tileRes = 32;
 
     TileCache( bool v = false, bool q = false ) : verbose(v), quiet(q) { };
 

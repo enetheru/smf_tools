@@ -13,15 +13,51 @@
 using namespace std;
 OIIO_NAMESPACE_USING;
 
-void
-SMT::setFileName( string s )
+SMT *
+SMT::create( string fileName, bool overwrite, bool verbose, bool quiet )
 {
-    ifstream file(s);
-    if( file.good() ){ // file exists
-        if( isSMT( s ) ) fileName = s;
-    } else {
-        fileName = s;
+    SMT *smt;
+    ifstream file( fileName );
+    if( file.good() && !overwrite ) return NULL;
+    
+    smt = new SMT;
+    smt->fileName = fileName;
+    smt->reset();
+    return smt;
+}
+
+SMT *
+SMT::open( string fileName, bool verbose, bool quiet )
+{
+    SMT *smt;
+    if( isSMT( fileName ) ){
+        smt = new SMT;
+        smt->fileName = fileName;
+        smt->load();
+        return smt;
     }
+    return NULL;
+}
+
+void
+SMT::reset()
+{
+    if( verbose ) cout << "INFO: Resetting " << fileName;
+    // Clears content of SMT file and re-writes the header.
+    fstream file( fileName, ios::binary | ios::out );
+
+    if(! file.good() ){
+        if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
+        return;
+    }
+    nTiles = 0;
+    SMTHeader head;
+    head.nTiles = tileSize;
+    head.tileType = tileType;
+
+    file.write( (char *)&head, sizeof(SMTHeader) );
+    file.flush();
+    file.close();
 }
 
 void
@@ -94,30 +130,6 @@ SMT::append( ImageBuf *sourceBuf )
     sourceBuf->save( "SMT::append(...)" + to_string(i) + "_0.tif", "tif" );
 #endif //DEBUG_IMG
 
-    fstream smtFile;
-    // create the file if it doesnt already exist.
-    if(! isSMT( fileName ) ){
-        smtFile.open( this->fileName, ios::binary | ios::out );
-        if( verbose ) cout << "\nINFO: Creating " << fileName << endl;
-        SMTHeader smtHeader;
-        smtHeader.tileRes = tileRes;
-        smtHeader.tileType = tileType;
-
-        if( verbose ) {
-            cout << "    Version: " << smtHeader.version << endl;
-            cout << "    nTiles: n/a\n";
-            printf( "    tileRes: (%i,%i)%i.\n", tileRes, tileRes, 4);
-            cout << "    tileType: ";
-            if( tileType == DXT1 ) cout << "DXT1" << endl;
-            cout << "    tileSize: " << tileSize << " bytes" << endl;
-        }
-
-        // Writing initial header information.
-        smtFile.write( (char *)&smtHeader, sizeof(SMTHeader) );
-        smtFile.flush();
-        smtFile.close();
-    }
-
     // Swizzle
     int map[] = { 2, 1, 0, 3 };
     float fill[] = { 0, 0, 0, 255 };
@@ -128,6 +140,7 @@ SMT::append( ImageBuf *sourceBuf )
     sourceBuf->copy( fixBuf );
 
 
+    fstream smtFile;
     smtFile.open( this->fileName, ios::binary | ios::out | ios::app );
    
 #ifdef DEBUG_IMG
