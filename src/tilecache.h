@@ -1,5 +1,6 @@
 #ifndef TILECACHE_H
 #define TILECACHE_H
+#include "config.h"
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
@@ -11,13 +12,19 @@ using namespace std;
 
 class TileCache
 {
-    int nTiles = 0;
-    vector<int> map;
+    unsigned int nTiles = 0;
+    vector<unsigned int> map;
     vector<string> filenames; 
 public:
+    bool verbose, quiet;
+    unsigned int tileSize = 32;
+
+    TileCache( bool v = false, bool q = false ) : verbose(v), quiet(q) { };
+
+
     void push_back( string );
-    int getNTiles( ){ return nTiles; };
-    ImageBuf* getTile( int );
+    unsigned int getNTiles( ){ return nTiles; };
+    ImageBuf* getTile( unsigned int );
 };
 
 #endif //TILECACHE_H

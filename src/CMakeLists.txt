@@ -4,7 +4,9 @@ add_executable( mapconv
 	nvtt_output_handler.cpp nvtt_output_handler.h
 	dxt1load.cpp dxt1load.h
 	smf.cpp smf.h
-	smt.cpp smt.h )
+	smt.cpp smt.h
+    util.cpp util.h
+    tilecache.cpp tilecache.h )
 
 target_link_libraries( mapconv ${LIBS} )
 
@@ -14,7 +16,10 @@ add_executable( tileconv
 	nvtt_output_handler.cpp nvtt_output_handler.h
 	dxt1load.cpp dxt1load.h
 	smf.cpp smf.h
-	smt.cpp smt.h )
+	smt.cpp smt.h
+    smtool.cpp smtool.h
+    util.cpp util.h
+    tilecache.cpp tilecache.h)
 
 target_link_libraries( tileconv ${LIBS} )
 

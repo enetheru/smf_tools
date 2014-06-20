@@ -9,6 +9,7 @@ OIIO_NAMESPACE_USING
 #include <nvtt/nvtt.h>
 #include "nvtt_output_handler.h"
 #include "dxt1load.h"
+#include "util.h"
 
 SMFHeader::SMFHeader()
 :    version( 1 ), squareWidth( 8 ), squareTexels( 8 ), tileTexels( 32 )
@@ -63,23 +64,6 @@ SMF::recalculate()
 
     featuresPtr += width * 16 * length * 16 * 4;
 
-    return false;
-}
-
-bool
-is_smf( string filename )
-{
-    char magic[ 16 ];
-    // Perform tests for file validity
-    ifstream smf( filename.c_str(), ifstream::in );
-    if( smf.good() ) {
-        smf.read( magic, 16 );
-        // perform test for file format
-        if(! strcmp( magic, "spring map file" ) ) {
-            smf.close();
-            return true;
-        }
-    }
     return false;
 }
 
@@ -272,7 +256,7 @@ SMF::saveHeight()
                 0, 1);              // chbegin, chend
     ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT16 );
 
-    if( is_smf(heightFile) ) {
+    if( isSMF(heightFile) ) {
         // Load from SMF
         SMF sourcesmf(heightFile);
         imageBuf = sourcesmf.getHeight();
@@ -338,7 +322,7 @@ SMF::saveHeight()
     smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
     smf.close();
     delete imageBuf;
-    if( is_smf( heightFile ) ) delete [] pixels;
+    if( isSMF( heightFile ) ) delete [] pixels;
 
     return false;
 }
@@ -355,7 +339,7 @@ SMF::saveType()
                 0, 1);
     ImageSpec imageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
 
-    if( is_smf(typeFile) ) {
+    if( isSMF(typeFile) ) {
         // Load from SMF
         SMF sourcesmf(typeFile);
         imageBuf = sourcesmf.getType();
@@ -408,7 +392,7 @@ SMF::saveType()
     smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
     smf.close();
     delete imageBuf;
-    if( is_smf(typeFile) )delete [] pixels;
+    if( isSMF(typeFile) )delete [] pixels;
 
     return false;
 }
@@ -425,7 +409,7 @@ SMF::saveMinimap()
     smf.seekp(minimapPtr);
 
     unsigned char *pixels;
-    if( is_smf(minimapFile) ) {
+    if( isSMF(minimapFile) ) {
         // Copy from SMF
         pixels = new unsigned char[MINIMAP_SIZE];
 
@@ -529,7 +513,7 @@ SMF::saveMetal()
                 0, 1);              // chbegin, chend
     ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
 
-    if( is_smf(metalFile) ) {
+    if( isSMF(metalFile) ) {
         // Load from smf
         SMF sourcesmf(metalFile);
         imageBuf = sourcesmf.getMetal();
@@ -583,7 +567,7 @@ SMF::saveMetal()
     smf.close();
 
     delete imageBuf;
-    if( is_smf( metalFile ) ) delete [] pixels;
+    if( isSMF( metalFile ) ) delete [] pixels;
 
     return false;
 }
@@ -620,7 +604,7 @@ SMF::saveTilemap()
                 0, 1);              // chbegin, chend
     ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT );
 
-    if( is_smf(tilemapFile) ) {
+    if( isSMF(tilemapFile) ) {
         // Load from SMF
         SMF sourcesmf(tilemapFile);
         imageBuf = sourcesmf.getTilemap();
@@ -669,7 +653,7 @@ SMF::saveTilemap()
     smf.close();
 
     delete imageBuf;
-    if( is_smf( tilemapFile ) ) delete [] pixels;
+    if( isSMF( tilemapFile ) ) delete [] pixels;
 
     return false;
 }
@@ -693,7 +677,7 @@ SMF::saveGrass()
                 0, 1);
     ImageSpec imageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
 
-    if( is_smf(grassFile) ) {
+    if( isSMF(grassFile) ) {
         // Load from SMF
         SMF sourcesmf(grassFile);
         imageBuf = sourcesmf.getGrass();
@@ -748,7 +732,7 @@ SMF::saveGrass()
     smf.close();
     
     delete imageBuf;
-    if( is_smf( grassFile ) ) delete [] pixels;
+    if( isSMF( grassFile ) ) delete [] pixels;
 
     return false;
 }

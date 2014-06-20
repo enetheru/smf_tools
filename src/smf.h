@@ -187,8 +187,6 @@ do {                                             \
     (mfs).s = swabfloat(__tmpfloat);  \
 } while (0)
 
-bool is_smf(string filename);
-
 // Helper Class //
 class SMF {
 

@@ -3,8 +3,18 @@
 
 #include "optionparser.h"
 #include "smt.h"
+#include "smtool.h"
+#include "util.h"
+#include "tilecache.h"
 
-void valxval( string s, int &x, int &y);
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
+using namespace std;
+OIIO_NAMESPACE_USING;
+
+void valxval( string s, unsigned int &x, unsigned int &y);
 vector<unsigned int> expandString( const char *s );
 
 // Argument tests //
@@ -43,87 +53,35 @@ struct Arg: public option::Arg
         if (msg) printError("Option '", option, "' requires a numeric argument\n");
         return option::ARG_ILLEGAL;
     }
-
-    static option::ArgStatus SMT(const option::Option& option, bool smg)
-    {
-        char magic[16];
-        ifstream file(option.arg, ios::in | ios::binary);
-        file.read(magic, 16);
-        if( !strcmp(magic, "spring tilefile") )
-            file.close();
-            return option::ARG_OK;
-
-        fprintf(stderr, "ERROR: '%s' is not a valid spring tile file\n", option.arg);
-        return option::ARG_ILLEGAL;
-    }
-
-    static option::ArgStatus SMF(const option::Option& option, bool smg)
-    {
-        char magic[16];
-        ifstream file(option.arg, ios::in | ios::binary);
-        file.read(magic, 16);
-        if(! strcmp(magic, "spring map file") ) {
-            file.close();
-            return option::ARG_OK;
-        }
-
-        fprintf(stderr, "ERROR: '%s' is not a valid spring map file\n", option.arg);
-        return option::ARG_ILLEGAL;
-    }
-
-    static option::ArgStatus Image(const option::Option& option, bool msg)
-    {
-        /* attempt to load image file */
-        ImageInput *in = ImageInput::open (option.arg);
-        if (! in) {
-            fprintf(stderr, "ERROR: '%s' is not a valid image file\n", option.arg);
-            return option::ARG_ILLEGAL;
-        }
-        in->close();
-        delete in;
-        return option::ARG_OK;
-    }
-
-    static option::ArgStatus File(const option::Option& option, bool msg)
-    {
-        /* attempt to load image file */
-        if(   (SMF(option, msg) == option::ARG_OK)
-            | (Image(option, msg) == option::ARG_OK) )
-            return option::ARG_OK;
-
-        return option::ARG_ILLEGAL;
-    }
 };
 
 enum optionsIndex
 {
     UNKNOWN,
     // General Options
-    HELP,
-    VERBOSE,
-    QUIET,
-    // Construction
+    HELP, VERBOSE, QUIET,
+    //Specification
     MAPSIZE,
     TILESIZE,
-    SOURCE,
+    IMAGESIZE,
     STRIDE,
+    // Creation
     DECALS,
+    FILTER,
     OUTPUT,
     // Compression
     SLOW_DXT1,
     CNUM, CPET, CNET,
     // Deconstruction
-    INPUT,
-    EXTRACT,
+    SEPARATE,
     COLLATE,
-    RECONSTRUCT,
-    IMAGESIZE,
-    APPEND
+    RECONSTRUCT
 };
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: tileconv [options]\n"
+        "USAGE: tileconv [options] [source files] \n"
+        "  eg. 'tileconv -v -o mysmt.smt *.jpg'\n"
         "\nGENERAL OPTIONS:" },
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
@@ -133,52 +91,49 @@ const option::Descriptor usage[] = {
         "  -q,  \t--quiet  \tSupress output." },
 
     { UNKNOWN, 0, "", "", Arg::None,
-        "\nCONSTRUCTION OPTIONS:" },
+        "\nSPECIFICATIONS:" },
     { MAPSIZE, 0, "", "mapsize", Arg::Required,
-        "\t--mapsize  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
+        "\t--mapsize=XxY  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
     { TILESIZE, 0, "", "tilesize", Arg::Numeric,
-        "\t--tilesize  \tXY resolution of tiles to save, eg. '--tilesize=32'." },
-    { SOURCE, 0, "", "source", Arg::Required,
-        "  -s,  \t--source  \tSource files to use for tiles." },
+        "\t--tilesize=X  \tXY resolution of tiles to save, eg. '--tilesize=32'." },
+    { IMAGESIZE, 0, "", "imagesize", Arg::Required,
+        "\t--imagesize=XxY  \tScale the resultant extraction to this size, eg. '--imagesize=1024x768'." },
     { STRIDE, 0, "", "stride", Arg::Numeric,
-        "\t--stride  \tNumber of source tiles horizontally before wrapping." },
-    { DECALS, 0, "", "decals", Arg::Required,
-        "\t--decals  \tFile to parse when pasting decals." },
+        "\t--stride=N  \tNumber of source tiles horizontally before wrapping." },
+    
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nCREATION:" },
+//    { DECALS, 0, "", "decals", Arg::Required,
+//        "\t--decals=filename.csv  \tFile to parse when pasting decals." },
+    { FILTER, 0, "", "filter", Arg::Required,
+        "\t--filter=[1,2,n,1-n]  \tAppend only these tiles" },
     { OUTPUT, 0, "o", "output", Arg::Required,
-        "  -o,  \t--output  \tOutput filename used when saving." },
-    { APPEND, 0, "a", "append", Arg::Required,
-        "  -a,  \t--append  \tTreat images as tiles, scale and save individually." },
+        "  -o,  \t--output=filename.smt  \tfilename to output." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCOMPRESSION OPTIONS:" },
     { SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
         "\t--slow_dxt1  \tUse slower but better analytics when compressing DXT1 textures" },
     { CNUM, 0, "", "cnum", Arg::Numeric,
-        "\t--cnum  \tNumber of tiles to compare; n=-1, no comparison; n=0, hashtable exact comparison; n > 0, numeric comparison between n tiles" },
+        "\t--cnum=[-1,0,N]  \tNumber of tiles to compare; n=-1, no comparison; n=0, hashtable exact comparison; n > 0, numeric comparison between n tiles" },
     { CPET, 0, "", "cpet", Arg::Numeric,
         "\t--cpet  \tPixel error threshold. 0.0f-1.0f" },
-    { CNET, 0, "", "cnet", Arg::Numeric,
-        "\t--cnet  \tErrors threshold 0-1024." },
+    { CNET, 0, "", "cnet=[0.0-1.0]", Arg::Numeric,
+        "\t--cnet=[0-N]  \tErrors threshold 0-1024." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nDECONSTRUCTION OPTIONS:" },
-    { INPUT, 0, "i", "input", Arg::Required,
-        "  -i,  \t--input  \tSMT filename to load." },
-    { EXTRACT, 0, "e", "extract", Arg::Optional,
-        "  -e,  \t--extract  \tExtract images from loaded SMT." },
+    { SEPARATE, 0, "", "separate", Arg::None,
+        "  \t--separate  \tSplit the source files into individual images." },
     { COLLATE, 0, "", "collate", Arg::None,
         "  \t--collate  \tCollate the extracted tiles." },
     { RECONSTRUCT, 0, "", "reconstruct", Arg::Required,
-        "  \t--reconstruct  \tReconstruct the extracted tiles using a tilemap." },
-    { IMAGESIZE, 0, "", "imagesize", Arg::Required,
-        "  \t--imagesize  \tScale the resultant extraction to this size, eg. '--imagesize=1024x768'." },
+        "  \t--reconstruct=tilemap.exr  \tReconstruct the extracted tiles using a tilemap." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
-        "  tileconv --sources diffuse.jpg -o filename\n"
-        "  tileconv -i test.smt -e --reconstruct tilemap.exr"
-        "  tileconv --sources=image_{00..07}_{00..07}.jpg --stride 8 --mapsize=16x16 -o mymap.smt"
-        "  tileconv --stride 8 --mapsize=16x16 -o mymap.smt -- image_*.jpg"
+        "  tileconv \n"
+        "  tileconv"
     },
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -203,122 +158,130 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
-    SMT smt;
+    // Setup
+    // =====
+    //
+    bool verbose = false, quiet = false;
+    if( options[ VERBOSE   ] ) verbose = true;
+    if( options[ QUIET     ] ) quiet = true;
 
-    options[ VERBOSE   ] ? smt.verbose   = true : smt.verbose   = false;
-    options[ QUIET     ] ? smt.quiet     = true : smt.quiet     = false;
-    options[ SLOW_DXT1 ] ? smt.slow_dxt1 = true : smt.slow_dxt1 = false;
-    
-    int x,y;
-    vector<unsigned int>tileNums;
-    for( int i = 0; i < parse.optionsCount(); ++i ) {
-        option::Option& opt = buffer[ i ];
-        switch( opt.index() ) {
+    SMT smt( verbose, quiet );
+    SMTool::verbose = verbose;
+    SMTool::quiet = quiet;
+    TileCache tileCache( verbose, quiet );
 
-        case MAPSIZE:
-            valxval( opt.arg, x, y );
-            smt.setSize( x, y );
-            break;
-
-        case TILESIZE:
-            smt.setTileRes( stoi( opt.arg ) );
-            break;
-
-        case STRIDE:
-            smt.stride = stoi( opt.arg );
-            break;
-
-        case DECALS:
-            smt.setDecalFN( opt.arg );
-            break;
-
-        case OUTPUT:
-            smt.setSaveFN( opt.arg );
-            break;
-
-        case CNUM:
-            smt.cnet = stoi( opt.arg );
-            break;
-
-        case CNET:
-            smt.cnet = stoi( opt.arg );
-            break;
-
-        case CPET:
-            smt.cpet = stof( opt.arg );
-            break;
-
-        case INPUT:
-            smt.setLoadFN( opt.arg );
-            break;
-
-        case EXTRACT:
-            if( opt.arg ) tileNums = expandString( opt.arg );
-            break;
-
-        case RECONSTRUCT:
-            smt.setTilemapFN( opt.arg );
-            break;
-
-        case IMAGESIZE:
-            valxval( opt.arg, x, y );
-            //FIXME somehow scale the result of extract to this
-            break;
+    // output creation
+    if( options[ OUTPUT ] ){
+        if( SMTool::create( options[ OUTPUT ].arg ) ){
+            exit(1);
         }
+        smt.setFileName( options[ OUTPUT ].arg );
     }
 
-    // Source Files
-    for( option::Option* opt = options[ SOURCE ]; opt; opt = opt->next() )
-        smt.addTileSource( opt->arg );
-
-    // FIXME somehow error when nonOpions are specified before actual options.
+    // Add to TileCache
     for( int i = 0; i < parse.nonOptionsCount(); ++i )
-        smt.addTileSource( parse.nonOption( i ) );
+        tileCache.push_back( parse.nonOption( i ) );
 
-    if(! options[ STRIDE ] ){
-        if( options[ SOURCE ] ){
-           smt.stride = ceil( sqrt( smt.getSourceFiles().size() ) );
-        }
-    }
-    // FIXME - auto detect stride
-
-///    if(! options[ MAPSIZE ] )
-    // FIXME - auto detect map size
-
-    if( options[ OUTPUT ] )
-    {
-        if( options[ SOURCE ] )
-        {
-            if( options[ APPEND ] )
-                smt.save2();
-            else smt.save();
-        }
+    if( options[ VERBOSE ] ){
+        cout << "INFO: Tiles in cache: " << tileCache.getNTiles() << endl;
+        if( tileCache.getNTiles() == 1 )
+            cout << "\tAssuming large map provided" << endl;
     }
 
-    if( options[ INPUT ] )
-    {
-        smt.load();
+    // load up the tilemap
+    ImageBuf *tilemap = NULL;
+    if( options[ RECONSTRUCT ] ){
+        tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
+    }
 
-        // decompiling
-        if( options[ RECONSTRUCT ] )
-        {
-            cout << "reconstruct" << endl;
-            smt.decompile();
-        }
-        else if( options[ COLLATE ] )
-        {
-            cout << "Collate" << endl;
-            smt.decompile();
-        }
-        else if( options[ EXTRACT ] )
-        {
-            //TODO
-            cout << "individuals not yet implemented" << endl;
-        }
+    // Process Options
+    if( options[ SLOW_DXT1 ] ) smt.slow_dxt1 = true;
 
-        if( options[ APPEND ] ){
-            ///TODO
+    //TileSize
+    if( options[ TILESIZE ] ){
+        tileCache.tileSize = stoi( options[ TILESIZE ].arg );
+        smt.setTileRes( tileCache.tileSize );
+    }
+
+    //filter list
+    vector<unsigned int> filter;
+    if( options[ FILTER ] ){
+        filter = expandString( options[ FILTER ].arg );
+        for( auto i = filter.begin(); i != filter.end(); ++i)
+            cout << *i << endl;
+    }
+    else {
+        // have to generate a vector with consecutive numbering;
+        filter.resize( tileCache.getNTiles() );
+        for(unsigned int i = 0; i < filter.size(); ++i) filter[i] = i;
+    }
+
+    // MapSize & Stride
+    unsigned int mx = 2, my = 2;
+    unsigned int hstride = 0, vstride = 0;
+    if( options[ MAPSIZE ] ){
+        valxval( options[ MAPSIZE ].arg, mx, my);
+        hstride = mx * 512 / tileCache.tileSize;
+        vstride = my * 512 / tileCache.tileSize;
+    }
+    else if( options[ STRIDE ] ){
+        hstride = stoi( options[ STRIDE ].arg );
+    }
+
+    // Image Size
+    unsigned int ix = 0, iy = 0;
+    if( options[ IMAGESIZE ] ) valxval( options[ IMAGESIZE ].arg, ix, iy);
+
+
+    // Setup
+    ImageBuf *buf = NULL;
+    ImageSpec spec;
+    ImageBuf fix;
+    ROI iroi( 0, ix, 0, iy, 0, 1, 0, 4 );
+    ROI mroi( 0, mx * 512, 0, my * 512, 0, 1, 0, 4 );
+
+
+    // Process tiles Seperately
+    if( options[ SEPARATE ] ){
+        for(auto i = filter.begin(); i != filter.end(); ++i ){
+            buf = tileCache.getTile( *i );
+            if( options[ OUTPUT ] ){
+                smt.append( buf );
+            }
+            else {
+                buf->save( "tile_" + to_string( *i ) + ".tif", "tif");
+            }
+            delete buf;
         }
+        exit(0);
+    }
+
+    // reconstruct / collate Tiles
+    string imagename;
+    if( options[ RECONSTRUCT ] ){
+        buf = SMTool::reconstruct( tileCache, tilemap );
+        imagename = "reconstruct.tif";
+    }
+    else if( options[ COLLATE ] ){
+        buf = SMTool::collate( tileCache, hstride, vstride );
+        imagename = "collate.tif";
+    }
+    if( buf ) fix.copy( *buf );
+    else exit(1);
+
+    if(! options[ OUTPUT ] ){
+        if( options[ IMAGESIZE ] ){
+            ImageBufAlgo::resample( *buf, fix, false, iroi);
+        }
+        buf->save( imagename, "tif" );
+        if( verbose ) cout << "INFO: Image saved as " << imagename << endl;
+    }
+    else {
+        if( options[ MAPSIZE ] ){
+            ImageBufAlgo::resample( *buf, fix, false, mroi);
+        }
+        // TODO PROCESS
+        SMTool::imageToSMT(buf, smt);
     }
 
     delete[] options;
@@ -327,7 +290,7 @@ main( int argc, char **argv )
 }
 
 void
-valxval( string s, int &x, int &y)
+valxval( string s, unsigned int &x, unsigned int &y)
 {
     unsigned int d;
     d = s.find_first_of( 'x', 0 );
@@ -353,14 +316,12 @@ expandString( const char *s )
         while( *s != ',' && *s != '-' && *s ) s++;
         if( begin == s) continue;
 
-        if( sequence )
-        {
+        if( sequence ){
             for( int i = start; i < stoi( string( begin, s ) ); ++i )
                 result.push_back( i );
         }
 
-        if( *(s) == '-' )
-        {
+        if( *(s) == '-' ){
             sequence = true;
             start = stoi( string( begin, s ) );
         } else {
