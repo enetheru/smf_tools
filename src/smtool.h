@@ -13,12 +13,12 @@ namespace SMTool
     extern float cpet;
     extern int cnet, cnum;
 
-    ImageBuf *reconstruct( TileCache &, ImageBuf *tilemapBuf );
+    ImageBuf *reconstruct( TileCache &cache, ImageBuf *map );
     ImageBuf *collate( TileCache &cache, unsigned int hstride = 0, unsigned int vstride = 0 );
     ImageBuf *openTilemap( string filename );
-    bool create( string fileName, bool overwrite=false );
-    bool consolidate( SMT &smt, TileCache &cache, ImageBuf * tilemap);
-    void imageToSMT( ImageBuf *buf, SMT *smt);
+
+    bool consolidate( SMT *smt, TileCache &cache, ImageBuf * tilemap);
+    void imageToSMT( SMT *smt, ImageBuf *image );
 
 }
 

@@ -21,7 +21,6 @@ public:
 
     TileCache( bool v = false, bool q = false ) : verbose(v), quiet(q) { };
 
-
     void push_back( string );
     unsigned int getNTiles( ){ return nTiles; };
     ImageBuf* getTile( unsigned int );

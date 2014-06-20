@@ -120,14 +120,15 @@ SMTUtil::pasteDecals(ImageBuf *bigBuf)
 */
 
 ImageBuf *
-SMTool::reconstruct( TileCache &cache, ImageBuf *tilemapBuf)
+SMTool::reconstruct( TileCache &cache, ImageBuf *map)
 {
     if( verbose )cout << "INFO: Reconstructing Big\n";
-    if(! tilemapBuf )return NULL;
-    ImageSpec spec = tilemapBuf->spec();
+    if(! map )return NULL;
+    ImageSpec spec = map->spec();
 
+    // TODO use a pixel iterator instead of raw access.
     unsigned int *tilemap = new unsigned int [ spec.width * spec.height ];
-    tilemapBuf->get_pixels( 0, spec.width, 0, spec.height, 0, 1, TypeDesc::UINT, tilemap );
+    map->get_pixels( 0, spec.width, 0, spec.height, 0, 1, TypeDesc::UINT, tilemap );
 
     // allocate enough data for our large image
     if( verbose ) cout << "\tGenerating " << spec.width * cache.tileRes << "x"
@@ -157,7 +158,7 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *tilemapBuf)
     }
     cout << endl;
 
-    delete tilemapBuf;
+    delete map;
     delete tilemap;
     return bigBuf;    
 }
@@ -201,40 +202,6 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
     }
     cout << endl;
     return bigBuf;
-}
-
-bool
-SMTool::create( string fileName, bool overwrite )
-{
-
-    // attempt to open the file
-    SMTHeader head;
-    fstream file( fileName, ios::binary | ios::in );
-
-    if( file.good() ){ //file exists
-        file.read( (char *)&head, sizeof(SMTHeader) );
-        if(! strcmp( head.magic, "spring tilefile" ) ){
-            return false; // is smt file, exit
-        }
-        else if(! overwrite ) {
-            if(! quiet ) cout << "ERROR: will not overwrite " << fileName << endl;
-            return true;// is not smt file exit
-        }
-    }
-
-    // either it doesnt exist, or we can overwrite it
-    if(! file.good() || overwrite ) {
-        if( verbose ) cout << "INFO: Creating new " << fileName << endl;
-        file.open(fileName, ios::binary | ios::out);
-        if( file.good() )
-            file.write( (char *)&head, sizeof(SMTHeader) );
-        else {
-            if(! quiet ) cout << "ERROR: unable to create " << fileName << endl;
-            return false;
-        }
-    }
-    file.flush();
-    return false;
 }
 
 ImageBuf *
@@ -281,13 +248,9 @@ SMTool::openTilemap( string fileName )
 }
 
 bool
-SMTool::consolidate(SMT &smt, TileCache &cache, ImageBuf *tilemap)
+SMTool::consolidate(SMT *smt, TileCache &cache, ImageBuf *tilemap)
 {
-    // Make sure we have some source images before continuing
-    if( cache.getNTiles() == 0) {
-        if( !quiet )cout << "ERROR: No tiles in cache" << endl;
-        return NULL;
-    }
+    // TODO write consolidation method
     return false;
 }
 
@@ -300,14 +263,14 @@ public:
 };
 
 void
-SMTool::imageToSMT( ImageBuf *buf, SMT *smt )
+SMTool::imageToSMT( SMT *smt, ImageBuf *image )
 {
     if( verbose )
         cout << "INFO: Converting image to tiles and saving to smt" << endl;
     
     // oiio vars
     ImageBuf *tbuf = NULL;
-    ImageSpec spec = buf->spec();
+    ImageSpec spec = image->spec();
     ImageSpec tspec( smt->getTileRes(), smt->getTileRes(), 4, TypeDesc::UINT8 );
     ROI roi( 0, 1, 0, 1, 0, 1, 0, 4 );
 
@@ -368,7 +331,7 @@ SMTool::imageToSMT( ImageBuf *buf, SMT *smt )
             roi.yend = z * tspec.height + tspec.height;
 
             ImageBuf tempBuf;
-            ImageBufAlgo::crop( tempBuf, *buf, roi );
+            ImageBufAlgo::crop( tempBuf, *image, roi );
             tbuf = new ImageBuf( "tile_" + to_string( x ) + "_" + to_string( z ) ,
                  tspec, tempBuf.localpixels() );
 

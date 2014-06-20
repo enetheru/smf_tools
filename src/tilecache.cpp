@@ -14,6 +14,7 @@ ImageBuf *
 TileCache::getTile( unsigned int n )
 {
     ImageBuf *tileBuf = NULL;
+    ImageInput *image = NULL;
     SMT *smt = NULL;
     if( n > nTiles ) return NULL;
 
@@ -24,8 +25,9 @@ TileCache::getTile( unsigned int n )
         tileBuf = smt->getTile( map[ i ] - n );
         delete smt;
     }
-    else if( isImage( filenames[ i ] ) ){
+    else if( (image = ImageInput::open( filenames[ i ] )) ){
         tileBuf =  new ImageBuf( filenames[ i ] );
+        delete image;
     }
 
     // Load

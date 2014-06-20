@@ -271,18 +271,18 @@ main( int argc, char **argv )
         imagename = "reconstruct.tif";
     }
     else if( options[ COLLATE ] ){
-        if( tileCache.getNTiles() == 1) buf = tileCache.getTile(0);
+        if( tileCache.getNTiles() == 1) buf = tileCache.getTile( 0 );
         else buf = SMTool::collate( tileCache, hstride, vstride );
         imagename = "collate.tif";
     }
     if( buf ) fix.copy( *buf );
-    else exit(1);
+    else exit( 1 );
 
     if(! options[ OUTPUT ] ){
         if( options[ IMAGESIZE ] ){
             cout << "INFO: Scaling to " << iroi.xend << "x" << iroi.yend << endl;
             buf->clear();
-            ImageBufAlgo::resample( *buf, fix, false, iroi);
+            ImageBufAlgo::resample( *buf, fix, false, iroi );
         }
         buf->save( imagename, "tif" );
         if( verbose ) cout << "INFO: Image saved as " << imagename << endl;
@@ -291,15 +291,15 @@ main( int argc, char **argv )
         if( options[ MAPSIZE ] ){
             cout << "INFO: Scaling to " << mroi.xend << "x" << mroi.yend << endl;
             buf->clear();
-            ImageBufAlgo::resample( *buf, fix, false, mroi);
+            ImageBufAlgo::resample( *buf, fix, false, mroi );
         }
-        // TODO PROCESS
-        SMTool::imageToSMT(buf, smt);
+        // process image into tiles
+        SMTool::imageToSMT( smt, buf );
     }
 
     delete[] options;
     delete[] buffer;
-    exit(0);
+    exit( 0 );
 }
 
 void

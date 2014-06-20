@@ -29,8 +29,17 @@ SMT::create( string fileName, bool overwrite, bool verbose, bool quiet )
 SMT *
 SMT::open( string fileName, bool verbose, bool quiet )
 {
+    bool good = false;
+
+    char magic[ 16 ];
+    ifstream file( fileName );
+    if( file.good() ){
+        file.read( magic, 16 );
+        if(! strcmp( magic, "spring tilefile" ) ) good = true;
+    }
+
     SMT *smt;
-    if( isSMT( fileName ) ){
+    if( good ){
         smt = new SMT;
         smt->fileName = fileName;
         smt->load();
@@ -50,54 +59,59 @@ SMT::reset()
         if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
         return;
     }
-    nTiles = 0;
+
+    //re write header
     SMTHeader head;
-    head.nTiles = tileSize;
     head.tileType = tileType;
 
     file.write( (char *)&head, sizeof(SMTHeader) );
     file.flush();
     file.close();
+
+    // fix up local attributes
+    nTiles = 0;
+    calcTileSize();   
 }
 
 void
-SMT::setType(int tileType)
+SMT::setType(int t)
 {
-    this->tileType = tileType;
-    tileSize = 0;
-    // Calculate the size of the tile data
+    if( tileType == t)return;
+    tileType = t;
+    Reset();
+}
+
+void
+SMT::setTileRes(int r)
+{
+    if( tileRes == r)return;
+    tileRes = r;
+    Reset();
+}
+
+void
+calcTileSize()
+{
     // size is the raw format of dxt1 with 4 mip levels
     // DXT1 consists of 64 bits per 4x4 block of pixels.
     // 32x32, 16x16, 8x8, 4x4
     // 512  + 128  + 32 + 8 = 680
+    tileSize = 0;
     if(tileType == DXT1) {
         int mip = tileRes;
         for( int i=0; i < 4; ++i) {
             tileSize += (mip * mip)/2;
             mip /= 2;
         }
-    } else {
-        if( !quiet )printf("ERROR: '%i' is not a valid compression type", tileType);
-        tileSize = -1;
     }
 }
 
-bool
+void
 SMT::load()
 {
-    bool status = false;
-
-    // Test File
-    if(! isSMT(fileName) ) {
-        if(! quiet ) cout << "ERROR: invalid smt " << fileName << endl;
-        return true;
-    }
-
-    ifstream inFile;
-    inFile.open(fileName, ifstream::in);
-    inFile.seekg(0);
-
     SMTHeader header;
+
+    ifstream inFile(fileName, ifstream::in);
     inFile.read( (char *)&header, sizeof(SMTHeader) );
     inFile.close();
 
@@ -114,9 +128,10 @@ SMT::load()
         }
     }
 
-    this->tileRes = header.tileRes;
-    this->nTiles = header.nTiles;
-    setType( header.tileType );
+    tileRes  = header.tileRes;
+    nTiles   = header.nTiles;
+    tileType = header.tileType;
+    calcTileSize();
     return status;
 }
 

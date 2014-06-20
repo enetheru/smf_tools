@@ -26,6 +26,8 @@ class SMT {
 
     // Input Files
     string fileName    = "output.smt";
+    void calcTileSize();
+    void load();
     
 public:
     bool  verbose = false, quiet = false, slow_dxt1 = false;
@@ -41,18 +43,15 @@ public:
 
     void reset();
 
-    string getFileName( ){ return fileName; };
 
-    void setTileRes( int s    ){ tileRes = s; setType(tileType); };
-    void setType   ( int comp ); // 1=DXT1
+    void setTileRes( int r );
+    void setType   ( int t ); // 1=DXT1
 
     int getTileType( ){ return tileType; };
     int getTileRes ( ){ return tileRes;  };
     int getTileSize( ){ return tileSize; };
     int getNTiles  ( ){ return nTiles;   };
-
-    // === Actions input ===
-    bool load();
+    string getFileName( ){ return fileName; };
 
     ImageBuf *getTile( int tile );
     bool append( ImageBuf * );
