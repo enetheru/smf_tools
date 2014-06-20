@@ -74,23 +74,23 @@ SMT::reset()
 }
 
 void
-SMT::setType(int t)
+SMT::setType(unsigned int t)
 {
     if( tileType == t)return;
     tileType = t;
-    Reset();
+    reset();
 }
 
 void
-SMT::setTileRes(int r)
+SMT::setTileRes(unsigned int r)
 {
     if( tileRes == r)return;
     tileRes = r;
-    Reset();
+    reset();
 }
 
 void
-calcTileSize()
+SMT::calcTileSize()
 {
     // size is the raw format of dxt1 with 4 mip levels
     // DXT1 consists of 64 bits per 4x4 block of pixels.
@@ -124,7 +124,6 @@ SMT::load()
         if( header.tileType == DXT1 )cout << "dxt1" << endl;
         else {
             cout << "UNKNOWN" << endl;
-            status = true;
         }
     }
 
@@ -132,7 +131,6 @@ SMT::load()
     nTiles   = header.nTiles;
     tileType = header.tileType;
     calcTileSize();
-    return status;
 }
 
 bool

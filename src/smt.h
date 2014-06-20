@@ -43,9 +43,8 @@ public:
 
     void reset();
 
-
-    void setTileRes( int r );
-    void setType   ( int t ); // 1=DXT1
+    void setTileRes( unsigned int r );
+    void setType   ( unsigned int t ); // 1=DXT1
 
     int getTileType( ){ return tileType; };
     int getTileRes ( ){ return tileRes;  };
