@@ -7,7 +7,7 @@ Dependencies
 The Lean Mean C++ Option Parser<br>
 http://optionparser.sourceforge.net/index.html
 
-OpenImageIO 1.2<br>
+OpenImageIO 1.4<br>
 https://sites.google.com/site/openimageio/home<br>
 
 NVTT 2.0<br>
@@ -19,7 +19,8 @@ Boost_system<br>
 Building
 ========
 Tested on linux mint 17
-<pre>sudo apt-get install libopenimageio-dev libnvtt-dev libboost-dev libboost-system-dev
+<pre>sudo add-apt-repository ppa:irie/openimageio
+sudo apt-get install libopenimageio-dev libnvtt-dev libboost-dev libboost-system-dev
 git clone https://github.com/enetheru/MapConv.git
 mkdir mapconv-build
 cd mapconv-build
