@@ -23,7 +23,7 @@ TileCache::getOriginal( unsigned int n )
 
     if( (smt = SMT::open( *fileName )) ){
         tileBuf = smt->getTile( n - *i + smt->getNTiles() );
-        cout << "request: " << n << " - tiles to date: " << *i << " + tiles in file: " << smt->getNTiles() << " = " << n - *i + smt->getNTiles() << endl;
+//        cout << "request: " << n << " - tiles to date: " << *i << " + tiles in file: " << smt->getNTiles() << " = " << n - *i + smt->getNTiles() << endl;
         delete smt;
     }
     else if( (image = ImageInput::open( *fileName )) ){
