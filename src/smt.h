@@ -18,6 +18,7 @@ struct SMTHeader
 };
 
 class SMT {
+    bool init = false;
     // Tiles
     unsigned int nTiles    = 0,
                  tileType  = 1,
@@ -27,10 +28,14 @@ class SMT {
     // Input Files
     string fileName    = "output.smt";
     void calcTileSize();
-    void load();
+    bool load();
     
 public:
     bool  verbose = false, quiet = false, slow_dxt1 = false;
+
+    SMT( ){ };
+    SMT( string f, bool v, bool q )
+        : fileName( f ), verbose( v ), quiet( q ) { init = !load(); };
 
     static SMT *create( string fileName,
             bool overwrite = false,
@@ -41,7 +46,8 @@ public:
             bool verbose = false,
             bool quiet = false );
 
-    void reset();
+    bool initialised( ){ return init; };
+    bool reset( );
 
     void setTileRes( unsigned int r );
     void setType   ( unsigned int t ); // 1=DXT1

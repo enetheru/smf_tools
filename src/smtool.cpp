@@ -3,8 +3,8 @@
 #include "config.h"
 #include "smt.h"
 
+#include <chrono>
 #include <fstream>
-#include <sys/time.h>
 #include <deque>
 
 #include <OpenImageIO/imageio.h>
@@ -24,46 +24,37 @@ namespace SMTool
 }
 
 ImageBuf *
-SMTool::reconstruct( TileCache &cache, ImageBuf *map)
+SMTool::reconstruct( TileCache &cache, ImageBuf *mapBuf)
 {
     if( verbose )cout << "INFO: Reconstructing Big\n";
-    if(! map )return NULL;
-    ImageSpec spec = map->spec();
-
-    // TODO use a pixel iterator instead of raw access.
-    unsigned int *tilemap = new unsigned int [ spec.width * spec.height ];
-    map->get_pixels( 0, spec.width, 0, spec.height, 0, 1, TypeDesc::UINT, tilemap );
+    if(! mapBuf )return NULL;
+    ImageSpec mapSpec = mapBuf->spec();
 
     // allocate enough data for our large image
-    if( verbose ) cout << "\tGenerating " << spec.width * cache.getTileRes() << "x"
-        << spec.height * cache.getTileRes() << endl;
+    if( verbose ) cout << "\tGenerating " << mapSpec.width * cache.getTileRes() << "x"
+        << mapSpec.height * cache.getTileRes() << endl;
 
-    ImageSpec bigSpec( spec.width * cache.getTileRes(),
-            spec.height * cache.getTileRes(), 4, TypeDesc::UINT8 );
-    ImageBuf *bigBuf = new ImageBuf( "big", bigSpec );
+    ImageSpec bigSpec(
+            mapSpec.width * cache.getTileRes(),
+            mapSpec.height * cache.getTileRes(),
+            4, TypeDesc::UINT8 );
+    ImageBuf *bigBuf = new ImageBuf( "reconstruction", bigSpec );
 
     // Loop through tile index
     ImageBuf *tileBuf = NULL;
-    for( int y = 0; y < spec.height; ++y ) {
-        for( int x = 0; x < spec.width; ++x ) {
-            unsigned int tilenum = tilemap[ y * spec.width + x ];
+    for( ImageBuf::Iterator<unsigned int, unsigned int> it(*mapBuf); ! it.done(); ++it ){
+        tileBuf = cache.getTile( it[0] );
+        if(! tileBuf ) continue;
 
-            tileBuf = cache.getTile( tilenum );
-            if(! tileBuf ) continue;
+        ImageBufAlgo::paste( *bigBuf,
+                cache.getTileRes() * it.x(),
+                cache.getTileRes() * it.y(),
+                0,0, *tileBuf);
 
-            unsigned int xbegin = cache.getTileRes() * x;
-            unsigned int ybegin = cache.getTileRes() * y;
-            ImageBufAlgo::paste(*bigBuf, xbegin, ybegin, 0, 0, *tileBuf);
-
-            delete tileBuf;
-            if( verbose )printf("\033[0G\tProcessing tile %i of %i.",
-                y * spec.width + x, spec.width * spec.height );
-        }
+        delete tileBuf;
+        cout << "\033[1A\033[2K\033[0G\t" << it.y() * mapSpec.width + it.x() + 1 << " of "
+            << mapSpec.image_pixels() << " tiles" << endl;
     }
-    cout << endl;
-
-    delete map;
-    delete tilemap;
     return bigBuf;    
 }
 
@@ -169,6 +160,8 @@ public:
 void
 SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
 {
+    using namespace std::chrono;
+
     if( verbose )
         cout << "INFO: Converting image to tiles and saving to smt" << endl;
     
@@ -186,14 +179,6 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
             TypeDesc::UINT );
 
     ImageBuf mapBuf( "tilemap", mapSpec );
-
-    // Time reporting vars
-    // FIXME simplify
-    timeval t1, t2;
-    double elapsedTime;
-    deque<double> readings;
-    double averageTime = 0;
-    double intervalTime = 0;
 
     // Loop vars
     unsigned int currentTile;
@@ -215,8 +200,6 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
     }
 
     for( ImageBuf::Iterator<unsigned int, unsigned int> it(mapBuf); ! it.done(); ++it ){
-        gettimeofday(&t1, NULL);
-
         currentTile = it.y() * mapSpec.width + it.x();
 
         // define the cropping region.
@@ -224,7 +207,6 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
         roi.xend = it.x() * tileSpec.width + tileSpec.width;
         roi.ybegin = it.y() * tileSpec.height;
         roi.yend = it.y() * tileSpec.height + tileSpec.height;
-//        cout << roi.xbegin << " " << roi.xend << " " << roi.ybegin << " " << roi.yend << endl;
 
         // crop out tile.
         ImageBufAlgo::cut( tileBuf, *sourceBuf, roi );
@@ -261,7 +243,7 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
                 TileBufListEntry *listEntry2 = *it;
                 ImageBufAlgo::compare( tileBuf, listEntry2->image,
                         cpet, 1.0f, result);
-                //TODO give control on tweaking matching
+                // TODO give control on tweaking matching
                 if( (int)result.nfail < cnet ){
                     match = true;
                     i = listEntry2->tileNum;
@@ -289,24 +271,7 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
         it[0] = currentTile;
 
         // progress report
-        gettimeofday( &t2, NULL );
-        // compute and print the elapsed time in millisec
-        elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
-        elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
-        readings.push_back( elapsedTime );
-        if( readings.size() > 1000 ) readings.pop_front();
-        intervalTime += elapsedTime;
-        if( verbose && intervalTime > 1 ){
-            for( auto i = readings.begin(); i != readings.end(); ++i )
-                averageTime += *i;
-            averageTime /= readings.size();
-            intervalTime = 0;
-            printf("\033[0G\t%u of %llu %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
-                    currentTile+1, mapSpec.image_pixels(),
-                    (float)currentTile+1 / mapSpec.image_pixels() * 100,
-                (float)(1 - (float)smt->getNTiles() / (float)currentTile+1) * 100,
-                averageTime * (mapSpec.image_pixels() - currentTile+1) / 1000);
-        }
+        cout << "\033[1A\033[2K\033[0G\t" << currentTile+1 << " of " << mapSpec.image_pixels() << ", %" << ((float)currentTile + 1) / mapSpec.image_pixels() * 100 << " complete." << endl;
     }
     hashTable.clear();
     if( verbose ) cout << endl;

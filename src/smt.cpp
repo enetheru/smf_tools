@@ -20,11 +20,8 @@ SMT::create( string fileName, bool overwrite, bool verbose, bool quiet )
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
     
-    smt = new SMT;
-    smt->verbose = verbose;
-    smt->quiet = verbose;
-    smt->fileName = fileName;
-    smt->reset();
+    smt = new SMT( fileName, verbose, quiet );
+    smt->init = !smt->reset();
     return smt;
 }
 
@@ -45,17 +42,14 @@ SMT::open( string fileName, bool verbose, bool quiet )
 
     SMT *smt;
     if( good ){
-        smt = new SMT;
-        smt->verbose = verbose;
-        smt->quiet = verbose;
-        smt->fileName = fileName;
-        smt->load();
+        smt = new SMT( fileName, verbose, quiet );
+        smt->init = !smt->load();
         return smt;
     }
     return NULL;
 }
 
-void
+bool
 SMT::reset()
 {
     if( verbose ) cout << "INFO: Resetting " << fileName << endl;
@@ -64,7 +58,7 @@ SMT::reset()
 
     if(! file.good() ){
         if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
-        return;
+        exit( 1 );
     }
 
     //re write header
@@ -78,7 +72,8 @@ SMT::reset()
 
     // fix up local attributes
     nTiles = 0;
-    calcTileSize();   
+    calcTileSize();
+    exit( 0 );   
 }
 
 void
@@ -114,7 +109,7 @@ SMT::calcTileSize()
     }
 }
 
-void
+bool
 SMT::load()
 {
     SMTHeader header;
@@ -139,6 +134,7 @@ SMT::load()
     nTiles   = header.nTiles;
     tileType = header.tileType;
     calcTileSize();
+    exit( 0 );
 }
 
 bool
