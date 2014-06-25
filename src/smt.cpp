@@ -148,7 +148,7 @@ SMT::append( ImageBuf *sourceBuf )
 {
 #ifdef DEBUG_IMG
     static int i = 0;    
-    sourceBuf->save( "SMT::append(...)" + to_string(i) + "_0.tif", "tif" );
+    sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_0.tif", "tif" );
 #endif //DEBUG_IMG
 
     // Swizzle
@@ -161,12 +161,15 @@ SMT::append( ImageBuf *sourceBuf )
     sourceBuf->copy( fixBuf );
    
 #ifdef DEBUG_IMG
-    sourceBuf->save( "SMT::append(...)" + to_string(i) + "_1.tif", "tif" );
+    sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_1_swizzle.tif", "tif" );
 #endif //DEBUG_IMG
 
     // Get raw data
     unsigned char *std = new unsigned char[tileRes * tileRes * 4];
-    sourceBuf->get_pixels(0, tileRes, 0, tileRes, 0, 1, TypeDesc::UINT8, std);
+    if(! sourceBuf->get_pixels(0, tileRes, 0, tileRes, 0, 1, TypeDesc::UINT8, std) ){
+        cout << "failed to get pixels from buffer" << endl;
+        return true;
+    }
 
     // process into dds
     nvtt::Compressor compressor;
@@ -180,16 +183,17 @@ SMT::append( ImageBuf *sourceBuf )
     if( slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
     else                  compressionOptions.setQuality( nvtt::Quality_Fastest ); 
 
-    nvtt::OutputOptions outputOptions;
 
 #ifdef DEBUG_IMG    
-    outputOptions.setOutputHeader( true );
-    outputOptions.setFileName( ("SMT::append(...)" + to_string(i) + "_2.dds").c_str() );
+    nvtt::OutputOptions outputOptionsD;
+    outputOptionsD.setOutputHeader( true );
+    outputOptionsD.setFileName( ("SMT::append_sourceBuf_" + to_string(i) + "_2.dds").c_str() );
     ++i;
 
-    compressor.process( inputOptions, compressionOptions, outputOptions );
+    compressor.process( inputOptions, compressionOptions, outputOptionsD );
 #endif //DEBUG_IMG
 
+    nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader( false );
     NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( tileSize );
     outputOptions.setOutputHandler( nvttHandler );

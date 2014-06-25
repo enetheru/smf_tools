@@ -167,23 +167,25 @@ public:
 };
 
 void
-SMTool::imageToSMT( SMT *smt, ImageBuf *image )
+SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
 {
     if( verbose )
         cout << "INFO: Converting image to tiles and saving to smt" << endl;
     
-    // oiio vars
-    ImageBuf *tbuf = NULL;
-    ImageSpec spec = image->spec();
-    ImageSpec tspec( smt->getTileRes(), smt->getTileRes(), 4, TypeDesc::UINT8 );
+    ImageSpec sourceSpec = sourceBuf->spec();
+    unsigned int tileRes = smt->getTileRes();
+
+    ImageBuf tileBuf;
+    ImageSpec tileSpec( tileRes, tileRes, 4, TypeDesc::UINT8 );
     ROI roi( 0, 1, 0, 1, 0, 1, 0, 4 );
 
-    // setup size for index dimensions
-    int tcx = spec.width / tspec.width; // tile count x
-    int tcz = spec.height / tspec.height; // tile count z
+    ImageSpec mapSpec(
+            sourceSpec.width / tileSpec.width,
+            sourceSpec.height / tileSpec.height,
+            1,
+            TypeDesc::UINT );
 
-    /// FIXME turn this into an imagebuf with iterator
-    unsigned int *indexPixels = new unsigned int[tcx * tcz];
+    ImageBuf mapBuf( "tilemap", mapSpec );
 
     // Time reporting vars
     // FIXME simplify
@@ -194,8 +196,7 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *image )
     double intervalTime = 0;
 
     // Loop vars
-    int totalTiles = tcx * tcz;
-    int currentTile;
+    unsigned int currentTile;
 
     // Comparison vars
     bool match;
@@ -206,123 +207,112 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *image )
     deque<TileBufListEntry *> tileList;
 
     if( verbose ){
-        cout << "\tSource: " << spec.width << "x" << spec.height << endl;
-        cout << "\ttileRes: " << tspec.width << "x" << tspec.height << endl;
-        cout << "\ttilemap: " << tcx << "x" << tcz << endl;
-        cout << "\tmaxTiles: " << totalTiles << endl;
+        cout << "\tSource: " << sourceSpec.width << "x" << sourceSpec.height << endl;
+        cout << "\ttileRes: " << tileSpec.width << "x" << tileSpec.height << endl;
+        cout << "\ttilemap: " << mapSpec.width << "x" << mapSpec.height << endl;
+        cout << "\tmaxTiles: " << mapSpec.image_pixels() << endl;
         cout << "  Processing tiles:\n";
     }
-    // loop through tile columns
-    for ( int z = 0; z < tcz; z++) {
-        // loop through tile rows
-        for ( int x = 0; x < tcx; x++) {
-            currentTile = z * tcx + x + 1;
-            gettimeofday(&t1, NULL);
 
-            // pull a region of the big image to use as a tile.
-            roi.xbegin = x * tspec.width;
-            roi.xend = x * tspec.width + tspec.width;
-            roi.ybegin = z * tspec.height;
-            roi.yend = z * tspec.height + tspec.height;
+    for( ImageBuf::Iterator<unsigned int, unsigned int> it(mapBuf); ! it.done(); ++it ){
+        gettimeofday(&t1, NULL);
 
-            ImageBuf tempBuf;
-            ImageBufAlgo::crop( tempBuf, *image, roi );
-            tbuf = new ImageBuf( "tile_" + to_string( x ) + "_" + to_string( z ) ,
-                 tspec, tempBuf.localpixels() );
+        currentTile = it.y() * mapSpec.width + it.x();
 
-            // reset match variables
-            match = false;
-            i = smt->getNTiles();
+        // define the cropping region.
+        roi.xbegin = it.x() * tileSpec.width;
+        roi.xend = it.x() * tileSpec.width + tileSpec.width;
+        roi.ybegin = it.y() * tileSpec.height;
+        roi.yend = it.y() * tileSpec.height + tileSpec.height;
+//        cout << roi.xbegin << " " << roi.xend << " " << roi.ybegin << " " << roi.yend << endl;
 
-            if( cnum == 0) {
-                // only exact matches will be referenced.
-                hash = ImageBufAlgo::computePixelHashSHA1( *tbuf );
-                for( i = 0; i < hashTable.size(); ++i ) {
-                    if( !hashTable[i].compare( hash ) ) {
-                        match = true;
-                        break;
-                    } 
-                }
-                if( !match ) hashTable.push_back( hash );
+        // crop out tile.
+        ImageBufAlgo::cut( tileBuf, *sourceBuf, roi );
 
-            } else {
-                //Comparison based on numerical differences of pixels
-                listEntry = new TileBufListEntry;
-                listEntry->image.copy(*tbuf);
-                listEntry->tileNum = smt->getNTiles();
+#ifdef DEBUG_IMG
+        tileBuf.save("SMTool::imageToSMT_tileBuf_" + to_string( currentTile + 1 ) + ".tif", "tif");
+#endif //DEBUG_IMG
 
-                ImageBufAlgo::CompareResults result;
+        // reset match variables
+        match = false;
+        i = smt->getNTiles();
 
-                for(auto it = tileList.begin(); it != tileList.end(); it++ ) {
-                    TileBufListEntry *listEntry2 = *it;
-                    ImageBufAlgo::compare( *tbuf, listEntry2->image,
-                            cpet, 1.0f, result);
-                    //TODO give control on tweaking matching
-                    if((int)result.nfail < cnet) {
-                        match = true;
-                        i = listEntry2->tileNum;
-                        delete listEntry;
-                        break;
-                    }
-                }
-                if( !match ) {
-                    tileList.push_back(listEntry);
-                    if((int)tileList.size() > cnum) {
-                        delete tileList[0];
-                        tileList.pop_front();
-                    }
+        // Optimisation
+        if( cnum == 0){
+            // only exact matches will be referenced.
+            hash = ImageBufAlgo::computePixelHashSHA1( tileBuf );
+            for( i = 0; i < hashTable.size(); ++i ){
+                if(! hashTable[ i ].compare( hash ) ){
+                    match = true;
+                    break;
+                } 
+            }
+            if(! match ) hashTable.push_back( hash );
+        }
+        else {
+            //Comparison based on numerical differences of pixels
+            listEntry = new TileBufListEntry;
+            listEntry->image.copy( tileBuf );
+            listEntry->tileNum = smt->getNTiles();
+
+            ImageBufAlgo::CompareResults result;
+
+            for( auto it = tileList.begin(); it != tileList.end(); it++ ){
+                TileBufListEntry *listEntry2 = *it;
+                ImageBufAlgo::compare( tileBuf, listEntry2->image,
+                        cpet, 1.0f, result);
+                //TODO give control on tweaking matching
+                if( (int)result.nfail < cnet ){
+                    match = true;
+                    i = listEntry2->tileNum;
+                    delete listEntry;
+                    break;
                 }
             }
-
-            // write tile to file.
-            if( !match ) {
-                smt->append( tbuf );
+            if(! match ){
+                tileList.push_back( listEntry );
+                if( (int)tileList.size() > cnum ){
+                    delete tileList[ 0 ];
+                    tileList.pop_front();
+                }
             }
+        }
 
-            delete tbuf;
+        // write tile to file.
+        if(! match ) {
+            smt->append( &tileBuf );
+        }
 
-            // Write index to tilemap
-            indexPixels[ currentTile - 1 ] = i;
+        tileBuf.clear();
 
-            gettimeofday( &t2, NULL );
-            // compute and print the elapsed time in millisec
-            elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
-            elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
-            readings.push_back( elapsedTime );
-            if( readings.size() > 1000 ) readings.pop_front();
-            intervalTime += elapsedTime;
-            if( verbose && intervalTime > 1 ){
-                for( auto i = readings.begin(); i != readings.end(); ++i )
-                    averageTime += *i;
-                averageTime /= readings.size();
-                intervalTime = 0;
-                printf("\033[0G    %i of %i %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
-                        currentTile, totalTiles,
-                        (float)currentTile / totalTiles * 100,
-                    (float)(1 - (float)smt->getNTiles() / (float)currentTile) * 100,
-                    averageTime * (totalTiles - currentTile) / 1000);
-            }
+        // Write index to tilemap
+        it[0] = currentTile;
+
+        // progress report
+        gettimeofday( &t2, NULL );
+        // compute and print the elapsed time in millisec
+        elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+        elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+        readings.push_back( elapsedTime );
+        if( readings.size() > 1000 ) readings.pop_front();
+        intervalTime += elapsedTime;
+        if( verbose && intervalTime > 1 ){
+            for( auto i = readings.begin(); i != readings.end(); ++i )
+                averageTime += *i;
+            averageTime /= readings.size();
+            intervalTime = 0;
+            printf("\033[0G\t%u of %llu %%%0.1f complete | %%%0.1f savings | %0.1fs remaining.",
+                    currentTile+1, mapSpec.image_pixels(),
+                    (float)currentTile+1 / mapSpec.image_pixels() * 100,
+                (float)(1 - (float)smt->getNTiles() / (float)currentTile+1) * 100,
+                averageTime * (mapSpec.image_pixels() - currentTile+1) / 1000);
         }
     }
     hashTable.clear();
     if( verbose ) cout << endl;
 
     // Save tileindex
-    ImageOutput *imageOutput;
-    
-    imageOutput = ImageOutput::create( "tilemap.exr" );
-    if(! imageOutput ) {
-        delete [] indexPixels;
-        return;
-    }
-
-    ImageSpec tilemapSpec( tcx, tcz, 1, TypeDesc::UINT);
-    imageOutput->open( "tilemap.exr", tilemapSpec );
-    imageOutput->write_image( TypeDesc::UINT, indexPixels );
-    imageOutput->close();
-
-    delete imageOutput;
-    delete [] indexPixels;
+    mapBuf.save( "tilemap.exr", "exr" );
 }
 
 
