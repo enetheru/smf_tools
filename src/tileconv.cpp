@@ -60,9 +60,10 @@ enum optionsIndex
     UNKNOWN,
     // General Options
     HELP, VERBOSE, QUIET, FORCE,
+    //TODO add append, overwrite, clobber, force, whatever options and scemantics.
     //Specification
     MAPSIZE,
-    TILESIZE,
+    TILERES,
     IMAGESIZE,
     STRIDE,
     // Creation
@@ -96,8 +97,8 @@ const option::Descriptor usage[] = {
         "\nSPECIFICATIONS:" },
     { MAPSIZE, 0, "", "mapsize", Arg::Required,
         "\t--mapsize=XxY  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
-    { TILESIZE, 0, "", "tilesize", Arg::Numeric,
-        "\t--tilesize=X  \tXY resolution of tiles to save, eg. '--tilesize=32'." },
+    { TILERES, 0, "", "tileres", Arg::Numeric,
+        "\t--tileres=X  \tXY resolution of tiles to save, eg. '--tileres=32'." },
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
         "\t--imagesize=XxY  \tScale the resultant extraction to this size, eg. '--imagesize=1024x768'." },
     { STRIDE, 0, "", "stride", Arg::Numeric,
@@ -149,8 +150,12 @@ main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
-    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() )
+    bool fail = false;
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         std::cout << "Unknown option: " << std::string( opt->name,opt->namelen ) << "\n";
+        fail = true;
+    }
+    if( fail ) exit( 1 );
 
     if( parse.error() ) exit( 1 );
 
@@ -164,53 +169,57 @@ main( int argc, char **argv )
     // =====
     //
     bool verbose = false, quiet = false, force = false;
+    bool slow_dxt1 = false;
+    unsigned int ix = 1024, iy = 1024;
+    unsigned int tileRes = 32;
     if( options[ VERBOSE   ] ) verbose = true;
     if( options[ QUIET     ] ) quiet = true;
     if( options[ FORCE     ] ) force = true;
 
-    SMT *smt = NULL;
+    if( options[ SLOW_DXT1 ] ) slow_dxt1 = true;
+    if( options[ IMAGESIZE ] ) valxval( options[ IMAGESIZE ].arg, ix, iy );
+
     SMTool::verbose = verbose;
     SMTool::quiet = quiet;
+
+    // Import the filenames into the tilecache
     TileCache tileCache( verbose, quiet );
-
-    // output creation
-    if( options[ OUTPUT ] ){
-        string fileName = options[ OUTPUT ].arg;
-        if( (smt = SMT::open( fileName, verbose, quiet )) ){
-            cout << "INFO: opened " << fileName << endl;
-        }
-        else if( (smt = SMT::create( fileName, force, verbose, quiet )) ){
-            cout << "INFO: created " << fileName << endl;
-        }
-        else {
-            cout << "ERROR: unable to create " << fileName << endl;
-            exit(1);
-        }
-    }
-
-    // Add to TileCache
     for( int i = 0; i < parse.nonOptionsCount(); ++i )
         tileCache.push_back( parse.nonOption( i ) );
 
-    if( options[ VERBOSE ] ){
-        cout << "INFO: Tiles in cache: " << tileCache.getNTiles() << endl;
-        if( tileCache.getNTiles() == 1 )
-            cout << "\tAssuming large map provided" << endl;
+    // early out condition and reporting.
+    if( tileCache.getNTiles() == 0 ){
+        if(! quiet ){
+            cout << "ERROR.TileCache: no files specified for processing." << endl;
+        }
+        exit(1);
     }
+    else if( tileCache.getNTiles() == 1 ){
+        if( verbose ){
+            cout << "INFO.TileCache: Only one file, assuming large map provided" << endl;
+        }
+        tileCache.setTileRes( 32 );
+    }
+    else {
+        if( verbose ){
+            cout << "INFO.TileCache:" << endl;
+            cout << "\tFiles: " << tileCache.getNFiles() << endl;
+            cout << "\tTiles: " << tileCache.getNTiles() << endl;
+            cout << "\ttileRes: " << tileCache.getTileRes() << endl;
+        }
+    }
+    tileRes = tileCache.getTileRes();
 
     // load up the tilemap
     ImageBuf *tilemap = NULL;
     if( options[ RECONSTRUCT ] ){
         tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
-    }
-
-    // fast or normal dxt1 compression, default is fast.
-    if( options[ SLOW_DXT1 ] ) smt->slow_dxt1 = true;
-
-    //TileSize
-    if( options[ TILESIZE ] ){
-        tileCache.tileRes = stoi( options[ TILESIZE ].arg );
-        smt->setTileRes( tileCache.tileRes );
+        if(! tilemap ){
+            if(! quiet ){
+                cout << "ERROR.SMTool: unable to load tilemap." << endl;
+            }
+            exit(1);
+        }
     }
 
     //filter list
@@ -224,22 +233,47 @@ main( int argc, char **argv )
         for(unsigned int i = 0; i < filter.size(); ++i) filter[i] = i;
     }
 
+    // output creation
+    SMT *smt = NULL;
+    if( options[ OUTPUT ] ){
+        string fileName = options[ OUTPUT ].arg;
+        if( (smt = SMT::open( fileName, verbose, quiet )) ){
+            if( verbose )cout << "INFO.SMT: opened " << fileName << endl;
+            tileRes = smt->getTileRes();
+            tileCache.setTileRes( tileRes );
+        }
+        else if( (smt = SMT::create( fileName, force, verbose, quiet )) ){
+            if( verbose )cout << "INFO.SMT: created " << fileName << endl;
+            smt->setTileRes( tileRes );
+        }
+        else {
+            if(! quiet )cout << "ERROR.SMT: unable to create " << fileName << endl;
+            exit(1);
+        }
+    }
+
+    // tileRes Override.
+    // TileRes is set to be the size of the first tile loaded.
+    // The existing output SMT overrides the tileRes value
+    // Finally specifying it on the command line overrides the rest.
+    // WARNING, if your output file has a different tileRes then all the tiles will be deleted.
+    if( options[ TILERES ] ){
+        tileRes = stoi( options[ TILERES ].arg );
+        smt->setTileRes( tileRes );
+        tileCache.setTileRes( tileRes );
+    }
+
     // MapSize & Stride
     unsigned int mx = 2, my = 2;
     unsigned int hstride = 0, vstride = 0;
     if( options[ MAPSIZE ] ){
         valxval( options[ MAPSIZE ].arg, mx, my);
-        hstride = mx * 512 / tileCache.tileRes;
-        vstride = my * 512 / tileCache.tileRes;
+        hstride = mx * 512 / tileRes;
+        vstride = my * 512 / tileRes;
     }
     else if( options[ STRIDE ] ){
         hstride = stoi( options[ STRIDE ].arg );
     }
-
-    // Image Size
-    unsigned int ix = 0, iy = 0;
-    if( options[ IMAGESIZE ] ) valxval( options[ IMAGESIZE ].arg, ix, iy);
-
 
     // Setup
     ImageBuf *buf = NULL;
@@ -248,16 +282,17 @@ main( int argc, char **argv )
     ROI iroi( 0, ix, 0, iy, 0, 1, 0, 4 );
     ROI mroi( 0, mx * 512, 0, my * 512, 0, 1, 0, 4 );
 
-
     // Process tiles Seperately
     if( options[ SEPARATE ] ){
-        for(auto i = filter.begin(); i != filter.end(); ++i ){
+        for( auto i = filter.begin(); i != filter.end(); ++i ){
             buf = tileCache.getTile( *i );
             if( options[ OUTPUT ] ){
                 smt->append( buf );
             }
             else {
-                buf->save( "tile_" + to_string( *i ) + ".tif", "tif");
+                char name[32];
+                sprintf( name, "tile_%07i.tif", *i);
+                buf->save( name, "tif");
             }
             delete buf;
         }
@@ -270,15 +305,22 @@ main( int argc, char **argv )
         buf = SMTool::reconstruct( tileCache, tilemap );
         imagename = "reconstruct.tif";
     }
-    else if( options[ COLLATE ] ){
-        if( tileCache.getNTiles() == 1) buf = tileCache.getTile( 0 );
+    else if( options[ COLLATE ] || tileCache.getNTiles() == 1 ){
+        if( tileCache.getNTiles() == 1) buf = tileCache.getOriginal( 0 );
         else buf = SMTool::collate( tileCache, hstride, vstride );
         imagename = "collate.tif";
     }
     if( buf ) fix.copy( *buf );
     else exit( 1 );
 
-    if(! options[ OUTPUT ] ){
+    if( options[ OUTPUT ] ){
+        cout << "INFO: Scaling to " << mroi.xend << "x" << mroi.yend << endl;
+        buf->clear();
+        ImageBufAlgo::resample( *buf, fix, false, mroi );
+        // process image into tiles
+        SMTool::imageToSMT( smt, buf );
+    }
+    else {
         if( options[ IMAGESIZE ] ){
             cout << "INFO: Scaling to " << iroi.xend << "x" << iroi.yend << endl;
             buf->clear();
@@ -287,15 +329,7 @@ main( int argc, char **argv )
         buf->save( imagename, "tif" );
         if( verbose ) cout << "INFO: Image saved as " << imagename << endl;
     }
-    else {
-        if( options[ MAPSIZE ] ){
-            cout << "INFO: Scaling to " << mroi.xend << "x" << mroi.yend << endl;
-            buf->clear();
-            ImageBufAlgo::resample( *buf, fix, false, mroi );
-        }
-        // process image into tiles
-        SMTool::imageToSMT( smt, buf );
-    }
+
 
     delete[] options;
     delete[] buffer;

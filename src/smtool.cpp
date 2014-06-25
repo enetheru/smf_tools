@@ -23,102 +23,6 @@ namespace SMTool
     int cnet, cnum;
 }
 
-/*
-struct coord {
-    int x,y;
-};
-
-struct type {
-    string imageName;
-    vector<coord> coordinates;
-};
-
-void
-SMTUtil::pasteDecals(ImageBuf *bigBuf)
-{
-    printf("WARNING: decal pasting is not yet implemented\n");
-    return;
-    // load definitions file
-    vector<type> list;
-
-    // Parse the file
-    cout << "INFO: Reading " << decalFN << endl;
-    ifstream decalList( decalFN );
-
-    string line;
-    string cell;
-    vector<string> tokens;
-    while ( getline( decalList, line ) ) {
-        stringstream lineStream( line );
-        tokens.clear();
-        while( getline( lineStream, cell, ',' ) ) tokens.push_back( cell );
-
-        if(tokens.size() <2 ) continue;
-
-        // use parsed line
-        coord xy;
-        type *decal;
-        // search for existing decal filename
-        bool found = false;
-        for(unsigned int i = 0; i < list.size(); ++i ) {
-            if( !list[i].imageName.compare( tokens[0].c_str() ) ) {
-                decal = &list[i];
-                found = true;
-                break;
-            }
-        }
-        if( !found ) {
-            decal = new type;
-            decal->imageName = tokens[0].c_str();
-        }
-        xy.x = atoi( tokens[1].c_str() );
-        xy.y = atoi( tokens[2].c_str() );
-        decal->coordinates.push_back(xy);
-        if( !found ) list.push_back(*decal);
-    }
-
-    // loop through list of decals.
-    for(unsigned int i = 0; i < list.size(); ++i ) {
-        if( verbose )printf("     %i %s ", (int)list[i].coordinates.size(),
-            list[i].imageName.c_str() );
-
-        ImageBuf decalBuf( list[i].imageName );
-        decalBuf.read( 0, 0, false, TypeDesc::FLOAT );
-        if( !decalBuf.initialized() ) {
-            printf("ERROR: could not load %s\n", list[i].imageName.c_str() );
-            continue;
-        }
-        ImageSpec decalSpec = decalBuf.spec();
-
-        printf("(%i,%i)%i\n", decalSpec.width, decalSpec.height,
-            decalSpec.nchannels );
-
-        // loop through list of coordinates
-        for(unsigned int j = 0; j < list[i].coordinates.size(); ++j ) {
-            coord xy = list[i].coordinates[j];
-
-            ROI roi( xy.x, xy.x + decalSpec.width,
-                    xy.y, xy.y + decalSpec.height,
-                    0,1,
-                    0,5);
-            ImageBuf pasteBuf;
-            ImageBufAlgo::crop(pasteBuf, *bigBuf, roi);
-
-            ImageBuf compBuf;
-            if( !ImageBufAlgo::over( compBuf, decalBuf, pasteBuf) ) {
-                cout << "ERROR with composite: ";
-                cout << compBuf.geterror() << endl;
-                continue;
-            }
-            char filename[256];
-            sprintf(filename, "test%i.png", j);
-            compBuf.save(filename);
-        }
-    }
-    return;
-}
-*/
-
 ImageBuf *
 SMTool::reconstruct( TileCache &cache, ImageBuf *map)
 {
@@ -131,11 +35,11 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *map)
     map->get_pixels( 0, spec.width, 0, spec.height, 0, 1, TypeDesc::UINT, tilemap );
 
     // allocate enough data for our large image
-    if( verbose ) cout << "\tGenerating " << spec.width * cache.tileRes << "x"
-        << spec.height * cache.tileRes << endl;
+    if( verbose ) cout << "\tGenerating " << spec.width * cache.getTileRes() << "x"
+        << spec.height * cache.getTileRes() << endl;
 
-    ImageSpec bigSpec( spec.width * cache.tileRes,
-            spec.height * cache.tileRes, 4, TypeDesc::UINT8 );
+    ImageSpec bigSpec( spec.width * cache.getTileRes(),
+            spec.height * cache.getTileRes(), 4, TypeDesc::UINT8 );
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec );
 
     // Loop through tile index
@@ -147,8 +51,8 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *map)
             tileBuf = cache.getTile( tilenum );
             if(! tileBuf ) continue;
 
-            unsigned int xbegin = cache.tileRes * x;
-            unsigned int ybegin = cache.tileRes * y;
+            unsigned int xbegin = cache.getTileRes() * x;
+            unsigned int ybegin = cache.getTileRes() * y;
             ImageBufAlgo::paste(*bigBuf, xbegin, ybegin, 0, 0, *tileBuf);
 
             delete tileBuf;
@@ -176,8 +80,8 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
     else if(! vstride ) vstride = ceil( (float)cache.getNTiles() / (float)hstride);
 
     ImageSpec bigSpec(
-            hstride * cache.tileRes,
-            vstride * cache.tileRes,
+            hstride * cache.getTileRes(),
+            vstride * cache.getTileRes(),
             4, TypeDesc::UINT8 );
 
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
@@ -191,14 +95,14 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
         // Pull data
         tileBuf = cache.getTile( i );
 
-        unsigned int dx = cache.tileRes * (i % hstride);
-        unsigned int dy = cache.tileRes * (i / hstride);
+        unsigned int dx = cache.getTileRes() * (i % hstride);
+        unsigned int dy = cache.getTileRes() * (i / hstride);
 
         ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *tileBuf);
 
         delete tileBuf;
-        if( verbose )printf("\033[0G\tProcessing tile %i of %i.",
-            i+1, cache.getNTiles() );
+    //    if( verbose )printf("\033[0G\tProcessing tile %i of %i.",
+    //        i+1, limit );
     }
     cout << endl;
     return bigBuf;
@@ -281,17 +185,8 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *image )
     /// FIXME turn this into an imagebuf with iterator
     unsigned int *indexPixels = new unsigned int[tcx * tcz];
 
-/*    // Swizzle channels FIXME do this later
-    if( verbose )cout << "INFO: Swizzling channels\n";
-    ImageBuf fixBuf;
-    int map[] = { 2, 1, 0, 3 };
-    ImageBufAlgo::channels( fixBuf, *bigBuf, 4, map );
-    bigBuf->copy( fixBuf );
-    fixBuf.clear();
-*/
-    // Process Tiles
-
     // Time reporting vars
+    // FIXME simplify
     timeval t1, t2;
     double elapsedTime;
     deque<double> readings;
@@ -429,3 +324,101 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *image )
     delete imageOutput;
     delete [] indexPixels;
 }
+
+
+/*
+struct coord {
+    int x,y;
+};
+
+struct type {
+    string imageName;
+    vector<coord> coordinates;
+};
+
+void
+SMTUtil::pasteDecals(ImageBuf *bigBuf)
+{
+    printf("WARNING: decal pasting is not yet implemented\n");
+    return;
+    // load definitions file
+    vector<type> list;
+
+    // Parse the file
+    cout << "INFO: Reading " << decalFN << endl;
+    ifstream decalList( decalFN );
+
+    string line;
+    string cell;
+    vector<string> tokens;
+    while ( getline( decalList, line ) ) {
+        stringstream lineStream( line );
+        tokens.clear();
+        while( getline( lineStream, cell, ',' ) ) tokens.push_back( cell );
+
+        if(tokens.size() <2 ) continue;
+
+        // use parsed line
+        coord xy;
+        type *decal;
+        // search for existing decal filename
+        bool found = false;
+        for(unsigned int i = 0; i < list.size(); ++i ) {
+            if( !list[i].imageName.compare( tokens[0].c_str() ) ) {
+                decal = &list[i];
+                found = true;
+                break;
+            }
+        }
+        if( !found ) {
+            decal = new type;
+            decal->imageName = tokens[0].c_str();
+        }
+        xy.x = atoi( tokens[1].c_str() );
+        xy.y = atoi( tokens[2].c_str() );
+        decal->coordinates.push_back(xy);
+        if( !found ) list.push_back(*decal);
+    }
+
+    // loop through list of decals.
+    for(unsigned int i = 0; i < list.size(); ++i ) {
+        if( verbose )printf("     %i %s ", (int)list[i].coordinates.size(),
+            list[i].imageName.c_str() );
+
+        ImageBuf decalBuf( list[i].imageName );
+        decalBuf.read( 0, 0, false, TypeDesc::FLOAT );
+        if( !decalBuf.initialized() ) {
+            printf("ERROR: could not load %s\n", list[i].imageName.c_str() );
+            continue;
+        }
+        ImageSpec decalSpec = decalBuf.spec();
+
+        printf("(%i,%i)%i\n", decalSpec.width, decalSpec.height,
+            decalSpec.nchannels );
+
+        // loop through list of coordinates
+        for(unsigned int j = 0; j < list[i].coordinates.size(); ++j ) {
+            coord xy = list[i].coordinates[j];
+
+            ROI roi( xy.x, xy.x + decalSpec.width,
+                    xy.y, xy.y + decalSpec.height,
+                    0,1,
+                    0,5);
+            ImageBuf pasteBuf;
+            ImageBufAlgo::crop(pasteBuf, *bigBuf, roi);
+
+            ImageBuf compBuf;
+            if( !ImageBufAlgo::over( compBuf, decalBuf, pasteBuf) ) {
+                cout << "ERROR with composite: ";
+                cout << compBuf.geterror() << endl;
+                continue;
+            }
+            char filename[256];
+            sprintf(filename, "test%i.png", j);
+            compBuf.save(filename);
+        }
+    }
+    return;
+}
+*/
+

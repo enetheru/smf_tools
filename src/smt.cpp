@@ -21,6 +21,8 @@ SMT::create( string fileName, bool overwrite, bool verbose, bool quiet )
     if( file.good() && !overwrite ) return NULL;
     
     smt = new SMT;
+    smt->verbose = verbose;
+    smt->quiet = verbose;
     smt->fileName = fileName;
     smt->reset();
     return smt;
@@ -31,16 +33,21 @@ SMT::open( string fileName, bool verbose, bool quiet )
 {
     bool good = false;
 
-    char magic[ 16 ];
+    char magic[ 16 ] = "";
     ifstream file( fileName );
     if( file.good() ){
         file.read( magic, 16 );
-        if(! strcmp( magic, "spring tilefile" ) ) good = true;
+        if(! strcmp( magic, "spring tilefile" ) ){
+            good = true;
+            file.close();
+        }
     }
 
     SMT *smt;
     if( good ){
         smt = new SMT;
+        smt->verbose = verbose;
+        smt->quiet = verbose;
         smt->fileName = fileName;
         smt->load();
         return smt;
@@ -51,7 +58,7 @@ SMT::open( string fileName, bool verbose, bool quiet )
 void
 SMT::reset()
 {
-    if( verbose ) cout << "INFO: Resetting " << fileName;
+    if( verbose ) cout << "INFO: Resetting " << fileName << endl;
     // Clears content of SMT file and re-writes the header.
     fstream file( fileName, ios::binary | ios::out );
 
@@ -63,6 +70,7 @@ SMT::reset()
     //re write header
     SMTHeader head;
     head.tileType = tileType;
+    head.tileRes = tileRes;
 
     file.write( (char *)&head, sizeof(SMTHeader) );
     file.flush();
@@ -84,7 +92,7 @@ SMT::setType(unsigned int t)
 void
 SMT::setTileRes(unsigned int r)
 {
-    if( tileRes == r)return;
+    if( tileRes == r )return;
     tileRes = r;
     reset();
 }
@@ -151,15 +159,12 @@ SMT::append( ImageBuf *sourceBuf )
     ImageBuf fixBuf; 
     ImageBufAlgo::channels( fixBuf, *sourceBuf, 4, map, fill );
     sourceBuf->copy( fixBuf );
-
-
-    fstream smtFile;
-    smtFile.open( this->fileName, ios::binary | ios::out | ios::app );
    
 #ifdef DEBUG_IMG
     sourceBuf->save( "SMT::append(...)" + to_string(i) + "_1.tif", "tif" );
 #endif //DEBUG_IMG
 
+    // Get raw data
     unsigned char *std = new unsigned char[tileRes * tileRes * 4];
     sourceBuf->get_pixels(0, tileRes, 0, tileRes, 0, 1, TypeDesc::UINT8, std);
 
@@ -167,12 +172,12 @@ SMT::append( ImageBuf *sourceBuf )
     nvtt::Compressor compressor;
 
     nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout( nvtt::TextureType_2D, this->tileRes, this->tileRes );
-    inputOptions.setMipmapData( std, this->tileRes, this->tileRes );
+    inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
+    inputOptions.setMipmapData( std, tileRes, tileRes );
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1a );
-    if( this->slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+    if( slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
     else                  compressionOptions.setQuality( nvtt::Quality_Fastest ); 
 
     nvtt::OutputOptions outputOptions;
@@ -186,32 +191,34 @@ SMT::append( ImageBuf *sourceBuf )
 #endif //DEBUG_IMG
 
     outputOptions.setOutputHeader( false );
-    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( this->tileSize );
+    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( tileSize );
     outputOptions.setOutputHandler( nvttHandler );
 
     compressor.process( inputOptions, compressionOptions, outputOptions );
 
-    smtFile.write( nvttHandler->getBuffer(), this->tileSize );
-    smtFile.flush();
-    smtFile.close();
+    // save to file
+    fstream smtFile(fileName, ios::binary | ios::in | ios::out);
 
-    delete nvttHandler;
-//    delete tileBuf;
+    smtFile.seekp( sizeof(SMTHeader) + tileSize * nTiles );
+    smtFile.write( nvttHandler->getBuffer(), tileSize );
 
-    this->nTiles += 1;
+    ++nTiles;
 
-    // retroactively fix up the tile count.
-    smtFile.open( this->fileName, ios::binary | ios::in | ios::out );
     smtFile.seekp( 20 );
-    smtFile.write( (char *)&(this->nTiles), 4 );
+    smtFile.write( (char *)&(nTiles), 4 );
+
     smtFile.flush();
     smtFile.close();
 
+    // fix internal state
+
+    // cleanup
+    delete nvttHandler;
     return false;
 }
 
 ImageBuf *
-SMT::getTile(int t)
+SMT::getTile(int n)
 {
     ImageBuf *imageBuf = NULL; // resulting tile
     ImageSpec imageSpec( tileRes, tileRes, 4, TypeDesc::UINT8 );
@@ -223,18 +230,18 @@ SMT::getTile(int t)
     {
         raw_dxt1a = new unsigned char[ tileSize ];
 
-        smtFile.seekg( sizeof(SMTHeader) + tileSize * t );
+        smtFile.seekg( sizeof(SMTHeader) + tileSize * n );
         smtFile.read( (char *)raw_dxt1a, tileSize );
 
         rgba8888 = dxt1_load( raw_dxt1a, tileRes, tileRes );
         delete [] raw_dxt1a;
 
-        imageBuf = new ImageBuf( fileName + "_" + to_string(t), imageSpec, rgba8888);
+        imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
     }
     smtFile.close();
 
 #ifdef DEBUG_IMG
-    imageBuf->write("getTile(" + to_string(t) + ").tif", "tif");
+    imageBuf->write("getTile(" + to_string(n) + ").tif", "tif");
 #endif //DEBUG_IMG
 
     return imageBuf;    
