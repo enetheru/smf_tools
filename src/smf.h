@@ -28,17 +28,16 @@ Chunk of data pointed to by header or extra headers
 */
 
 struct SMFHeader {
-    SMFHeader();
-/*  0 */    char magic[16];     // "spring map file\0"
-/* 16 */    int version;        // must be 1 for now
+/*  0 */    char magic[ 16 ] = "spring map file";     // "spring map file\0"
+/* 16 */    int version = 1;        // must be 1 for now
 /* 20 */    int id;             // sort of a checksum of the file
-/* 24 */    int width;          // map width * 64
-/* 28 */    int length;         // map length * 64
-/* 32 */    int squareWidth;    // distance between vertices. must be 8
-/* 36 */    int squareTexels;   // number of texels per square, must be 8 for now
-/* 40 */    int tileTexels;     // number of texels in a tile, must be 32 for now
-/* 44 */    float floor;        // height value that 0 in the heightmap corresponds to    
-/* 48 */    float ceiling;      // height value that 0xffff in the heightmap corresponds to
+/* 24 */    int width = 2;          // map width * 64
+/* 28 */    int length = 2;         // map length * 64
+/* 32 */    int squareWidth = 8;    // distance between vertices. must be 8
+/* 36 */    int squareTexels = 8;   // number of texels per square, must be 8 for now
+/* 40 */    int tileTexels = 32;     // number of texels in a tile, must be 32 for now
+/* 44 */    float floor = 10;        // height value that 0 in the heightmap corresponds to    
+/* 48 */    float ceiling = 256;      // height value that 0xffff in the heightmap corresponds to
 
 /* 52 */    int heightPtr;      // file offset to elevation data (short int[(mapy+1)*(mapx+1)])
 /* 56 */    int typePtr;        // file offset to typedata (unsigned char[mapy/2 * mapx/2])
@@ -47,66 +46,26 @@ struct SMFHeader {
 /* 68 */    int metalPtr;       // file offset to metalmap (unsigned char[mapx/2 * mapy/2])
 /* 72 */    int featuresPtr; // file offset to feature data (see MapFeatureHeader)
     
-/* 76 */    int nExtraHeaders;   // numbers of extra headers following main header
+/* 76 */    int nExtraHeaders = 0;   // numbers of extra headers following main header
 };/* 80 */
-
-#define READPTR_SMTHEADER(mh,srcptr)                \
-do {                                                \
-    unsigned int __tmpdw;                           \
-    float __tmpfloat;                               \
-    (srcptr)->read((mh).magic,sizeof((mh).magic));  \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).version = (int)swabdword(__tmpdw);         \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).id = (int)swabdword(__tmpdw);           \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).width = (int)swabdword(__tmpdw);            \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).length = (int)swabdword(__tmpdw);            \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).squareWidth = (int)swabdword(__tmpdw);      \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).squareTexels = (int)swabdword(__tmpdw);  \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).tileTexels = (int)swabdword(__tmpdw);        \
-    (srcptr)->read(&__tmpfloat,sizeof(float));      \
-    (mh).floor = swabfloat(__tmpfloat);         \
-    (srcptr)->read(&__tmpfloat,sizeof(float));      \
-    (mh).ceiling = swabfloat(__tmpfloat);         \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).heightPtr = (int)swabdword(__tmpdw);    \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).typePtr = (int)swabdword(__tmpdw);      \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).tileindexPtr = (int)swabdword(__tmpdw);        \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).minimapPtr = (int)swabdword(__tmpdw);      \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).metalPtr = (int)swabdword(__tmpdw);     \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).featurelistPtr = (int)swabdword(__tmpdw);      \
-    (srcptr)->read(&__tmpdw,sizeof(unsigned int));  \
-    (mh).extraHeaders = (int)swabdword(__tmpdw); \
-} while (0)
 
 // start of every extra header must look like this, then comes data specific
 // for header type
 struct SMFEH {
-    int size;
-    int type;
-    SMFEH(): size(0), type(0) {};
-    SMFEH(int i, int j): size(i), type(j) {} ;
+    int size = 0;
+    int type = 0;
+    SMFEH( ){ };
+    SMFEH( int i, int j ) : size( i ), type( j ){ };
 };
 
 #define SMFEH_NONE 0
-
 #define SMFEH_GRASS 1
 // This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
 // that defines ground vegetation.
 struct SMFEHGrass: public SMFEH
 {
     int grassPtr;
-    SMFEHGrass(): SMFEH(12, 1) {};
+    SMFEHGrass( ) : SMFEH( 12, 1 ){ };
 };
 
 
@@ -117,25 +76,6 @@ struct SMFHTiles
     int nFiles;
     int nTiles;
 };
-
-#define READ_SMFTILEINDEXHEADER(mth,src)             \
-do {                                            \
-    unsigned int __tmpdw;                       \
-    (src).read( (char *)&__tmpdw,sizeof(unsigned int));  \
-    (mth).nFiles = swabdword(__tmpdw);    \
-    (src).read( (char *)&__tmpdw,sizeof(unsigned int));  \
-    (mth).nTiles = swabdword(__tmpdw);        \
-} while (0)
-
-#define READPTR_SMFTILEINDEXHEADER(mth,src)          \
-do {                                            \
-    unsigned int __tmpdw;                       \
-    (src)->read( (char *)&__tmpdw,sizeof(unsigned int)); \
-    (mth).nFiles = swabdword(__tmpdw);    \
-    (src)->read( (char *)&__tmpdw,sizeof(unsigned int)); \
-    (mth).nTiles = swabdword(__tmpdw);        \
-} while (0)
-
 /* this is followed by numTileFiles file definition where each file definition
    is an int followed by a zero terminated file name. Each file defines as
    many tiles the int indicates with the following files starting where the
@@ -150,14 +90,6 @@ struct SMFHFeatures
     int nFeatures; // number of features
 };
 
-#define READ_SMFFEATURESHeader(mfh,src)              \
-do {                                                \
-    unsigned int __tmpdw;                           \
-    (src)->read( (char *)&__tmpdw,sizeof(unsigned int));     \
-    (mfh).nFeatureType = (int)swabdword(__tmpdw); \
-    (src)->read( (char *)&__tmpdw,sizeof(unsigned int));     \
-    (mfh).numFeatures = (int)swabdword(__tmpdw);    \
-} while (0)
 
 /* this is followed by numFeatureType zero terminated strings indicating the
    names of the features in the map then follow numFeatures
@@ -166,36 +98,16 @@ do {                                                \
 struct SMFFeature
 {
     int type;        // index to one of the strings above
-    float x,y,z,r,s; // position, rotation, scale
+    float x, y, z, r, s; // position, rotation, scale
 };
-
-#define READ_SMFFEATURE(mfs,src)           \
-do {                                             \
-    unsigned int __tmpdw;                        \
-    float __tmpfloat;                            \
-    (src)->read( (char *)&__tmpdw,sizeof(unsigned int));  \
-    (mfs).type = (int)swabdword(__tmpdw); \
-    (src)->read( (char *)&__tmpfloat,sizeof(float));      \
-    (mfs).x = swabfloat(__tmpfloat);          \
-    (src)->read( (char *)&__tmpfloat,sizeof(float));      \
-    (mfs).y = swabfloat(__tmpfloat);          \
-    (src)->read( (char *)&__tmpfloat,sizeof(float));      \
-    (mfs).z = swabfloat(__tmpfloat);          \
-    (src)->read( (char *)&__tmpfloat,sizeof(float));      \
-    (mfs).r = swabfloat(__tmpfloat);      \
-    (src)->read( (char *)&__tmpfloat,sizeof(float));      \
-    (mfs).s = swabfloat(__tmpfloat);  \
-} while (0)
 
 // Helper Class //
 class SMF {
-
-    // Loading
-    SMFHeader header;
-    string loadFile;
+    bool init = false;
+    string fileName;
 
     // Saving
-    string outPrefix;
+    string outPrefix = "out";
     vector<SMFEH *> extraHeaders;
 
     // SMF Information
@@ -217,7 +129,7 @@ class SMF {
     string grassFile;
 
     int tilesPtr;
-    int nTiles;            // number of tiles referenced
+    int nTiles = 0;            // number of tiles referenced
     vector<string> smtList; // list of smt files references
     vector<int> smtTiles; //number of tiles in files from smtList
     string tilemapFile;
@@ -228,20 +140,30 @@ class SMF {
     string featuresFile;
 
     // Functions
-    bool recalculate();
+    bool recalculate( );
 
 public:
-    bool verbose, quiet, slowcomp, invert;
+    bool verbose = false,
+         quiet = false,
+         slowcomp = false,
+         invert = false;
 
-    SMF(): outPrefix("out"),
-        nTiles( 0 ),
-        verbose( true ),
-        quiet( false ),
-        slowcomp( false ),
-        invert( false )
-    {};
+    SMF( ){ };
+    SMF( string f, bool v = false, bool q = false )
+        : fileName( f ), verbose( v ), quiet( q ) { init = !load(); };
 
-    SMF( string loadFile );
+    static SMF *create( string fileName,
+            bool overwrite = false,
+            bool verbose = false,
+            bool quiet = false );
+
+    static SMF *open( string fileName,
+            bool verbose = false,
+            bool quiet = false );
+
+    bool reset( );
+    bool initialised( ){ return init; };
+
     void setOutPrefix(string prefix);
     bool setDimensions(int width, int length, float floor, float ceiling);
     void setHeightFile( string filename );
@@ -254,9 +176,9 @@ public:
 
     void unsetGrassFile();
 
-    void addTileFile( string filename );
+    bool addTileFile( string filename );
 
-    bool load(string filename);
+    bool load( );
 
     bool save();
     bool save(string filename);

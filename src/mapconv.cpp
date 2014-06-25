@@ -231,14 +231,14 @@ main( int argc, char **argv )
 
     // Globals //
     /////////////
-    SMF smf;
-    smf.verbose = verbose;
-    smf.quiet = quiet;
-    smf.slowcomp = slow_dxt1;
-    smf.invert = invert;
 
     // Load file 
-    if( strcmp( inputFile.c_str(), "" ) ) smf.load( inputFile );
+    if(! strcmp( inputFile.c_str(), "" ) ) exit(1);
+    SMF smf( inputFile, verbose, quiet );
+    smf.load();
+
+    smf.slowcomp = slow_dxt1;
+    smf.invert = invert;
 
     // decompile loaded file
     if( extract )
