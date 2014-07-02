@@ -1,34 +1,46 @@
 #include "util.h"
 
-#include <fstream>
-#include <OpenImageIO/imageio.h>
-
-OIIO_NAMESPACE_USING
-using namespace std;
-
-bool
-isSMF( string FN )
+void
+valxval( string s, unsigned int &x, unsigned int &y)
 {
-    bool status = false;
-    char magic[ 16 ];
-    if(! FN.compare( "" ) ) return false;
+    unsigned int d;
+    d = s.find_first_of( 'x', 0 );
 
-    ifstream file( FN, ifstream::in );
-    if( file.good() ){
-        file.read( magic, 16 );
-        if(! strcmp( magic, "spring map file" ) ) status = true;
-    }
+    if(d) x = stoi( s.substr( 0, d ) );
+    else x = 0;
 
-    file.close();
-    return status;
+    if(d == s.size()-1 ) y = 0;
+    else y = stoi( s.substr( d + 1, string::npos) );
 }
 
-bool
-isImage( string FN )
+vector<unsigned int>
+expandString( const char *s )
 {
-    ImageInput *in = ImageInput::open( FN );
-    if(! in ) return false;
+    vector<unsigned int> result;
 
-    in->close();
-    return true;
+    int start;
+    bool sequence = false;
+    const char *begin;
+    do {
+        begin = s;
+
+        while( *s != ',' && *s != '-' && *s ) s++;
+        if( begin == s) continue;
+
+        if( sequence ){
+            for( int i = start; i < stoi( string( begin, s ) ); ++i )
+                result.push_back( i );
+        }
+
+        if( *(s) == '-' ){
+            sequence = true;
+            start = stoi( string( begin, s ) );
+        } else {
+            sequence = false;
+            result.push_back( stoi( string( begin, s ) ) );
+        }
+    }
+    while( *s++ != '\0' );
+
+    return result;
 }

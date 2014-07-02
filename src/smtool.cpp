@@ -105,9 +105,10 @@ SMTool::openTilemap( string fileName )
     ImageBuf *buf = NULL;
     ImageSpec spec;
     //Load tilemap from SMF
-    if( isSMF( fileName ) ){
-        SMF smfFile( fileName );
-        buf = smfFile.getTilemap();
+    SMF *smf = NULL;
+    if( (smf = SMF::open( fileName, verbose, quiet )) ){
+        buf = smf->getMap();
+        delete smf;
     }
 
     // Else load tilemap from image

@@ -2,6 +2,7 @@
 #include "smt.h"
 #include "smf.h"
 #include "optionparser.h"
+#include "util.h"
 
 // Built in headers
 #include <cstring>
@@ -45,95 +46,86 @@ struct Arg: public option::Arg
         if (msg) printError("Option '", option, "' requires a numeric argument\n");
         return option::ARG_ILLEGAL;
     }
-
-    static option::ArgStatus SMT(const option::Option& option, bool smg)
-    {
-        char magic[16];
-        ifstream file(option.arg, ios::in | ios::binary);
-        file.read(magic, 16);
-        if( !strcmp(magic, "spring tilefile") )
-            file.close();
-            return option::ARG_OK;
-
-        fprintf(stderr, "ERROR: '%s' is not a valid spring tile file\n", option.arg);
-        return option::ARG_ILLEGAL;
-    }
-
-    static option::ArgStatus SMF(const option::Option& option, bool smg)
-    {
-        char magic[16];
-        ifstream file(option.arg, ios::in | ios::binary);
-        file.read(magic, 16);
-        if( !strcmp(magic, "spring map file") )
-            file.close();
-            return option::ARG_OK;
-
-        fprintf(stderr, "ERROR: '%s' is not a valid spring map file\n", option.arg);
-        return option::ARG_ILLEGAL;
-    }
-
-    static option::ArgStatus Image(const option::Option& option, bool msg)
-    {
-        /* attempt to load image file */
-        ImageInput *in = ImageInput::open (option.arg);
-        if (! in) {
-            fprintf(stderr, "ERROR: '%s' is not a valid image file\n", option.arg);
-            return option::ARG_ILLEGAL;
-        }
-        in->close();
-        delete in;
-        return option::ARG_OK;
-    }
 };
 
-enum optionsIndex {UNKNOWN, VERBOSE, HELP, QUIET, EXTRACT, SLOW_DXT1, OUTPUT,
-    INPUT, WIDTH, LENGTH, FLOOR, CEILING, SMTS, TILEMAP, HEIGHT, INVERT, TYPE,
-    MINI, METAL, GRASS, FEATURES };
+enum optionsIndex
+{
+    UNKNOWN,
+    VERBOSE, HELP, QUIET, 
+    //File Operations
+    IFILE, OVERWRITE,
+    // Specification
+    MAPSIZE,
+    FLOOR, CEILING,
+    TILERES,
+    // Source materials
+    HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
+    INVERT,
+    // Compression
+    SLOW_DXT1, 
+    // Deconstruction
+    EXTRACT, 
+};
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: mapconv [options]\n\n"
-        "OPTIONS:" },
+        "USAGE: mapconv [options]\n"
+        "  eg. mapconv ...\n"
+        "\nGENERAL OPTIONS:" },
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
     { VERBOSE, 0, "v", "verbose", Arg::None,
         "  -v,  \t--verbose  \tPrint extra information." },
     { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress output." },
-    { INPUT, 0, "i", "input", Arg::SMF,
-        "  -i,  \t--input  \tSMF filename to load." },
-    { OUTPUT, 0, "o", "output", Arg::Required,
-        "  -o,  \t--output  \tOutput prefix used when saving." },
-    { EXTRACT, 0, "e", "extract", Arg::None,
-        "  -e,  \t--extract  \tExtract images from loaded SMF." },
-    { SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
-        "\t--slow_dxt1  \tUse slower but better analytics when compressing DXT1 textures" },
-    { WIDTH, 0, "x", "width", Arg::Numeric,
-        "  -x,  \t--width  \tWidth of the map in spring map units, Must be multiples of two." },
-    { LENGTH, 0, "z", "length", Arg::Numeric,
-        "  -z,  \t--length  \tLength of the map in spring map units, Must be multiples of two." },
+
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nFILE OPS:" },
+    { IFILE, 0, "f", "file", Arg::Required,
+        "  -f,  \t--file=mymap.smf  \tFile to operate on, will create if it doesnt exist" },
+    { OVERWRITE, 0, "", "overwrite", Arg::Required,
+        "\t--overwrite  \tOverwrite existing files" },
+
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nSPECIFICATIONS:" },
+    { MAPSIZE, 0, "", "mapsize", Arg::Required,
+        "\t--mapsize=XxY  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
     { FLOOR, 0, "y", "floor", Arg::Numeric,
-        "  -y,  \t--floor  \tMinimum height of the map." },
+        "  -y,  \t--floor=1.0f  \tMinimum height of the map." },
     { CEILING, 0, "Y", "ceiling", Arg::Numeric,
-        "  -Y,  \t--ceiling  \tMaximum height of the map." },
-    { SMTS, 0, "", "smt", Arg::SMT,
-        "\t--smt  \tlist of SMT files referenced." },
-    { TILEMAP, 0, "", "tilemap", Arg::Image,
-        "\t--tilemap  \tImage to use for tilemap." },
-    { HEIGHT, 0, "", "height", Arg::Image,
-        "\t--height  \tImage to use for heightmap." },
+        "  -Y,  \t--ceiling=1.0f  \tMaximum height of the map." },
+    { TILERES, 0, "", "tileres=32", Arg::Numeric,
+        "\t--tileres=X  \tXY resolution of tiles referenced, eg. '--tileres=32'." },
+
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nCREATION:" },
+    { HEIGHT, 0, "", "height", Arg::Required,
+        "\t--height=height.tif  \tImage to use for heightmap." },
     { INVERT, 0, "", "invert", Arg::None,
         "\t--invert \tInvert the heightmap."},
-    { TYPE, 0, "", "type", Arg::Image,
-        "\t--type  \tImage to use for typemap." },
-    { MINI, 0, "", "mini", Arg::Image,
-        "\t--mini  \tImage to use for minimap." },
-    { METAL, 0, "", "metal", Arg::Image,
-        "\t--metal  \tImage to use for metalmap." },
-    { GRASS, 0, "", "grass", Arg::Image,
-        "\t--grass  \tImage to use for grassmap." },
+    { TYPE, 0, "", "type", Arg::Required,
+        "\t--type=type.tif  \tImage to use for typemap." },
+    { MAP, 0, "", "map", Arg::Required,
+        "\t--map=map.tif  \tImage to use for tilemap." },
+    { MINI, 0, "", "mini", Arg::Required,
+        "\t--mini=mini.tif  \tImage to use for minimap." },
+    { METAL, 0, "", "metal", Arg::Required,
+        "\t--metal=metal.tif  \tImage to use for metalmap." },
     { FEATURES, 0, "", "features", Arg::Required,
-        "\t--features  \tList of features."},
+        "\t--features=list.csv  \tList of features."},
+    { GRASS, 0, "", "grass", Arg::Required,
+        "\t--grass=grass.tif  \tImage to use for grassmap." },
+
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nCOMPRESSION:" },
+    { SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
+        "\t--slow_dxt1  \tUse slower but better analytics when compressing DXT1 textures" },
+
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nDECONSTRUCTION:" },
+    { EXTRACT, 0, "e", "extract", Arg::None,
+        "  -e,  \t--extract  \tExtract images from loaded SMF." },
+
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
         "  mapconv -x 8 -z 8 -y -10 -Y 256 --height height.tif --metal"
@@ -151,12 +143,14 @@ main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
-    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() )
+    bool fail = false;
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         std::cout << "Unknown option: " << std::string( opt->name, opt->namelen ) << "\n";
-
-    for( int i = 0; i < parse.nonOptionsCount(); ++i )
-        std::cout << "Non-option #" << i << ": " << parse.nonOption( i ) << "\n";
+        fail = true;
+    }
+    if( fail ) exit( 1 );
     if( parse.error() ) exit( 1 );
+
 
     if( options[ HELP ] || argc == 0) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
@@ -164,106 +158,84 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
-    bool verbose, quiet, extract, slow_dxt1, invert;
-    options[VERBOSE]   ? verbose = true   : verbose = false;
-    options[QUIET]     ? quiet = true     : quiet = false;
-    options[EXTRACT]   ? extract = true   : extract = false;
-    options[SLOW_DXT1] ? slow_dxt1 = true : slow_dxt1 = false;
-    options[INVERT]    ? invert = true    : invert = false;
+    bool verbose = false, quiet = false, overwrite = false,
+         slow_dxt1 = false, invert = false;
+    unsigned int mx = 2, my = 2;
+    if( options[ VERBOSE   ] ) verbose = true;
+    if( options[ QUIET     ] ) quiet = true;
+    if( options[ SLOW_DXT1 ] ) slow_dxt1 = true;
+    if( options[ INVERT    ] ) invert = true;
+    if( options[ OVERWRITE ] ) overwrite = true;
 
-    vector<string> tileFiles;
-    for( option::Option *opt = options[ SMTS ]; opt; opt = opt->next() )
-        tileFiles.push_back( opt->arg );
+    // output creation
+    SMF *smf = NULL;
+    if( options[ IFILE ] ){
+        string filename = options[ IFILE ].arg;
+        smf = SMF::open( filename, verbose, quiet );
+        if(! smf ) smf = SMF::create( filename, overwrite, verbose, quiet );
+        if(! smf ){
+            if(! quiet )cout << "error.smf: unable to create " << filename << endl;
+            exit(1);
+        }
+    }
+    
+    vector<string> smts;    
+    for( int i = 0; i < parse.nonOptionsCount(); ++i ){
+        smts.push_back( parse.nonOption( i ) );
 
-    int width = 8, length = 8;
-    float floor = -1, ceiling = 1;
-    string outputPrefix, inputFile, tilemapFile, heightFile, typeFile, miniFile,
-        metalFile, grassFile, featuresFile;
+    }
+    smf->addTileFiles( smts );
 
-    for( int i = 0; i < parse.optionsCount(); ++i )
-    {
-        option::Option &opt = buffer[ i ];
-        switch( opt.index() ) {
-        case WIDTH:
-            width = atoi( opt.arg );
-            break;
-        case LENGTH:
-            length = atoi( opt.arg );
-            break;
-        case FLOOR:
-            floor = atof( opt.arg );
-            break;
-        case CEILING:
-            ceiling = atof( opt.arg );
-            break;
-        case INPUT:
-            inputFile = opt.arg;
-            break;
-        case OUTPUT:
-            outputPrefix = opt.arg;
-            break;
-        case TILEMAP:
-            tilemapFile = opt.arg;
-            break;
-        case HEIGHT:
-            heightFile = opt.arg;
-            break;
-        case TYPE:
-            typeFile = opt.arg;
-            break;
-        case MINI:
-            miniFile = opt.arg;
-            break;
-        case METAL:
-            metalFile = opt.arg;
-            break;
-        case GRASS:
-            grassFile = opt.arg;
-            break;
-        case FEATURES:
-            featuresFile = opt.arg;
-            break;
+    if( options[ MAPSIZE ] ){
+        valxval( options[ MAPSIZE ].arg, mx, my );
+        smf->setSize( mx, my );
+    }
+
+    if( options[ HEIGHT ] ){
+        ImageBuf heightBuf( options[ HEIGHT ].arg );
+        smf->writeHeight( &heightBuf );
+    }
+    if( options[ TYPE ] ){
+        ImageBuf typeBuf( options[ TYPE ].arg );
+        smf->writeType( &typeBuf );
+    }
+    if( options[ MAP ] ){
+        ImageBuf mapBuf( options[ MAP ].arg );
+        smf->writeMap( &mapBuf );
+    }
+    if( options[ MINI ] ){
+        ImageBuf miniBuf( options[ MINI ].arg );
+        smf->writeMini( &miniBuf );
+    }
+    if( options[ METAL ] ){
+        ImageBuf metalBuf( options[ METAL ].arg );
+        smf->writeMetal( &metalBuf );
+    }
+
+    ImageBuf *buf = NULL;
+    if( options[ EXTRACT ] ){
+        if( verbose ) cout << "INFO: Extracting height image" << endl;
+        buf = smf->getHeight();
+        buf->write("height.tif", "tif" );
+        if( verbose ) cout << "INFO: Extracting type image" << endl;
+        buf = smf->getType();
+        buf->write("type.tif", "tif");
+        if( verbose ) cout << "INFO: Extracting map image" << endl;
+        buf = smf->getMap();
+        buf->write("map.exr", "exr");
+        if( verbose ) cout << "INFO: Extracting mini image" << endl;
+        buf = smf->getMini();
+        buf->write("mini.tif", "tif");
+        if( verbose ) cout << "INFO: Extracting metal image" << endl;
+        buf = smf->getMetal();
+        buf->write("metal.tif", "tif");
+        buf = smf->getGrass();
+        if( buf ){
+            if( verbose ) cout << "INFO: Extracting grass image" << endl;
+            buf->write("grass.tif", "tif");
         }
     }
 
-    delete[] options;
-    delete[] buffer;
-
-    // Globals //
-    /////////////
-
-    // Load file 
-    if(! strcmp( inputFile.c_str(), "" ) ) exit(1);
-    SMF smf( inputFile, verbose, quiet );
-    smf.load();
-
-    smf.slowcomp = slow_dxt1;
-    smf.invert = invert;
-
-    // decompile loaded file
-    if( extract )
-    {
-        inputFile.erase( inputFile.size() - 4 );
-        smf.setOutPrefix( inputFile );
-        smf.decompileAll( 0 );
-    }
-
-    // Change attributes
-    smf.setDimensions( width, length, floor, ceiling );
-
-    if( strcmp( heightFile.c_str(),   "") ) smf.setHeightFile(   heightFile   );
-    if( strcmp( typeFile.c_str(),     "") ) smf.setTypeFile(     typeFile     );
-    if( strcmp( miniFile.c_str(),     "") ) smf.setMinimapFile(  miniFile     );
-    if( strcmp( metalFile.c_str(),    "") ) smf.setMetalFile(    metalFile    );
-    if( strcmp( tilemapFile.c_str(),  "") ) smf.setTilemapFile(  tilemapFile  );
-    if( strcmp( featuresFile.c_str(), "") ) smf.setFeaturesFile( featuresFile );
-
-    if( strcmp( grassFile.c_str(),    "") ) smf.setGrassFile(    grassFile    );
-    else                                    smf.unsetGrassFile();
-
-    for( unsigned int i = 0; i < tileFiles.size(); ++i ) smf.addTileFile( tileFiles[ i ] );
-    
-    //Save
-    if( strcmp(outputPrefix.c_str(), "") )smf.save( outputPrefix );
+    cout << smf->info();
     return 0;
 }

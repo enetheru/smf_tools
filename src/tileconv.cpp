@@ -14,9 +14,6 @@
 using namespace std;
 OIIO_NAMESPACE_USING;
 
-void valxval( string s, unsigned int &x, unsigned int &y);
-vector<unsigned int> expandString( const char *s );
-
 // Argument tests //
 ////////////////////
 struct Arg: public option::Arg
@@ -238,16 +235,16 @@ main( int argc, char **argv )
     if( options[ OUTPUT ] ){
         string fileName = options[ OUTPUT ].arg;
         if( (smt = SMT::open( fileName, verbose, quiet )) ){
-            if( verbose )cout << "INFO.SMT: opened " << fileName << endl;
+            if( verbose ) cout << "INFO.smt: opened " << fileName << endl;
             tileRes = smt->getTileRes();
             tileCache.setTileRes( tileRes );
         }
         else if( (smt = SMT::create( fileName, force, verbose, quiet )) ){
-            if( verbose )cout << "INFO.SMT: created " << fileName << endl;
+            if( verbose ) cout << "INFO.smt: created " << fileName << endl;
             smt->setTileRes( tileRes );
         }
         else {
-            if(! quiet )cout << "ERROR.SMT: unable to create " << fileName << endl;
+            if(! quiet ) cout << "ERROR.smt: unable to create " << fileName << endl;
             exit(1);
         }
     }
@@ -334,50 +331,4 @@ main( int argc, char **argv )
     delete[] options;
     delete[] buffer;
     exit( 0 );
-}
-
-void
-valxval( string s, unsigned int &x, unsigned int &y)
-{
-    unsigned int d;
-    d = s.find_first_of( 'x', 0 );
-
-    if(d) x = stoi( s.substr( 0, d ) );
-    else x = 0;
-
-    if(d == s.size()-1 ) y = 0;
-    else y = stoi( s.substr( d + 1, string::npos) );
-}
-
-vector<unsigned int>
-expandString( const char *s )
-{
-    vector<unsigned int> result;
-
-    int start;
-    bool sequence = false;
-    const char *begin;
-    do {
-        begin = s;
-
-        while( *s != ',' && *s != '-' && *s ) s++;
-        if( begin == s) continue;
-
-        if( sequence ){
-            for( int i = start; i < stoi( string( begin, s ) ); ++i )
-                result.push_back( i );
-        }
-
-        if( *(s) == '-' ){
-            sequence = true;
-            start = stoi( string( begin, s ) );
-        } else {
-            sequence = false;
-            result.push_back( stoi( string( begin, s ) ) );
-        }
-    }
-    while( *s++ != '\0' );
-
-    return result;
-
 }

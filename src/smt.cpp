@@ -58,7 +58,7 @@ SMT::reset()
 
     if(! file.good() ){
         if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
-        exit( 1 );
+        return true;
     }
 
     //re write header
@@ -73,7 +73,7 @@ SMT::reset()
     // fix up local attributes
     nTiles = 0;
     calcTileSize();
-    exit( 0 );   
+    return false;   
 }
 
 void
@@ -134,7 +134,7 @@ SMT::load()
     nTiles   = header.nTiles;
     tileType = header.tileType;
     calcTileSize();
-    exit( 0 );
+    return false;
 }
 
 bool

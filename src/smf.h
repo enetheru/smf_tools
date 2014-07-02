@@ -9,202 +9,206 @@ using namespace std;
 #include <OpenImageIO/imagebuf.h>
 OIIO_NAMESPACE_USING
 
-// Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.
-// 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4
-// 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
+/** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.
+ * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4
+ * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
+ */
 #define MINIMAP_SIZE 699048
+#define SMF_HEADER_NONE 0
+#define SMF_HEADER_GRASS 1
 
-/*
-map file (.smf) layout is like this
-
-MapHeader
-
-ExtraHeader
-ExtraHeader
-...
-Chunk of data pointed to by header or extra headers
-Chunk of data pointed to by header or extra headers
-...
-*/
-
-struct SMFHeader {
-/*  0 */    char magic[ 16 ] = "spring map file";     // "spring map file\0"
-/* 16 */    int version = 1;        // must be 1 for now
-/* 20 */    int id;             // sort of a checksum of the file
-/* 24 */    int width = 2;          // map width * 64
-/* 28 */    int length = 2;         // map length * 64
-/* 32 */    int squareWidth = 8;    // distance between vertices. must be 8
-/* 36 */    int squareTexels = 8;   // number of texels per square, must be 8 for now
-/* 40 */    int tileTexels = 32;     // number of texels in a tile, must be 32 for now
-/* 44 */    float floor = 10;        // height value that 0 in the heightmap corresponds to    
-/* 48 */    float ceiling = 256;      // height value that 0xffff in the heightmap corresponds to
-
-/* 52 */    int heightPtr;      // file offset to elevation data (short int[(mapy+1)*(mapx+1)])
-/* 56 */    int typePtr;        // file offset to typedata (unsigned char[mapy/2 * mapx/2])
-/* 60 */    int tilesPtr;   // file offset to tile data (see MapTileHeader)
-/* 64 */    int minimapPtr;     // file offset to minimap (always 1024*1024 dxt1 compresed data with 9 mipmap sublevels)
-/* 68 */    int metalPtr;       // file offset to metalmap (unsigned char[mapx/2 * mapy/2])
-/* 72 */    int featuresPtr; // file offset to feature data (see MapFeatureHeader)
-    
-/* 76 */    int nExtraHeaders = 0;   // numbers of extra headers following main header
-};/* 80 */
-
-// start of every extra header must look like this, then comes data specific
-// for header type
-struct SMFEH {
-    int size = 0;
-    int type = 0;
-    SMFEH( ){ };
-    SMFEH( int i, int j ) : size( i ), type( j ){ };
-};
-
-#define SMFEH_NONE 0
-#define SMFEH_GRASS 1
-// This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
-// that defines ground vegetation.
-struct SMFEHGrass: public SMFEH
-{
-    int grassPtr;
-    SMFEHGrass( ) : SMFEH( 12, 1 ){ };
-};
-
-
-//some structures used in the chunks of data later in the file
-
-struct SMFHTiles
-{
-    int nFiles;
-    int nTiles;
-};
-/* this is followed by numTileFiles file definition where each file definition
-   is an int followed by a zero terminated file name. Each file defines as
-   many tiles the int indicates with the following files starting where the
-   last one ended. So if there is 2 files with 100 tiles each the first
-   defines 0-99 and the second 100-199. After this followes an
-   int[ mapx * texelPerSquare / tileSize * mapy * texelPerSquare / tileSize ]
-   which is indexes to the defined tiles */
-
-struct SMFHFeatures 
-{
-    int nTypes;    // number of feature types
-    int nFeatures; // number of features
-};
-
-
-/* this is followed by numFeatureType zero terminated strings indicating the
-   names of the features in the map then follow numFeatures
-   MapFeatureStructs */
-
-struct SMFFeature
-{
-    int type;        // index to one of the strings above
-    float x, y, z, r, s; // position, rotation, scale
-};
-
-// Helper Class //
+/// smf brief description
+/** detailed description
+ */
 class SMF {
+    /// brief header description
+    /** 80 bytes header for beginning of file.
+     */
+    struct Header {
+        Header( ){ };
+        Header(
+                int i,
+                int w, int l,
+                int sw, int st, int tr,
+                int f, int c,
+                int hp, int tp, int tp2, int mp, int mp2, int fp,
+                int n )
+            : id( i ),
+            width( w ), length( l ),
+            squareWidth( sw ), squareTexels( st ), tileRes( tr ),
+            floor( f ), ceiling (c ),
+            heightPtr( hp ), typePtr( tp ), tilesPtr( mp ),
+            miniPtr( tp2 ), metalPtr( mp2 ), featuresPtr( fp ),
+            nHeaderExtras( n ) { };
+
+        char magic[ 16 ] =
+            { 's','p','r','i','n','g',' ','m','a','p',' ','f','i','l','e','\0' };
+                              ///< byte:0 "spring map file"
+        int version = 1;      ///< byte:16 must be 1 for now
+        int id;               ///< byte:20 sort of a checksum of the file
+        int width = 128;      ///< byte:24 map width * 64
+        int length = 128;     ///< byte:28 map length * 64
+        int squareWidth = 8;  ///< byte:32 distance between vertices. must be 8
+        int squareTexels = 8; ///< byte:36 number of texels per square, must be 8 for now
+        int tileRes = 32;     ///< byte:40 number of texels in a tile, must be 32 for now
+        float floor = 10;     ///< byte:44 height value that 0 in the heightmap corresponds to    
+        float ceiling = 256;  ///< byte:48 height value that 0xffff in the heightmap corresponds to
+
+        int heightPtr;        ///< byte:52 file offset to elevation data (short int[(mapy+1)*(mapx+1)])
+        int typePtr;          ///< byte:56 file offset to typedata (unsigned char[mapy/2 * mapx/2])
+        int tilesPtr;         ///< byte:60 file offset to tile data (see MapTileHeader)
+        int miniPtr;          ///< byte:64 file offset to minimap (always 1024*1024 dxt1 compresed data with 9 mipmap sublevels)
+        int metalPtr;         ///< byte:68 file offset to metalmap (unsigned char[mapx/2 * mapy/2])
+        int featuresPtr;      ///< byte:72 file offset to feature data (see MapFeatureHeader)
+            
+        int nHeaderExtras = 0;///< byte:76 numbers of extra headers following main header
+    };/* byte: 80 */
+
+    /// Extra Header
+    /** start of every extra header must look like this, then comes data specific
+     *  for header type
+     */
+    struct HeaderExtra {
+        int size = 0; ///< size of the header
+        int type = 0; ///< type of the header
+        HeaderExtra( ){ };
+        HeaderExtra( int i, int j ) : size( i ), type( j ){ };
+    };
+
+    /// Extra grass Header
+    /** This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
+     * that defines ground vegetation.
+     */
+    struct HeaderGrass: public HeaderExtra
+    {
+        int ptr = 80; ///< offset to beginning of grass map data.
+        HeaderGrass( ) : HeaderExtra( 12, 1 ){ };
+    };
+
+
+    /// Tile Section Header
+    /** this is followed by numTileFiles file definition where each file definition
+     *  is an int followed by a zero terminated file name. Each file defines as
+     *  many tiles the int indicates with the following files starting where the
+     *  last one ended. So if there is 2 files with 100 tiles each the first
+     *  defines 0-99 and the second 100-199. After this followes an
+     *  int[ mapx * texelPerSquare / tileSize * mapy * texelPerSquare / tileSize ]
+     *  which is indexes to the defined tiles
+     */
+    struct HeaderTiles
+    {
+        int nFiles = 0; ///< number of files referenced
+        int nTiles = 0; ///< number of tiles total
+    };
+    
+    /// Features Section Header
+    /** this is followed by numFeatureType zero terminated strings indicating the
+     *  names of the features in the map then follow numFeatures
+     *  MapFeatureStructs
+     */
+    struct HeaderFeatures 
+    {
+        int nTypes = 0;    ///< number of feature types
+        int nFeatures = 0; ///< number of features
+    };
+
+    /// Individual features structure
+    /**
+     */
+    struct Feature
+    {
+        int type; ///< index to one of the strings above
+        float x;  ///< x position on the map
+        float y;  ///< y position on the map
+        float z;  ///< z position on the map
+        float r;  ///< rotation
+        float s;  ///< scale, currently unused.
+    };
+
     bool init = false;
     string fileName;
 
-    // Saving
-    string outPrefix = "out";
-    vector<SMFEH *> extraHeaders;
+    Header header;
+    vector<SMF::HeaderExtra *> headerExtras;
 
-    // SMF Information
-    int width, length; // values in spring map units
-    float floor, ceiling; // values in spring map units
+    ImageSpec heightSpec;
+    ImageSpec typeSpec;
 
-    int heightPtr; 
-    string heightFile;
-    
-    int typePtr;
-    string typeFile;
+    HeaderTiles headerTiles;
+    vector<string> smtList;      ///< list of smt files references
+    vector<unsigned int> nTiles; ///< number of tiles in corresponding files from smtList
+    unsigned int mapPtr;         ///< pointer to beginning of the tilemap
+    ImageSpec mapSpec;
 
-    int minimapPtr;
-    string minimapFile;
+    ImageSpec miniSpec;
+    ImageSpec metalSpec;
 
-    int metalPtr;
-    string metalFile;
+    HeaderFeatures headerFeatures;
+    vector<string> featureTypes; ///< names of features
+    vector<SMF::Feature> features;
 
-    string grassFile;
+    ImageSpec grassSpec;
 
-    int tilesPtr;
-    int nTiles = 0;            // number of tiles referenced
-    vector<string> smtList; // list of smt files references
-    vector<int> smtTiles; //number of tiles in files from smtList
-    string tilemapFile;
+    /// calculates all the file offsets for the data
+    /**
+     */
+    void updatePtrs( );
+    void updateSpecs( );
 
-    int featuresPtr;
-    vector<string> featureTypes;
-    vector<SMFFeature> features;
-    string featuresFile;
-
-    // Functions
-    bool recalculate( );
+    ImageBuf *getImage( unsigned int ptr, ImageSpec spec );
+    bool    writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf = NULL );
 
 public:
-    bool verbose = false,
-         quiet = false,
-         slowcomp = false,
-         invert = false;
+    bool verbose = false;  ///< Print info to stdout
+    bool quiet = false;    ///< supress errros to stderr
+    bool slowcomp = false; ///< whethe to use slow/quality dxt1 algorithm
+    bool invert = false;   ///< Whether to invert the values of the height image.
 
     SMF( ){ };
     SMF( string f, bool v = false, bool q = false )
-        : fileName( f ), verbose( v ), quiet( q ) { init = !load(); };
+        : fileName( f ), verbose( v ), quiet( q )
+        { };
 
-    static SMF *create( string fileName,
-            bool overwrite = false,
-            bool verbose = false,
-            bool quiet = false );
+    static SMF *create( string fileName, bool overwrite = false,
+            bool verbose = false, bool quiet = false );
 
     static SMF *open( string fileName,
-            bool verbose = false,
-            bool quiet = false );
+            bool verbose = false, bool quiet = false );
 
-    bool reset( );
+    bool read( );
+    bool saveAs( string fileName );
     bool initialised( ){ return init; };
+    string info( );
 
-    void setOutPrefix(string prefix);
-    bool setDimensions(int width, int length, float floor, float ceiling);
-    void setHeightFile( string filename );
-    void setTypeFile( string filename );
-    void setMinimapFile( string filename );
-    void setMetalFile( string filename );
-    void setTilemapFile( string filename );
-    void setFeaturesFile( string filename );
-    void setGrassFile(string filename);
+    void setSize( int width, int length );
+    void setDepth( float floor, float ceiling );
+    
+    bool addTileFiles( vector<string> fileNames );
+    void addFeatures( vector<SMF::Feature> features );
 
-    void unsetGrassFile();
+    bool writeHeaders( );
+    bool writeHeight  ( ImageBuf *buf );
+    bool writeType    ( ImageBuf *buf );
+    bool writeTileHeader( );
+    bool writeMap     ( ImageBuf *buf );
+    bool writeMini    ( ImageBuf *buf );
+    bool writeMetal   ( ImageBuf *buf );
+    bool writeFeaturesHeader();
+    bool writeFeatures();
+    // Extra
+    bool writeGrass   ( ImageBuf *buf );
 
-    bool addTileFile( string filename );
+    bool reWrite( int from = 0 );
 
-    bool load( );
-
-    bool save();
-    bool save(string filename);
-    bool saveHeight();
-    bool saveType();
-    bool saveMinimap();
-    bool saveMetal();
-    bool saveTilemap();
-    bool saveFeatures();
-    bool saveGrass();
-
-    bool decompileHeight();
-    bool decompileType();
-    bool decompileMinimap();
-    bool decompileMetal();
-    bool decompileTilemap();
-    bool decompileGrass();
-    bool decompileFeaturelist(int format); // 0=csv, 1=lua
-    bool decompileAll(int format); // all of the above
-
-    ImageBuf * getHeight();
-    ImageBuf * getType();
-    ImageBuf * getMinimap();
-    ImageBuf * getMetal();
-    ImageBuf * getTilemap();
-    ImageBuf * getGrass();
+    ImageBuf *getHeight();
+    ImageBuf *getType();
+    string    getTileFiles();
+    ImageBuf *getMap();
+    ImageBuf *getMini();
+    ImageBuf *getMetal();
+    string    getFeatureTypes();
+    string    getFeatures();
+    ImageBuf *getGrass();
 
 };
 #endif //__SMF_H

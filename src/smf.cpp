@@ -1,7 +1,9 @@
+#include "config.h"
 #include "smf.h"
 #include "smt.h"
 
 #include <fstream>
+#include <sstream>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -12,22 +14,53 @@ OIIO_NAMESPACE_USING
 #include "dxt1load.h"
 #include "util.h"
 
+/// Creates an SMF file and returns a pointer to management class
+/*
+ */
 SMF *
 SMF::create( string fileName, bool overwrite, bool verbose, bool quiet )
 {
     SMF *smf;
-    ifstream file( fileName );
+    fstream file;
+    
+    // check for existing file and whether to overwrite
+    file.open( fileName, ios::in );
     if( file.good() && !overwrite ) return NULL;
+    file.close();
+
+    if( verbose ) cout << "INFO: Creating " << fileName << endl;
+
+    // attempt to create a new file or overwrite existing
+    file.open( fileName, ios::binary | ios::out );
+    if(! file.good() ){
+        if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
+        return NULL;
+    }
+    file.close();
 
     smf = new SMF( fileName, verbose, quiet );
-    smf->init = !smf->reset();
+    smf->updatePtrs();
+    smf->writeHeaders();
+    smf->writeHeight(NULL);
+    smf->writeType(NULL);
+    smf->writeTileHeader();
+    smf->writeMap(NULL);
+    smf->writeMini(NULL);
+    smf->writeMetal(NULL);
+    smf->writeFeaturesHeader();
+    smf->writeFeatures();
+    smf->init = true;
     return smf;
 }
 
+/// Opens an existing SMF file and returns pointer to management class
+/*
+ */
 SMF *
 SMF::open( string fileName, bool verbose, bool quiet )
 {
     bool good = false;
+    SMF *smf;
 
     char magic[ 16 ] = "";
     ifstream file( fileName );
@@ -39,496 +72,528 @@ SMF::open( string fileName, bool verbose, bool quiet )
         }
     }
 
-    SMF *smf;
     if( good ){
+        if( verbose ) cout << "INFO: Opening " << fileName << endl;
         smf = new SMF(fileName, verbose, quiet );
-        smf->init = !smf->load();
+        smf->init = !smf->read();
         return smf;
+    }
+    else {
+        cout << "INFO: Cannot open " << fileName << endl;
     }
     return NULL;
 }
 
+/// Reads in the data from the file on disk
+/*
+ */
 bool
-SMF::reset()
+SMF::read()
 {
-    if( verbose ) cout << "INFO: Resetting " << fileName << endl;
+    if( verbose ) cout << "INFO: Reading " << fileName << endl;
+    ifstream file( fileName );
+    file.seekg(0);
+    file.read( (char *)&header, sizeof(SMF::Header) );
 
-    fstream file( fileName, ios::binary | ios::out );
 
-    if(! file.good() ){
-        if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
-        exit( 1 );
+    // helpers
+    int offset;
+    char temp[256];
+
+    // Extra headers Information
+    SMF::HeaderExtra *headerExtra;
+    for(int i = 0; i < header.nHeaderExtras; ++i ) {
+        headerExtra = new SMF::HeaderExtra;
+        offset = file.tellg();
+        file.read( (char *)headerExtra, sizeof(SMF::HeaderExtra) );
+        file.seekg(offset);
+        if(headerExtra->type == 1) {
+            SMF::HeaderGrass *headerGrass = new SMF::HeaderGrass;
+            file.read( (char *)headerGrass, sizeof(SMF::HeaderGrass));
+            headerExtras.push_back( (SMF::HeaderExtra *)headerGrass );
+        }
+        else {
+            if( verbose ) cout << "WARNING: unknown header type " << i << endl;
+            headerExtras.push_back( headerExtra );
+        }
+        file.seekg( offset + headerExtra->size);
+        delete headerExtra;
     }
 
-    SMFHeader head;
+    updateSpecs();
 
-    // TODO retain any header information here
+    // Tileindex Information
+    file.seekg( header.tilesPtr );
+    file.read( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
     
-    file.write( (char *)&head, sizeof(SMFHeader) );
+    int nTiles;
+    for( int i = 0; i < headerTiles.nFiles; ++i){
+        file.read( (char *)&nTiles, 4 );
+        this->nTiles.push_back( nTiles );
+        file.getline( temp, 255, '\0' );
+        if( verbose ) cout << "\t" << nTiles << " " << temp << endl;
+        smtList.push_back( temp );
+    }
 
-    // TODO write any base data here
+    // whle were at it lets get the file offset for the tilemap.
+    mapPtr = file.tellg();
 
-    file.flush();
+    // Featurelist information
+    file.seekg( header.featuresPtr );
+    file.read( (char *)&headerFeatures.nTypes, 4 );
+    file.read( (char *)&headerFeatures.nFeatures, 4 );
+
+    offset = file.tellg();
+    file.seekg( 0, ios::end );
+    int filesize = file.tellg();
+    file.seekg( offset );
+
+    int eeof = offset + headerFeatures.nFeatures * sizeof(SMF::Feature);
+    if( eeof > filesize ) {
+        if(! quiet ){
+            cout << "WARNING: Filesize is not large enough to contain the reported number of features. Ignoring feature data.\n";
+        }
+    }
+    else {
+        for( int i = 0; i < headerFeatures.nTypes; ++i ){
+            file.getline( temp, 255, '\0' );
+            featureTypes.push_back( temp );
+        }
+
+        SMF::Feature feature;
+        for( int i = 0; i < headerFeatures.nFeatures; ++i ){
+            file.read( (char *)&feature, sizeof(SMF::Feature) );
+            features.push_back( feature );
+        }
+    }
+
     file.close();
+    return false;
+}
 
-    // TODO finalize any local variables here
+/// Output map information as string
+/**
+ */
+string
+SMF::info()
+{
+    stringstream info;
+    info << "INFO: " << fileName 
+         << "\n\tVersion: " << header.version
+         << "\n\tID:      " << header.id
 
-    exit( 0 );
+         << "\n\n\tWidth:          " << header.width 
+         << "\n\tLength:         "   << header.length 
+         << "\n\tSquareSize:     "   << header.squareWidth 
+         << "\n\tTexelPerSquare: "   << header.squareTexels 
+         << "\n\tTileSize:       "   << header.tileRes 
+         << "\n\tMinHeight:      "   << header.floor 
+         << "\n\tMaxHeight:      "   << header.ceiling 
+
+         << "\n\n\tHeightPtr:    "   << header.heightPtr 
+         << "\n\tTypePtr:      "     << header.typePtr 
+         << "\n\tTilesPtr:     "     << header.tilesPtr
+         << "\n\tMapPtr:       "     << mapPtr
+         << "\n\tMiniPtr:      "     << header.miniPtr 
+         << "\n\tMetalPtr:     "     << header.metalPtr 
+         << "\n\tFeaturesPtr:  "     << header.featuresPtr 
+         << "\n\n  HeaderExtras: "   << header.nHeaderExtras 
+         << endl;
+
+    //HeaderExtras
+    if( header.nHeaderExtras ){
+        for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+            if( (*i)->type == 0 ){
+                info << "    Null Header"
+                     << "\n\tsize: " << (*i)->size
+                     << "\n\ttype: " << (*i)->type
+                     << endl;
+            }
+            else if( (*i)->type == 1 ){
+                info << "    Grass"
+                     << "\n\tsize: " << (*i)->size
+                     << "\n\ttype: " << (*i)->type
+                     << "\n\tptr:  " << ((HeaderGrass *)(*i))->ptr
+                     << endl;
+            }
+            else {
+                info << "    Unknown"
+                     << "\n\tsize: " << (*i)->size
+                     << "\n\ttype: " << (*i)->type
+                     << endl;
+            }
+ 
+        }
+    }
+
+    // Tileindex Information
+    info << "\n    Tile Index Information"
+         << "\n\tTile Files:  " << headerTiles.nFiles
+         << "\n\tTotal tiles: " << headerTiles.nTiles
+         << endl;
+
+    // Features Information
+    info << "\n    Features Information"
+         << "\n\tFeatures: " << headerFeatures.nFeatures
+         << "\n\tTypes:    " << headerFeatures.nTypes
+         << endl;
+
+    // TODO put into stream the information for the rest of the file structure.
+    return info.str();
+}
+
+/// Re-writes the data to the disk taking into consideration existing data and preserving file order
+/*
+ */
+bool
+SMF::reWrite( int from )
+{
+    if( verbose ) cout << "INFO: (Re-)Writing " << fileName << endl;
+    ImageBuf *height, *type, *map, *mini, *metal, *grass;
+    // 0: from the very beginning full re-write
+    // 1: extra headers onwards
+    // 2: tile headers onwards
+    // 3: feature headers onwards
+    
+    // First switch gathers the data from the file that may be overwritten
+    // Second switch writes to the file from the gathered data
+
+    switch( from ){
+        case 0:
+        case 1: 
+            height = getHeight();
+            type = getType();
+        case 2: 
+            map = getMap();
+            mini = getMini();
+            metal = getMetal();
+        case 3: 
+            grass = getGrass();
+    }
+
+    updatePtrs();
+
+    switch( from ){
+        case 0:
+            writeHeaders();
+        case 1:
+            writeHeight( height );
+            writeType( type );
+        case 2:
+            writeTileHeader();
+            writeMap( map );
+            writeMini( mini );
+            writeMetal( metal );
+        case 3:
+            writeFeaturesHeader();
+            writeFeatures();
+            // TODO if( grass ) writeGrass( grass );
+    }
+    return false;
+}
+
+/// Update the data block sizes
+/** Its convenient to know this information off hand, rather than recalculate
+ * in every function we need it in.
+ */
+void
+SMF::updateSpecs()
+{
+    if( verbose ) cout << "INFO: Updating Specifications" << endl;
+    // Set heightSpec.
+    heightSpec.width = header.width + 1;
+    heightSpec.height = header.length + 1;
+    heightSpec.nchannels = 1;
+    heightSpec.set_format( TypeDesc::UINT16 );
+
+    // set typeSpec
+    typeSpec.width = header.width / 2;
+    typeSpec.height = header.length / 2;
+    typeSpec.nchannels = 1;
+    typeSpec.set_format( TypeDesc::UINT8 );
+
+    // set miniSpec
+    miniSpec.width = 1024;
+    miniSpec.height = 1024;
+    miniSpec.nchannels = 4;
+    miniSpec.set_format( TypeDesc::UINT8 );
+
+    // set mapSpec
+    mapSpec.width = header.width * 4 / header.tileRes;
+    mapSpec.height = header.length * 4 / header.tileRes;
+    mapSpec.nchannels = 1;
+    mapSpec.set_format( TypeDesc::UINT );
+
+    // set metalSpec
+    metalSpec.width = header.width / 2;
+    metalSpec.height = header.length / 2;
+    metalSpec.nchannels = 1;
+    metalSpec.set_format( TypeDesc::UINT8 );
+
+    // set grassSpec
+    grassSpec.width = header.width / 4;
+    grassSpec.height = header.length / 4;
+    grassSpec.nchannels = 1;
+    grassSpec.set_format( TypeDesc::UINT8 );
+}
+
+/// Update the file offset pointers
+/**
+ * This function makes sure that all data offset pointers are pointing to the
+ * correct location and should be called whenever changes to the class are
+ * made that will effect its values.
+ */
+void
+SMF::updatePtrs()
+{
+    updateSpecs();
+    if( verbose ) cout << "INFO: Updating file offsets" << endl;
+
+    header.heightPtr = sizeof( SMF::Header );
+    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
+        header.heightPtr += (*i)->size;
+
+    header.typePtr = header.heightPtr + heightSpec.image_bytes();
+
+    header.tilesPtr = header.typePtr + typeSpec.image_bytes(); 
+
+    mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
+    for( auto i = smtList.begin(); i != smtList.end(); ++i )
+        mapPtr += (*i).size() + 5;
+
+    header.miniPtr = mapPtr + mapSpec.image_bytes();
+
+    header.metalPtr = header.miniPtr + MINIMAP_SIZE;
+
+    header.featuresPtr = header.metalPtr + metalSpec.image_bytes();
+
+    int eof;
+    eof = header.featuresPtr + sizeof( SMF::HeaderFeatures );
+    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i )
+        eof += (*i).size() + 1;
+    for( auto i = features.begin(); i != features.end(); ++i )
+        eof += sizeof( SMF::Feature );
+
+    // Optional Headers.
+    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+        if( (*i)->type == 1 ){
+            HeaderGrass *headerGrass = reinterpret_cast<SMF::HeaderGrass *>(*i);
+            headerGrass->ptr = eof;
+            eof = headerGrass->ptr + grassSpec.image_bytes();
+        }
+    }
+}
+
+void
+SMF::setSize( int width, int length )
+{
+    header.width = width * 64;
+    header.length = length * 64;
+    reWrite( 0 );
+}
+
+void
+SMF::setDepth( float floor, float ceiling )
+{
+    header.floor = floor;
+    header.ceiling = ceiling;
+    writeHeaders();
 }
 
 bool
-SMF::recalculate()
-// This function makes sure that all data offset pointers are pointing to the
-// correct location and should be called whenever changes to the class are
-// made that will effect its values.
+SMF::addTileFiles( vector<string> fileNames )
 {
-    // heightPtr
-    int offset = 0;
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
-        offset += extraHeaders[ i ]->size;
+    if( fileNames.empty() ) return false;
 
-    heightPtr = sizeof(SMFHeader) + offset;
+    SMT *smt = NULL;
+    for( auto i = fileNames.begin(); i != fileNames.end(); ++i ){
+        if(! (smt = SMT::open( fileName, verbose, quiet )) ){
+            if(! quiet ){
+                cout << "ERROR: invalid smt file " << fileName << endl;
+            }
+            continue;
+        }
 
-    // TypePtr
-    typePtr = heightPtr + ((width * 64 + 1) * (length * 64 + 1) * 2);
-
-    // minimapPtr
-    minimapPtr = typePtr + width * 32 * length * 32;
-
-    // metalPtr
-    metalPtr = minimapPtr + MINIMAP_SIZE;
-
-    // get optional grass header
-    SMFEHGrass *grassHeader = NULL;
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
-        if( extraHeaders[ i ]->type == 1)
-            grassHeader = reinterpret_cast<SMFEHGrass *>( extraHeaders[ i ] );
-
-    // set the tilesPtr and grassPtr
-    if( grassHeader ) {
-        grassHeader->grassPtr = metalPtr + width * 32 * length * 32;
-        tilesPtr = grassHeader->grassPtr + width * 16 * length * 16;
-    } else
-        tilesPtr = metalPtr + width * 32 * length * 32;
-
-    // featuresPtr
-    featuresPtr = tilesPtr + 8;
-    for( unsigned int i = 0; i < smtList.size(); ++i )
-        featuresPtr += smtList[ i ].size() + 5;
-
-    featuresPtr += width * 16 * length * 16 * 4;
-
+        headerTiles.nTiles += smt->getNTiles();
+        nTiles.push_back( smt->getNTiles() );
+        smtList.push_back( fileName );
+        delete smt;
+        smt = NULL;
+    }
+    reWrite( 2 );
     return false;
 }
 
 void
-SMF::setOutPrefix( string prefix )
+SMF::addFeatures( vector<SMF::Feature> features )
 {
-    outPrefix = prefix.c_str();
-}
+    /*
+    SMF::Feature feature;
+    feature.x = x; feature.y = y; feature.z = z;
+    feature.r = r; feature.z = s;
 
-bool
-SMF::setDimensions( int width, int length, float floor, float ceiling )
-{
-    this->width = width;
-    this->length = length;
-    this->floor = floor;
-    this->ceiling = ceiling;
-    recalculate();
-    return false;
-}
-
-void SMF::setHeightFile(   string filename ) { heightFile    = filename; }
-void SMF::setTypeFile(     string filename ) { typeFile      = filename; }
-void SMF::setMinimapFile(  string filename ) { minimapFile   = filename; }
-void SMF::setMetalFile(    string filename ) { metalFile     = filename; }
-void SMF::setTilemapFile(  string filename ) { tilemapFile   = filename; }
-void SMF::setFeaturesFile( string filename ) { featuresFile  = filename; }
-
-bool
-SMF::addTileFile( string fileName )
-{
-    SMT *smt = NULL;
-    if(! (smt = SMT::open( fileName, verbose, quiet )) ){
-        if(! quiet ){
-            cout << "ERROR: invalid smt file " << fileName << endl;
+    bool match = false;
+    for( unsigned int i = 0; i < featureTypes.size(); ++i ){
+        if(! name.compare( featureTypes[ i ] ) ){
+            match = true;
+            feature.type = i;
+            break;
         }
+    }
+
+    if(! match ){
+        feature.type = featureTypes.size();
+        featureTypes.push_back( name );
+    }
+
+    features.push_back( feature );
+
+    headerFeatures.nTypes = featureTypes.size();
+    headerFeatures.nFeatures = features.size();
+    updatePtrs();*/
+}
+
+bool
+SMF::writeHeaders()
+{
+    if( verbose ) cout << "INFO: Writing headers\n";
+
+    header.id = rand();
+
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    if(! file.good() ){
+        if(! quiet ) cout << "ERROR: unable to open file for writing\n";
         return true;
     }
+    //file.seekp(0);
+    file.write( (char *)&header, sizeof(SMF::Header) );
 
-    this->nTiles += smt->getNTiles();
-    smtTiles.push_back( smt->getNTiles() );
-    smtList.push_back( fileName );
-    delete smt;
-
-    recalculate();
-    return false;
-}
-
-void
-SMF::setGrassFile( string filename )
-{
-    SMFEHGrass *grassHeader = NULL;
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
-        if( extraHeaders[ i ]->type == 1 )
-            grassHeader = reinterpret_cast<SMFEHGrass *>( extraHeaders[ i ] );
-
-    if( grassHeader == NULL ) {
-        grassHeader = new SMFEHGrass;
-        extraHeaders.push_back( reinterpret_cast<SMFEH *>( grassHeader ) );
-    }
-
-    grassFile = filename.c_str();
-    recalculate();
-}
-
-void
-SMF::unsetGrassFile()
-{
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i )
-        if( extraHeaders[ i ]->type == 1 )
-            extraHeaders.erase( extraHeaders.begin() + i );
-
-    recalculate();
-}
-
-bool
-SMF::save( string filename )
-{
-    outPrefix = filename.c_str();
-    cout << outPrefix << endl;
-    return save();
-}
-
-bool
-SMF::save()
-{
-    char filename[ 256 ];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
-    ofstream smf( filename, ios::binary | ios::out );
-    if( verbose )printf( "\nINFO: Saving %s.\n", filename );
-
-    char magic[] = "spring map file\0";
-    smf.write( magic, 16 );
-
-    int version = 1;
-    smf.write( (char *)&version, 4 );
-    if( verbose )printf( "\tVersion: %i.\n", version );
-
-    int id = rand();
-    smf.write( (char *)&id, 4 );
-    if( verbose )printf( "\tMapID: %i.\n", id );
-
-    int width = this->width * 64;
-    smf.write( (char *)&width, 4 );
-    if( verbose )printf( "\tWidth: %i.\n", width / 64 );
-
-    int length = this->length * 64;
-    smf.write( (char *)&length, 4 );
-    if( verbose )printf( "\tLength: %i.\n", length / 64 );
-
-    int squareWidth = 8;
-    smf.write( (char *)&squareWidth, 4 );
-    if( verbose )printf( "\tSquareWidth: %i.\n", squareWidth );
-
-    int squareTexels = 8;
-    smf.write( (char *)&squareTexels, 4 );
-    if( verbose )printf( "\tSquareTexels: %i.\n", squareTexels );
-
-    int tileTexels = 32;
-    smf.write( (char *)&tileTexels, 4 );
-    if( verbose )printf( "\tTileTexels: %i.\n", tileTexels );
-
-    float floor = this->floor * 512;
-    smf.write( (char *)&floor, 4 );
-    if( verbose )printf( "\tMinHeight: %0.2f.\n", floor / 512 );
-
-    float ceiling = this->ceiling * 512;
-    smf.write( (char *)&ceiling, 4 );
-    if( verbose )printf( "\tMaxHeight: %0.2f.\n", ceiling / 512 );
-
-    smf.write( (char *)&heightPtr, 4 );
-    if( verbose )printf( "\tHeightPtr: %i.\n", heightPtr );
-
-    smf.write( (char *)&typePtr, 4 );
-    if( verbose )printf( "\tTypePtr: %i.\n", typePtr );
-
-    smf.write( (char *)&tilesPtr, 4 );
-    if( verbose )printf( "\tTilesPtr: %i.\n", tilesPtr );
-    
-    smf.write( (char *)&minimapPtr, 4 );
-    if( verbose )printf( "\tMinimapPtr: %i.\n", minimapPtr );
-    
-    smf.write( (char *)&metalPtr, 4 );
-    if( verbose )printf( "\tMetalPtr: %i.\n", metalPtr );
-    
-    smf.write( (char *)&featuresPtr, 4 );
-    if( verbose )printf( "\tFeaturesPtr: %i.\n", featuresPtr );
-
-    int nExtraHeaders = extraHeaders.size();
-    smf.write( (char *)&nExtraHeaders, 4 );
-    if( verbose )printf( "\tExtraHeaders: %i.\n", nExtraHeaders );
-
-    if( verbose && extraHeaders.size() > 0 ) printf( "    Extra Headers:\n");
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        smf.write( (char *)extraHeaders[ i ], extraHeaders[ i ]->size );
+    for( auto eHeader = headerExtras.begin(); eHeader != headerExtras.end(); ++eHeader ){
+        file.write( (char *)*eHeader, (*eHeader)->size );
         if( verbose ) {
-            if( extraHeaders[ i ]->type == 1 )
-                printf("\tGrassPtr: %i.\n",
-                ((SMFEHGrass *)extraHeaders[ i ])->grassPtr );
-            else printf( "\t Unknown Header\n");
+            if( (*eHeader)->type == 1 ){
+                cout << "\tGrassPtr: "
+                     << ((SMF::HeaderGrass *)(*eHeader))->ptr
+                     << endl;
+            }
+            else cout << "\tUnknown Header\n";
         }
     }
-    
-    smf.close();
-
-    saveHeight();
-    saveType();
-    saveMinimap();
-    saveMetal();
-
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if( extraHeaders[ i ]->type == 1 ) saveGrass();
-    }
-
-    saveTilemap();
-    saveFeatures();
-
+    file.close();
     return false;
 }
 
-bool
-SMF::saveHeight()
+/// scales an imageBuf according to the imagespec
+ImageBuf *
+scale( ImageBuf *sourceBuf, ImageSpec spec )
 {
-    if( verbose )cout << "INFO: saveHeight\n";
-    // Dimensions of displacement map.
-    ImageBuf *imageBuf = NULL;
-    ROI roi(    0, width * 64 + 1,  // xbegin, xend
-                0, length * 64 + 1, // ybegin, yend
-                0, 1,               // zbegin, zend
-                0, 1);              // chbegin, chend
-    ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT16 );
+    ImageBuf *resultBuf = NULL;
 
-    if( isSMF(heightFile) ) {
-        // Load from SMF
-        SMF sourcesmf(heightFile);
-        imageBuf = sourcesmf.getHeight();
-    }
-       if( !imageBuf ) {
-        // load image file
-        imageBuf = new ImageBuf( heightFile );
-        imageBuf->read( 0, 0, false, TypeDesc::UINT16 );
-        if( !imageBuf->initialized() ) {
-            delete imageBuf;
-            imageBuf = NULL;
-        }
-    }
-    if( !imageBuf ) {
-        // Generate blank
-        imageBuf = new ImageBuf( "height", imageSpec );
-        ImageBufAlgo::zero(*imageBuf);
+    // Guarantee that a correct sized image is returned regardless of the input.
+    if(! sourceBuf ) return (resultBuf = new ImageBuf( spec ));
+
+    // return a copy of the original if its the correct size.
+    ImageSpec sourceSpec = sourceBuf->specmod();
+    if( sourceSpec.width == spec.width && sourceSpec.height == spec.height ){
+        resultBuf = new ImageBuf;
+        resultBuf->copy( *sourceBuf );
+        return resultBuf;
     }
 
-    imageSpec = imageBuf->specmod();
-    ImageBuf fixBuf;
-    // Fix the number of channels
-    if( imageSpec.nchannels != roi.chend ) {
-        int map[] = {0};
-        ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
+    // Otherwise scale
+    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, sourceSpec.nchannels);
+    resultBuf = new ImageBuf;
+    ImageBufAlgo::resample( *resultBuf, *sourceBuf, false, roi );
+#ifdef DEBUG_IMG
+    static int i = 0;
+    resultBuf->write("SMF::scale_" + to_string(i) + ".tif", "tif");
+    i++;
+#endif //DEBUG_IMG
+    return resultBuf;
+}
+
+/// re-orders the channels an imageBuf according to the imagespec
+ImageBuf *
+channels( ImageBuf *sourceBuf, ImageSpec spec )
+{
+    ImageBuf *resultBuf = NULL;
+    int map[] = {0,1,2,3,4};
+    float fill[] = {0,0,0,255};
+
+    // Guarantee that a correct sized image is returned regardless of the input.
+    if(! sourceBuf ) return (resultBuf = new ImageBuf( spec ));
+
+    // return a copy of the original if its the correct size.
+    ImageSpec sourceSpec = sourceBuf->specmod();
+    if( sourceSpec.nchannels == spec.nchannels ){
+        resultBuf = new ImageBuf;
+        resultBuf->copy( *sourceBuf );
+        return resultBuf;
     }
+    if( sourceSpec.nchannels < 4 ) map[3] = -1;
 
-    // Fix the size
-    if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
-        if( verbose )
-            printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-            heightFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
-        ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
+    // Otherwise re-order channels
+    resultBuf = new ImageBuf;
+    ImageBufAlgo::channels( *resultBuf, *sourceBuf, spec.nchannels, map, fill );
+#ifdef DEBUG_IMG
+    static int i = 0;
+    resultBuf->write("SMF::channels_" + to_string(i) + ".tif", "tif");
+    i++;
+#endif //DEBUG_IMG
+    return resultBuf;
 
-    // Invert height
-    if ( invert ) {
-        ImageSpec fixSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT16);
-        fixBuf.reset( "fixBuf",  fixSpec );
-        const float fill[] = {65535};
-        ImageBufAlgo::fill(fixBuf, fill);
-        ImageBufAlgo::sub(*imageBuf, fixBuf, *imageBuf);
-        fixBuf.clear();
-    }
 
-    // TODO filter to remove stepping artifacts from 8bit images,
-//    if ( lowpass ) {
-//    }
-    
-    unsigned short *pixels = (unsigned short *)imageBuf->localpixels();
-
-    // write height data to smf.
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-    fstream smf(filename, ios::binary | ios::in| ios::out);
-    smf.seekp(heightPtr);
-
-    smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
-    smf.close();
-    delete imageBuf;
-    if( isSMF( heightFile ) ) delete [] pixels;
-
-    return false;
 }
 
 bool
-SMF::saveType()
+SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
 {
-    if( verbose )cout << "INFO: saveType\n";
+    sourceBuf->read( 0, 0, true, spec.format );
+    ImageBuf *imageBufa = channels( sourceBuf, spec );
+    ImageBuf *imageBufb = scale( imageBufa, spec );
+    delete imageBufa;
 
-    ImageBuf *imageBuf = NULL;
-    ROI roi(    0, width * 32,
-                0, length * 32,
-                0, 1,
-                0, 1);
-    ImageSpec imageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
-
-    if( isSMF(typeFile) ) {
-        // Load from SMF
-        SMF sourcesmf(typeFile);
-        imageBuf = sourcesmf.getType();
-    }
-    if( !imageBuf ) {
-        // Load image file
-        imageBuf = new ImageBuf( typeFile );
-        imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-        if( !imageBuf->initialized() ) {
-            delete imageBuf;
-            imageBuf = NULL;
-        }
-    }
-    if( !imageBuf ) {
-        // Generate blank
-        imageBuf = new ImageBuf( "type", imageSpec );
-        ImageBufAlgo::zero(*imageBuf);
-    }
-
-    imageSpec = imageBuf->specmod();
-    ImageBuf fixBuf;
-
-    // Fix the number of channels
-    if( imageSpec.nchannels != roi.chend ) {
-        int map[] = {0};
-        ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map );
-        imageBuf->copy( fixBuf );
-        fixBuf.clear();
-    }
-
-    // Fix the Dimensions
-    if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
-        if( verbose )
-            printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-            typeFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend);
-        ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
-        imageBuf->copy( fixBuf );
-        fixBuf.clear();        
-    }
-
-    unsigned char *pixels = (unsigned char *)imageBuf->localpixels();
 
     // write the data to the smf
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    file.seekp( ptr );
+    file.write( (char *)imageBufb->localpixels(), spec.image_bytes() );
+    file.close();
 
-    fstream smf(filename, ios::binary | ios::in | ios::out );
-    smf.seekp(typePtr);
-
-    smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
-    smf.close();
-    delete imageBuf;
-    if( isSMF(typeFile) )delete [] pixels;
-
+    delete imageBufb;
     return false;
 }
 
 bool
-SMF::saveMinimap()
+SMF::writeHeight( ImageBuf *sourceBuf )
 {
-    if( verbose )cout << "INFO: saveMinimap\n";
+    if( verbose ) cout << "INFO: Writing height\n";
+    return writeImage( header.heightPtr, heightSpec, sourceBuf );   
+}
 
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
+bool
+SMF::writeType( ImageBuf *sourceBuf )
+{
+    if( verbose ) cout << "INFO: Writing type\n";
+    return writeImage( header.typePtr, typeSpec, sourceBuf );   
+}
 
-    fstream smf(filename, ios::binary | ios::in | ios::out);
-    smf.seekp(minimapPtr);
+/// Writes an image to the minimap data point in the smf
+/**
+ */
+bool SMF::writeMini( ImageBuf * sourceBuf ){
+    if( verbose )cout << "INFO: Writing mini\n";
 
-    unsigned char *pixels;
-    if( isSMF(minimapFile) ) {
-        // Copy from SMF
-        pixels = new unsigned char[MINIMAP_SIZE];
-
-        ifstream inFile(minimapFile.c_str(), ifstream::in);
-        inFile.seekg(minimapPtr);
-        inFile.read( (char *)pixels, MINIMAP_SIZE);
-        inFile.close();
-
-        smf.write( (char *)pixels, MINIMAP_SIZE);
-        smf.close();
-        delete [] pixels;
-        return false;
-    }
-
-    //OpenImageIO
-    ImageBuf *imageBuf;
-    ROI roi(    0, 1024,
-                0, 1024,
-                0, 1,
-                0, 4);
-    ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
-    
-
-    // Load image file
-    imageBuf = new ImageBuf( minimapFile );
-    imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-    if( !imageBuf->initialized() ) {
-        delete imageBuf;
-        imageBuf = NULL;
-    }
-
-//TODO attempt to generate minimap from whatever is available and overlay the
-// map title
-
-    if( !imageBuf ) {
-        // Create blank
-        imageBuf = new ImageBuf( "minimap", imageSpec);
-        ImageBufAlgo::zero(*imageBuf);        
-    }
-
-    imageSpec = imageBuf->specmod();
-    ImageBuf fixBuf;
-    // Fix channels
-    if( imageSpec.nchannels != roi.chend ) {
-        int map[] = {2,1,0,3};
-        float fill[] = {0,0,0,255};
-        ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map, fill);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
-
-    // Fix dimensions
-    if( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
-        printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-            minimapFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
-        ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
-
-    pixels = (unsigned char *)imageBuf->localpixels();
+    //TODO attempt to generate minimap from whatever is available and overlay the
+    // map title
+    ImageBuf *tempBufa = channels( sourceBuf, miniSpec );    
+    ImageBuf *miniBuf = scale( tempBufa, miniSpec );  
+    delete tempBufa;  
 
     // setup DXT1 Compression
     nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout( nvtt::TextureType_2D, 1024, 1024 );
-    inputOptions.setMipmapData( pixels, 1024, 1024 );
+    inputOptions.setTextureLayout( nvtt::TextureType_2D, miniSpec.width, miniSpec.height );
+    inputOptions.setMipmapData( miniBuf->localpixels(), miniSpec.width, miniSpec.height );
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1 );
@@ -538,179 +603,75 @@ SMF::saveMinimap()
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader( false );
 
-    NVTTOutputHandler *outputHandler = new NVTTOutputHandler(MINIMAP_SIZE + 1);
+    NVTTOutputHandler *outputHandler = new NVTTOutputHandler( MINIMAP_SIZE + 1);
     outputOptions.setOutputHandler( outputHandler );
 
     nvtt::Compressor compressor;
     compressor.process( inputOptions, compressionOptions, outputOptions );
 
     // Write data to smf
-    smf.write( outputHandler->getBuffer(), MINIMAP_SIZE );
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    file.seekp( header.miniPtr );
+    file.write( outputHandler->getBuffer(), MINIMAP_SIZE );
+    file.close();
+
     delete outputHandler;
-
-    smf.close();
-    delete imageBuf;        
-    return false;
-}
-
-bool
-SMF::saveMetal()
-{
-    if( verbose )cout << "INFO: saveMetal\n";
-
-    // Dimensions of displacement map.
-    ImageBuf *imageBuf = NULL;
-    ROI roi(    0, width * 32,  // xbegin, xend
-                0, length * 32, // ybegin, yend
-                0, 1,               // zbegin, zend
-                0, 1);              // chbegin, chend
-    ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
-
-    if( isSMF(metalFile) ) {
-        // Load from smf
-        SMF sourcesmf(metalFile);
-        imageBuf = sourcesmf.getMetal();
-    }
-    if( !imageBuf ) {
-        //load from image
-        imageBuf = new ImageBuf(metalFile);
-        imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-        if( !imageBuf->initialized() ) {
-            delete imageBuf;
-            imageBuf = NULL;
-        }
-    }
-    if( !imageBuf ) {
-        // Generate blank
-        imageBuf = new ImageBuf( "metal", imageSpec );
-        ImageBufAlgo::zero(*imageBuf);
-    }
-
-    imageSpec = imageBuf->specmod();
-    ImageBuf fixBuf;
-    // Fix the number of channels
-    if( imageSpec.nchannels != roi.chend ) {
-        int map[] = {0};
-        ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
-
-    // Fix the size
-    if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
-        if( verbose )
-            printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-            metalFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
-        ImageBufAlgo::resample(fixBuf, *imageBuf, true, roi);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
-
-    unsigned char *pixels = (unsigned char *)imageBuf->localpixels();
-
-
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-    fstream smf(filename, ios::binary | ios::in | ios::out);
-    smf.seekp(metalPtr);
-
-    // write the data to the smf
-    smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
-    smf.close();
-
-    delete imageBuf;
-    if( isSMF( metalFile ) ) delete [] pixels;
+    delete miniBuf;
 
     return false;
 }
 
 bool
-SMF::saveTilemap()
+SMF::writeTileHeader()
 {
-    if( verbose )cout << "INFO: saveTilemap\n";
-
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-    fstream smf(filename, ios::binary | ios::in | ios::out);
-    smf.seekp(tilesPtr);
+    if( verbose ) cout << "INFO: Writing tile reference information\n";
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    file.seekp( header.tilesPtr );
 
     // Tiles Header
-    int nTileFiles = smtList.size();
-    smf.write( (char *)&nTileFiles, 4);
-    smf.write( (char *)&nTiles, 4);
-    if(verbose)printf( "    %i tiles referenced in %i files\n", nTiles, nTileFiles );
+    file.write( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
 
     // SMT Names
-    for(unsigned int i = 0; i < smtList.size(); ++i) {
-        if( verbose )printf( "\t%i %s\n", smtTiles[i], smtList[i].c_str() );
-        smf.write( (char *)&smtTiles[i], 4);
-        smf.write( smtList[i].c_str(), smtList[i].size() +1 );
+    for( unsigned int i = 0; i < smtList.size(); ++i ){
+        file.write( (char *)&nTiles[ i ], 4 );
+        file.write( smtList[ i ].c_str(), smtList[ i ].size() + 1 );
     }
-
-    // Dimensions of displacement map.
-    ImageBuf *imageBuf = NULL;
-    ROI roi(    0, width * 16,  // xbegin, xend
-                0, length * 16, // ybegin, yend
-                0, 1,               // zbegin, zend
-                0, 1);              // chbegin, chend
-    ImageSpec imageSpec( roi.xend, roi.yend, roi.chend, TypeDesc::UINT );
-
-    if( isSMF(tilemapFile) ) {
-        // Load from SMF
-        SMF sourcesmf(tilemapFile);
-        imageBuf = sourcesmf.getTilemap();
-    }
-       if( !imageBuf ) {
-        // load image file
-        imageBuf = new ImageBuf( tilemapFile );
-        imageBuf->read( 0, 0, false, TypeDesc::UINT );
-        if( !imageBuf->initialized() ) {
-            delete imageBuf;
-            imageBuf = NULL;
-        }
-    }
-    if( !imageBuf ) {
-        // Generate blank
-        imageBuf = new ImageBuf( "tilemap", imageSpec );
-        for ( unsigned int i = 0; i < imageSpec.image_pixels(); ++i )
-            ((unsigned int *)imageBuf->localpixels())[ i ] = i;
-    }
-
-    imageSpec = imageBuf->specmod();
-    ImageBuf fixBuf;
-    // Fix the number of channels
-    if( imageSpec.nchannels != roi.chend ) {
-        int map[] = {0};
-        ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
-
-    // Fix the size
-    // FIXME image should never be resized, instead tiling either from an edge or centred.
-    if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
-        if( verbose )
-            printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i), Resampling.\n",
-            tilemapFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend );
-        ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
-        imageBuf->copy(fixBuf);
-        fixBuf.clear();
-    }
-
-    unsigned int *pixels = (unsigned int *)imageBuf->localpixels();
-
-    // write the data to the smf
-    smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
-    smf.close();
-
-    delete imageBuf;
-    if( isSMF( tilemapFile ) ) delete [] pixels;
+    file.close();
 
     return false;
 }
 
+bool
+SMF::writeMap( ImageBuf *sourceBuf )
+{
+    if( verbose ) cout << "INFO: Writing map\n";
+    return writeImage( mapPtr, mapSpec, sourceBuf );   
+}
+
+bool
+SMF::writeMetal( ImageBuf *sourceBuf )
+{
+    if( verbose ) cout << "INFO: Writing metal\n";
+    return writeImage( header.metalPtr, metalSpec, sourceBuf );   
+}
+
+bool
+SMF::writeFeaturesHeader()
+{
+    if( verbose ) cout << "INFO: Writing feature headers\n";
+    //TODO fix stub
+    return false;
+}
+
+bool
+SMF::writeFeatures()
+{
+    if( verbose ) cout << "INFO: Writing features\n";
+    //TODO fix stub
+    return false;
+}
+
+/*
 bool
 SMF::saveGrass()
 {
@@ -789,8 +750,9 @@ SMF::saveGrass()
 
     return false;
 }
+*/
 
-
+/*
 bool
 SMF::saveFeatures()
 {
@@ -820,248 +782,9 @@ SMF::saveFeatures()
     smf.close();
     return false;
 }
+*/
 
-bool
-SMF::load()
-{
-    bool ret = false;
-    heightFile = typeFile = minimapFile = metalFile = grassFile
-        = tilemapFile = featuresFile = fileName;
-
-    SMFHeader header;
-    ifstream smf( fileName );
-    smf.seekg(0);
-    smf.read( (char *)&header, sizeof(SMFHeader) );
-
-    // convert internal units to spring map units.
-    width = header.width / 64;
-    length = header.length / 64;
-    floor = (float)header.floor / 512;
-    ceiling = (float)header.ceiling / 512;
-    heightPtr = header.heightPtr;
-    typePtr = header.typePtr;
-    tilesPtr = header.tilesPtr;
-    minimapPtr = header.minimapPtr;
-    metalPtr = header.metalPtr;
-    featuresPtr = header.featuresPtr;
-
-    if( verbose ){
-       cout << "INFO: Loading "       << fileName 
-            << "\n\tVersion: "        << header.version 
-            << "\n\tID: "             << header.id 
-
-            << "\n\tWidth: "          << width 
-            << "\n\tLength: "         << length 
-            << "\n\tSquareSize: "     << header.squareWidth 
-            << "\n\tTexelPerSquare: " << header.squareTexels 
-            << "\n\tTileSize: "       << header.tileTexels 
-            << "\n\tMinHeight: "      << floor 
-            << "\n\tMaxHeight: "      << ceiling 
-
-            << "\n\tHeightMapPtr: "   << heightPtr 
-            << "\n\tTypeMapPtr: "     << typePtr 
-            << "\n\tTilesPtr: "       << tilesPtr 
-            << "\n\tMiniMapPtr: "     << minimapPtr 
-            << "\n\tMetalMapPtr: "    << metalPtr 
-            << "\n\tFeaturePtr: "     << featuresPtr 
-
-            << "\n\tExtraHeaders: "   << header.nExtraHeaders << endl;
-    } //fi verbose
-
-    // Extra headers Information
-    int offset;
-    SMFEH extraHeader;
-    for(int i = 0; i < header.nExtraHeaders; ++i ) {
-        if( verbose )cout << "    Extra Headers" << endl;
-        offset = smf.tellg();
-        smf.read( (char *)&extraHeader, sizeof(SMFEH) );
-        smf.seekg(offset);
-        if(extraHeader.type == 0) {
-            if( verbose )printf("\tNUll type: 0\n");
-            continue;
-        }
-        if(extraHeader.type == 1) {
-            SMFEHGrass *grassHeader = new SMFEHGrass;
-            smf.read( (char *)grassHeader, sizeof(SMFEHGrass));
-            if( verbose )printf("\tGrass: Size %i, type %i, Ptr %i\n",
-                grassHeader->size, grassHeader->type, grassHeader->grassPtr);
-            extraHeaders.push_back( (SMFEH *)grassHeader );
-        } else {
-            ret = true;
-            if( verbose )printf("WARNING: %i is an unknown header type\n", i);
-        }
-        smf.seekg( offset + extraHeader.size);
-    }
-
-    // Tileindex Information
-    SMFHTiles tilesHeader;
-    smf.seekg( header.tilesPtr );
-    smf.read( (char *)&tilesHeader, sizeof( SMFHTiles ) );
-    nTiles = tilesHeader.nTiles;
-
-    if( verbose )printf("    %i tiles referenced in %i files.\n", tilesHeader.nTiles, tilesHeader.nFiles);
-    
-    char temp_fn[256];
-    int nTiles;
-    for ( int i=0; i < tilesHeader.nFiles; ++i) {
-        smf.read( (char *)&nTiles, 4);
-        smtTiles.push_back(nTiles);
-        smf.getline( temp_fn, 255, '\0' );
-        if( verbose )printf( "\t%i %s\n", nTiles, temp_fn );
-        smtList.push_back(temp_fn);
-    }
-
-    // Featurelist information
-    smf.seekg( header.featuresPtr );
-    int nTypes;
-    smf.read( (char *)&nTypes, 4);
-    int nFeatures;
-    smf.read( (char *)&nFeatures, 4);
-
-    if( verbose )printf("    Features: %i, Feature types: %i\n",
-            nFeatures, nTypes);
-    
-    offset = smf.tellg();
-    smf.seekg (0, ios::end);
-    int filesize = smf.tellg();
-    smf.seekg(offset);
-
-    int eeof = offset + nFeatures * sizeof(SMFFeature);
-    if( eeof > filesize ) {
-        if( !quiet )printf( "WARNING: Filesize is not large enough to contain the reported number of features. Ignoring feature data.\n");
-        nFeatures = 0;
-        nTypes = 0;
-    }
-
-
-    char temp[256];
-    for ( int i = 0; i < nTypes; ++i ) {
-        smf.getline(temp, 255, '\0' );
-        featureTypes.push_back(temp);
-    }
-
-    SMFFeature feature;
-    for ( int i = 0; i < nFeatures; ++i ) {
-        smf.read( (char *)&feature, sizeof(SMFFeature) );
-        features.push_back(feature);
-    }
-
-
-    smf.close();
-    recalculate();
-    return false;
-}
-
-bool
-SMF::decompileAll(int format)
-{
-    if(verbose)printf("INFO: exporting Heightmap\n");
-    decompileHeight();
-
-    if(verbose)printf("INFO: exporting Typemap\n");
-    decompileType();
-
-    if(verbose)printf("INFO: exporting Minimap\n");
-    decompileMinimap();
-
-    if(verbose)printf("INFO: exporting Metalmap\n");
-    decompileMetal();
-
-    if(verbose)printf("INFO: exporting Tilemap\n");
-    decompileTilemap();
-
-    for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if(extraHeaders[i]->type == 1) {
-            if(verbose)printf("INFO: exporting Grassmap\n");
-            decompileGrass();
-        }
-    }
-
-    if(features.size() > 0) {
-        if(verbose)printf("INFO: exporting Featurelist\n");
-        decompileFeaturelist(format);
-    }
-
-    return false;
-}
-bool
-SMF::decompileHeight()
-{
-    ImageBuf *imageBuf = getHeight();
-    if( !imageBuf ) return true;
-
-    char filename[256];
-    sprintf( filename, "%s_height.tif", outPrefix.c_str() );
-
-    imageBuf->save( filename );
-    return false;
-}
-
-bool
-SMF::decompileType()
-{
-    ImageBuf *imageBuf = getType();
-    if( !imageBuf ) return true;
-
-    char filename[256];
-    sprintf( filename, "%s_type.png", outPrefix.c_str() );
-
-    imageBuf->save( filename );
-    return false;
-}
-
-bool
-SMF::decompileMinimap()
-{
-    ImageBuf *imageBuf = getMinimap();
-    if( !imageBuf ) return true;
-
-    char filename[256];
-    sprintf( filename, "%s_minimap.png", outPrefix.c_str() );
-
-    imageBuf->save( filename );
-    return false;
-}
-
-bool
-SMF::decompileMetal()
-{
-    ImageBuf *imageBuf = getMetal();
-    if( !imageBuf ) return true;
-
-    char filename[256];
-    sprintf( filename, "%s_metal.png", outPrefix.c_str() );
-
-    imageBuf->save( filename );
-    return false;
-}
-
-bool
-SMF::decompileTilemap()
-{
-    ImageBuf *imageBuf = getTilemap();
-    if( !imageBuf ) return true;
-
-    char filename[256];
-    sprintf( filename, "%s_tilemap.exr", outPrefix.c_str() );
-
-    imageBuf->save( filename );
-    return false;
-}
-
-bool
-SMF::decompileGrass()
-{
-    ImageBuf *imageBuf = getGrass();
-    if( !imageBuf ) return true;
-
-    char filename[256];
-    sprintf( filename, "%s_grass.png", outPrefix.c_str() );
-
-    imageBuf->save( filename );
-    return false;
-}
-
+/*
 bool
 SMF::decompileFeaturelist(int format = 0)
 {
@@ -1123,132 +846,72 @@ SMF::decompileFeaturelist(int format = 0)
 
     return false;
 }
+*/
 
 ImageBuf *
-SMF::getHeight()
+SMF::getImage( unsigned int ptr, ImageSpec spec)
 {
-    ImageBuf *imageBuf = NULL;
-    ImageSpec imageSpec( width + 1, length + 1, 1, TypeDesc::UINT16 );
-    unsigned short *data = new unsigned short[ imageSpec.image_pixels() ];
+    ifstream file( fileName );
+    if(! file.good() ) return NULL;
 
-    ifstream smf( fileName );
-    if( smf.good() ) {
-        smf.seekg(heightPtr);
-        smf.read( (char *)data, imageSpec.image_bytes() );
-        imageBuf = new ImageBuf( "height", imageSpec, data);
-    }
-    smf.close();
+    ImageBuf *imageBuf = new ImageBuf( spec );
+
+    file.seekg( ptr );
+    file.read( (char *)imageBuf->localpixels(), spec.image_bytes() );
+    file.close();
+
     return imageBuf;
 }
 
 ImageBuf *
-SMF::getType()
-{
-    ImageBuf * imageBuf = NULL;
-    ImageSpec imageSpec( width / 2, length / 2, 1, TypeDesc::UINT8 );
-    unsigned char *data = new unsigned char[ imageSpec.image_pixels() ];
-
-    ifstream smf( fileName );
-    if( smf.good() ) {
-        smf.seekg( typePtr );
-        smf.read( (char *)data, imageSpec.image_bytes() );
-        imageBuf = new ImageBuf( "type", imageSpec, data );
-    }
-    smf.close();
-    return imageBuf;
-}
+SMF::getHeight( ){ return getImage( header.heightPtr, heightSpec ); }
 
 ImageBuf *
-SMF::getMinimap()
+SMF::getType( ){ return getImage( header.typePtr, typeSpec ); }
+
+ImageBuf *
+SMF::getMini()
 {
     ImageBuf * imageBuf = NULL;
-    ImageSpec imageSpec( 1024, 1024, 4, TypeDesc::UINT8 );
     unsigned char *data;
 
     ifstream smf( fileName );
     if( smf.good() ) {
         unsigned char *temp = new unsigned char[MINIMAP_SIZE];
-        smf.seekg( minimapPtr );
+        smf.seekg( header.miniPtr );
         smf.read( (char *)temp, MINIMAP_SIZE);
         data = dxt1_load(temp, 1024, 1024);
         delete [] temp;
-        imageBuf = new ImageBuf( "minimap", imageSpec, data );
+        imageBuf = new ImageBuf( miniSpec, data );
     }
     smf.close();
     return imageBuf;
 }
 
 ImageBuf *
-SMF::getMetal()
-{
-    ImageBuf * imageBuf = NULL;
-    ImageSpec imageSpec( width / 2, length / 2, 1, TypeDesc::UINT8 );
-    unsigned char *data = new unsigned char[ imageSpec.image_pixels() ];
-
-    ifstream smf( fileName );
-    if( smf.good() ) {
-        smf.seekg( metalPtr );
-        smf.read( (char *)data, imageSpec.image_bytes() );
-        imageBuf = new ImageBuf( "metal", imageSpec, data );
-    }
-    smf.close();
-    return imageBuf;
-}
+SMF::getMap( ){ return getImage( mapPtr, mapSpec ); }
 
 ImageBuf *
-SMF::getTilemap()
-{
-    ImageBuf * imageBuf = NULL;
-    ImageSpec imageSpec( width / 4, length / 4, 1, TypeDesc::UINT );
-    unsigned int *data = new unsigned int[ imageSpec.image_pixels() ];
+SMF::getMetal( ){ return getImage( header.metalPtr, metalSpec ); }
 
-    ifstream smf( fileName );
-    if( smf.good() ) {
-        smf.seekg( tilesPtr );
-        int numFiles = 0;
-        smf.read( (char *)&numFiles, 4 );
-        smf.ignore( 4 );
-        for( int i = 0; i < numFiles; ++i ) { 
-            smf.ignore(4);
-            smf.ignore(255, '\0');
-        }
-
-        smf.read( (char *)data, imageSpec.image_bytes() );
-        imageBuf = new ImageBuf( "tilemap", imageSpec, data );
-    }
-    smf.close();
-    return imageBuf;
-}
 
 ImageBuf *
 SMF::getGrass()
 {
-    ImageBuf * imageBuf = NULL;
-    ImageSpec imageSpec( width / 4, length / 4, 1, TypeDesc::UINT8 );
-    unsigned char *data = new unsigned char[ imageSpec.image_pixels() ];
+    bool found = false;
 
-    ifstream smf( fileName );
-    if( smf.good() ) {
-        smf.seekg(80);
-
-        int offset;
-        SMFEH extraHeader;
-        SMFEHGrass grassHeader;
-        for(unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-            offset = smf.tellg();
-            smf.read( (char *)&extraHeader, sizeof(SMFEH) );
-            smf.seekg(offset);
-            if(extraHeader.type == 1) {
-                smf.read( (char *)&grassHeader, sizeof(SMFEHGrass));
-            }
-            smf.seekg( offset + extraHeader.size);
+    HeaderGrass *headerGrass;
+    for( auto i = headerExtras.begin();
+            i != headerExtras.end(); ++i ){
+        if( (*i)->type == 1 ){
+            headerGrass = (HeaderGrass *)(*i);
+            found = true;
+            break;
         }
-        smf.seekg(grassHeader.grassPtr);
-        smf.read( (char *)data, imageSpec.image_bytes() );
-        imageBuf = new ImageBuf( "grass", imageSpec, data );
     }
-    smf.close();
-    return imageBuf;
+    if(! found ) return NULL;
+
+    return (getImage( headerGrass->ptr, grassSpec ));
 }
 
 //FIXME incorporate
