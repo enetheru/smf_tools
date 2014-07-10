@@ -1,6 +1,7 @@
 #include "tilecache.h"
 #include "util.h"
 #include "smt.h"
+#include "smf.h"
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
@@ -102,7 +103,7 @@ TileCache::push_back( string fileName )
     }
 
     SMT *smt = NULL;
-    if( (smt = SMT::open( fileName, verbose, quiet )) ){
+    if( (smt = SMT::open( fileName )) ){
         if(! smt->getNTiles() ) return;
         nTiles += smt->getNTiles();
         map.push_back( nTiles );
@@ -114,4 +115,18 @@ TileCache::push_back( string fileName )
         delete smt;
         return;
     }
+
+    SMF *smf = NULL;
+    if( (smf = SMF::open( fileName )) ){
+        // get the filenames here
+        vector<string> smtList = smf->getTileFileNames();
+        for( auto i = smtList.begin(); i != smtList.end(); ++i ){
+            push_back( *i );
+        }
+        delete smf;
+        return;
+    }
+
+    if( verbose ) cout << "WARN.TileCache.push_back: unrecognised format: "
+        << fileName << endl;
 }

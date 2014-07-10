@@ -29,7 +29,7 @@ SMT * SMT::open( string fileName, bool verbose, bool quiet ){
     char magic[ 16 ] = "";
     ifstream file( fileName );
     if( file.good() ){
-        file.read( magic, 16 );
+        file.read( (char *)magic, 16 );
         if(! strcmp( magic, "spring tilefile" ) ){
             good = true;
             file.close();

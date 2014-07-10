@@ -757,6 +757,7 @@ ImageBuf *SMF::getImage( unsigned int ptr, ImageSpec spec){
 
 ImageBuf *SMF::getHeight( ){ return getImage( header.heightPtr, heightSpec ); }
 ImageBuf *SMF::getType( ){ return getImage( header.typePtr, typeSpec ); }
+ImageBuf *SMF::getMap( ){ return getImage( mapPtr, mapSpec ); }
 
 ImageBuf *SMF::getMini(){
     ImageBuf * imageBuf = NULL;
@@ -775,7 +776,6 @@ ImageBuf *SMF::getMini(){
     return imageBuf;
 }
 
-ImageBuf *SMF::getMap( ){ return getImage( mapPtr, mapSpec ); }
 ImageBuf *SMF::getMetal( ){ return getImage( header.metalPtr, metalSpec ); }
 
 ImageBuf *SMF::getGrass(){

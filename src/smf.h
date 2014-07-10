@@ -198,7 +198,7 @@ public:
 
     ImageBuf *getHeight();
     ImageBuf *getType();
-    string    getTileFiles();
+    vector<string> getTileFileNames(){ return smtList; };
     ImageBuf *getMap();
     ImageBuf *getMini();
     ImageBuf *getMetal();

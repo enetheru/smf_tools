@@ -106,7 +106,7 @@ SMTool::openTilemap( string fileName )
     ImageSpec spec;
     //Load tilemap from SMF
     SMF *smf = NULL;
-    if( (smf = SMF::open( fileName, verbose, quiet )) ){
+    if( (smf = SMF::open( fileName )) ){
         buf = smf->getMap();
         delete smf;
     }
@@ -127,7 +127,7 @@ SMTool::openTilemap( string fileName )
 
     spec = buf->spec();
     if( verbose ){
-        cout << "INFO: " << fileName << endl;
+        cout << "INFO.openTileMap: " << fileName << endl;
         cout << "\tSize: " << spec.width << "x" << spec.height <<  endl;
     }
 

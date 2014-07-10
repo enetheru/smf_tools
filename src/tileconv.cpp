@@ -3,6 +3,7 @@
 
 #include "optionparser.h"
 #include "smt.h"
+#include "smf.h"
 #include "smtool.h"
 #include "util.h"
 #include "tilecache.h"
@@ -184,7 +185,23 @@ main( int argc, char **argv )
     for( int i = 0; i < parse.nonOptionsCount(); ++i )
         tileCache.push_back( parse.nonOption( i ) );
 
-    // early out condition and reporting.
+    // load up the tilemap
+    ImageBuf *tilemap = NULL;
+    if( options[ RECONSTRUCT ] ){
+        tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
+        if(! tilemap ){
+            if(! quiet ){
+                cout << "ERROR.SMTool: unable to load tilemap." << endl;
+            }
+            exit(1);
+        }
+        SMF *smf = NULL;
+        if( (smf = SMF::open( options[ RECONSTRUCT ].arg )) ){
+            tileCache.push_back( options[ RECONSTRUCT ].arg );
+            delete smf;
+        }
+    }
+
     if( tileCache.getNTiles() == 0 ){
         if(! quiet ){
             cout << "ERROR.TileCache: no files specified for processing." << endl;
@@ -206,18 +223,6 @@ main( int argc, char **argv )
         }
     }
     tileRes = tileCache.getTileRes();
-
-    // load up the tilemap
-    ImageBuf *tilemap = NULL;
-    if( options[ RECONSTRUCT ] ){
-        tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
-        if(! tilemap ){
-            if(! quiet ){
-                cout << "ERROR.SMTool: unable to load tilemap." << endl;
-            }
-            exit(1);
-        }
-    }
 
     //filter list
     vector<unsigned int> filter;
