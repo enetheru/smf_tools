@@ -324,8 +324,8 @@ void SMF::updateSpecs(){
     miniSpec.set_format( TypeDesc::UINT8 );
 
     // set mapSpec
-    mapSpec.width = header.width * 4 / header.tileRes;
-    mapSpec.height = header.length * 4 / header.tileRes;
+    mapSpec.width = header.width * 8 / header.tileRes;
+    mapSpec.height = header.length * 8 / header.tileRes;
     mapSpec.nchannels = 1;
     mapSpec.set_format( TypeDesc::UINT );
 
