@@ -145,7 +145,7 @@ main( int argc, char **argv )
 
     bool fail = false;
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        std::cout << "Unknown option: " << std::string( opt->name, opt->namelen ) << "\n";
+        cout << "Unknown option: " << string( opt->name, opt->namelen ) << "\n";
         fail = true;
     }
     if( fail ) exit( 1 );
@@ -289,6 +289,6 @@ main( int argc, char **argv )
         }
     }
 
-    cout << smf->info();
+    if( verbose ) cout << smf->info();
     return 0;
 }

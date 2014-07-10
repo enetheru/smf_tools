@@ -1,8 +1,10 @@
 #include "util.h"
 
-void
-valxval( string s, unsigned int &x, unsigned int &y)
-{
+// Evaluates a string into two integers
+/* The function takes a string in the form of IxK, and assignes
+ * the values of I,K to x,y.
+ */
+void valxval( string s, unsigned int &x, unsigned int &y ){
     unsigned int d;
     d = s.find_first_of( 'x', 0 );
 
@@ -13,10 +15,14 @@ valxval( string s, unsigned int &x, unsigned int &y)
     else y = stoi( s.substr( d + 1, string::npos) );
 }
 
-vector<unsigned int>
-expandString( const char *s )
-{
-    vector<unsigned int> result;
+/// Expand a string sequence of integers to a vector
+/*  The function takes a string in the form of comma ',' separated values.
+ *  When two values are separated with a dash '-' then all the numbers
+ *  inbetween are expanded.\n
+ *  ie '1,2,3-7,2-5' = {1,2,3,4,5,6,7,2,3,4,5}
+ */
+vector< unsigned int > expandString( const char *s ){
+    vector< unsigned int > result;
 
     int start;
     bool sequence = false;

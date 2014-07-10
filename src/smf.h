@@ -9,59 +9,54 @@ using namespace std;
 #include <OpenImageIO/imagebuf.h>
 OIIO_NAMESPACE_USING
 
-/** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.
- * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4
+/** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>
+ * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4\n
  * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
  */
 #define MINIMAP_SIZE 699048
 #define SMF_HEADER_NONE 0
 #define SMF_HEADER_GRASS 1
 
-/// smf brief description
-/** detailed description
+/// Spring Map File
+/** This class corresponds to a file on disk, operations are performed
+ *  on the file on disk as you do them so take care.
  */
 class SMF {
-    /// brief header description
-    /** 80 bytes header for beginning of file.
+    /// Header struct as it is written on disk
+    /** This structure is written to disk as is, its 80 bytes long.
      */
     struct Header {
         Header( ){ };
-        Header(
-                int i,
-                int w, int l,
-                int sw, int st, int tr,
-                int f, int c,
-                int hp, int tp, int tp2, int mp, int mp2, int fp,
-                int n )
-            : id( i ),
-            width( w ), length( l ),
-            squareWidth( sw ), squareTexels( st ), tileRes( tr ),
-            floor( f ), ceiling (c ),
-            heightPtr( hp ), typePtr( tp ), tilesPtr( mp ),
-            miniPtr( tp2 ), metalPtr( mp2 ), featuresPtr( fp ),
-            nHeaderExtras( n ) { };
+        Header( int i, int w, int l, int sw, int st, int tr, int f, int c,
+                int hp, int tp, int tp2, int mp, int mp2, int fp, int n )
+            : id( i ), width( w ), length( l ), squareWidth( sw ),
+            squareTexels( st ), tileRes( tr ), floor( f ), ceiling (c ),
+            heightPtr( hp ), typePtr( tp ), tilesPtr( mp ), miniPtr( tp2 ),
+            metalPtr( mp2 ), featuresPtr( fp ), nHeaderExtras( n ) { };
 
         char magic[ 16 ] =
             { 's','p','r','i','n','g',' ','m','a','p',' ','f','i','l','e','\0' };
-                              ///< byte:0 "spring map file"
-        int version = 1;      ///< byte:16 must be 1 for now
-        int id;               ///< byte:20 sort of a checksum of the file
-        int width = 128;      ///< byte:24 map width * 64
-        int length = 128;     ///< byte:28 map length * 64
-        int squareWidth = 8;  ///< byte:32 distance between vertices. must be 8
-        int squareTexels = 8; ///< byte:36 number of texels per square, must be 8 for now
-        int tileRes = 32;     ///< byte:40 number of texels in a tile, must be 32 for now
-        float floor = 10;     ///< byte:44 height value that 0 in the heightmap corresponds to    
-        float ceiling = 256;  ///< byte:48 height value that 0xffff in the heightmap corresponds to
+                              ///< byte:0 \n "spring map file"
+        int version = 1;      ///< byte:16 \n Must be 1 for now
+        int id;               ///< byte:20 \n Prevents name clashes with other maps.
+        int width = 128;      ///< byte:24 \n Map width * 64
+        int length = 128;     ///< byte:28 \n Map length * 64
+        int squareWidth = 8;  ///< byte:32 \n Distance between vertices. must be 8
+        int squareTexels = 8; ///< byte:36 \n Number of texels per square, must be 8 for now
+        int tileRes = 32;     ///< byte:40 \n Number of texels in a tile, must be 32 for now
+        float floor = 10;     ///< byte:44 \n Height value that 0 in the heightmap corresponds to    
+        float ceiling = 256;  ///< byte:48 \n Height value that 0xffff in the heightmap corresponds to
 
-        int heightPtr;        ///< byte:52 file offset to elevation data (short int[(mapy+1)*(mapx+1)])
-        int typePtr;          ///< byte:56 file offset to typedata (unsigned char[mapy/2 * mapx/2])
-        int tilesPtr;         ///< byte:60 file offset to tile data (see MapTileHeader)
-        int miniPtr;          ///< byte:64 file offset to minimap (always 1024*1024 dxt1 compresed data with 9 mipmap sublevels)
-        int metalPtr;         ///< byte:68 file offset to metalmap (unsigned char[mapx/2 * mapy/2])
-        int featuresPtr;      ///< byte:72 file offset to feature data (see MapFeatureHeader)
+        int heightPtr;        ///< byte:52 \n File offset to elevation data `short int[(mapy+1)*(mapx+1)]`
+        int typePtr;          ///< byte:56 \n File offset to typedata `unsigned char[mapy/2 * mapx/2]`
+        int tilesPtr;         ///< byte:60 \n File offset to tile data
+
+        int miniPtr;          ///< byte:64 \n File offset to minimap,
+                              ///  always 1024*1024 dxt1 compresed data with 9 mipmap sublevels
+        int metalPtr;         ///< byte:68 \n File offset to metalmap `unsigned char[mapx/2 * mapy/2]`
+        int featuresPtr;      ///< byte:72 \n File offset to feature data
             
-        int nHeaderExtras = 0;///< byte:76 numbers of extra headers following main header
+        int nHeaderExtras = 0;///< byte:76 \n Fumbers of extra headers following this header
     };/* byte: 80 */
 
     /// Extra Header
