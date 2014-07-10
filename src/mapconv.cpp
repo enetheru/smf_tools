@@ -179,12 +179,9 @@ main( int argc, char **argv )
         }
     }
     
-    vector<string> smts;    
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
-        smts.push_back( parse.nonOption( i ) );
-
+        smf->addTileFile( parse.nonOption( i ) );
     }
-    smf->addTileFiles( smts );
 
     if( options[ MAPSIZE ] ){
         valxval( options[ MAPSIZE ].arg, mx, my );

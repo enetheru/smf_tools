@@ -400,27 +400,34 @@ SMF::setDepth( float floor, float ceiling )
     writeHeaders();
 }
 
-bool
-SMF::addTileFiles( vector<string> fileNames )
-{
-    if( fileNames.empty() ) return false;
+///TODO Set the map y depth and water level.
 
+/// Add Tile files
+bool SMF::addTileFile( string fileName ){
     SMT *smt = NULL;
-    for( auto i = fileNames.begin(); i != fileNames.end(); ++i ){
-        if(! (smt = SMT::open( fileName, verbose, quiet )) ){
-            if(! quiet ){
-                cout << "ERROR: invalid smt file " << fileName << endl;
-            }
-            continue;
-        }
 
-        headerTiles.nTiles += smt->getNTiles();
-        nTiles.push_back( smt->getNTiles() );
-        smtList.push_back( fileName );
-        delete smt;
-        smt = NULL;
+    if(! fileName.compare( "CLEAR" ) ){
+        smtList.clear();
+        nTiles.clear();
+        headerTiles.nFiles = 0;
+        headerTiles.nTiles = 0;
+        setDirty( 2 );
+        return false;
     }
-    reWrite( 2 );
+
+    if(! (smt = SMT::open( fileName, verbose, quiet )) ){
+        if(! quiet ) cout << "ERROR: invalid smt file " << fileName << endl;
+        return true;
+    }
+
+    smtList.push_back( fileName );
+    ++headerTiles.nFiles;
+
+    nTiles.push_back( smt->getNTiles() );
+    headerTiles.nTiles += smt->getNTiles();
+
+    delete smt;
+    setDirty( 2 );
     return false;
 }
 
