@@ -183,8 +183,8 @@ public:
     void setSize( int width, int length );
     void setDepth( float floor, float ceiling );
     
-    bool addTileFiles( vector<string> fileNames );
-    void addFeatures( vector<SMF::Feature> features );
+    bool addTileFile( string fileName );
+    void addFeature( string name, float x, float y, float z, float r, float s );
 
     bool writeHeaders( );
     bool writeHeight  ( ImageBuf *buf );
