@@ -292,3 +292,8 @@ main( int argc, char **argv )
     if( verbose ) cout << smf->info();
     return 0;
 }
+
+void process_csv( string fileName )
+{
+    return;
+}

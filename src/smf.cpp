@@ -584,7 +584,19 @@ bool SMF::writeMetal( ImageBuf *sourceBuf ){
 /// write the feature header information to the smf
 bool SMF::writeFeaturesHeader() {
     if( verbose ) cout << "INFO: Writing feature headers\n";
-    //TODO fix stub
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    file.seekp( header.featuresPtr );
+
+    // Tiles Header
+    headerFeatures.nTypes = featureTypes.size();
+    headerFeatures.nFeatures = features.size();
+    file.write( (char *)&headerFeatures, sizeof( SMF::HeaderFeatures ) );
+    // SMT Names
+    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
+        file.write( (*i).c_str(), (*i).size() + 1 );
+    }
+    file.close();
+
     return false;
 }
 
@@ -597,81 +609,45 @@ bool SMF::writeFeatures() {
 
 /// Write the grass image to the smf
 /*
-bool
-SMF::saveGrass()
-{
-    if( verbose )cout << "INFO: saveGrass\n";
+ */
+bool SMF::writeGrass( ImageBuf *sourceBuf ) {
+    HeaderGrass *headerGrass = NULL;
+    bool rewrite = false;
 
-    SMFEHGrass *grassHeader = NULL;
-    for( unsigned int i = 0; i < extraHeaders.size(); ++i ) {
-        if( extraHeaders[ i ]->type == 1 )
-            grassHeader = reinterpret_cast<SMFEHGrass *>( extraHeaders[ i ] );
-    }
-    if( !grassHeader )return true;
-
-    ImageBuf *imageBuf = NULL;
-    ROI roi(    0, width * 16,
-                0, length * 16,
-                0, 1,
-                0, 1);
-    ImageSpec imageSpec(roi.xend, roi.yend, roi.chend, TypeDesc::UINT8 );
-
-    if( isSMF(grassFile) ) {
-        // Load from SMF
-        SMF sourcesmf(grassFile);
-        imageBuf = sourcesmf.getGrass();
+    // get header if it exists.
+    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+        if( (*i)->type == 1) headerGrass = (HeaderGrass *)*i;
     }
 
-    if( !imageBuf ) {
-        // Load image file
-        imageBuf = new ImageBuf( grassFile );
-        imageBuf->read( 0, 0, false, TypeDesc::UINT8 );
-        if( !imageBuf->initialized() ) {
-            delete imageBuf;
-            imageBuf = NULL;
+    if(! sourceBuf && headerGrass ){
+        for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+            if( (*i)->type == 1 ){
+                i = headerExtras.erase(i);
+                --i;
+                --header.nHeaderExtras;
+            }
         }
+        setDirty( 0 );
+        reWrite();
+        return false;
     }
-    
-    if( !imageBuf ) {
-        // Generate blank
-        imageBuf = new ImageBuf( "grass", imageSpec );
-        ImageBufAlgo::zero(*imageBuf);        
-    }
+    else if(! sourceBuf && ! headerGrass ) return false;
 
-    imageSpec = imageBuf->specmod();
-    ImageBuf fixBuf;
+    if( verbose ) cout << "INFO: Writing Grass\n";
 
-    // Fix the number of channels
-    if( imageSpec.nchannels != roi.chend ) {
-        int map[] = {0};
-        ImageBufAlgo::channels(fixBuf, *imageBuf, roi.chend, map );
-        imageBuf->copy( fixBuf );
-        fixBuf.clear();
+    // else create one.
+    if(! headerGrass ){
+        rewrite = true;
+        headerGrass = new HeaderGrass();
+        headerExtras.push_back( headerGrass );
+        ++header.nHeaderExtras;
     }
 
-    // Fix the Dimensions
-    if ( imageSpec.width != roi.xend || imageSpec.height != roi.yend ) {
-        if( verbose )
-            printf( "\tWARNING: %s is (%i,%i), wanted (%i, %i) Resampling.\n",
-            typeFile.c_str(), imageSpec.width, imageSpec.height, roi.xend, roi.yend);
-        ImageBufAlgo::resample(fixBuf, *imageBuf, false, roi);
-        imageBuf->copy( fixBuf );
-        fixBuf.clear();        
-    }
-
-    unsigned char *pixels = (unsigned char *)imageBuf->localpixels();
-
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-    fstream smf(filename, ios::binary | ios::in | ios::out);
-    smf.seekp(grassHeader->grassPtr);
-
-    smf.write( (char *)pixels, imageBuf->spec().image_bytes() );
-    smf.close();
-    
-    delete imageBuf;
-    if( isSMF( grassFile ) ) delete [] pixels;
+    if(! rewrite )
+        return writeImage( headerGrass->ptr, grassSpec, sourceBuf );
+    else
+        setDirty( 0 );
+        reWrite();   
 
     return false;
 }
