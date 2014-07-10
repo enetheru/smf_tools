@@ -44,3 +44,69 @@ expandString( const char *s )
 
     return result;
 }
+
+/// Scales an ImageBuf according to a given ImageSpec
+/*  If sourceBuf is NULL then return a blank image.
+ */
+ImageBuf *scale( ImageBuf *sourceBuf, ImageSpec spec ){
+    ImageBuf *resultBuf = NULL;
+
+    // Guarantee that a correct sized image is returned regardless of the input.
+    if(! sourceBuf ) return (resultBuf = new ImageBuf( spec ));
+
+    // return a copy of the original if its the correct size.
+    ImageSpec sourceSpec = sourceBuf->specmod();
+    if( sourceSpec.width == spec.width && sourceSpec.height == spec.height ){
+        resultBuf = new ImageBuf;
+        resultBuf->copy( *sourceBuf );
+        return resultBuf;
+    }
+
+    // Otherwise scale
+    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, sourceSpec.nchannels);
+    resultBuf = new ImageBuf;
+    ImageBufAlgo::resample( *resultBuf, *sourceBuf, false, roi );
+#ifdef DEBUG_IMG
+    static int i = 0;
+    resultBuf->write("SMF::scale_" + to_string(i) + ".tif", "tif");
+    i++;
+#endif //DEBUG_IMG
+    return resultBuf;
+}
+
+/// re-orders the channels an imageBuf according to the imagespec
+/*  Returns a copy of the souceBuf with the number of channels in
+ *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
+ *  If sourceBuf is NULL then a blank image is returned.
+ */
+ImageBuf *channels( ImageBuf *sourceBuf, ImageSpec spec ){
+    ImageBuf *resultBuf = NULL;
+    int map[] = {0,1,2,3,4};
+    float fill[] = {0,0,0,255};
+
+    // Guarantee that a correct sized image is returned regardless of the input.
+    if(! sourceBuf ) return (resultBuf = new ImageBuf( spec ));
+
+    // return a copy of the original if its the correct size.
+    ImageSpec sourceSpec = sourceBuf->specmod();
+    if( sourceSpec.nchannels == spec.nchannels ){
+        resultBuf = new ImageBuf;
+        resultBuf->copy( *sourceBuf );
+        return resultBuf;
+    }
+    if( sourceSpec.nchannels < 4 ) map[3] = -1;
+
+    // Otherwise re-order channels
+    resultBuf = new ImageBuf;
+    ImageBufAlgo::channels( *resultBuf, *sourceBuf, spec.nchannels, map, fill );
+#ifdef DEBUG_IMG
+    static int i = 0;
+    resultBuf->write("SMF::channels_" + to_string(i) + ".tif", "tif");
+    i++;
+#endif //DEBUG_IMG
+    return resultBuf;
+
+
+}
+
+
