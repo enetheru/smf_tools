@@ -6,24 +6,24 @@
 OIIO_NAMESPACE_USING
 using namespace std;
 
-#define DXT1 1
-
-struct SMTHeader
-{
-    char magic[16] = "spring tilefile";   // "spring tilefile\0"
-    int version = 1;      // must be 1 for now
-    int nTiles = 0;       // total number of tiles in this file
-    int tileRes = 32;      // x and y dimension of tiles, must remain 32 for now.
-    int tileType = DXT1;     // must be 1=dxt1 for now
-};
-
 class SMT {
+public:
+    enum TileType { UNKNOWN, DXT1 };
+    /*! Header Structure as written on disk.
+     */
+    struct Header {
+        char magic[16] = "spring tilefile";   // "spring tilefile\0"
+        int version = 1;      // must be 1 for now
+        int nTiles = 0;       // total number of tiles in this file
+        int tileRes = 32;      // x and y dimension of tiles, must remain 32 for now.
+        int tileType = TileType::DXT1;     // must be 1=dxt1 for now
+    };
+
+private:
     bool init = false;
-    // Tiles
-    unsigned int nTiles    = 0,
-                 tileType  = 1,
-                 tileRes   = 32,
-                 tileSize  = 680;
+
+    Header header;
+    unsigned int tileSize  = 680;
 
     // Input Files
     string fileName    = "output.smt";
@@ -49,14 +49,14 @@ public:
     bool initialised( ){ return init; };
     bool reset( );
 
-    void setTileRes( unsigned int r );
-    void setType   ( unsigned int t ); // 1=DXT1
+    void setTileRes( int r      );
+    void setType   ( TileType t ); // 1=DXT1
 
-    int getTileType( ){ return tileType; };
-    int getTileRes ( ){ return tileRes;  };
-    int getTileSize( ){ return tileSize; };
-    int getNTiles  ( ){ return nTiles;   };
-    string getFileName( ){ return fileName; };
+    int getTileType( ){ return header.tileType; };
+    int getTileRes ( ){ return header.tileRes;  };
+    int getNTiles  ( ){ return header.nTiles;   };
+    int getTileSize( ){ return tileSize;        };
+    string getFileName( ){ return fileName;     };
 
     ImageBuf *getTile( int tile );
     bool append( ImageBuf * );

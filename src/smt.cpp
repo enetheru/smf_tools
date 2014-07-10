@@ -13,9 +13,7 @@
 using namespace std;
 OIIO_NAMESPACE_USING;
 
-SMT *
-SMT::create( string fileName, bool overwrite, bool verbose, bool quiet )
-{
+SMT *SMT::create( string fileName, bool overwrite, bool verbose, bool quiet ){
     SMT *smt;
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
@@ -25,9 +23,7 @@ SMT::create( string fileName, bool overwrite, bool verbose, bool quiet )
     return smt;
 }
 
-SMT *
-SMT::open( string fileName, bool verbose, bool quiet )
-{
+SMT * SMT::open( string fileName, bool verbose, bool quiet ){
     bool good = false;
 
     char magic[ 16 ] = "";
@@ -49,9 +45,7 @@ SMT::open( string fileName, bool verbose, bool quiet )
     return NULL;
 }
 
-bool
-SMT::reset()
-{
+bool SMT::reset(){
     if( verbose ) cout << "INFO: Resetting " << fileName << endl;
     // Clears content of SMT file and re-writes the header.
     fstream file( fileName, ios::binary | ios::out );
@@ -61,47 +55,38 @@ SMT::reset()
         return true;
     }
 
-    //re write header
-    SMTHeader head;
-    head.tileType = tileType;
-    head.tileRes = tileRes;
+    //reset tile count
+    header.nTiles = 0;
 
-    file.write( (char *)&head, sizeof(SMTHeader) );
+    // write header
+    file.write( (char *)&header, sizeof(SMT::Header) );
     file.flush();
     file.close();
 
-    // fix up local attributes
-    nTiles = 0;
-    calcTileSize();
     return false;   
 }
 
-void
-SMT::setType(unsigned int t)
-{
-    if( tileType == t)return;
-    tileType = t;
+void SMT::setType( TileType t ){
+    if( header.tileType == t)return;
+    header.tileType = t;
     reset();
 }
 
-void
-SMT::setTileRes(unsigned int r)
-{
-    if( tileRes == r )return;
-    tileRes = r;
+void SMT::setTileRes( int r ){
+    if( header.tileRes == r )return;
+    header.tileRes = r;
     reset();
 }
 
-void
-SMT::calcTileSize()
-{
-    // size is the raw format of dxt1 with 4 mip levels
-    // DXT1 consists of 64 bits per 4x4 block of pixels.
-    // 32x32, 16x16, 8x8, 4x4
-    // 512  + 128  + 32 + 8 = 680
+/*! Calculate the size of the raw format of dxt1 with 4 mip levels
+ * DXT1 consists of 64 bits per 4x4 block of pixels.
+ * 32x32, 16x16, 8x8, 4x4
+ * 512  + 128  + 32 + 8 = 680
+ */
+void SMT::calcTileSize() {
     tileSize = 0;
-    if(tileType == DXT1) {
-        int mip = tileRes;
+    if(header.tileType == TileType::DXT1) {
+        int mip = header.tileRes;
         for( int i=0; i < 4; ++i) {
             tileSize += (mip * mip)/2;
             mip /= 2;
@@ -109,13 +94,9 @@ SMT::calcTileSize()
     }
 }
 
-bool
-SMT::load()
-{
-    SMTHeader header;
-
+bool SMT::load() {
     ifstream inFile(fileName, ifstream::in);
-    inFile.read( (char *)&header, sizeof(SMTHeader) );
+    inFile.read( (char *)&header, sizeof(SMT::Header) );
     inFile.close();
 
     if( verbose ) {
@@ -124,24 +105,21 @@ SMT::load()
         cout << "\tTiles: " << header.nTiles << endl;
         cout << "\tTileRes: " << header.tileRes << endl;
         cout << "\tCompression: ";
-        if( header.tileType == DXT1 )cout << "dxt1" << endl;
+        if( header.tileType == TileType::DXT1 )cout << "dxt1" << endl;
         else {
             cout << "UNKNOWN" << endl;
         }
     }
 
-    tileRes  = header.tileRes;
-    nTiles   = header.nTiles;
-    tileType = header.tileType;
     calcTileSize();
     return false;
 }
 
-bool
-SMT::append( ImageBuf *sourceBuf )
-// TODO Code assumes that tiles are DXT1 compressed at this stage,
-// abstract the internals out.
-{
+/*! Append tiles to the end of the SMT file and update the count
+ * TODO Code assumes that tiles are DXT1 compressed at this stage,
+ * TODO abstract the internals out.
+ */
+bool SMT::append( ImageBuf *sourceBuf ){
 #ifdef DEBUG_IMG
     static int i = 0;    
     sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_0.tif", "tif" );
@@ -161,8 +139,9 @@ SMT::append( ImageBuf *sourceBuf )
 #endif //DEBUG_IMG
 
     // Get raw data
-    unsigned char *std = new unsigned char[tileRes * tileRes * 4];
-    if(! sourceBuf->get_pixels(0, tileRes, 0, tileRes, 0, 1, TypeDesc::UINT8, std) ){
+    unsigned char *std = new unsigned char[header.tileRes * header.tileRes * 4];
+    if(! sourceBuf->get_pixels(0, header.tileRes,
+                0, header.tileRes, 0, 1, TypeDesc::UINT8, std) ){
         cout << "failed to get pixels from buffer" << endl;
         return true;
     }
@@ -171,13 +150,15 @@ SMT::append( ImageBuf *sourceBuf )
     nvtt::Compressor compressor;
 
     nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout( nvtt::TextureType_2D, tileRes, tileRes );
-    inputOptions.setMipmapData( std, tileRes, tileRes );
+    inputOptions.setTextureLayout( nvtt::TextureType_2D,
+            header.tileRes, header.tileRes );
+    inputOptions.setMipmapData( std,
+            header.tileRes, header.tileRes );
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1a );
     if( slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
-    else                  compressionOptions.setQuality( nvtt::Quality_Fastest ); 
+    else            compressionOptions.setQuality( nvtt::Quality_Fastest ); 
 
 
 #ifdef DEBUG_IMG    
@@ -199,13 +180,13 @@ SMT::append( ImageBuf *sourceBuf )
     // save to file
     fstream smtFile(fileName, ios::binary | ios::in | ios::out);
 
-    smtFile.seekp( sizeof(SMTHeader) + tileSize * nTiles );
+    smtFile.seekp( sizeof(SMT::Header) + tileSize * header.nTiles );
     smtFile.write( nvttHandler->getBuffer(), tileSize );
 
-    ++nTiles;
+    ++header.nTiles;
 
     smtFile.seekp( 20 );
-    smtFile.write( (char *)&(nTiles), 4 );
+    smtFile.write( (char *)&(header.nTiles), 4 );
 
     smtFile.flush();
     smtFile.close();
@@ -217,11 +198,9 @@ SMT::append( ImageBuf *sourceBuf )
     return false;
 }
 
-ImageBuf *
-SMT::getTile(int n)
-{
+ImageBuf *SMT::getTile( int n ){
     ImageBuf *imageBuf = NULL; // resulting tile
-    ImageSpec imageSpec( tileRes, tileRes, 4, TypeDesc::UINT8 );
+    ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
     unsigned char *rgba8888; //decompressed rgba8888
     unsigned char *raw_dxt1a; //raw dxt1a data from source file.
 
@@ -230,10 +209,10 @@ SMT::getTile(int n)
     {
         raw_dxt1a = new unsigned char[ tileSize ];
 
-        smtFile.seekg( sizeof(SMTHeader) + tileSize * n );
+        smtFile.seekg( sizeof(SMT::Header) + tileSize * n );
         smtFile.read( (char *)raw_dxt1a, tileSize );
 
-        rgba8888 = dxt1_load( raw_dxt1a, tileRes, tileRes );
+        rgba8888 = dxt1_load( raw_dxt1a, header.tileRes, header.tileRes );
         delete [] raw_dxt1a;
 
         imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
