@@ -18,4 +18,6 @@ set( LIBS ${LIBS}
     ${LIBSQUISH_LIBRARIES} )
 
 set( CMAKE_CXX_FLAGS "-g -Wall -std=c++11" )
+set( DEBUG_IMG OFF CACHE BOOL "Output debug images, warning there are lots of them :)" )
+
 add_subdirectory( src )

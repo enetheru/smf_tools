@@ -1,7 +1,7 @@
-set( CMAKE_CXX_FLAGS "-g -Wall -std=c++11" )
+configure_file( config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 
 add_executable( mapconv
-    config.h
 	mapconv.cpp
 	nvtt_output_handler.cpp nvtt_output_handler.h
 	dxt1load.cpp dxt1load.h
@@ -13,7 +13,6 @@ add_executable( mapconv
 target_link_libraries( mapconv ${LIBS} )
 
 add_executable( tileconv
-    config.h
 	tileconv.cpp
 	nvtt_output_handler.cpp nvtt_output_handler.h
 	dxt1load.cpp dxt1load.h
