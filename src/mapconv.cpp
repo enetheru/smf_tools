@@ -192,25 +192,81 @@ main( int argc, char **argv )
     }
 
     if( options[ HEIGHT ] ){
-        ImageBuf heightBuf( options[ HEIGHT ].arg );
-        smf->writeHeight( &heightBuf );
+        if(! strcmp( options[ HEIGHT ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Height\n";
+            smf->writeHeight(NULL);
+        }
+        else {
+            ImageBuf heightBuf( options[ HEIGHT ].arg );
+            smf->writeHeight( &heightBuf );
+        }
     }
+
     if( options[ TYPE ] ){
-        ImageBuf typeBuf( options[ TYPE ].arg );
-        smf->writeType( &typeBuf );
+        if(! strcmp( options[ TYPE ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Type\n";
+            smf->writeType(NULL);
+        }
+        else {
+            ImageBuf typeBuf( options[ TYPE ].arg );
+            smf->writeType( &typeBuf );
+        }
     }
+
     if( options[ MAP ] ){
-        ImageBuf mapBuf( options[ MAP ].arg );
-        smf->writeMap( &mapBuf );
+        if(! strcmp( options[ MAP ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Map\n";
+            smf->writeMap(NULL);
+        }
+        else {
+            ImageBuf mapBuf( options[ MAP ].arg );
+            smf->writeMap( &mapBuf );
+        }
     }
+
     if( options[ MINI ] ){
-        ImageBuf miniBuf( options[ MINI ].arg );
-        smf->writeMini( &miniBuf );
+        if(! strcmp( options[ MINI ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Mini\n";
+            smf->writeMini(NULL);
+        }
+        else {
+            ImageBuf miniBuf( options[ MINI ].arg );
+            smf->writeMini( &miniBuf );
+        }
     }
+
     if( options[ METAL ] ){
-        ImageBuf metalBuf( options[ METAL ].arg );
-        smf->writeMetal( &metalBuf );
+        if(! strcmp( options[ METAL ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Metal\n";
+            smf->writeMetal(NULL);
+        }
+        else {
+            ImageBuf metalBuf( options[ METAL ].arg );
+            smf->writeMetal( &metalBuf );
+        }
     }
+
+    if( options[ FEATURES ] ){
+        if(! strcmp( options[ FEATURES ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Features\n";
+            //FIXME do something
+        }
+        //FIXME do something else
+    }
+
+    if( options[ GRASS ] ){
+        if(! strcmp( options[ GRASS ].arg, "CLEAR" ) ){
+            if( verbose ) cout << "INFO: Clearing Grass\n";
+            smf->writeGrass(NULL);
+        }
+        else {
+            ImageBuf grassBuf( options[ GRASS ].arg );
+            smf->writeGrass( &grassBuf );
+        }
+    }
+
+    /// Finalise any pending changes.
+    smf->reWrite();
 
     ImageBuf *buf = NULL;
     if( options[ EXTRACT ] ){
