@@ -2,6 +2,7 @@
 #define __SMF_H
 
 #include <cstring>
+#include <climits>
 #include <string>
 #include <vector>
 using namespace std;
@@ -121,6 +122,7 @@ class SMF {
     };
 
     bool init = false;
+    int dirty = INT_MAX;
     string fileName;
 
     Header header;
@@ -144,11 +146,10 @@ class SMF {
 
     ImageSpec grassSpec;
 
-    /// calculates all the file offsets for the data
-    /**
-     */
     void updatePtrs( );
     void updateSpecs( );
+    void setDirty( int i );
+    int getDirty();
 
     ImageBuf *getImage( unsigned int ptr, ImageSpec spec );
     bool    writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf = NULL );
@@ -193,7 +194,7 @@ public:
     // Extra
     bool writeGrass   ( ImageBuf *buf );
 
-    bool reWrite( int from = 0 );
+    bool reWrite( );
 
     ImageBuf *getHeight();
     ImageBuf *getType();

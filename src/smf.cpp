@@ -14,6 +14,19 @@ OIIO_NAMESPACE_USING
 #include "dxt1load.h"
 #include "util.h"
 
+/// Sets the dirty flag so that we know where to re-write
+/* The dirst flag will always be the lower of it current state
+ * or the requested state
+ */
+void SMF::setDirty( int i ){
+    dirty = fmin( dirty, i );
+}
+
+/// get the dirty state
+int SMF::getDirty(){
+    return dirty;
+}
+
 /// Creates an SMF file and returns a pointer to management class
 /*
  */
@@ -90,11 +103,6 @@ bool SMF::read(){
     ifstream file( fileName );
     file.seekg(0);
     file.read( (char *)&header, sizeof(SMF::Header) );
-
-
-    // helpers
-    int offset;
-    char temp[256];
 
     // Extra headers Information
     SMF::HeaderExtra *headerExtra;
@@ -253,7 +261,9 @@ bool SMF::reWrite( ){
     // First switch gathers the data from the file that may be overwritten
     // Second switch writes to the file from the gathered data
 
-    switch( from ){
+    switch( getDirty() ){
+        case INT_MAX:
+            return false;
         case 0:
         case 1: 
             height = getHeight();
@@ -269,9 +279,9 @@ bool SMF::reWrite( ){
     updatePtrs();
     if( verbose ) cout << "INFO: (Re-)Writing " << fileName << endl;
 
-    switch( from ){
+    writeHeaders();
+    switch( getDirty() ){
         case 0:
-            writeHeaders();
         case 1:
             writeHeight( height );
             writeType( type );
@@ -283,8 +293,9 @@ bool SMF::reWrite( ){
         case 3:
             writeFeaturesHeader();
             writeFeatures();
-            // TODO if( grass ) writeGrass( grass );
+            if( grass ) writeGrass( grass );
     }
+    dirty = INT_MAX;
     return false;
 }
 
@@ -380,7 +391,8 @@ void SMF::updatePtrs(){
 void SMF::setSize( int width, int length ){
     header.width = width * 64;
     header.length = length * 64;
-    reWrite( 0 );
+    setDirty( 0 );
+    reWrite();
 }
 
 /// Set the map y depth
