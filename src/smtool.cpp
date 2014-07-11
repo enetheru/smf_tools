@@ -10,9 +10,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include "nvtt_output_handler.h"
 #include "smf.h"
-#include "dxt1load.h"
 #include "util.h"
 
 namespace SMTool

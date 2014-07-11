@@ -1,11 +1,10 @@
 #include "config.h"
 #include "smt.h"
 
-#include "nvtt_output_handler.h"
-#include "dxt1load.h"
 #include "util.h"
 
 #include <fstream>
+#include <squish.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -146,42 +145,12 @@ bool SMT::append( ImageBuf *sourceBuf ){
         return true;
     }
 
-    // process into dds
-    nvtt::Compressor compressor;
-
-    nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout( nvtt::TextureType_2D,
-            header.tileRes, header.tileRes );
-    inputOptions.setMipmapData( std,
-            header.tileRes, header.tileRes );
-
-    nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setFormat( nvtt::Format_DXT1a );
-    if( dxt1_quality ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
-    else            compressionOptions.setQuality( nvtt::Quality_Fastest ); 
-
-
-#ifdef DEBUG_IMG    
-    nvtt::OutputOptions outputOptionsD;
-    outputOptionsD.setOutputHeader( true );
-    outputOptionsD.setFileName( ("SMT::append_sourceBuf_" + to_string(i) + "_2.dds").c_str() );
-    ++i;
-
-    compressor.process( inputOptions, compressionOptions, outputOptionsD );
-#endif //DEBUG_IMG
-
-    nvtt::OutputOptions outputOptions;
-    outputOptions.setOutputHeader( false );
-    NVTTOutputHandler *nvttHandler = new NVTTOutputHandler( tileSize );
-    outputOptions.setOutputHandler( nvttHandler );
-
-    compressor.process( inputOptions, compressionOptions, outputOptions );
 
     // save to file
     fstream smtFile(fileName, ios::binary | ios::in | ios::out);
 
     smtFile.seekp( sizeof(SMT::Header) + tileSize * header.nTiles );
-    smtFile.write( nvttHandler->getBuffer(), tileSize );
+//    smtFile.write( nvttHandler->getBuffer(), tileSize );
 
     ++header.nTiles;
 
@@ -191,10 +160,6 @@ bool SMT::append( ImageBuf *sourceBuf ){
     smtFile.flush();
     smtFile.close();
 
-    // fix internal state
-
-    // cleanup
-    delete nvttHandler;
     return false;
 }
 
@@ -212,7 +177,7 @@ ImageBuf *SMT::getTile( int n ){
         smtFile.seekg( sizeof(SMT::Header) + tileSize * n );
         smtFile.read( (char *)raw_dxt1a, tileSize );
 
-        rgba8888 = dxt1_load( raw_dxt1a, header.tileRes, header.tileRes );
+//FIXME        rgba8888 = dxt1_load( raw_dxt1a, header.tileRes, header.tileRes );
         delete [] raw_dxt1a;
 
         imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
