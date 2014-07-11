@@ -68,8 +68,9 @@ enum optionsIndex
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: mapconv [options]\n"
-        "  eg. mapconv ...\n"
+        "USAGE: mapconv [options] [smt1 ... smtn]\n\n"
+        "eg. $ mapconv -v -f mymap.smf --mapsize 8x8 --height height.tif \\ \n"
+        "    > --mini minimap.jpeg --metal metalmap.png --grass grass.png mymap.smt \n"
         "\nGENERAL OPTIONS:" },
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
@@ -93,25 +94,25 @@ const option::Descriptor usage[] = {
         "  -y,  \t--floor=1.0f  \tMinimum height of the map." },
     { CEILING, 0, "Y", "ceiling", Arg::Numeric,
         "  -Y,  \t--ceiling=1.0f  \tMaximum height of the map." },
-    { TILERES, 0, "", "tileres=32", Arg::Numeric,
-        "\t--tileres=X  \tXY resolution of tiles referenced, eg. '--tileres=32'." },
+//    { TILERES, 0, "", "tileres=32", Arg::Numeric,
+//        "\t--tileres=X  \tXY resolution of tiles referenced, eg. '--tileres=32'." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCREATION:" },
     { HEIGHT, 0, "", "height", Arg::Required,
-        "\t--height=height.tif  \tImage to use for heightmap." },
+        "\t--height=height.tif  \t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap." },
     { TYPE, 0, "", "type", Arg::Required,
-        "\t--type=type.tif  \tImage to use for typemap." },
+        "\t--type=type.tif  \t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
     { MAP, 0, "", "map", Arg::Required,
-        "\t--map=map.tif  \tImage to use for tilemap." },
+        "\t--map=map.tif  \t(x*16)x(y*16):1 UINT32 Image to use for tilemap." },
     { MINI, 0, "", "mini", Arg::Required,
-        "\t--mini=mini.tif  \tImage to use for minimap." },
+        "\t--mini=mini.tif  \t(1024)x(1024):4 UINT8 Image to use for minimap." },
     { METAL, 0, "", "metal", Arg::Required,
-        "\t--metal=metal.tif  \tImage to use for metalmap." },
+        "\t--metal=metal.tif  \t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
     { FEATURES, 0, "", "features", Arg::Required,
-        "\t--features=list.csv  \tList of features."},
+        "\t--features=list.csv  \tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
     { GRASS, 0, "", "grass", Arg::Required,
-        "\t--grass=grass.tif  \tImage to use for grassmap." },
+        "\t--grass=grass.tif  \t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCOMPRESSION:" },
@@ -121,13 +122,15 @@ const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
         "\nDECONSTRUCTION:" },
     { EXTRACT, 0, "e", "extract", Arg::None,
-        "  -e,  \t--extract  \tExtract images from loaded SMF." },
+        "  -e,  \t--extract  \tpulls all information out of the smf in more easily understood forms, ie images and text" },
 
     { UNKNOWN, 0, "", "", Arg::None,
+        "\nNOTES:\n"
+        "Passing 'CLEAR' to the options that take a paremeter will clear the contents of that part of the file" },
+    { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
-        "  mapconv -x 8 -z 8 -y -10 -Y 256 --height height.tif --metal"
-        " metal.png -smts tiles.smt -tilemap tilemap.tif -o mymap.smf\n"
-        "  mapconv -i oldmap.smf -o prefix" },
+        "$ mapconv -vef mymap.smf\n"
+        "$ mapconv -vf mymap.smf --features CLEAR --type CLEAR" },
     {0,0,0,0,0,0}
 };
 
@@ -149,7 +152,7 @@ main( int argc, char **argv )
     if( parse.error() ) exit( 1 );
 
 
-    if( options[ HELP ] || argc == 0) {
+    if( options[ HELP ] || argc == 0 ){
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
         exit( 1 );
@@ -168,14 +171,17 @@ main( int argc, char **argv )
 
     // output creation
     SMF *smf = NULL;
-    if( options[ IFILE ] ){
-        string filename = options[ IFILE ].arg;
-        smf = SMF::open( filename, verbose, quiet, dxt1_quality );
-        if(! smf ) smf = SMF::create( filename, overwrite, verbose, quiet, dxt1_quality );
-        if(! smf ){
-            if(! quiet )cout << "error.smf: unable to create " << filename << endl;
-            exit(1);
-        }
+    string fileName;
+    if( options[ IFILE ] )
+        fileName = options[ IFILE ].arg;
+    else
+        fileName = "rename_me.smf";
+
+    smf = SMF::open( fileName, verbose, quiet, dxt1_quality );
+    if(! smf ) smf = SMF::create( fileName, overwrite, verbose, quiet, dxt1_quality );
+    if(! smf ){
+        if(! quiet )cout << "ERROR.main: unable to create " << fileName << endl;
+        exit(1);
     }
     
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){

@@ -418,7 +418,7 @@ bool SMF::addTileFile( string fileName ){
         return false;
     }
 
-    if(! (smt = SMT::open( fileName, verbose, quiet )) ){
+    if(! (smt = SMT::open( fileName )) ){
         if(! quiet ) cout << "ERROR: invalid smt file " << fileName << endl;
         return true;
     }
