@@ -196,7 +196,7 @@ ImageBuf *SMT::getTile( int n ){
         imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
     }
     delete [] raw_dxt1a;
-    smtFile.close();
+    file.close();
 
 #ifdef DEBUG_IMG
     imageBuf->write("getTile(" + to_string(n) + ").tif", "tif");
