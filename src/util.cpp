@@ -1,4 +1,5 @@
 #include "util.h"
+using namespace std;
 
 // Evaluates a string into two integers
 /* The function takes a string in the form of IxK, and assignes

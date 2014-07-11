@@ -19,7 +19,6 @@ add_executable( tileconv
 	smf.cpp smf.h
 	smt.cpp smt.h
     smtool.cpp smtool.h
-    smf_util.h smf_util.cpp
     util.cpp util.h
     tilecache.cpp tilecache.h)
 

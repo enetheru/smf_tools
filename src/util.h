@@ -3,15 +3,14 @@
 
 #include <string>
 #include <vector>
-using namespace std;
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
 OIIO_NAMESPACE_USING
 
-void valxval( string s, unsigned int &x, unsigned int &y );
+void valxval( std::string s, unsigned int &x, unsigned int &y );
 
-vector< unsigned int > expandString( const char *s );
+std::vector< unsigned int > expandString( const char *s );
 
 /// Convert integer to hex string.
 /*  Takes an integer and outputs its hex value as a string with leading '0x'
