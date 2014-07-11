@@ -129,59 +129,73 @@ bool SMT::append( ImageBuf *sourceBuf ){
     float fill[] = { 0, 0, 0, 255 };
     if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
     else map[3] = 3;
-    ImageBuf fixBuf; 
-    ImageBufAlgo::channels( fixBuf, *sourceBuf, 4, map, fill );
-    sourceBuf->copy( fixBuf );
+    ImageBuf *tempBufa = new ImageBuf; 
+    ImageBufAlgo::channels( *tempBufa, *sourceBuf, 4, map, fill );
    
 #ifdef DEBUG_IMG
     sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_1_swizzle.tif", "tif" );
 #endif //DEBUG_IMG
 
-    // Get raw data
-    unsigned char *std = new unsigned char[header.tileRes * header.tileRes * 4];
-    if(! sourceBuf->get_pixels(0, header.tileRes,
-                0, header.tileRes, 0, 1, TypeDesc::UINT8, std) ){
-        cout << "failed to get pixels from buffer" << endl;
-        return true;
+    ImageSpec spec;
+    ImageBuf *tempBufb = NULL;
+    int blocks_size = 0;
+    squish::u8 *blocks = NULL;
+    fstream file(fileName, ios::binary | ios::in | ios::out);
+    file.seekp( sizeof(SMT::Header) + tileSize * header.nTiles );
+    for( int i = 0; i < 4; ++i ){
+        spec = tempBufa->specmod();
+
+        blocks_size = squish::GetStorageRequirements(
+                spec.width, spec.height, squish::kDxt1 );
+
+        if(! blocks ) blocks = new squish::u8[ blocks_size ];
+
+        squish::CompressImage( (squish::u8 *)tempBufa->localpixels(),
+                spec.width, spec.height, blocks, squish::kDxt1 );
+
+        // Write data to smf
+        file.write( (char*)blocks, blocks_size );
+
+        spec.width = spec.width >> 1;
+        spec.height = spec.height >> 1;
+        tempBufb = tempBufa;
+        tempBufa = scale( tempBufb, spec );
+        delete tempBufb;
     }
-
-
-    // save to file
-    fstream smtFile(fileName, ios::binary | ios::in | ios::out);
-
-    smtFile.seekp( sizeof(SMT::Header) + tileSize * header.nTiles );
-//    smtFile.write( nvttHandler->getBuffer(), tileSize );
+    delete blocks;
+    delete tempBufa;
 
     ++header.nTiles;
 
-    smtFile.seekp( 20 );
-    smtFile.write( (char *)&(header.nTiles), 4 );
+    file.seekp( 20 );
+    file.write( (char *)&(header.nTiles), 4 );
 
-    smtFile.flush();
-    smtFile.close();
+    file.flush();
+    file.close();
 
     return false;
 }
 
 ImageBuf *SMT::getTile( int n ){
-    ImageBuf *imageBuf = NULL; // resulting tile
+    ImageBuf *imageBuf = NULL;
     ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
-    unsigned char *rgba8888; //decompressed rgba8888
-    unsigned char *raw_dxt1a; //raw dxt1a data from source file.
 
-    ifstream smtFile( fileName );
-    if( smtFile.good() )
+    char *raw_dxt1a = new char[ tileSize ];
+    char *rgba8888 = new char[ header.tileRes * header.tileRes * 4 ];
+
+    ifstream file( fileName );
+    if( file.good() )
     {
-        raw_dxt1a = new unsigned char[ tileSize ];
 
-        smtFile.seekg( sizeof(SMT::Header) + tileSize * n );
-        smtFile.read( (char *)raw_dxt1a, tileSize );
+        file.seekg( sizeof(SMT::Header) + tileSize * n );
+        file.read( (char *)raw_dxt1a, tileSize );
 
-//FIXME        rgba8888 = dxt1_load( raw_dxt1a, header.tileRes, header.tileRes );
-        delete [] raw_dxt1a;
+        squish::DecompressImage( (squish::u8 *)rgba8888,
+                header.tileRes, header.tileRes, raw_dxt1a, squish::kDxt1 );
 
         imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
     }
+    delete [] raw_dxt1a;
     smtFile.close();
 
 #ifdef DEBUG_IMG
