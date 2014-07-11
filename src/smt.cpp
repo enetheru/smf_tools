@@ -13,17 +13,17 @@
 using namespace std;
 OIIO_NAMESPACE_USING;
 
-SMT *SMT::create( string fileName, bool overwrite, bool verbose, bool quiet ){
+SMT *SMT::create( string fileName, bool overwrite, bool verbose, bool quiet, bool dxt1_quality ){
     SMT *smt;
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
     
-    smt = new SMT( fileName, verbose, quiet );
+    smt = new SMT( fileName, verbose, quiet, dxt1_quality );
     smt->init = !smt->reset();
     return smt;
 }
 
-SMT * SMT::open( string fileName, bool verbose, bool quiet ){
+SMT * SMT::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
     bool good = false;
 
     char magic[ 16 ] = "";
@@ -38,7 +38,7 @@ SMT * SMT::open( string fileName, bool verbose, bool quiet ){
 
     SMT *smt;
     if( good ){
-        smt = new SMT( fileName, verbose, quiet );
+        smt = new SMT( fileName, verbose, quiet, dxt1_quality );
         smt->init = !smt->load();
         return smt;
     }
@@ -157,7 +157,7 @@ bool SMT::append( ImageBuf *sourceBuf ){
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1a );
-    if( slow_dxt1 ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+    if( dxt1_quality ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
     else            compressionOptions.setQuality( nvtt::Quality_Fastest ); 
 
 

@@ -69,7 +69,7 @@ enum optionsIndex
     FILTER,
     OUTPUT,
     // Compression
-    SLOW_DXT1,
+    DXT1_QUALITY,
     CNUM, CPET, CNET,
     // Deconstruction
     SEPARATE,
@@ -113,8 +113,8 @@ const option::Descriptor usage[] = {
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCOMPRESSION OPTIONS:" },
-    { SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
-        "\t--slow_dxt1  \tUse slower but better analytics when compressing DXT1 textures" },
+    { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None,
+        "\t--dxt1-quality  \tUse slower but better analytics when compressing DXT1 textures" },
     { CNUM, 0, "", "cnum", Arg::Numeric,
         "\t--cnum=[-1,0,N]  \tNumber of tiles to compare; n=-1, no comparison; n=0, hashtable exact comparison; n > 0, numeric comparison between n tiles" },
     { CPET, 0, "", "cpet", Arg::Numeric,
@@ -167,14 +167,14 @@ main( int argc, char **argv )
     // =====
     //
     bool verbose = false, quiet = false, force = false;
-    bool slow_dxt1 = false;
+    bool dxt1_quality = false;
     unsigned int ix = 1024, iy = 1024;
     unsigned int tileRes = 32;
     if( options[ VERBOSE   ] ) verbose = true;
     if( options[ QUIET     ] ) quiet = true;
     if( options[ FORCE     ] ) force = true;
 
-    if( options[ SLOW_DXT1 ] ) slow_dxt1 = true;
+    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
     if( options[ IMAGESIZE ] ) valxval( options[ IMAGESIZE ].arg, ix, iy );
 
     SMTool::verbose = verbose;
@@ -239,12 +239,12 @@ main( int argc, char **argv )
     SMT *smt = NULL;
     if( options[ OUTPUT ] ){
         string fileName = options[ OUTPUT ].arg;
-        if( (smt = SMT::open( fileName, verbose, quiet )) ){
+        if( (smt = SMT::open( fileName, verbose, quiet, dxt1_quality )) ){
             if( verbose ) cout << "INFO.smt: opened " << fileName << endl;
             tileRes = smt->getTileRes();
             tileCache.setTileRes( tileRes );
         }
-        else if( (smt = SMT::create( fileName, force, verbose, quiet )) ){
+        else if( (smt = SMT::create( fileName, force, verbose, quiet, dxt1_quality )) ){
             if( verbose ) cout << "INFO.smt: created " << fileName << endl;
             smt->setTileRes( tileRes );
         }

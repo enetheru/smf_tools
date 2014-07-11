@@ -157,19 +157,18 @@ class SMF {
 public:
     bool verbose = false;  ///< Print info to stdout
     bool quiet = false;    ///< supress errros to stderr
-    bool slowcomp = false; ///< whethe to use slow/quality dxt1 algorithm
-    bool invert = false;   ///< Whether to invert the values of the height image.
+    bool dxt1_quality = false; ///< whethe to use slow/quality dxt1 algorithm
 
     SMF( ){ };
-    SMF( string f, bool v = false, bool q = false )
-        : fileName( f ), verbose( v ), quiet( q )
+    SMF( string f, bool v = false, bool q = false, bool d = false )
+        : fileName( f ), verbose( v ), quiet( q ), dxt1_quality( d )
         { };
 
     static SMF *create( string fileName, bool overwrite = false,
-            bool verbose = false, bool quiet = false );
+            bool verbose = false, bool quiet = false, bool dxt1_quality = false );
 
     static SMF *open( string fileName,
-            bool verbose = false, bool quiet = false );
+            bool verbose = false, bool quiet = false, bool dxt1_quality = false );
 
     bool read( );
     bool saveAs( string fileName );

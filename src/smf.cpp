@@ -30,7 +30,8 @@ int SMF::getDirty(){
 /// Creates an SMF file and returns a pointer to management class
 /*
  */
-SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet ){
+SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet,
+       bool dxt1_quality ){
     SMF *smf;
     fstream file;
     
@@ -49,7 +50,7 @@ SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet ){
     }
     file.close();
 
-    smf = new SMF( fileName, verbose, quiet );
+    smf = new SMF( fileName, verbose, quiet, dxt1_quality );
     smf->updatePtrs();
     smf->writeHeaders();
     smf->writeHeight(NULL);
@@ -67,7 +68,7 @@ SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet ){
 /// Opens an existing SMF file and returns pointer to management class
 /*
  */
-SMF *SMF::open( string fileName, bool verbose, bool quiet ){
+SMF *SMF::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
     bool good = false;
     SMF *smf;
 
@@ -83,7 +84,7 @@ SMF *SMF::open( string fileName, bool verbose, bool quiet ){
 
     if( good ){
         if( verbose ) cout << "INFO: Opening " << fileName << endl;
-        smf = new SMF(fileName, verbose, quiet );
+        smf = new SMF(fileName, verbose, quiet, dxt1_quality );
         smf->init = !smf->read();
         return smf;
     }
@@ -485,7 +486,6 @@ bool SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf ){
     ImageBuf *imageBufb = scale( imageBufa, spec );
     delete imageBufa;
 
-
     // write the data to the smf
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( ptr );
@@ -525,7 +525,7 @@ bool SMF::writeMini( ImageBuf * sourceBuf ){
 
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setFormat( nvtt::Format_DXT1 );
-    if( slowcomp ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
+    if( dxt1_quality ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
     else compressionOptions.setQuality( nvtt::Quality_Fastest ); 
 
     nvtt::OutputOptions outputOptions;

@@ -31,20 +31,24 @@ private:
     bool load();
     
 public:
-    bool  verbose = false, quiet = false, slow_dxt1 = false;
+    bool  verbose = false, quiet = false, dxt1_quality = false;
 
     SMT( ){ };
-    SMT( string f, bool v, bool q )
-        : fileName( f ), verbose( v ), quiet( q ) { init = !load(); };
+    SMT( string f, bool v, bool q, bool d = false )
+        : fileName( f ), verbose( v ), quiet( q ), dxt1_quality( d ){
+        init = !load();
+    };
 
     static SMT *create( string fileName,
             bool overwrite = false,
             bool verbose = false,
-            bool quiet = false );
+            bool quiet = false,
+            bool dxt1_quality = false );
 
     static SMT *open( string fileName,
             bool verbose = false,
-            bool quiet = false );
+            bool quiet = false,
+            bool dxt1_quality = false);
 
     bool initialised( ){ return init; };
     bool reset( );

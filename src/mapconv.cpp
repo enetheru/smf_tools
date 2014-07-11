@@ -60,9 +60,8 @@ enum optionsIndex
     TILERES,
     // Source materials
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
-    INVERT,
     // Compression
-    SLOW_DXT1, 
+    DXT1_QUALITY, 
     // Deconstruction
     EXTRACT, 
 };
@@ -101,8 +100,6 @@ const option::Descriptor usage[] = {
         "\nCREATION:" },
     { HEIGHT, 0, "", "height", Arg::Required,
         "\t--height=height.tif  \tImage to use for heightmap." },
-    { INVERT, 0, "", "invert", Arg::None,
-        "\t--invert \tInvert the heightmap."},
     { TYPE, 0, "", "type", Arg::Required,
         "\t--type=type.tif  \tImage to use for typemap." },
     { MAP, 0, "", "map", Arg::Required,
@@ -118,8 +115,8 @@ const option::Descriptor usage[] = {
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCOMPRESSION:" },
-    { SLOW_DXT1, 0, "", "slow_dxt1", Arg::None,
-        "\t--slow_dxt1  \tUse slower but better analytics when compressing DXT1 textures" },
+    { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None,
+        "\t--dxt1-quality  \tUse slower but better analytics when compressing DXT1 textures" },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nDECONSTRUCTION:" },
@@ -158,21 +155,23 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
-    bool verbose = false, quiet = false, overwrite = false,
-         slow_dxt1 = false, invert = false;
+    bool verbose = false,
+         quiet = false,
+         overwrite = false,
+         dxt1_quality = false;
+
     unsigned int mx = 2, my = 2;
     if( options[ VERBOSE   ] ) verbose = true;
     if( options[ QUIET     ] ) quiet = true;
-    if( options[ SLOW_DXT1 ] ) slow_dxt1 = true;
-    if( options[ INVERT    ] ) invert = true;
+    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
     if( options[ OVERWRITE ] ) overwrite = true;
 
     // output creation
     SMF *smf = NULL;
     if( options[ IFILE ] ){
         string filename = options[ IFILE ].arg;
-        smf = SMF::open( filename, verbose, quiet );
-        if(! smf ) smf = SMF::create( filename, overwrite, verbose, quiet );
+        smf = SMF::open( filename, verbose, quiet, dxt1_quality );
+        if(! smf ) smf = SMF::create( filename, overwrite, verbose, quiet, dxt1_quality );
         if(! smf ){
             if(! quiet )cout << "error.smf: unable to create " << filename << endl;
             exit(1);
