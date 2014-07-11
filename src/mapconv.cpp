@@ -245,9 +245,11 @@ main( int argc, char **argv )
     if( options[ FEATURES ] ){
         if(! strcmp( options[ FEATURES ].arg, "CLEAR" ) ){
             if( verbose ) cout << "INFO: Clearing Features\n";
-            //FIXME do something
+            smf->addFeatures("CLEAR");
         }
-        //FIXME do something else
+        else {
+            smf->addFeatures( options[ FEATURES ].arg );
+        }
     }
 
     if( options[ GRASS ] ){
@@ -281,6 +283,14 @@ main( int argc, char **argv )
         if( verbose ) cout << "INFO: Extracting metal image" << endl;
         buf = smf->getMetal();
         buf->write("metal.tif", "tif");
+        if( verbose ) cout << "INFO: Extracting featureList" << endl;
+        fstream file( "featuretypes.txt", ios::out );
+        file << smf->getFeatureTypes();
+        file.close();
+        if( verbose ) cout << "INFO: Extracting features" << endl;
+        file.open( "features.csv", ios::out );
+        file << smf->getFeatures();
+        file.close();
         buf = smf->getGrass();
         if( buf ){
             if( verbose ) cout << "INFO: Extracting grass image" << endl;

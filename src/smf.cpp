@@ -460,6 +460,73 @@ void SMF::addFeature( string name, float x, float y, float z, float r, float s )
     setDirty( 3 );
 }
 
+/*! replaces features in smf with those specified in the fileName.csv
+ */
+void SMF::addFeatures( string fileName ){
+
+    // test the file
+    fstream file( fileName, ifstream::in );
+    if(! file.good() ){
+        if(! quiet ) cout << "ERROR.addFeatures: Cannot open " << fileName << endl;
+        return;
+    }
+
+    //Clear out the old list
+    features.clear();
+    featureTypes.clear();
+
+    if(! fileName.compare("CLEAR") ){
+        setDirty(3);
+        reWrite();
+        return;
+    }
+
+    // build inbuilt list
+    char featureType[256];
+    for( int i = 0; i < 16; ++i ){
+        sprintf( featureType, "TreeType%i", i );
+        featureTypes.push_back( featureType );
+    }
+    featureTypes.push_back("GeoVent");
+
+    int n = 0;
+    string cell;
+    stringstream line;
+    vector<string> tokens;
+    while( getline( file, cell ) ){
+        ++n;
+        line.str( cell );
+
+        tokens.clear();
+        while( getline( line, cell, ',' ) ) tokens.push_back( cell );
+        if( tokens.size() != 6 ) continue;
+       
+        try{
+            addFeature(
+                tokens[ 0 ],           //name
+                stof( tokens[ 1 ] ),   //x
+                stof( tokens[ 2 ] ),   //y
+                stof( tokens[ 3 ] ),   //z
+                stof( tokens[ 4 ] ),   //r
+                stof( tokens[ 5 ] ) ); //s
+        }
+        catch ( std::invalid_argument ){
+            cout << "WARN.addFeatures: " << fileName << ", skipping invalid line at "
+                << n << endl;
+            continue;
+        }
+
+    }
+    file.close();
+
+    if( verbose )
+        cout << "INFO.addFeatures"
+            << "\n\tTypes: " << headerFeatures.nTypes
+            << "\n\tTypes: " << headerFeatures.nFeatures << endl;
+    setDirty(3);
+    reWrite();
+}
+
 bool SMF::writeHeaders(){
     if( verbose ) cout << "INFO: Writing headers\n";
 
@@ -600,12 +667,25 @@ bool SMF::writeFeaturesHeader() {
     return false;
 }
 
-// write the featurelist to the smf
-bool SMF::writeFeatures() {
+bool SMF::writeFeatures(){
     if( verbose ) cout << "INFO: Writing features\n";
-    //TODO fix stub
+
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    file.seekp( header.featuresPtr + 8 );
+
+    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
+        file.write( i->c_str(), i->size() + 1 );
+    }
+
+    for( auto i = features.begin(); i != features.end(); ++i ){
+        file.write( (char *)&(*i), sizeof(Feature) );
+    }
+
+  //  file.write( '\0', 1 );
+    file.close();
     return false;
 }
+
 
 /// Write the grass image to the smf
 /*
@@ -652,95 +732,6 @@ bool SMF::writeGrass( ImageBuf *sourceBuf ) {
     return false;
 }
 
-/* bool SMF::saveFeatures(){
-    if( verbose )cout << "INFO: saveFeatures\n";
-
-    char filename[256];
-    sprintf( filename, "%s.smf", outPrefix.c_str() );
-
-    fstream smf(filename, ios::binary | ios::in | ios::out);
-    smf.seekp(featuresPtr);
-
-    int nTypes = featureTypes.size();
-    smf.write( (char *)&nTypes, 4); //featuretypes
-    int nFeatures = features.size();
-    smf.write( (char *)&nFeatures, sizeof(nFeatures)); //numfeatures
-    if( verbose ) printf( "    %i features, %i types.\n", nFeatures, nTypes);
-
-    for(unsigned int i = 0; i < featureTypes.size(); ++i ) {
-        smf.write(featureTypes[i].c_str(), featureTypes[i].size() + 1 );
-    }
-
-    for(unsigned int i = 0; i < features.size(); ++i ) {
-        smf.write( (char *)&features[i], sizeof(SMFFeature) );
-    }
-
-    smf.write( "\0", sizeof("\0"));
-    smf.close();
-    return false;
-}
-*/
-
-/* bool SMF::decompileFeaturelist(int format = 0) {
-    if( features.size() == 0) return true;
-    if( verbose )cout << "INFO: Decompiling Feature List. "
-        << featuresPtr << endl;
-
-    char filename[256];
-    if(format == 0)
-        sprintf( filename, "%s_featurelist.csv", outPrefix.c_str() );
-    else if (format == 1)
-        sprintf( filename, "%s_featurelist.lua", outPrefix.c_str() );
-
-    ofstream outfile(filename);
-
-    ifstream smf( fileName, ifstream::in );
-    if( !smf.good() ) {
-        return true;
-    }
-
-    smf.seekg( featuresPtr );
-
-    int nTypes;
-    smf.read( (char *)&nTypes, 4);
-
-    int nFeatures;
-    smf.read( (char *)&nFeatures, 4);
-
-    char name[256];
-    vector<string> featureNames;
-    for( int i = 0; i < nTypes; ++i ) {
-        smf.getline(name,255, '\0');
-        featureNames.push_back(name);
-    }
-
-    char line[1024];
-    SMFFeature feature;
-    for( int i=0; i < nFeatures; ++i ) {
-//        READ_SMFFEATURE(temp,&smf);
-        smf.read( (char *)&feature, sizeof(SMFFeature) );
-
-        if(format == 0) {
-                outfile << featureNames[feature.type] << ',';
-                outfile << feature.x << ',';
-                outfile << feature.y << ',';
-                outfile << feature.z << ',';
-                outfile << feature.r << ',';
-                outfile << feature.s << endl;
-            } else if (format == 1) {
-                sprintf(line, "\t\t{ name = '%s', x = %i, z = %i, rot = \"%i\",},\n",
-                    featureNames[feature.type].c_str(),
-                    (int)feature.x, (int)feature.z, (int)feature.r * 32768 );
-                outfile << line;
-            }
-
-    }
-    smf.close();
-    outfile.close();
-
-    return false;
-}
-*/
 
 ImageBuf *SMF::getImage( unsigned int ptr, ImageSpec spec){
     ifstream file( fileName );
@@ -778,6 +769,31 @@ ImageBuf *SMF::getMini(){
 
 ImageBuf *SMF::getMetal( ){ return getImage( header.metalPtr, metalSpec ); }
 
+string SMF::getFeatureTypes( ){
+    stringstream list;
+    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
+        list << *i << endl;
+    }
+    return list.str();
+}
+
+/*! Gets the features list in csv formatted string
+ */
+string SMF::getFeatures( ){
+    stringstream list;
+    list << "NAME,X,Y,Z,ANGLE,SCALE\n";
+    for( auto i = features.begin(); i != features.end(); ++i ){
+        list << featureTypes[i->type] << ","
+             << i->x << ","
+             << i->y << ","
+             << i->z << ","
+             << i->r << ","
+             << i->s << endl;
+    }
+
+    return list.str();
+}
+
 ImageBuf *SMF::getGrass(){
     bool found = false;
 
@@ -794,82 +810,3 @@ ImageBuf *SMF::getGrass(){
 
     return (getImage( headerGrass->ptr, grassSpec ));
 }
-
-//FIXME incorporate
-/*    // Process Features //
-    //////////////////////
-    if( featurelist ) {
-        if( verbose ) cout << "INFO: Processing and writing features." << endl;
-
-        MapFeatureHeader mapFeatureHeader;
-        vector<MapFeatureStruct> features;
-        MapFeatureStruct *feature;
-        vector<string> featurenames;
-
-        string line;
-        string cell;
-        vector<string> tokens;
-        char value[256];
-
-        // build inbuilt list
-        for ( int i=0; i < 16; i++ ) {
-            sprintf(value, "TreeType%i", i);
-            featurenames.push_back(value);
-        }
-        featurenames.push_back("GeoVent");
-
-        // Parse the file
-        printf( "INFO: Reading %s\n", featurelist_fn.c_str() );
-        ifstream flist(featurelist_fn.c_str(), ifstream::in);
-
-        while ( getline( flist, line ) ) {
-            stringstream lineStream( line );
-            feature = new MapFeatureStruct;
-            mapFeatureHeader.numFeatures++;
-
-            tokens.clear();
-            while( getline( lineStream, cell, ',' ) ) tokens.push_back( cell );
-
-            if(!featurenames.empty()) {
-                for (unsigned int i=0; i < featurenames.size(); i++)
-                    if( !featurenames[i].compare( tokens[0] ) ) {
-                        feature->featureType = i;
-                        break;
-                    } else {
-                        featurenames.push_back(tokens[0]);
-                        feature->featureType = i;
-                        break;
-                    }
-            }
-            feature->xpos = atof(tokens[1].c_str());
-            feature->ypos = atof(tokens[2].c_str());
-            feature->zpos = atof(tokens[3].c_str());
-            feature->rotation = atof(tokens[4].c_str());
-            feature->relativeSize = atof(tokens[5].c_str());
-
-            features.push_back(*feature);
-        }
-        mapFeatureHeader.numFeatureType = featurenames.size();
-        printf("INFO: %i Features, %i Types\n", mapFeatureHeader.numFeatures,
-                       mapFeatureHeader.numFeatureType );
-
-        header.featurePtr = smf_of.tellp();
-        smf_of.seekp(76);
-        smf_of.write( (char *)&header.featurePtr, 4);
-        smf_of.seekp(header.featurePtr);
-        smf_of.write( (char *)&mapFeatureHeader, sizeof( mapFeatureHeader ) );
-
-        vector<string>::iterator i;
-        for ( i = featurenames.begin(); i != featurenames.end(); ++i ) {
-            string c = *i;
-            smf_of.write( c.c_str(), (int)strlen( c.c_str() ) + 1 );
-        }
-
-        vector<MapFeatureStruct>::iterator fi;
-        for( fi = features.begin(); fi != features.end(); ++fi ) {
-            smf_of.write( (char *)&*fi, sizeof( MapFeatureStruct ) );
-        }
-    }
-
-    smf_of.close();*/
-

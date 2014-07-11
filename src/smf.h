@@ -180,6 +180,7 @@ public:
     
     bool addTileFile( string fileName );
     void addFeature( string name, float x, float y, float z, float r, float s );
+    void addFeatures( string fileName );
 
     bool writeHeaders( );
     bool writeHeight  ( ImageBuf *buf );
