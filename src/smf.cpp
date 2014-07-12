@@ -5,13 +5,11 @@
 #include <fstream>
 #include <sstream>
 
+#include <squish.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
 OIIO_NAMESPACE_USING
 
-#include <nvtt/nvtt.h>
-#include "nvtt_output_handler.h"
-#include "dxt1load.h"
 #include "util.h"
 
 /// Sets the dirty flag so that we know where to re-write
@@ -573,45 +571,40 @@ bool SMF::writeType( ImageBuf *sourceBuf ){
     return writeImage( header.typePtr, typeSpec, sourceBuf );   
 }
 
-/// Writes an image to the minimap data point in the smf
-/**
- */
 bool SMF::writeMini( ImageBuf * sourceBuf ){
     if( verbose )cout << "INFO: Writing mini\n";
-
-    //TODO attempt to generate minimap from whatever is available and overlay the
-    // map title
     ImageBuf *tempBufa = channels( sourceBuf, miniSpec );    
     ImageBuf *miniBuf = scale( tempBufa, miniSpec );  
-    delete tempBufa;  
+    delete tempBufa; 
 
-    // setup DXT1 Compression
-    nvtt::InputOptions inputOptions;
-    inputOptions.setTextureLayout( nvtt::TextureType_2D, miniSpec.width, miniSpec.height );
-    inputOptions.setMipmapData( miniBuf->localpixels(), miniSpec.width, miniSpec.height );
-
-    nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setFormat( nvtt::Format_DXT1 );
-    if( dxt1_quality ) compressionOptions.setQuality( nvtt::Quality_Normal ); 
-    else compressionOptions.setQuality( nvtt::Quality_Fastest ); 
-
-    nvtt::OutputOptions outputOptions;
-    outputOptions.setOutputHeader( false );
-
-    NVTTOutputHandler *outputHandler = new NVTTOutputHandler( MINIMAP_SIZE + 1);
-    outputOptions.setOutputHandler( outputHandler );
-
-    nvtt::Compressor compressor;
-    compressor.process( inputOptions, compressionOptions, outputOptions );
-
-    // Write data to smf
+    ImageSpec spec;
+    int blocks_size = 0;
+    squish::u8 *blocks = NULL;
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.miniPtr );
-    file.write( outputHandler->getBuffer(), MINIMAP_SIZE );
-    file.close();
+    for( int i = 0; i < 9; ++i ){
+        spec = miniBuf->specmod();
 
-    delete outputHandler;
+        blocks_size = squish::GetStorageRequirements(
+                spec.width, spec.height, squish::kDxt1 );
+
+        if(! blocks ) blocks = new squish::u8[ blocks_size ];
+
+        squish::CompressImage( (squish::u8 *)miniBuf->localpixels(),
+                spec.width, spec.height, blocks, squish::kDxt1 );
+
+        // Write data to smf
+        file.write( (char*)blocks, blocks_size );
+
+        spec.width = spec.width >> 1;
+        spec.height = spec.height >> 1;
+        tempBufa = miniBuf;
+        miniBuf = scale( tempBufa, spec );
+        delete tempBufa;
+    }
+    file.close();
     delete miniBuf;
+    delete blocks;
 
     return false;
 }
@@ -752,14 +745,16 @@ ImageBuf *SMF::getMap( ){ return getImage( mapPtr, mapSpec ); }
 
 ImageBuf *SMF::getMini(){
     ImageBuf * imageBuf = NULL;
-    unsigned char *data;
+    unsigned char data[1024 * 1024 * 4];
 
     ifstream smf( fileName );
     if( smf.good() ) {
         unsigned char *temp = new unsigned char[MINIMAP_SIZE];
         smf.seekg( header.miniPtr );
         smf.read( (char *)temp, MINIMAP_SIZE);
-        data = dxt1_load(temp, 1024, 1024);
+
+        squish::DecompressImage( (squish::u8 *)data, 1024, 1024, temp, squish::kDxt1);
+
         delete [] temp;
         imageBuf = new ImageBuf( miniSpec, data );
     }
