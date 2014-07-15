@@ -140,6 +140,8 @@ const option::Descriptor usage[] = {
 int
 main( int argc, char **argv )
 {
+    // Option parsing
+    // ==============
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
     option::Option* options = new option::Option[ stats.options_max ];
@@ -163,7 +165,6 @@ main( int argc, char **argv )
 
     // Setup
     // =====
-    //
     bool verbose = false, quiet = false, force = false;
     bool dxt1_quality = false;
     unsigned int ix = 1024, iy = 1024;
@@ -186,6 +187,7 @@ main( int argc, char **argv )
     // load up the tilemap
     ImageBuf *tilemap = NULL;
     if( options[ RECONSTRUCT ] ){
+        // test whether the tileMap exists
         tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
         if(! tilemap ){
             if(! quiet ){
@@ -193,6 +195,8 @@ main( int argc, char **argv )
             }
             exit(1);
         }
+        // if we pulled the tilemap from an SMF then append the smf's tile
+        // sources to the tilecache
         SMF *smf = NULL;
         if( (smf = SMF::open( options[ RECONSTRUCT ].arg )) ){
             tileCache.push_back( options[ RECONSTRUCT ].arg );
@@ -210,7 +214,9 @@ main( int argc, char **argv )
         if( verbose ){
             cout << "INFO.TileCache: Only one file, assuming large map provided" << endl;
         }
-        tileCache.setTileSize( 32 );
+        // tilecache assumes the size of the first tile as its size, if there's only one image
+        // then we assume that we want to chop it into bits. so we revert to the default value.
+        tileCache.setTileSize( tileSize );
     }
     else {
         if( verbose ){
