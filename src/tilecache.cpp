@@ -57,7 +57,7 @@ TileCache::getTile( unsigned int n )
 
     // Scale the tile to match output requirements
     ImageBuf fixBuf; 
-    ROI roi( 0, tileRes, 0, tileRes, 0, 1, 0, 4 );
+    ROI roi( 0, tileSize, 0, tileSize, 0, 1, 0, 4 );
     if( spec.width != roi.xend || spec.height != roi.yend ){
 //            printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
 //                " Resampling.\n",
@@ -94,9 +94,9 @@ TileCache::push_back( string fileName )
         map.push_back( nTiles );
         filenames.push_back( fileName );
 
-        if(! tileRes ){
+        if(! tileSize ){
             spec = image->spec();
-            tileRes = fmin( spec.width, spec.height );
+            tileSize = fmin( spec.width, spec.height );
         }
         delete image;
         return;
@@ -109,8 +109,8 @@ TileCache::push_back( string fileName )
         map.push_back( nTiles );
         filenames.push_back( fileName );
 
-        if(! tileRes ){
-            tileRes = smt->getTileRes();
+        if(! tileSize ){
+            tileSize = smt->getTileSize();
         }
         delete smt;
         return;

@@ -31,7 +31,7 @@ class SMF {
         Header( int i, int w, int l, int sw, int st, int tr, int f, int c,
                 int hp, int tp, int tp2, int mp, int mp2, int fp, int n )
             : id( i ), width( w ), length( l ), squareWidth( sw ),
-            squareTexels( st ), tileRes( tr ), floor( f ), ceiling (c ),
+            squareTexels( st ), tileSize( tr ), floor( f ), ceiling (c ),
             heightPtr( hp ), typePtr( tp ), tilesPtr( mp ), miniPtr( tp2 ),
             metalPtr( mp2 ), featuresPtr( fp ), nHeaderExtras( n ) { };
 
@@ -44,7 +44,7 @@ class SMF {
         int length = 128;     ///< byte:28 \n Map length * 64
         int squareWidth = 8;  ///< byte:32 \n Distance between vertices. must be 8
         int squareTexels = 8; ///< byte:36 \n Number of texels per square, must be 8 for now
-        int tileRes = 32;     ///< byte:40 \n Number of texels in a tile, must be 32 for now
+        int tileSize = 32;     ///< byte:40 \n Number of texels in a tile, must be 32 for now
         float floor = 10;     ///< byte:44 \n Height value that 0 in the heightmap corresponds to    
         float ceiling = 256;  ///< byte:48 \n Height value that 0xffff in the heightmap corresponds to
 
@@ -65,10 +65,10 @@ class SMF {
      *  for header type
      */
     struct HeaderExtra {
-        int size = 0; ///< size of the header
+        int bytes = 0; ///< size of the header
         int type = 0; ///< type of the header
         HeaderExtra( ){ };
-        HeaderExtra( int i, int j ) : size( i ), type( j ){ };
+        HeaderExtra( int i, int j ) : bytes( i ), type( j ){ };
     };
 
     /// Extra grass Header
@@ -177,6 +177,7 @@ public:
 
     void setSize( int width, int length );
     void setDepth( float floor, float ceiling );
+    void setTileSize( int size );
     
     bool addTileFile( string fileName );
     void addFeature( string name, float x, float y, float z, float r, float s );

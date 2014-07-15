@@ -29,12 +29,12 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *mapBuf)
     ImageSpec mapSpec = mapBuf->spec();
 
     // allocate enough data for our large image
-    if( verbose ) cout << "\tGenerating " << mapSpec.width * cache.getTileRes() << "x"
-        << mapSpec.height * cache.getTileRes() << endl;
+    if( verbose ) cout << "\tGenerating " << mapSpec.width * cache.getTileSize() << "x"
+        << mapSpec.height * cache.getTileSize() << endl;
 
     ImageSpec bigSpec(
-            mapSpec.width * cache.getTileRes(),
-            mapSpec.height * cache.getTileRes(),
+            mapSpec.width * cache.getTileSize(),
+            mapSpec.height * cache.getTileSize(),
             4, TypeDesc::UINT8 );
     ImageBuf *bigBuf = new ImageBuf( "reconstruction", bigSpec );
 
@@ -45,8 +45,8 @@ SMTool::reconstruct( TileCache &cache, ImageBuf *mapBuf)
         if(! tileBuf ) continue;
 
         ImageBufAlgo::paste( *bigBuf,
-                cache.getTileRes() * it.x(),
-                cache.getTileRes() * it.y(),
+                cache.getTileSize() * it.x(),
+                cache.getTileSize() * it.y(),
                 0,0, *tileBuf);
 
         delete tileBuf;
@@ -69,8 +69,8 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
     else if(! vstride ) vstride = ceil( (float)cache.getNTiles() / (float)hstride);
 
     ImageSpec bigSpec(
-            hstride * cache.getTileRes(),
-            vstride * cache.getTileRes(),
+            hstride * cache.getTileSize(),
+            vstride * cache.getTileSize(),
             4, TypeDesc::UINT8 );
 
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
@@ -84,8 +84,8 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
         // Pull data
         tileBuf = cache.getTile( i );
 
-        unsigned int dx = cache.getTileRes() * (i % hstride);
-        unsigned int dy = cache.getTileRes() * (i / hstride);
+        unsigned int dx = cache.getTileSize() * (i % hstride);
+        unsigned int dy = cache.getTileSize() * (i / hstride);
 
         ImageBufAlgo::paste(*bigBuf, dx, dy, 0, 0, *tileBuf);
 
@@ -165,7 +165,7 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
         cout << "INFO: Converting image to tiles and saving to smt" << endl;
     
     ImageSpec sourceSpec = sourceBuf->spec();
-    unsigned int tileRes = smt->getTileRes();
+    unsigned int tileRes = smt->getTileSize();
 
     ImageBuf tileBuf;
     ImageSpec tileSpec( tileRes, tileRes, 4, TypeDesc::UINT8 );

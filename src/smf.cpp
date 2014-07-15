@@ -119,7 +119,7 @@ bool SMF::read(){
             if( verbose ) cout << "WARNING: unknown header type " << i << endl;
             headerExtras.push_back( headerExtra );
         }
-        file.seekg( offset + headerExtra->size);
+        file.seekg( offset + headerExtra->bytes);
         delete headerExtra;
     }
 
@@ -188,7 +188,7 @@ string SMF::info(){
          << "\n\tLength:         "   << header.length 
          << "\n\tSquareSize:     "   << header.squareWidth 
          << "\n\tTexelPerSquare: "   << header.squareTexels 
-         << "\n\tTileSize:       "   << header.tileRes 
+         << "\n\tTileSize:       "   << header.tileSize 
          << "\n\tMinHeight:      "   << header.floor 
          << "\n\tMaxHeight:      "   << header.ceiling 
 
@@ -206,20 +206,20 @@ string SMF::info(){
         for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
             if( (*i)->type == 0 ){
                 info << "    Null Header"
-                     << "\n\tsize: " << (*i)->size
+                     << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                      << endl;
             }
             else if( (*i)->type == 1 ){
                 info << "    Grass"
-                     << "\n\tsize: " << (*i)->size
+                     << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                      << "\n\tptr:  " << int_to_hex( ((HeaderGrass *)(*i))->ptr )
                      << endl;
             }
             else {
                 info << "    Unknown"
-                     << "\n\tsize: " << (*i)->size
+                     << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                      << endl;
             }
@@ -323,8 +323,8 @@ void SMF::updateSpecs(){
     miniSpec.set_format( TypeDesc::UINT8 );
 
     // set mapSpec
-    mapSpec.width = header.width * 8 / header.tileRes;
-    mapSpec.height = header.length * 8 / header.tileRes;
+    mapSpec.width = header.width * 8 / header.tileSize;
+    mapSpec.height = header.length * 8 / header.tileSize;
     mapSpec.nchannels = 1;
     mapSpec.set_format( TypeDesc::UINT );
 
@@ -352,7 +352,7 @@ void SMF::updatePtrs(){
 
     header.heightPtr = sizeof( SMF::Header );
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
-        header.heightPtr += (*i)->size;
+        header.heightPtr += (*i)->bytes;
 
     header.typePtr = header.heightPtr + heightSpec.image_bytes();
 
@@ -400,6 +400,12 @@ void SMF::setDepth( float floor, float ceiling ){
     header.ceiling = ceiling;
     writeHeaders();
 }
+
+void SMF::setTileSize( int size ){
+    header.tileSize = size;
+    writeHeaders();
+}
+
 
 ///TODO Set the map y depth and water level.
 
@@ -539,7 +545,7 @@ bool SMF::writeHeaders(){
     file.write( (char *)&header, sizeof(SMF::Header) );
 
     for( auto eHeader = headerExtras.begin(); eHeader != headerExtras.end(); ++eHeader )
-        file.write( (char *)*eHeader, (*eHeader)->size );
+        file.write( (char *)*eHeader, (*eHeader)->bytes );
 
     file.close();
     return false;

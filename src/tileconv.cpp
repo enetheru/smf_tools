@@ -61,13 +61,13 @@ enum optionsIndex
     //TODO add append, overwrite, clobber, force, whatever options and scemantics.
     //Specification
     MAPSIZE,
-    TILERES,
+    TILESIZE,
     IMAGESIZE,
     STRIDE,
     // Creation
     DECALS,
     FILTER,
-    OUTPUT,
+    IFILE,
     // Compression
     DXT1_QUALITY,
     CNUM, CPET, CNET,
@@ -95,8 +95,8 @@ const option::Descriptor usage[] = {
         "\nSPECIFICATIONS:" },
     { MAPSIZE, 0, "", "mapsize", Arg::Required,
         "\t--mapsize=XxY  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
-    { TILERES, 0, "", "tileres", Arg::Numeric,
-        "\t--tileres=X  \tXY resolution of tiles to save, eg. '--tileres=32'." },
+    { TILESIZE, 0, "", "tilesize", Arg::Numeric,
+        "\t--tilesize=X  \tXY resolution of tiles to save, eg. '--tileres=32'." },
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
         "\t--imagesize=XxY  \tScale the resultant extraction to this size, eg. '--imagesize=1024x768'." },
     { STRIDE, 0, "", "stride", Arg::Numeric,
@@ -104,12 +104,10 @@ const option::Descriptor usage[] = {
     
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCREATION:" },
-//    { DECALS, 0, "", "decals", Arg::Required,
-//        "\t--decals=filename.csv  \tFile to parse when pasting decals." },
     { FILTER, 0, "", "filter", Arg::Required,
         "\t--filter=[1,2,n,1-n]  \tAppend only these tiles" },
-    { OUTPUT, 0, "o", "output", Arg::Required,
-        "  -o,  \t--output=filename.smt  \tfilename to output." },
+    { IFILE, 0, "o", "file", Arg::Required,
+        "  -f,  \t--file=filename.smt  \tfile to operate on, will be created if it doesnt exist." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCOMPRESSION OPTIONS:" },
@@ -169,7 +167,7 @@ main( int argc, char **argv )
     bool verbose = false, quiet = false, force = false;
     bool dxt1_quality = false;
     unsigned int ix = 1024, iy = 1024;
-    unsigned int tileRes = 32;
+    unsigned int tileSize = 32;
     if( options[ VERBOSE   ] ) verbose = true;
     if( options[ QUIET     ] ) quiet = true;
     if( options[ FORCE     ] ) force = true;
@@ -212,17 +210,17 @@ main( int argc, char **argv )
         if( verbose ){
             cout << "INFO.TileCache: Only one file, assuming large map provided" << endl;
         }
-        tileCache.setTileRes( 32 );
+        tileCache.setTileSize( 32 );
     }
     else {
         if( verbose ){
             cout << "INFO.TileCache:" << endl;
             cout << "\tFiles: " << tileCache.getNFiles() << endl;
             cout << "\tTiles: " << tileCache.getNTiles() << endl;
-            cout << "\ttileRes: " << tileCache.getTileRes() << endl;
+            cout << "\tTile Size: " << tileCache.getTileSize() << endl;
         }
     }
-    tileRes = tileCache.getTileRes();
+    tileSize = tileCache.getTileSize();
 
     //filter list
     vector<unsigned int> filter;
@@ -237,16 +235,16 @@ main( int argc, char **argv )
 
     // output creation
     SMT *smt = NULL;
-    if( options[ OUTPUT ] ){
-        string fileName = options[ OUTPUT ].arg;
+    if( options[ IFILE ] ){
+        string fileName = options[ IFILE ].arg;
         if( (smt = SMT::open( fileName, verbose, quiet, dxt1_quality )) ){
             if( verbose ) cout << "INFO.smt: opened " << fileName << endl;
-            tileRes = smt->getTileRes();
-            tileCache.setTileRes( tileRes );
+            tileSize = smt->getTileSize();
+            tileCache.setTileSize( tileSize );
         }
         else if( (smt = SMT::create( fileName, force, verbose, quiet, dxt1_quality )) ){
             if( verbose ) cout << "INFO.smt: created " << fileName << endl;
-            smt->setTileRes( tileRes );
+            smt->setTileSize( tileSize );
         }
         else {
             if(! quiet ) cout << "ERROR.smt: unable to create " << fileName << endl;
@@ -254,24 +252,24 @@ main( int argc, char **argv )
         }
     }
 
-    // tileRes Override.
-    // TileRes is set to be the size of the first tile loaded.
-    // The existing output SMT overrides the tileRes value
+    // tileSize Override.
+    // TileSize is set to be the size of the first tile loaded.
+    // The existing output SMT overrides the tileSize value
     // Finally specifying it on the command line overrides the rest.
-    // WARNING, if your output file has a different tileRes then all the tiles will be deleted.
-    if( options[ TILERES ] ){
-        tileRes = stoi( options[ TILERES ].arg );
-        smt->setTileRes( tileRes );
-        tileCache.setTileRes( tileRes );
-    }
+    // WARNING, if your output file has a different tileSize then all the tiles will be deleted.
+    if( options[ TILESIZE ] ){
+        tileSize = stoi( options[ TILESIZE ].arg );
+        smt->setTileSize( tileSize );
+        tileCache.setTileSize( tileSize );
+    } //FIXME detect map size from diffuse images
 
     // MapSize & Stride
     unsigned int mx = 2, my = 2;
     unsigned int hstride = 0, vstride = 0;
     if( options[ MAPSIZE ] ){
         valxval( options[ MAPSIZE ].arg, mx, my);
-        hstride = mx * 512 / tileRes;
-        vstride = my * 512 / tileRes;
+        hstride = mx * 512 / tileSize;
+        vstride = my * 512 / tileSize;
     }
     else if( options[ STRIDE ] ){
         hstride = stoi( options[ STRIDE ].arg );
@@ -288,7 +286,7 @@ main( int argc, char **argv )
     if( options[ SEPARATE ] ){
         for( auto i = filter.begin(); i != filter.end(); ++i ){
             buf = tileCache.getTile( *i );
-            if( options[ OUTPUT ] ){
+            if( options[ IFILE ] ){
                 smt->append( buf );
             }
             else {
@@ -315,7 +313,7 @@ main( int argc, char **argv )
     if( buf ) fix.copy( *buf );
     else exit( 1 );
 
-    if( options[ OUTPUT ] ){
+    if( options[ IFILE ] ){
         cout << "INFO: Scaling to " << mroi.xend << "x" << mroi.yend << endl;
         buf->clear();
         ImageBufAlgo::resample( *buf, fix, false, mroi );

@@ -57,7 +57,7 @@ enum optionsIndex
     // Specification
     MAPSIZE,
     FLOOR, CEILING,
-    TILERES,
+    TILESIZE,
     // Source materials
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
     // Compression
@@ -94,8 +94,8 @@ const option::Descriptor usage[] = {
         "  -y,  \t--floor=1.0f  \tMinimum height of the map." },
     { CEILING, 0, "Y", "ceiling", Arg::Numeric,
         "  -Y,  \t--ceiling=1.0f  \tMaximum height of the map." },
-//    { TILERES, 0, "", "tileres=32", Arg::Numeric,
-//        "\t--tileres=X  \tXY resolution of tiles referenced, eg. '--tileres=32'." },
+    { TILESIZE, 0, "", "tilesize", Arg::Numeric,
+        "\t--tilesize=X  \tXY resolution of tiles referenced, eg. '--tileres=32'." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCREATION:" },
@@ -187,6 +187,11 @@ main( int argc, char **argv )
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf->addTileFile( parse.nonOption( i ) );
     }
+
+    if( options[ TILESIZE ] ){
+        smf->setTileSize( stoi( options[ TILESIZE ].arg ) );
+    }
+
 
     if( options[ MAPSIZE ] ){
         valxval( options[ MAPSIZE ].arg, mx, my );

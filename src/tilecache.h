@@ -13,7 +13,7 @@ using namespace std;
 class TileCache
 {
     unsigned int nTiles = 0;
-    unsigned int tileRes = 0;
+    unsigned int tileSize = 0;
     vector<unsigned int> map;
     vector<string> filenames; 
 public:
@@ -23,11 +23,11 @@ public:
         : verbose(v), quiet(q) { };
 
     void push_back( string );
-    void setTileRes( unsigned int t ){ tileRes = t; };
+    void setTileSize( unsigned int t ){ tileSize = t; };
 
     unsigned int getNTiles ( ){ return nTiles; };
     unsigned int getNFiles ( ){ return filenames.size(); };
-    unsigned int getTileRes( ){ return tileRes; };
+    unsigned int getTileSize( ){ return tileSize; };
     ImageBuf* getTile( unsigned int );
     ImageBuf* getOriginal( unsigned int );
 };

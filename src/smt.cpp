@@ -71,9 +71,9 @@ void SMT::setType( TileType t ){
     reset();
 }
 
-void SMT::setTileRes( int r ){
-    if( header.tileRes == r )return;
-    header.tileRes = r;
+void SMT::setTileSize( int r ){
+    if( header.tileSize == r )return;
+    header.tileSize = r;
     reset();
 }
 
@@ -82,12 +82,12 @@ void SMT::setTileRes( int r ){
  * 32x32, 16x16, 8x8, 4x4
  * 512  + 128  + 32 + 8 = 680
  */
-void SMT::calcTileSize() {
-    tileSize = 0;
+void SMT::calcTileBytes() {
+    tileBytes = 0;
     if(header.tileType == TileType::DXT1) {
-        int mip = header.tileRes;
+        int mip = header.tileSize;
         for( int i=0; i < 4; ++i) {
-            tileSize += (mip * mip)/2;
+            tileBytes += (mip * mip)/2;
             mip /= 2;
         }
     }
@@ -102,7 +102,7 @@ bool SMT::load() {
         cout << "INFO: " << fileName << endl;
         cout << "\tSMT Version: " << header.version << endl;
         cout << "\tTiles: " << header.nTiles << endl;
-        cout << "\tTileRes: " << header.tileRes << endl;
+        cout << "\tTileRes: " << header.tileSize << endl;
         cout << "\tCompression: ";
         if( header.tileType == TileType::DXT1 )cout << "dxt1" << endl;
         else {
@@ -110,7 +110,7 @@ bool SMT::load() {
         }
     }
 
-    calcTileSize();
+    calcTileBytes();
     return false;
 }
 
@@ -141,7 +141,7 @@ bool SMT::append( ImageBuf *sourceBuf ){
     int blocks_size = 0;
     squish::u8 *blocks = NULL;
     fstream file(fileName, ios::binary | ios::in | ios::out);
-    file.seekp( sizeof(SMT::Header) + tileSize * header.nTiles );
+    file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
     for( int i = 0; i < 4; ++i ){
         spec = tempBufa->specmod();
 
@@ -178,20 +178,20 @@ bool SMT::append( ImageBuf *sourceBuf ){
 
 ImageBuf *SMT::getTile( int n ){
     ImageBuf *imageBuf = NULL;
-    ImageSpec imageSpec( header.tileRes, header.tileRes, 4, TypeDesc::UINT8 );
+    ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
 
-    char *raw_dxt1a = new char[ tileSize ];
-    char *rgba8888 = new char[ header.tileRes * header.tileRes * 4 ];
+    char *raw_dxt1a = new char[ tileBytes ];
+    char *rgba8888 = new char[ header.tileSize * header.tileSize * 4 ];
 
     ifstream file( fileName );
     if( file.good() )
     {
 
-        file.seekg( sizeof(SMT::Header) + tileSize * n );
-        file.read( (char *)raw_dxt1a, tileSize );
+        file.seekg( sizeof(SMT::Header) + tileBytes * n );
+        file.read( (char *)raw_dxt1a, tileBytes );
 
         squish::DecompressImage( (squish::u8 *)rgba8888,
-                header.tileRes, header.tileRes, raw_dxt1a, squish::kDxt1 );
+                header.tileSize, header.tileSize, raw_dxt1a, squish::kDxt1 );
 
         imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
     }

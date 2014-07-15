@@ -15,7 +15,7 @@ public:
         char magic[16] = "spring tilefile";   // "spring tilefile\0"
         int version = 1;      // must be 1 for now
         int nTiles = 0;       // total number of tiles in this file
-        int tileRes = 32;      // x and y dimension of tiles, must remain 32 for now.
+        int tileSize = 32;      // x and y dimension of tiles, must remain 32 for now.
         int tileType = TileType::DXT1;     // must be 1=dxt1 for now
     };
 
@@ -23,11 +23,11 @@ private:
     bool init = false;
 
     Header header;
-    unsigned int tileSize  = 680;
+    unsigned int tileBytes  = 680;
 
     // Input Files
     string fileName    = "output.smt";
-    void calcTileSize();
+    void calcTileBytes();
     bool load();
     
 public:
@@ -53,13 +53,13 @@ public:
     bool initialised( ){ return init; };
     bool reset( );
 
-    void setTileRes( int r      );
+    void setTileSize( int r      );
     void setType   ( TileType t ); // 1=DXT1
 
     int getTileType( ){ return header.tileType; };
-    int getTileRes ( ){ return header.tileRes;  };
+    int getTileSize ( ){ return header.tileSize;  };
     int getNTiles  ( ){ return header.nTiles;   };
-    int getTileSize( ){ return tileSize;        };
+    int getTileBytes( ){ return tileBytes;        };
     string getFileName( ){ return fileName;     };
 
     ImageBuf *getTile( int tile );
