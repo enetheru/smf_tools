@@ -19,7 +19,8 @@ OIIO_NAMESPACE_USING;
 ////////////////////
 struct Arg: public option::Arg
 {
-    static void printError(const char* msg1, const option::Option& opt, const char* msg2)
+    static void printError(const char* msg1, const option::Option& opt,
+            const char* msg2)
     {
         fprintf(stderr, "%s", msg1);
         fwrite(opt.name, opt.namelen, 1, stderr);
@@ -48,7 +49,8 @@ struct Arg: public option::Arg
         if (endptr != option.arg && *endptr == 0)
             return option::ARG_OK;
 
-        if (msg) printError("Option '", option, "' requires a numeric argument\n");
+        if (msg) printError("Option '", option,
+                "' requires a numeric argument\n");
         return option::ARG_ILLEGAL;
     }
 };
@@ -58,7 +60,7 @@ enum optionsIndex
     UNKNOWN,
     // General Options
     HELP, VERBOSE, QUIET, FORCE,
-    //TODO add append, overwrite, clobber, force, whatever options and scemantics.
+    //TODO add append, overwrite, clobber, force
     //Specification
     MAPSIZE,
     TILESIZE,
@@ -94,27 +96,32 @@ const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
         "\nSPECIFICATIONS:" },
     { MAPSIZE, 0, "", "mapsize", Arg::Required,
-        "\t--mapsize=XxY  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
+        "\t--mapsize=XxY  \tWidth and length of map, in spring map units, "
+           "must be multiples of two." },
     { TILESIZE, 0, "", "tilesize", Arg::Numeric,
-        "\t--tilesize=X  \tXY resolution of tiles to save, eg. '--tileres=32'." },
+        "\t--tilesize=X  \tXY resolution of tiles to save" },
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
-        "\t--imagesize=XxY  \tScale the resultant extraction to this size, eg. '--imagesize=1024x768'." },
+        "\t--imagesize=XxY  \tScale the resultant extraction to this size" },
     { STRIDE, 0, "", "stride", Arg::Numeric,
-        "\t--stride=N  \tNumber of source tiles horizontally before wrapping." },
+        "\t--stride=N  \tNumber of tiles horizontally" },
     
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCREATION:" },
     { FILTER, 0, "", "filter", Arg::Required,
         "\t--filter=[1,2,n,1-n]  \tAppend only these tiles" },
     { IFILE, 0, "o", "file", Arg::Required,
-        "  -f,  \t--file=filename.smt  \tfile to operate on, will be created if it doesnt exist." },
+        "  -f,  \t--file=filename.smt  \tfile to operate on, will be created "
+            "if it doesnt exist." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCOMPRESSION OPTIONS:" },
     { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None,
-        "\t--dxt1-quality  \tUse slower but better analytics when compressing DXT1 textures" },
+        "\t--dxt1-quality  \tUse slower but better analytics when compressing "
+            "DXT1 textures" },
     { CNUM, 0, "", "cnum", Arg::Numeric,
-        "\t--cnum=[-1,0,N]  \tNumber of tiles to compare; n=-1, no comparison; n=0, hashtable exact comparison; n > 0, numeric comparison between n tiles" },
+        "\t--cnum=[-1,0,N]  \tNumber of tiles to compare; n=-1, no "
+            "comparison; n=0, hashtable exact comparison; n > 0, numeric "
+            "comparison between n tiles" },
     { CPET, 0, "", "cpet", Arg::Numeric,
         "\t--cpet  \tPixel error threshold. 0.0f-1.0f" },
     { CNET, 0, "", "cnet=[0.0-1.0]", Arg::Numeric,
@@ -127,7 +134,8 @@ const option::Descriptor usage[] = {
     { COLLATE, 0, "", "collate", Arg::None,
         "  \t--collate  \tCollate the extracted tiles." },
     { RECONSTRUCT, 0, "", "reconstruct", Arg::Required,
-        "  \t--reconstruct=tilemap.exr  \tReconstruct the extracted tiles using a tilemap." },
+        "  \t--reconstruct=tilemap.exr  \tReconstruct the extracted tiles "
+            "using a tilemap." },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
@@ -150,7 +158,8 @@ main( int argc, char **argv )
 
     bool fail = false;
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        std::cout << "Unknown option: " << std::string( opt->name,opt->namelen ) << "\n";
+        std::cout << "Unknown option: "
+            << std::string( opt->name,opt->namelen ) << endl;
         fail = true;
     }
     if( fail ) exit( 1 );
@@ -206,16 +215,19 @@ main( int argc, char **argv )
 
     if( tileCache.getNTiles() == 0 ){
         if(! quiet ){
-            cout << "ERROR.TileCache: no files specified for processing." << endl;
+            cout << "ERROR.TileCache: no files specified for processing."
+                << endl;
         }
         exit(1);
     }
     else if( tileCache.getNTiles() == 1 ){
         if( verbose ){
-            cout << "INFO.TileCache: Only one file, assuming large map provided" << endl;
+            cout << "INFO.TileCache: Only one file, assuming large map "
+                "provided" << endl;
         }
-        // tilecache assumes the size of the first tile as its size, if there's only one image
-        // then we assume that we want to chop it into bits. so we revert to the default value.
+        // tilecache assumes the size of the first tile as its size, if there's
+        // only one image then we assume that we want to chop it into bits.
+        // so we revert to the default value.
         tileCache.setTileSize( tileSize );
     }
     else {
@@ -243,17 +255,22 @@ main( int argc, char **argv )
     SMT *smt = NULL;
     if( options[ IFILE ] ){
         string fileName = options[ IFILE ].arg;
-        if( (smt = SMT::open( fileName, verbose, quiet, dxt1_quality )) ){
+        if( (smt = SMT::open( fileName,
+                        verbose, quiet,
+                        dxt1_quality )) ){
             if( verbose ) cout << "INFO.smt: opened " << fileName << endl;
             tileSize = smt->getTileSize();
             tileCache.setTileSize( tileSize );
         }
-        else if( (smt = SMT::create( fileName, force, verbose, quiet, dxt1_quality )) ){
+        else if( (smt = SMT::create( fileName,
+                        force, verbose, quiet,
+                        dxt1_quality )) ){
             if( verbose ) cout << "INFO.smt: created " << fileName << endl;
             smt->setTileSize( tileSize );
         }
         else {
-            if(! quiet ) cout << "ERROR.smt: unable to create " << fileName << endl;
+            if(! quiet ) cout << "ERROR.smt: unable to create " << fileName
+                << endl;
             exit(1);
         }
     }
@@ -262,7 +279,8 @@ main( int argc, char **argv )
     // TileSize is set to be the size of the first tile loaded.
     // The existing output SMT overrides the tileSize value
     // Finally specifying it on the command line overrides the rest.
-    // WARNING, if your output file has a different tileSize then all the tiles will be deleted.
+    // WARNING, if your output file has a different tileSize then all the tiles
+    //will be deleted.
     if( options[ TILESIZE ] ){
         tileSize = stoi( options[ TILESIZE ].arg );
         smt->setTileSize( tileSize );
@@ -328,7 +346,8 @@ main( int argc, char **argv )
     }
     else {
         if( options[ IMAGESIZE ] ){
-            cout << "INFO: Scaling to " << iroi.xend << "x" << iroi.yend << endl;
+            cout << "INFO: Scaling to " << iroi.xend << "x" << iroi.yend
+                << endl;
             buf->clear();
             ImageBufAlgo::resample( *buf, fix, false, iroi );
         }
