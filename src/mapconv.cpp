@@ -220,14 +220,20 @@ main( int argc, char **argv )
         }
     }
 
+    SMF *smfTemp = NULL;
+    TileMap *tileMap = NULL;
     if( options[ MAP ] ){
         if(! strcmp( options[ MAP ].arg, "CLEAR" ) ){
             if( verbose ) cout << "INFO: Clearing Map\n";
             smf->writeMap(NULL);
         }
+        else if( (smfTemp = SMF::open( options[ MAP ].arg )) ){
+            smf->writeMap( smfTemp->getMap() );
+            delete smfTemp;
+        }
         else {
-            ImageBuf mapBuf( options[ MAP ].arg );
-            smf->writeMap( &mapBuf );
+            tileMap = new TileMap( options[ MAP ].arg );
+            smf->writeMap( tileMap );
         }
     }
 
@@ -277,6 +283,7 @@ main( int argc, char **argv )
     /// Finalise any pending changes.
     smf->reWrite();
 
+    std::fstream file;
     ImageBuf *buf = NULL;
     if( options[ EXTRACT ] ){
         if( verbose ) cout << "INFO: Extracting height image" << endl;
@@ -285,9 +292,13 @@ main( int argc, char **argv )
         if( verbose ) cout << "INFO: Extracting type image" << endl;
         buf = smf->getType();
         buf->write("type.tif", "tif");
+
         if( verbose ) cout << "INFO: Extracting map image" << endl;
-        buf = smf->getMap();
-        buf->write("map.exr", "exr");
+        tileMap = smf->getMap();
+        file.open("out_tilemap.csv", ios::out );
+        file << tileMap->toCSV();
+        file.close();
+
         if( verbose ) cout << "INFO: Extracting mini image" << endl;
         buf = smf->getMini();
         buf->write("mini.tif", "tif");
@@ -295,7 +306,7 @@ main( int argc, char **argv )
         buf = smf->getMetal();
         buf->write("metal.tif", "tif");
         if( verbose ) cout << "INFO: Extracting featureList" << endl;
-        fstream file( "featuretypes.txt", ios::out );
+        file.open( "featuretypes.txt", ios::out );
         file << smf->getFeatureTypes();
         file.close();
         if( verbose ) cout << "INFO: Extracting features" << endl;

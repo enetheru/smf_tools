@@ -251,7 +251,8 @@ string SMF::info(){
 /*
  */
 bool SMF::reWrite( ){
-    ImageBuf *height, *type, *map, *mini, *metal, *grass = NULL;
+    ImageBuf *height, *type, *mini, *metal, *grass = NULL;
+    TileMap *tileMap = NULL;
     // 0: from the very beginning full re-write
     // 1: extra headers onwards
     // 2: tile headers onwards
@@ -268,7 +269,7 @@ bool SMF::reWrite( ){
             height = getHeight();
             type = getType();
         case 2: 
-            map = getMap();
+            tileMap = getMap();
             mini = getMini();
             metal = getMetal();
         case 3: 
@@ -286,7 +287,7 @@ bool SMF::reWrite( ){
             writeType( type );
         case 2:
             writeTileHeader();
-            writeMap( map );
+            writeMap( tileMap );
             writeMini( mini );
             writeMetal( metal );
         case 3:
@@ -316,17 +317,16 @@ void SMF::updateSpecs(){
     typeSpec.nchannels = 1;
     typeSpec.set_format( TypeDesc::UINT8 );
 
+    // set map spec
+    mapWidth = header.width * 8 / header.tileSize;
+    mapHeight = header.length * 8 / header.tileSize;
+    mapBytes = mapWidth * mapHeight * 4;
+
     // set miniSpec
     miniSpec.width = 1024;
     miniSpec.height = 1024;
     miniSpec.nchannels = 4;
     miniSpec.set_format( TypeDesc::UINT8 );
-
-    // set mapSpec
-    mapSpec.width = header.width * 8 / header.tileSize;
-    mapSpec.height = header.length * 8 / header.tileSize;
-    mapSpec.nchannels = 1;
-    mapSpec.set_format( TypeDesc::UINT );
 
     // set metalSpec
     metalSpec.width = header.width / 2;
@@ -363,7 +363,7 @@ void SMF::updatePtrs(){
     for( auto i = smtList.begin(); i != smtList.end(); ++i )
         mapPtr += (*i).size() + 5;
 
-    header.miniPtr = mapPtr + mapSpec.image_bytes();
+    header.miniPtr = mapPtr + mapBytes;
 
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
 
@@ -636,9 +636,15 @@ bool SMF::writeTileHeader(){
 }
 
 // write the tilemap information to the smf
-bool SMF::writeMap( ImageBuf *sourceBuf ){
+bool SMF::writeMap( TileMap *tileMap ){
+    if(! tileMap ) return true;
     if( verbose ) cout << "INFO: Writing map\n";
-    return writeImage( mapPtr, mapSpec, sourceBuf );   
+    std::fstream file(fileName,
+            std::ios::binary | std::ios::in | std::ios::out);
+    file.seekp( mapPtr );
+    file.write( (char *)tileMap->data(), mapBytes);
+    file.close();
+    return false;
 }
 
 /// write the metal image to the smf
@@ -746,8 +752,22 @@ ImageBuf *SMF::getImage( unsigned int ptr, ImageSpec spec){
 }
 
 ImageBuf *SMF::getHeight( ){ return getImage( header.heightPtr, heightSpec ); }
+
 ImageBuf *SMF::getType( ){ return getImage( header.typePtr, typeSpec ); }
-ImageBuf *SMF::getMap( ){ return getImage( mapPtr, mapSpec ); }
+
+TileMap *
+SMF::getMap( )
+{
+    TileMap *tileMap = new TileMap( mapWidth, mapHeight );
+    std::fstream file( fileName, std::ios::binary | std::ios::in );
+    file.seekg( mapPtr );
+    for( unsigned int y = 0; y < mapHeight; ++y )
+    for( unsigned int x = 0; x < mapWidth; ++x ){
+        file.read( (char *)&(*tileMap)( x, y ), 4 );
+    }
+
+    return tileMap;
+}
 
 ImageBuf *SMF::getMini(){
     ImageBuf * imageBuf = NULL;

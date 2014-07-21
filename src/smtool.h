@@ -3,6 +3,7 @@
 
 #include "smt.h"
 #include "tilecache.h"
+#include "tilemap.h"
 
 OIIO_NAMESPACE_USING
 using namespace std;
@@ -13,8 +14,10 @@ namespace SMTool
     extern float cpet;
     extern int cnet, cnum;
 
-    ImageBuf *reconstruct( TileCache &cache, ImageBuf *map );
-    ImageBuf *collate( TileCache &cache, unsigned int hstride = 0, unsigned int vstride = 0 );
+    ImageBuf *reconstruct( TileCache &cache, TileMap *tileMap );
+    ImageBuf *collate( TileCache &cache,
+            unsigned int hstride = 0,
+            unsigned int vstride = 0 );
     ImageBuf *openTilemap( string filename );
 
     bool consolidate( SMT *smt, TileCache &cache, ImageBuf * tilemap);

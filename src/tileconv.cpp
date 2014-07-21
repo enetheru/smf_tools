@@ -7,6 +7,7 @@
 #include "smtool.h"
 #include "util.h"
 #include "tilecache.h"
+#include "tilemap.h"
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
@@ -194,22 +195,22 @@ main( int argc, char **argv )
         tileCache.push_back( parse.nonOption( i ) );
 
     // load up the tilemap
-    ImageBuf *tilemap = NULL;
+    TileMap *tilemap = NULL;
     if( options[ RECONSTRUCT ] ){
-        // test whether the tileMap exists
-        tilemap = SMTool::openTilemap( options[ RECONSTRUCT ].arg );
-        if(! tilemap ){
-            if(! quiet ){
-                cout << "ERROR.SMTool: unable to load tilemap." << endl;
-            }
-            exit(1);
-        }
-        // if we pulled the tilemap from an SMF then append the smf's tile
-        // sources to the tilecache
         SMF *smf = NULL;
         if( (smf = SMF::open( options[ RECONSTRUCT ].arg )) ){
             tileCache.push_back( options[ RECONSTRUCT ].arg );
+            tilemap = smf->getMap();
             delete smf;
+        }
+        if(! tilemap ){
+            tilemap = new TileMap( options[ RECONSTRUCT ].arg );
+        }
+        if(! tilemap ){
+            if(! quiet ){
+                cout << "ERROR: loading tilemap failed." << endl;
+            }
+            exit( 1 );
         }
     }
 

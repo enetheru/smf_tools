@@ -10,6 +10,8 @@ using namespace std;
 #include <OpenImageIO/imagebuf.h>
 OIIO_NAMESPACE_USING
 
+#include "tilemap.h"
+
 /** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>
  * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4\n
  * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
@@ -135,7 +137,9 @@ class SMF {
     vector<string> smtList;      ///< list of smt files references
     vector<unsigned int> nTiles; ///< number of tiles in corresponding files from smtList
     unsigned int mapPtr;         ///< pointer to beginning of the tilemap
-    ImageSpec mapSpec;
+    unsigned int mapBytes = 65536;
+    unsigned int mapWidth = 128;
+    unsigned int mapHeight = 128;
 
     ImageSpec miniSpec;
     ImageSpec metalSpec;
@@ -187,7 +191,7 @@ public:
     bool writeHeight  ( ImageBuf *buf );
     bool writeType    ( ImageBuf *buf );
     bool writeTileHeader( );
-    bool writeMap     ( ImageBuf *buf );
+    bool writeMap     ( TileMap *tileMap );
     bool writeMini    ( ImageBuf *buf );
     bool writeMetal   ( ImageBuf *buf );
     bool writeFeaturesHeader();
@@ -200,7 +204,7 @@ public:
     ImageBuf *getHeight();
     ImageBuf *getType();
     vector<string> getTileFileNames(){ return smtList; };
-    ImageBuf *getMap();
+    TileMap *getMap();
     ImageBuf *getMini();
     ImageBuf *getMetal();
     string    getFeatureTypes();

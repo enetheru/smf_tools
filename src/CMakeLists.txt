@@ -6,7 +6,8 @@ add_executable( mapconv
 	smf.cpp smf.h
 	smt.cpp smt.h
     util.cpp util.h
-    tilecache.cpp tilecache.h )
+    tilecache.cpp tilecache.h
+    tilemap.cpp tilemap.h )
 
 target_link_libraries( mapconv ${LIBS} )
 
@@ -16,7 +17,8 @@ add_executable( tileconv
 	smt.cpp smt.h
     smtool.cpp smtool.h
     util.cpp util.h
-    tilecache.cpp tilecache.h)
+    tilecache.cpp tilecache.h
+    tilemap.cpp tilemap.h )
 
 target_link_libraries( tileconv ${LIBS} )
 

@@ -1,7 +1,5 @@
-#include "smtool.h"
-
 #include "config.h"
-#include "smt.h"
+#include "smtool.h"
 
 #include <chrono>
 #include <fstream>
@@ -10,7 +8,10 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+
+#include "smt.h"
 #include "smf.h"
+#include "tilemap.h"
 #include "util.h"
 
 namespace SMTool
@@ -22,36 +23,38 @@ namespace SMTool
 }
 
 ImageBuf *
-SMTool::reconstruct( TileCache &cache, ImageBuf *mapBuf)
+SMTool::reconstruct( TileCache &cache, TileMap *tileMap)
 {
-    if( verbose )cout << "INFO: Reconstructing Big\n";
-    if(! mapBuf )return NULL;
-    ImageSpec mapSpec = mapBuf->spec();
+    if(! tileMap || tileMap->width == 0 || tileMap->height == 0 )return NULL;
 
     // allocate enough data for our large image
-    if( verbose ) cout << "\tGenerating " << mapSpec.width * cache.getTileSize() << "x"
-        << mapSpec.height * cache.getTileSize() << endl;
-
     ImageSpec bigSpec(
-            mapSpec.width * cache.getTileSize(),
-            mapSpec.height * cache.getTileSize(),
+            tileMap->width * cache.getTileSize(),
+            tileMap->height * cache.getTileSize(),
             4, TypeDesc::UINT8 );
+
+    if( verbose )cout << "INFO.SMTool.reconstruct: Generating "
+        << bigSpec.width << "x" << bigSpec.height << endl;
+
     ImageBuf *bigBuf = new ImageBuf( "reconstruction", bigSpec );
 
     // Loop through tile index
     ImageBuf *tileBuf = NULL;
-    for( ImageBuf::Iterator<unsigned int, unsigned int> it(*mapBuf); ! it.done(); ++it ){
-        tileBuf = cache.getTile( it[0] );
+    unsigned int current = 0;
+    for( unsigned int y = 0; y < tileMap->height; ++y )
+    for( unsigned int x = 0; x < tileMap->width; ++x ){
+        tileBuf = cache.getTile( (*tileMap)( x, y ) );
         if(! tileBuf ) continue;
 
         ImageBufAlgo::paste( *bigBuf,
-                cache.getTileSize() * it.x(),
-                cache.getTileSize() * it.y(),
+                cache.getTileSize() * x,
+                cache.getTileSize() * y,
                 0,0, *tileBuf);
 
         delete tileBuf;
-        cout << "\033[1A\033[2K\033[0G\t" << it.y() * mapSpec.width + it.x() + 1 << " of "
-            << mapSpec.image_pixels() << " tiles" << endl;
+        cout << "\033[1A\033[2K\033[0G\t" << current + 1 << " of "
+            << tileMap->width * tileMap->height << " tiles" << endl;
+        ++current;
     }
     return bigBuf;    
 }
@@ -96,7 +99,7 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
     cout << endl;
     return bigBuf;
 }
-
+/*
 ImageBuf *
 SMTool::openTilemap( string fileName )
 {
@@ -139,7 +142,7 @@ SMTool::openTilemap( string fileName )
     }
 
     return buf;
-}
+}*/
 
 bool
 SMTool::consolidate(SMT *smt, TileCache &cache, ImageBuf *tilemap)
