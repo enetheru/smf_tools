@@ -8,10 +8,11 @@
 #include <vector>
 #include <stdexcept>
 
+// CONSTRUCTORS
+// ============
+
 TileMap::TileMap( )
-{
-    map.resize( 1, 0 );
-}
+{ }
 
 TileMap::TileMap( uint32_t w,  uint32_t h )
     : width( w ), height( h )
@@ -21,6 +22,16 @@ TileMap::TileMap( uint32_t w,  uint32_t h )
 
 TileMap::TileMap( std::string fileName )
 {
+    fromCSV( fileName );
+}
+
+// IMPORT
+// ======
+void
+TileMap::fromCSV( std::string fileName )
+{
+    // reset
+    width = height = 0;
     // setup
     std::string cell;
     std::stringstream line;
@@ -36,26 +47,28 @@ TileMap::TileMap( std::string fileName )
     while( std::getline( file, cell ) ) ++height;
 
     //reserve space to avoid many memory allocations
-    //FIXME this needs to be resize
-    map.reserve( width * height );
+    map.resize( width * height );
 
-    // convert csv to uint32_t
+    // convert csv
     file.seekg(0);
+    uint32_t y = 0;
     while( std::getline( file, cell ) ){
         line.str( cell );
 
         tokens.clear();
         while( std::getline( line, cell, ',' ) ) tokens.push_back( cell );
 
+        uint32_t x = 0;
         for( auto i = tokens.begin(); i != tokens.end(); ++i ){
             try {
-                map.push_back( stoi( *i ) );
+                map[x + width * y] = stoi( *i );
             }
             catch( std::invalid_argument ){
-                //FIXME this needs to use array subscript
-                map.push_back( 0 );
+                map[x + width * y] = 0;
             }
+            ++x;
         }
+        ++y;
     }
     file.close();
 }
@@ -74,12 +87,6 @@ TileMap::toCSV( )
     return ss.str();
 }
 
-uint32_t *
-TileMap::data( )
-{
-    return map.data();
-}
-
 void
 TileMap::setSize( uint32_t w, uint32_t h )
 {
@@ -87,6 +94,20 @@ TileMap::setSize( uint32_t w, uint32_t h )
     map.resize( width * height );
 }
 
+// GENERATION
+// ==========
+
+void
+TileMap::consecutive( )
+{
+    for( uint32_t i = 0; i < map.size(); ++i )
+    {
+        map[ i ] = i;
+    }
+}
+
+// ACCESS
+// ======
 uint32_t &
 TileMap::operator() ( uint32_t x, uint32_t y )
 {
@@ -98,3 +119,11 @@ TileMap::operator() ( uint32_t idx )
 {
     return map[idx];
 }
+
+uint32_t *
+TileMap::data( )
+{
+    return map.data();
+}
+
+
