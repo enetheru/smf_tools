@@ -2,34 +2,31 @@
 #define TILECACHE_H
 #include "config.h"
 
-#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <vector>
 #include <string>
 
-OIIO_NAMESPACE_USING
-using namespace std;
-
 class TileCache
 {
-    unsigned int nTiles = 0;
-    unsigned int tileSize = 0;
-    vector<unsigned int> map;
-    vector<string> filenames; 
+    uint32_t nTiles;
+    uint32_t tileSize;
+    std::vector< uint32_t > map;
+    std::vector< std::string > fileNames; 
 public:
     bool verbose, quiet;
 
     TileCache( bool v = false, bool q = false )
-        : verbose(v), quiet(q) { };
+        : verbose(v), quiet(q)
+    { };
 
-    void push_back( string );
-    void setTileSize( unsigned int t ){ tileSize = t; };
+    void push_back( std::string );
+    void setTileSize( uint32_t t ){ tileSize = t; };
 
-    unsigned int getNTiles ( ){ return nTiles; };
-    unsigned int getNFiles ( ){ return filenames.size(); };
-    unsigned int getTileSize( ){ return tileSize; };
-    ImageBuf* getTile( unsigned int );
-    ImageBuf* getOriginal( unsigned int );
+    uint32_t getNTiles ( ){ return nTiles; };
+    uint32_t getNFiles ( ){ return fileNames.size(); };
+    uint32_t getTileSize( ){ return tileSize; };
+    OpenImageIO::ImageBuf* getTile( uint32_t );
+    OpenImageIO::ImageBuf* getOriginal( uint32_t );
 };
 
 #endif //TILECACHE_H
