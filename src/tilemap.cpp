@@ -1,17 +1,22 @@
 #include "tilemap.h"
 
+
+#include <cstdint>
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <vector>
 #include <stdexcept>
 
-TileMap::TileMap( unsigned int width,  unsigned int height )
+TileMap::TileMap( )
 {
-    this->width = width;
-    this->height = height;
-    map.resize( width * height );
-    return;
+    map.resize( 1, 0 );
+}
+
+TileMap::TileMap( uint32_t w,  uint32_t h )
+    : width( w ), height( h )
+{
+    map.resize( width * height , 0 );
 }
 
 TileMap::TileMap( std::string fileName )
@@ -31,9 +36,10 @@ TileMap::TileMap( std::string fileName )
     while( std::getline( file, cell ) ) ++height;
 
     //reserve space to avoid many memory allocations
+    //FIXME this needs to be resize
     map.reserve( width * height );
 
-    // convert csv to unsigned int
+    // convert csv to uint32_t
     file.seekg(0);
     while( std::getline( file, cell ) ){
         line.str( cell );
@@ -46,6 +52,7 @@ TileMap::TileMap( std::string fileName )
                 map.push_back( stoi( *i ) );
             }
             catch( std::invalid_argument ){
+                //FIXME this needs to use array subscript
                 map.push_back( 0 );
             }
         }
@@ -57,7 +64,7 @@ std::string
 TileMap::toCSV( )
 {
     std::stringstream ss;
-    int j = 1;
+    uint32_t j = 1;
     for( auto i = map.begin(); i != map.end(); ++i ){
         ss << *i;
         if( j % width ) ss << ",";
@@ -67,20 +74,27 @@ TileMap::toCSV( )
     return ss.str();
 }
 
-unsigned int *
+uint32_t *
 TileMap::data( )
 {
     return map.data();
 }
 
-unsigned int &
-TileMap::operator() ( unsigned int x, unsigned int y )
+void
+TileMap::setSize( uint32_t w, uint32_t h )
+{
+    width = w; height = h;
+    map.resize( width * height );
+}
+
+uint32_t &
+TileMap::operator() ( uint32_t x, uint32_t y )
 {
     return map[ x + width * y ];
 }
 
-unsigned int &
-TileMap::operator() ( unsigned int idx )
+uint32_t &
+TileMap::operator() ( uint32_t idx )
 {
     return map[idx];
 }

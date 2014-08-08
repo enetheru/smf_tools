@@ -1,24 +1,27 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
+#include <cstdint>
 #include <vector>
 #include <string>
 
-class TileMap{
+class TileMap
+{
 public:
-    unsigned int width = 0;
-    unsigned int height = 0;
-    std::vector< unsigned int > map;
+    uint32_t width = 1;
+    uint32_t height = 1;
+    std::vector< uint32_t > map;
 
-    TileMap( ){ };
-    TileMap( unsigned int width, unsigned int height );
+    TileMap( );
+    TileMap( uint32_t w, uint32_t h );
     TileMap( std::string fileName );
 
     std::string toCSV();
-    unsigned int *data();
+    uint32_t *data();
+    void setSize( uint32_t w, uint32_t h );
 
-    unsigned int &operator() ( unsigned int row, unsigned int col );
-    unsigned int &operator() ( unsigned int idx );
+    uint32_t &operator() ( uint32_t y, uint32_t x );
+    uint32_t &operator() ( uint32_t idx );
 };
 
 #endif //TILEMAP_H
