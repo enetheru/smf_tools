@@ -8,17 +8,11 @@
 class TileCache
 {
     // member data
-    uint32_t nTiles;
-    uint32_t tileSize;
+    uint32_t nTiles = 0;
+    uint32_t tileSize = 32;
     std::vector< uint32_t > map;
     std::vector< std::string > fileNames; 
 public:
-    bool verbose, quiet;
-
-    //constructors
-    TileCache( bool v = false, bool q = false )
-        : verbose(v), quiet(q)
-    { };
 
     // modifications
     void push_back( std::string );

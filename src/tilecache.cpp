@@ -5,9 +5,10 @@
 #include "smt.h"
 #include "smf.h"
 
-#include <string>
+#include "elog/elog.h"
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <string>
 
 OIIO_NAMESPACE_USING;
 
@@ -128,6 +129,5 @@ TileCache::push_back( std::string fileName )
         return;
     }
 
-    if( verbose ) cout << "WARN.TileCache.push_back: unrecognised format: "
-        << fileName << std::endl;
+    LOG(ERROR) << "unrecognised format: " << fileName;
 }
