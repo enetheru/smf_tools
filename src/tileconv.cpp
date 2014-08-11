@@ -1,13 +1,14 @@
 
 #include <fstream>
 
-#include "optionparser.h"
 #include "smt.h"
 #include "smf.h"
 #include "smtool.h"
 #include "util.h"
-#include "tilecache.h"
-#include "tilemap.h"
+#include "tiledimage.h"
+
+#include "optionparser/optionparser.h"
+#include "elog/elog.h"
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
