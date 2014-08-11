@@ -5,28 +5,26 @@ add_library( tilemap tilemap.cpp )
 add_library( tilecache tilecache.cpp )
 add_library( smf smf.cpp )
 add_library( smt smt.cpp )
+add_library( tiledimage tiledimage.cpp )
+add_library( util util.cpp )
 
-add_executable( mapconv
-	mapconv.cpp
-    util.cpp )
-
+add_executable( mapconv mapconv.cpp)
 target_link_libraries( mapconv
     tilecache
     tilemap
     smf
     smt
+    util
     ${LIBS} )
 
-add_executable( tileconv
-	tileconv.cpp
-    smtool.cpp
-    util.cpp )
-
+add_executable( tileconv tileconv.cpp smtool.cpp )
 target_link_libraries( tileconv
     tilecache
     tilemap
+    tiledimage
     smf
     smt
+    util
     ${LIBS} )
 
 INSTALL(PROGRAMS
