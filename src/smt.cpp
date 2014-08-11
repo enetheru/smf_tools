@@ -13,7 +13,9 @@
 using namespace std;
 OIIO_NAMESPACE_USING;
 
-SMT *SMT::create( string fileName, bool overwrite, bool dxt1_quality ){
+SMT *
+SMT::create( string fileName, bool overwrite, bool dxt1_quality )
+{
     SMT *smt;
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
@@ -23,7 +25,9 @@ SMT *SMT::create( string fileName, bool overwrite, bool dxt1_quality ){
     return smt;
 }
 
-SMT * SMT::open( string fileName, bool dxt1_quality ){
+SMT *
+SMT::open( string fileName, bool dxt1_quality )
+{
     bool good = false;
 
     char magic[ 16 ] = "";
@@ -45,7 +49,9 @@ SMT * SMT::open( string fileName, bool dxt1_quality ){
     return NULL;
 }
 
-void SMT::reset(){
+void
+SMT::reset( )
+{
     LOG(INFO) << "Resetting " << fileName;
     // Clears content of SMT file and re-writes the header.
     init = false;
@@ -66,24 +72,25 @@ void SMT::reset(){
     init = true;
 }
 
-void SMT::setType( TileType t ){
+void
+SMT::setType( TileType t )
+{
     if( header.tileType == t)return;
     header.tileType = t;
     reset();
 }
 
-void SMT::setTileSize( uint32_t r ){
+void
+SMT::setTileSize( uint32_t r )
+{
     if( header.tileSize == r )return;
     header.tileSize = r;
     reset();
 }
 
-/*! Calculate the size of the raw format of dxt1 with 4 mip levels
- * DXT1 consists of 64 bits per 4x4 block of pixels.
- * 32x32, 16x16, 8x8, 4x4
- * 512  + 128  + 32 + 8 = 680
- */
-void SMT::calcTileBytes() {
+void
+SMT::calcTileBytes( )
+{
     tileBytes = 0;
     if(header.tileType == TileType::DXT1) {
         int mip = header.tileSize;
@@ -94,7 +101,9 @@ void SMT::calcTileBytes() {
     }
 }
 
-void SMT::load() {
+void
+SMT::load( )
+{
     ifstream inFile(fileName, ifstream::in);
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     inFile.close();
@@ -106,7 +115,7 @@ void SMT::load() {
 }
 
 std::string
-SMT::info()
+SMT::info( )
 {
     stringstream ss;
     ss << "INFO: " << fileName << endl
@@ -125,7 +134,9 @@ SMT::info()
  * TODO Code assumes that tiles are DXT1 compressed at this stage,
  * TODO abstract the internals out.
  */
-void SMT::append( ImageBuf *sourceBuf ){
+void
+SMT::append( ImageBuf *sourceBuf )
+{
 #ifdef DEBUG_IMG
     static int i = 0;    
     sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_0.tif", "tif" );
@@ -181,7 +192,9 @@ void SMT::append( ImageBuf *sourceBuf ){
     file.close();
 }
 
-ImageBuf *SMT::getTile( uint32_t n ){
+ImageBuf *
+SMT::getTile( uint32_t n )
+{
     ImageBuf *imageBuf = NULL;
     ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
 
