@@ -1,10 +1,10 @@
 // local headers
 #include "smt.h"
 #include "smf.h"
-#include "optionparser.h"
 #include "util.h"
 
-// Built in headers
+#include "optionparser/optionparser.h"
+
 #include <cstring>
 #include <string>
 #include <fstream>
