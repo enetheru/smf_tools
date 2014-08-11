@@ -2,9 +2,7 @@
 #define __SMT_H
 
 #include <OpenImageIO/imagebuf.h>
-
-OIIO_NAMESPACE_USING
-using namespace std;
+#include <cstdint>
 
 class SMT {
 public:
@@ -13,57 +11,54 @@ public:
      */
     struct Header {
         char magic[16] = "spring tilefile";   // "spring tilefile\0"
-        int version = 1;      // must be 1 for now
-        int nTiles = 0;       // total number of tiles in this file
-        int tileSize = 32;      // x and y dimension of tiles, must remain 32 for now.
-        int tileType = TileType::DXT1;     // must be 1=dxt1 for now
+        uint32_t version = 1;      // must be 1 for now
+        uint32_t nTiles = 0;       // total number of tiles in this file
+        uint32_t tileSize = 32;      // x and y dimension of tiles, must remain 32 for now.
+        uint32_t tileType = TileType::DXT1;     // must be 1=dxt1 for now
     };
 
 private:
     bool init = false;
 
     Header header;
-    unsigned int tileBytes  = 680;
+    uint32_t tileBytes = 680;
 
     // Input Files
-    string fileName    = "output.smt";
+    std::string fileName = "output.smt";
     void calcTileBytes();
-    bool load();
+    void load();
     
 public:
-    bool  verbose = false, quiet = false, dxt1_quality = false;
+    bool dxt1_quality = false;
 
     SMT( ){ };
-    SMT( string f, bool v, bool q, bool d = false )
-        : fileName( f ), verbose( v ), quiet( q ), dxt1_quality( d ){
-        init = !load();
+    SMT( std::string f, bool d = false )
+        : fileName( f ), dxt1_quality( d ){
+        load();
     };
 
-    static SMT *create( string fileName,
+    static SMT *create( std::string fileName,
             bool overwrite = false,
-            bool verbose = false,
-            bool quiet = false,
             bool dxt1_quality = false );
 
-    static SMT *open( string fileName,
-            bool verbose = false,
-            bool quiet = false,
+    static SMT *open( std::string fileName,
             bool dxt1_quality = false);
 
     bool initialised( ){ return init; };
-    bool reset( );
+    void reset( );
+    std::string info();
 
-    void setTileSize( int r      );
-    void setType   ( TileType t ); // 1=DXT1
+    void setTileSize( uint32_t r      );
+    void setType    ( TileType t ); // 1=DXT1
 
-    int getTileType( ){ return header.tileType; };
-    int getTileSize ( ){ return header.tileSize;  };
-    int getNTiles  ( ){ return header.nTiles;   };
-    int getTileBytes( ){ return tileBytes;        };
-    string getFileName( ){ return fileName;     };
+    uint32_t getTileType ( ){ return header.tileType; };
+    uint32_t getTileSize ( ){ return header.tileSize; };
+    uint32_t getNTiles   ( ){ return header.nTiles;   };
+    uint32_t getTileBytes( ){ return tileBytes;       };
+    std::string getFileName( ){ return fileName; };
 
-    ImageBuf *getTile( int tile );
-    bool append( ImageBuf * );
+    OpenImageIO::ImageBuf *getTile( uint32_t tile );
+    void append( OpenImageIO::ImageBuf * );
 };
 
 #endif //ndef __SMT_H
