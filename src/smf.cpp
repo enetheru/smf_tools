@@ -5,13 +5,15 @@
 #include <fstream>
 #include <sstream>
 
+#include "elog/elog.h"
 #include <squish.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
-OIIO_NAMESPACE_USING
 
 #include "util.h"
 
+OIIO_NAMESPACE_USING
+using namespace std;
 /// Sets the dirty flag so that we know where to re-write
 /* The dirst flag will always be the lower of it current state
  * or the requested state
@@ -28,8 +30,7 @@ int SMF::getDirty(){
 /// Creates an SMF file and returns a pointer to management class
 /*
  */
-SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet,
-       bool dxt1_quality ){
+SMF *SMF::create( string fileName, bool overwrite ){
     SMF *smf;
     fstream file;
     
@@ -38,17 +39,17 @@ SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet,
     if( file.good() && !overwrite ) return NULL;
     file.close();
 
-    if( verbose ) cout << "INFO: Creating " << fileName << endl;
+    LOG(INFO) << "INFO: Creating " << fileName;
 
     // attempt to create a new file or overwrite existing
     file.open( fileName, ios::binary | ios::out );
     if(! file.good() ){
-        if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
+        LOG(WARN) << "ERROR: Unable to write to " << fileName;
         return NULL;
     }
     file.close();
 
-    smf = new SMF( fileName, verbose, quiet, dxt1_quality );
+    smf = new SMF( fileName );
     smf->updatePtrs();
     smf->writeHeaders();
     smf->writeHeight(NULL);
@@ -66,7 +67,7 @@ SMF *SMF::create( string fileName, bool overwrite, bool verbose, bool quiet,
 /// Opens an existing SMF file and returns pointer to management class
 /*
  */
-SMF *SMF::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
+SMF *SMF::open( string fileName ){
     bool good = false;
     SMF *smf;
 
@@ -81,13 +82,13 @@ SMF *SMF::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
     }
 
     if( good ){
-        if( verbose ) cout << "INFO: Opening " << fileName << endl;
-        smf = new SMF(fileName, verbose, quiet, dxt1_quality );
+        LOG(INFO) << "INFO: Opening " << fileName;
+        smf = new SMF( fileName );
         smf->init = !smf->read();
         return smf;
     }
     else {
-        if( verbose ) cout << "INFO: Cannot open " << fileName << endl;
+        LOG(INFO) << "INFO: Cannot open " << fileName;
     }
     return NULL;
 }
@@ -98,7 +99,7 @@ SMF *SMF::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
 bool SMF::read(){
     int offset;
 
-    if( verbose ) cout << "INFO: Reading " << fileName << endl;
+    LOG(INFO) << "INFO: Reading " << fileName;
     ifstream file( fileName );
     file.seekg(0);
     file.read( (char *)&header, sizeof(SMF::Header) );
@@ -116,7 +117,7 @@ bool SMF::read(){
             headerExtras.push_back( (SMF::HeaderExtra *)headerGrass );
         }
         else {
-            if( verbose ) cout << "WARNING: unknown header type " << i << endl;
+            LOG(INFO) << "WARNING: unknown header type " << i;
             headerExtras.push_back( headerExtra );
         }
         file.seekg( offset + headerExtra->bytes);
@@ -154,9 +155,9 @@ bool SMF::read(){
 
     int eeof = offset + headerFeatures.nFeatures * sizeof(SMF::Feature);
     if( eeof > filesize ) {
-        if(! quiet ){
-            cout << "WARNING: Filesize is not large enough to contain the reported number of features. Ignoring feature data.\n";
-        }
+        LOG(WARN)
+            << "WARNING: Filesize is not large enough to contain the reported number of features. Ignoring feature data.\n";
+        
     }
     else {
         for( int i = 0; i < headerFeatures.nTypes; ++i ){
@@ -199,7 +200,7 @@ string SMF::info(){
          << "\n\tMiniPtr:      "     << int_to_hex( header.miniPtr )
          << "\n\tMetalPtr:     "     << int_to_hex( header.metalPtr )
          << "\n\tFeaturesPtr:  "     << int_to_hex( header.featuresPtr )
-         << endl;
+        ;
 
     //HeaderExtras
     if( header.nHeaderExtras ){
@@ -208,20 +209,20 @@ string SMF::info(){
                 info << "    Null Header"
                      << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
-                     << endl;
+                    ;
             }
             else if( (*i)->type == 1 ){
                 info << "    Grass"
                      << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                      << "\n\tptr:  " << int_to_hex( ((HeaderGrass *)(*i))->ptr )
-                     << endl;
+                    ;
             }
             else {
                 info << "    Unknown"
                      << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
-                     << endl;
+                    ;
             }
  
         }
@@ -232,7 +233,7 @@ string SMF::info(){
          << "\n    Tile Index Information"
          << "\n\tTile Files:  " << headerTiles.nFiles
          << "\n\tTotal tiles: " << headerTiles.nTiles
-         << endl;
+        ;
     for( int i = 0; i < headerTiles.nFiles; ++i ){
         info << "\t" << smtList[ i ] << ":" << nTiles[ i ] <<  endl;
     }  
@@ -241,7 +242,7 @@ string SMF::info(){
     info << "\n    Features Information"
          << "\n\tFeatures: " << headerFeatures.nFeatures
          << "\n\tTypes:    " << headerFeatures.nTypes
-         << endl;
+        ;
 
     // TODO put into stream the information for the rest of the file structure.
     return info.str();
@@ -277,7 +278,7 @@ bool SMF::reWrite( ){
     }
 
     updatePtrs();
-    if( verbose ) cout << "INFO: (Re-)Writing " << fileName << endl;
+    LOG(INFO) << "INFO: (Re-)Writing " << fileName;
 
     writeHeaders();
     switch( getDirty() ){
@@ -304,7 +305,7 @@ bool SMF::reWrite( ){
  * in every function we need it in.
  */
 void SMF::updateSpecs(){
-    if( verbose ) cout << "INFO: Updating Specifications" << endl;
+    LOG(INFO) << "INFO: Updating Specifications";
     // Set heightSpec.
     heightSpec.width = header.width + 1;
     heightSpec.height = header.length + 1;
@@ -348,7 +349,7 @@ void SMF::updateSpecs(){
  */
 void SMF::updatePtrs(){
     updateSpecs();
-    if( verbose ) cout << "INFO: Updating file offsets" << endl;
+    LOG(INFO) << "INFO: Updating file offsets";
 
     header.heightPtr = sizeof( SMF::Header );
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
@@ -423,7 +424,7 @@ bool SMF::addTileFile( string fileName ){
     }
 
     if(! (smt = SMT::open( fileName )) ){
-        if(! quiet ) cout << "ERROR: invalid smt file " << fileName << endl;
+        LOG(WARN) << "ERROR: invalid smt file " << fileName;
         return true;
     }
 
@@ -471,7 +472,7 @@ void SMF::addFeatures( string fileName ){
     // test the file
     fstream file( fileName, ifstream::in );
     if(! file.good() ){
-        if(! quiet ) cout << "ERROR.addFeatures: Cannot open " << fileName << endl;
+        LOG(WARN) << "ERROR.addFeatures: Cannot open " << fileName;
         return;
     }
 
@@ -515,30 +516,30 @@ void SMF::addFeatures( string fileName ){
                 stof( tokens[ 5 ] ) ); //s
         }
         catch ( std::invalid_argument ){
-            cout << "WARN.addFeatures: " << fileName << ", skipping invalid line at "
-                << n << endl;
+            LOG(WARN) << "WARN.addFeatures: " << fileName << ", skipping invalid line at "
+                << n;
             continue;
         }
 
     }
     file.close();
 
-    if( verbose )
-        cout << "INFO.addFeatures"
-            << "\n\tTypes: " << headerFeatures.nTypes
-            << "\n\tTypes: " << headerFeatures.nFeatures << endl;
+    LOG(INFO) 
+        << "INFO.addFeatures"
+        << "\n\tTypes: " << headerFeatures.nTypes
+        << "\n\tTypes: " << headerFeatures.nFeatures;
     setDirty(3);
     reWrite();
 }
 
 bool SMF::writeHeaders(){
-    if( verbose ) cout << "INFO: Writing headers\n";
+    LOG(INFO) << "INFO: Writing headers\n";
 
     header.id = rand();
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
     if(! file.good() ){
-        if(! quiet ) cout << "ERROR: unable to open file for writing\n";
+        LOG(WARN) << "ERROR: unable to open file for writing\n";
         return true;
     }
     //file.seekp(0);
@@ -568,17 +569,17 @@ bool SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf ){
 }
 
 bool SMF::writeHeight( ImageBuf *sourceBuf ){
-    if( verbose ) cout << "INFO: Writing height\n";
+    LOG(INFO) << "INFO: Writing height\n";
     return writeImage( header.heightPtr, heightSpec, sourceBuf );   
 }
 
 bool SMF::writeType( ImageBuf *sourceBuf ){
-    if( verbose ) cout << "INFO: Writing type\n";
+    LOG(INFO) << "INFO: Writing type\n";
     return writeImage( header.typePtr, typeSpec, sourceBuf );   
 }
 
 bool SMF::writeMini( ImageBuf * sourceBuf ){
-    if( verbose )cout << "INFO: Writing mini\n";
+    LOG(INFO) << "INFO: Writing mini\n";
     ImageBuf *tempBufa = channels( sourceBuf, miniSpec );    
     ImageBuf *miniBuf = scale( tempBufa, miniSpec );  
     delete tempBufa; 
@@ -617,7 +618,7 @@ bool SMF::writeMini( ImageBuf * sourceBuf ){
 
 /// Write the tile header information to the smf
 bool SMF::writeTileHeader(){
-    if( verbose ) cout << "INFO: Writing tile reference information\n";
+    LOG(INFO) << "INFO: Writing tile reference information\n";
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.tilesPtr );
 
@@ -638,7 +639,7 @@ bool SMF::writeTileHeader(){
 // write the tilemap information to the smf
 bool SMF::writeMap( TileMap *tileMap ){
     if(! tileMap ) return true;
-    if( verbose ) cout << "INFO: Writing map\n";
+    LOG(INFO) << "INFO: Writing map\n";
     std::fstream file(fileName,
             std::ios::binary | std::ios::in | std::ios::out);
     file.seekp( mapPtr );
@@ -649,13 +650,13 @@ bool SMF::writeMap( TileMap *tileMap ){
 
 /// write the metal image to the smf
 bool SMF::writeMetal( ImageBuf *sourceBuf ){
-    if( verbose ) cout << "INFO: Writing metal\n";
+    LOG(INFO) << "INFO: Writing metal\n";
     return writeImage( header.metalPtr, metalSpec, sourceBuf );   
 }
 
 /// write the feature header information to the smf
 bool SMF::writeFeaturesHeader() {
-    if( verbose ) cout << "INFO: Writing feature headers\n";
+    LOG(INFO) << "INFO: Writing feature headers\n";
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.featuresPtr );
 
@@ -673,7 +674,7 @@ bool SMF::writeFeaturesHeader() {
 }
 
 bool SMF::writeFeatures(){
-    if( verbose ) cout << "INFO: Writing features\n";
+    LOG(INFO) << "INFO: Writing features\n";
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.featuresPtr + 8 );
@@ -718,7 +719,7 @@ bool SMF::writeGrass( ImageBuf *sourceBuf ) {
     }
     else if(! sourceBuf && ! headerGrass ) return false;
 
-    if( verbose ) cout << "INFO: Writing Grass\n";
+    LOG(INFO) << "INFO: Writing Grass\n";
 
     // else create one.
     if(! headerGrass ){
@@ -793,7 +794,7 @@ ImageBuf *SMF::getMetal( ){ return getImage( header.metalPtr, metalSpec ); }
 string SMF::getFeatureTypes( ){
     stringstream list;
     for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
-        list << *i << endl;
+        list << *i;
     }
     return list.str();
 }
@@ -809,7 +810,7 @@ string SMF::getFeatures( ){
              << i->y << ","
              << i->z << ","
              << i->r << ","
-             << i->s << endl;
+             << i->s;
     }
 
     return list.str();
