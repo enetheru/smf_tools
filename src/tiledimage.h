@@ -14,12 +14,12 @@ public:
     TileMap tileMap; //< tile map
     TileCache tileCache; //< tile cache
 
-    uint32_t pw; //< pixel width
-    uint32_t ph; //< pixel height
-    uint32_t tw; //< tile width
-    uint32_t th; //< tile hight
-    uint32_t mw; //< map width
-    uint32_t mh; //< map height
+    uint32_t pw = 0; //< pixel width
+    uint32_t ph = 0; //< pixel height
+    uint32_t tw = 32; //< tile width
+    uint32_t th = 32; //< tile hight
+    uint32_t mw = 0; //< map width
+    uint32_t mh = 0; //< map height
 
     //constructors
     TiledImage( ); //< default constructor

@@ -28,7 +28,6 @@ TiledImage::TiledImage( uint32_t w, uint32_t h, uint32_t tw, uint32_t th )
     mh = ph / th;
 
     tileMap.setSize( mw, mh );
-    tileCache.setTileSize( tw );
 }
 
 // MODIFICATION
@@ -64,7 +63,6 @@ TiledImage::setTileSize( uint32_t w, uint32_t h )
     mh = ph / th;
 
     tileMap.setSize( mw, mh );
-    tileCache.setTileSize( tw );
 }
 
 void
@@ -83,11 +81,11 @@ TiledImage::mapFromCSV( std::string fileName )
 void
 TiledImage::squareFromCache( )
 {
-    tw = th = tileCache.getTileSize();
-    uint32_t root = sqrt( tileCache.getNTiles() );
-    if(! root ) root = 1;
-    mw = mh = root;
-    pw = ph = root * tw;
+    // early out
+    int tc = tileCache.getNTiles();
+    if(! tc ) return;
+    mw = mh = sqrt( tileCache.getNTiles() );
+    pw = ph = mw * tw;
     tileMap.setSize( mw, mh );
     tileMap.consecutive();
 }
@@ -137,7 +135,7 @@ TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
         uint32_t dy = iy - y1;
 
         uint32_t index = tileMap(mx, my);
-        ImageBuf *tile = tileCache.getTile( index );
+        ImageBuf *tile = tileCache.getScaled( index, tw, th );
         if( tile ){
             //copy pixel data from source tile to dest
             ROI window;

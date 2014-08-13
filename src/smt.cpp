@@ -107,9 +107,6 @@ SMT::load( )
     ifstream inFile(fileName, ifstream::in);
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     inFile.close();
-
-    LOG(INFO) << info();
-
     calcTileBytes();
     init = true;
 }

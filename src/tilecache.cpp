@@ -26,7 +26,9 @@ TileCache::getOriginal( uint32_t n )
 
     if( (smt = SMT::open( *fileName )) ){
         tileBuf = smt->getTile( n - *i + smt->getNTiles() );
-//        cout << "request: " << n << " - tiles to date: " << *i << " + tiles in file: " << smt->getNTiles() << " = " << n - *i + smt->getNTiles() << std::endl;
+        LOG(INFO) << "request: " << n << " - tiles to date: " << *i
+            << " + tiles in file: " << smt->getNTiles() << " = " 
+            << n - *i + smt->getNTiles();
         delete smt;
     }
     else if( (image = ImageInput::open( *fileName )) ){
@@ -41,26 +43,24 @@ TileCache::getOriginal( uint32_t n )
         }
     }
 
-#ifdef DEBUG_IMG
-    tileBuf->save("TileCache::getOriginal(" + std::to_string(n) + ").tif", "tif");
-#endif //DEBUG_IMG
-
     return tileBuf;
 }
 
 
 
 ImageBuf *
-TileCache::getTile( uint32_t n )
+TileCache::getScaled( uint32_t n, uint32_t w, uint32_t h )
 {
     ImageBuf *tileBuf = NULL;
     if(! (tileBuf = getOriginal( n )) )return NULL;
     ImageSpec spec = tileBuf->spec();
 
+    if( h == 0 ) h = w;
+
     // Scale the tile to match output requirements
     ImageBuf fixBuf; 
-    ROI roi( 0, tileSize, 0, tileSize, 0, 1, 0, 4 );
-    if( spec.width != roi.xend || spec.height != roi.yend ){
+    ROI roi( 0, w, 0, h, 0, 1, 0, 4 );
+    if( w != 0 || spec.width != roi.xend || spec.height != roi.yend ){
 //            printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
 //                " Resampling.\n",
 //                spec.width, spec.height, roi.xend, roi.yend );
@@ -79,15 +79,11 @@ TileCache::getTile( uint32_t n )
         fixBuf.clear();
     }
 
-#ifdef DEBUG_IMG
-    tileBuf->save("TileCache::getTile(" + std::to_string(n) + ").tif", "tif");
-#endif //DEBUG_IMG
-
     return tileBuf;
 }
 
 void
-TileCache::push_back( std::string fileName )
+TileCache::addSource( std::string fileName )
 {
     ImageInput *image;
     ImageSpec spec;
@@ -96,10 +92,6 @@ TileCache::push_back( std::string fileName )
         map.push_back( nTiles );
         fileNames.push_back( fileName );
 
-        if(! tileSize ){
-            spec = image->spec();
-            tileSize = fmin( spec.width, spec.height );
-        }
         delete image;
         return;
     }
@@ -111,9 +103,6 @@ TileCache::push_back( std::string fileName )
         map.push_back( nTiles );
         fileNames.push_back( fileName );
 
-        if(! tileSize ){
-            tileSize = smt->getTileSize();
-        }
         delete smt;
         return;
     }
@@ -123,7 +112,7 @@ TileCache::push_back( std::string fileName )
         // get the fileNames here
         std::vector< std::string > smtList = smf->getTileFileNames();
         for( auto i = smtList.begin(); i != smtList.end(); ++i ){
-            push_back( *i );
+            addSource( *i );
         }
         delete smf;
         return;

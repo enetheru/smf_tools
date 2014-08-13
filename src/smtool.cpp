@@ -21,7 +21,7 @@ namespace SMTool
     float cpet;
     int cnet, cnum;
 }
-
+/*
 ImageBuf *
 SMTool::reconstruct( TileCache &cache, TileMap *tileMap)
 {
@@ -98,7 +98,9 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
     }
     cout << endl;
     return bigBuf;
-}
+}*/
+
+
 /*
 ImageBuf *
 SMTool::openTilemap( string fileName )
