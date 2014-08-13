@@ -48,8 +48,7 @@ public:
             bool overwrite = false,
             bool dxt1_quality = false );
 
-    static SMT *open( std::string fileName,
-            bool dxt1_quality = false);
+    static SMT *open( std::string fileName );
 
     bool initialised( ){ return init; };
     void reset( );

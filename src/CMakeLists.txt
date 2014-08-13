@@ -4,7 +4,7 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 add_library( tilemap tilemap.cpp )
 add_library( tilecache tilecache.cpp )
 add_library( smf smf.cpp )
-add_library( smt smt.cpp )
+add_library( smt smt.cpp smtool.cpp )
 add_library( tiledimage tiledimage.cpp )
 add_library( util util.cpp )
 
@@ -17,7 +17,7 @@ target_link_libraries( mapconv
     util
     ${LIBS} )
 
-add_executable( tileconv tileconv.cpp smtool.cpp )
+add_executable( tileconv tileconv.cpp )
 target_link_libraries( tileconv
     tilecache
     tilemap
@@ -26,6 +26,12 @@ target_link_libraries( tileconv
     smt
     util
     ${LIBS} )
+
+add_executable( smtinfo smtinfo.cpp )
+target_link_libraries( smtinfo
+   smt
+   util
+   ${LIBS} )
 
 INSTALL(PROGRAMS
 	${CMAKE_CURRENT_BINARY_DIR}/mapconv

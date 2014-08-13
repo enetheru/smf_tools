@@ -26,7 +26,7 @@ SMT::create( string fileName, bool overwrite, bool dxt1_quality )
 }
 
 SMT *
-SMT::open( string fileName, bool dxt1_quality )
+SMT::open( string fileName )
 {
     bool good = false;
 
@@ -42,7 +42,7 @@ SMT::open( string fileName, bool dxt1_quality )
 
     SMT *smt;
     if( good ){
-        smt = new SMT( fileName, dxt1_quality );
+        smt = new SMT( fileName );
         smt->load();
         return smt;
     }
@@ -115,10 +115,10 @@ std::string
 SMT::info( )
 {
     stringstream ss;
-    ss << "INFO: " << fileName << endl
-        << "\tSMT Version: " << header.version << endl
+    ss <<  "\tFilename: " << fileName << endl
+        << "\tVersion: " << header.version << endl
         << "\tTiles: " << header.nTiles << endl
-        << "\tTileRes: " << header.tileSize << endl
+        << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
         << "\tCompression: ";
     if( header.tileType == TileType::DXT1 ) ss << "dxt1" << endl;
     else {

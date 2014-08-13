@@ -10,16 +10,7 @@
 // CONSTRUCTORS
 // ============
 TiledImage::TiledImage( )
-{
-    pw = 1024;
-    ph = 1024;
-    tw = 32;
-    th = 32;
-    mw = pw / tw;
-    mh = ph / th;
-
-    tileMap.setSize( mw, mh );
-}
+{ }
 
 TiledImage::TiledImage( uint32_t w, uint32_t h, uint32_t tw, uint32_t th )
     : pw( w ), ph( h ), tw( tw ), th( th )
@@ -36,6 +27,9 @@ TiledImage::TiledImage( uint32_t w, uint32_t h, uint32_t tw, uint32_t th )
 void
 TiledImage::setTileMap( TileMap tm )
 {
+    CHECK(! tm.width ) << "tilemap has no width";
+    CHECK(! tm.height ) << "tilemap has no height";
+
     tileMap = tm;
     mw = tileMap.width;
     mh = tileMap.height;
@@ -46,6 +40,16 @@ TiledImage::setTileMap( TileMap tm )
 void
 TiledImage::setSize( uint32_t w, uint32_t h )
 {
+    CHECK( w < tw )
+        << "pixel width must be >= tile width (" << tw << ")";
+    CHECK(! w % tw )
+        << "pixel width must be a multiple of tile width (" << tw << ")";
+
+    CHECK( h < th )
+        << "pixel height must be >= tile height (" << tw << ")";
+    CHECK(! h % th )
+        << "pixel height must be a multiple of tile height (" << tw << ")";
+
     pw = w;
     ph = h;
     mw = pw / tw;
@@ -57,6 +61,9 @@ TiledImage::setSize( uint32_t w, uint32_t h )
 void
 TiledImage::setTileSize( uint32_t w, uint32_t h )
 {
+    CHECK( w < 4 ) << "width must be >= 4";
+    CHECK( h < 4 ) << "height must be >= 4";
+    
     tw = w;
     th = h;
     mw = pw / tw;
@@ -82,9 +89,9 @@ void
 TiledImage::squareFromCache( )
 {
     // early out
-    int tc = tileCache.getNTiles();
-    if(! tc ) return;
-    mw = mh = sqrt( tileCache.getNTiles() );
+    int tc;
+    CHECK(! (tc = tileCache.getNTiles()) ) << "tileCache has no tiles";
+    mw = mh = sqrt( tc );
     pw = ph = mw * tw;
     tileMap.setSize( mw, mh );
     tileMap.consecutive();
@@ -97,15 +104,10 @@ TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
 {
     OIIO_NAMESPACE_USING;
 
-    if( x1 > pw ){
-        LOG(ERROR) << "x1 is out of range";
-        return NULL;
-    } 
-    if( y1 > pw ){
-        LOG(ERROR) << "y1 is out of range";
-    }
-    if( (x2 == 0) | (x2 > pw) ) x2 = pw;
-    if( (y2 == 0) | (y2 > pw) ) y2 = ph;
+    CHECK( x1 > pw ) << "x1 is out of range";
+    CHECK( y1 > pw ) << "y1 is out of range";
+    if( x2 == 0 || x2 > pw ) x2 = pw;
+    if( y2 == 0 || y2 > pw ) y2 = ph;
 
     ImageSpec spec( x2 - x1, y2 - y1, 4, TypeDesc::UINT8 );
     ImageBuf *dest = new ImageBuf( spec );

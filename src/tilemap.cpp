@@ -1,6 +1,6 @@
 #include "tilemap.h"
 
-
+#include "elog/elog.h"
 #include <cstdint>
 #include <fstream>
 #include <string>
@@ -37,6 +37,7 @@ TileMap::fromCSV( std::string fileName )
     std::stringstream line;
     std::vector< std::string > tokens;
     std::fstream file( fileName, std::ios::in );
+    CHECK(! file.good() ) << "cannot open " << fileName;
 
     // get dimensions
     if( std::getline( file, cell ) ) ++height;
@@ -90,6 +91,9 @@ TileMap::toCSV( )
 void
 TileMap::setSize( uint32_t w, uint32_t h )
 {
+    CHECK(! w ) << "Width must be >= 1";
+    CHECK(! h ) << "Height must be >= 1";
+
     width = w; height = h;
     map.resize( width * height );
 }
@@ -100,8 +104,7 @@ TileMap::setSize( uint32_t w, uint32_t h )
 void
 TileMap::consecutive( )
 {
-    for( uint32_t i = 0; i < map.size(); ++i )
-    {
+    for( uint32_t i = 0; i < map.size(); ++i ){
         map[ i ] = i;
     }
 }
@@ -111,12 +114,15 @@ TileMap::consecutive( )
 uint32_t &
 TileMap::operator() ( uint32_t x, uint32_t y )
 {
+    CHECK( x > width ) << x << " > " << width;
+    CHECK( y > height ) << y << " > " << height;
     return map[ x + width * y ];
 }
 
 uint32_t &
 TileMap::operator() ( uint32_t idx )
 {
+    CHECK( idx >= map.size() ) << idx << " out of range";
     return map[idx];
 }
 
