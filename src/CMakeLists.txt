@@ -27,13 +27,24 @@ target_link_libraries( tileconv
     util
     ${LIBS} )
 
+
 add_executable( smtinfo smtinfo.cpp )
 target_link_libraries( smtinfo
    smt
    util
    ${LIBS} )
 
+add_executable( smfinfo smfinfo.cpp )
+target_link_libraries( smfinfo
+   smf
+   smt
+   util
+   tilemap
+   ${LIBS} )
+
 INSTALL(PROGRAMS
 	${CMAKE_CURRENT_BINARY_DIR}/mapconv
 	${CMAKE_CURRENT_BINARY_DIR}/tileconv
+	${CMAKE_CURRENT_BINARY_DIR}/smtinfo
+	${CMAKE_CURRENT_BINARY_DIR}/smtextract
        	DESTINATION bin)
