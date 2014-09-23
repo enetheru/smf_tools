@@ -1,29 +1,28 @@
 #include "util.h"
-using namespace std;
 
-// Evaluates a string into two integers
-/* The function takes a string in the form of IxK, and assignes
- * the values of I,K to x,y.
- */
-void valxval( string s, unsigned int &x, unsigned int &y ){
-    unsigned int d;
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+void
+valxval( std::string s, uint32_t &x, uint32_t &y )
+{
+    uint32_t d;
     d = s.find_first_of( 'x', 0 );
 
-    if(d) x = stoi( s.substr( 0, d ) );
+    if(d) x = std::stoi( s.substr( 0, d ) );
     else x = 0;
 
     if(d == s.size()-1 ) y = 0;
-    else y = stoi( s.substr( d + 1, string::npos) );
+    else y = std::stoi( s.substr( d + 1, std::string::npos) );
 }
 
-/// Expand a string sequence of integers to a vector
-/*  The function takes a string in the form of comma ',' separated values.
- *  When two values are separated with a dash '-' then all the numbers
- *  inbetween are expanded.\n
- *  ie '1,2,3-7,2-5' = {1,2,3,4,5,6,7,2,3,4,5}
- */
-vector< unsigned int > expandString( const char *s ){
-    vector< unsigned int > result;
+std::vector< uint32_t >
+expandString( const char *s )
+{
+    std::vector< uint32_t > result;
 
     int start;
     bool sequence = false;
@@ -35,16 +34,16 @@ vector< unsigned int > expandString( const char *s ){
         if( begin == s) continue;
 
         if( sequence ){
-            for( int i = start; i < stoi( string( begin, s ) ); ++i )
+            for( int i = start; i < std::stoi( std::string( begin, s ) ); ++i )
                 result.push_back( i );
         }
 
         if( *(s) == '-' ){
             sequence = true;
-            start = stoi( string( begin, s ) );
+            start = std::stoi( std::string( begin, s ) );
         } else {
             sequence = false;
-            result.push_back( stoi( string( begin, s ) ) );
+            result.push_back( std::stoi( std::string( begin, s ) ) );
         }
     }
     while( *s++ != '\0' );
@@ -52,10 +51,10 @@ vector< unsigned int > expandString( const char *s ){
     return result;
 }
 
-/// Scales an ImageBuf according to a given ImageSpec
-/*  If sourceBuf is NULL then return a blank image.
- */
-ImageBuf *scale( ImageBuf *sourceBuf, ImageSpec spec ){
+OpenImageIO::ImageBuf *
+scale( OpenImageIO::ImageBuf *sourceBuf, OpenImageIO::ImageSpec spec )
+{
+    OIIO_NAMESPACE_USING;
     ImageBuf *resultBuf = NULL;
 
     // Guarantee that a correct sized image is returned regardless of the input.
@@ -81,12 +80,10 @@ ImageBuf *scale( ImageBuf *sourceBuf, ImageSpec spec ){
     return resultBuf;
 }
 
-/// re-orders the channels an imageBuf according to the imagespec
-/*  Returns a copy of the souceBuf with the number of channels in
- *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
- *  If sourceBuf is NULL then a blank image is returned.
- */
-ImageBuf *channels( ImageBuf *sourceBuf, ImageSpec spec ){
+OpenImageIO::ImageBuf *
+channels( OpenImageIO::ImageBuf *sourceBuf, OpenImageIO::ImageSpec spec )
+{
+    OIIO_NAMESPACE_USING;
     ImageBuf *resultBuf = NULL;
     int map[] = {0,1,2,3,4};
     float fill[] = {0,0,0,255};
@@ -112,8 +109,6 @@ ImageBuf *channels( ImageBuf *sourceBuf, ImageSpec spec ){
     i++;
 #endif //DEBUG_IMG
     return resultBuf;
-
-
 }
 
 

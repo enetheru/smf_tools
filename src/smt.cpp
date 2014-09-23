@@ -3,26 +3,31 @@
 
 #include "util.h"
 
-#include <fstream>
+#include "elog/elog.h"
 #include <squish.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <fstream>
 
 using namespace std;
 OIIO_NAMESPACE_USING;
 
-SMT *SMT::create( string fileName, bool overwrite, bool verbose, bool quiet, bool dxt1_quality ){
+SMT *
+SMT::create( string fileName, bool overwrite, bool dxt1_quality )
+{
     SMT *smt;
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
     
-    smt = new SMT( fileName, verbose, quiet, dxt1_quality );
-    smt->init = !smt->reset();
+    smt = new SMT( fileName, dxt1_quality );
+    smt->reset();
     return smt;
 }
 
-SMT * SMT::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
+SMT *
+SMT::open( string fileName )
+{
     bool good = false;
 
     char magic[ 16 ] = "";
@@ -37,21 +42,24 @@ SMT * SMT::open( string fileName, bool verbose, bool quiet, bool dxt1_quality ){
 
     SMT *smt;
     if( good ){
-        smt = new SMT( fileName, verbose, quiet, dxt1_quality );
-        smt->init = !smt->load();
+        smt = new SMT( fileName );
+        smt->load();
         return smt;
     }
     return NULL;
 }
 
-bool SMT::reset(){
-    if( verbose ) cout << "INFO: Resetting " << fileName << endl;
+void
+SMT::reset( )
+{
+    LOG(INFO) << "Resetting " << fileName;
     // Clears content of SMT file and re-writes the header.
+    init = false;
     fstream file( fileName, ios::binary | ios::out );
 
     if(! file.good() ){
-        if(! quiet ) cout << "ERROR: Unable to write to " << fileName << endl;
-        return true;
+        LOG(ERROR) << "Unable to write to " << fileName;
+        return;
     }
 
     //reset tile count
@@ -61,28 +69,28 @@ bool SMT::reset(){
     file.write( (char *)&header, sizeof(SMT::Header) );
     file.flush();
     file.close();
-
-    return false;   
+    init = true;
 }
 
-void SMT::setType( TileType t ){
+void
+SMT::setType( TileType t )
+{
     if( header.tileType == t)return;
     header.tileType = t;
     reset();
 }
 
-void SMT::setTileSize( int r ){
+void
+SMT::setTileSize( uint32_t r )
+{
     if( header.tileSize == r )return;
     header.tileSize = r;
     reset();
 }
 
-/*! Calculate the size of the raw format of dxt1 with 4 mip levels
- * DXT1 consists of 64 bits per 4x4 block of pixels.
- * 32x32, 16x16, 8x8, 4x4
- * 512  + 128  + 32 + 8 = 680
- */
-void SMT::calcTileBytes() {
+void
+SMT::calcTileBytes( )
+{
     tileBytes = 0;
     if(header.tileType == TileType::DXT1) {
         int mip = header.tileSize;
@@ -93,32 +101,39 @@ void SMT::calcTileBytes() {
     }
 }
 
-bool SMT::load() {
+void
+SMT::load( )
+{
     ifstream inFile(fileName, ifstream::in);
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     inFile.close();
-
-    if( verbose ) {
-        cout << "INFO: " << fileName << endl;
-        cout << "\tSMT Version: " << header.version << endl;
-        cout << "\tTiles: " << header.nTiles << endl;
-        cout << "\tTileRes: " << header.tileSize << endl;
-        cout << "\tCompression: ";
-        if( header.tileType == TileType::DXT1 )cout << "dxt1" << endl;
-        else {
-            cout << "UNKNOWN" << endl;
-        }
-    }
-
     calcTileBytes();
-    return false;
+    init = true;
+}
+
+std::string
+SMT::info( )
+{
+    stringstream ss;
+    ss <<  "\tFilename: " << fileName << endl
+        << "\tVersion: " << header.version << endl
+        << "\tTiles: " << header.nTiles << endl
+        << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
+        << "\tCompression: ";
+    if( header.tileType == TileType::DXT1 ) ss << "dxt1" << endl;
+    else {
+        ss << "UNKNOWN" << endl;
+    }
+    return ss.str();
 }
 
 /*! Append tiles to the end of the SMT file and update the count
  * TODO Code assumes that tiles are DXT1 compressed at this stage,
  * TODO abstract the internals out.
  */
-bool SMT::append( ImageBuf *sourceBuf ){
+void
+SMT::append( ImageBuf *sourceBuf )
+{
 #ifdef DEBUG_IMG
     static int i = 0;    
     sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_0.tif", "tif" );
@@ -172,11 +187,11 @@ bool SMT::append( ImageBuf *sourceBuf ){
 
     file.flush();
     file.close();
-
-    return false;
 }
 
-ImageBuf *SMT::getTile( int n ){
+ImageBuf *
+SMT::getTile( uint32_t n )
+{
     ImageBuf *imageBuf = NULL;
     ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
 

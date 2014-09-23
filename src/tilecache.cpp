@@ -1,17 +1,19 @@
+#include "config.h"
 #include "tilecache.h"
+
 #include "util.h"
 #include "smt.h"
 #include "smf.h"
 
-#include <OpenImageIO/imageio.h>
+#include "elog/elog.h"
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <string>
 
-using namespace std;
 OIIO_NAMESPACE_USING;
 
 ImageBuf *
-TileCache::getOriginal( unsigned int n )
+TileCache::getOriginal( uint32_t n )
 {
     ImageBuf *tileBuf = NULL;
     ImageInput *image = NULL;
@@ -19,12 +21,14 @@ TileCache::getOriginal( unsigned int n )
     if( n > nTiles ) return NULL;
 
     auto i = map.begin();
-    auto fileName = filenames.begin();
+    auto fileName = fileNames.begin();
     while( *i <= n ) { ++i; ++fileName; }
 
     if( (smt = SMT::open( *fileName )) ){
         tileBuf = smt->getTile( n - *i + smt->getNTiles() );
-//        cout << "request: " << n << " - tiles to date: " << *i << " + tiles in file: " << smt->getNTiles() << " = " << n - *i + smt->getNTiles() << endl;
+        LOG(INFO) << "request: " << n << " - tiles to date: " << *i
+            << " + tiles in file: " << smt->getNTiles() << " = " 
+            << n - *i + smt->getNTiles();
         delete smt;
     }
     else if( (image = ImageInput::open( *fileName )) ){
@@ -39,26 +43,24 @@ TileCache::getOriginal( unsigned int n )
         }
     }
 
-#ifdef DEBUG_IMG
-    tileBuf->save("TileCache::getOriginal(" + to_string(n) + ").tif", "tif");
-#endif //DEBUG_IMG
-
     return tileBuf;
 }
 
 
 
 ImageBuf *
-TileCache::getTile( unsigned int n )
+TileCache::getScaled( uint32_t n, uint32_t w, uint32_t h )
 {
     ImageBuf *tileBuf = NULL;
     if(! (tileBuf = getOriginal( n )) )return NULL;
     ImageSpec spec = tileBuf->spec();
 
+    if( h == 0 ) h = w;
+
     // Scale the tile to match output requirements
     ImageBuf fixBuf; 
-    ROI roi( 0, tileSize, 0, tileSize, 0, 1, 0, 4 );
-    if( spec.width != roi.xend || spec.height != roi.yend ){
+    ROI roi( 0, w, 0, h, 0, 1, 0, 4 );
+    if( w != 0 || spec.width != roi.xend || spec.height != roi.yend ){
 //            printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
 //                " Resampling.\n",
 //                spec.width, spec.height, roi.xend, roi.yend );
@@ -77,27 +79,19 @@ TileCache::getTile( unsigned int n )
         fixBuf.clear();
     }
 
-#ifdef DEBUG_IMG
-    tileBuf->save("TileCache::getTile(" + to_string(n) + ").tif", "tif");
-#endif //DEBUG_IMG
-
     return tileBuf;
 }
 
 void
-TileCache::push_back( string fileName )
+TileCache::addSource( std::string fileName )
 {
     ImageInput *image;
     ImageSpec spec;
     if( (image = ImageInput::open( fileName )) ){
         nTiles++;
         map.push_back( nTiles );
-        filenames.push_back( fileName );
+        fileNames.push_back( fileName );
 
-        if(! tileSize ){
-            spec = image->spec();
-            tileSize = fmin( spec.width, spec.height );
-        }
         delete image;
         return;
     }
@@ -107,26 +101,22 @@ TileCache::push_back( string fileName )
         if(! smt->getNTiles() ) return;
         nTiles += smt->getNTiles();
         map.push_back( nTiles );
-        filenames.push_back( fileName );
+        fileNames.push_back( fileName );
 
-        if(! tileSize ){
-            tileSize = smt->getTileSize();
-        }
         delete smt;
         return;
     }
 
     SMF *smf = NULL;
     if( (smf = SMF::open( fileName )) ){
-        // get the filenames here
-        vector<string> smtList = smf->getTileFileNames();
+        // get the fileNames here
+        std::vector< std::string > smtList = smf->getTileFileNames();
         for( auto i = smtList.begin(); i != smtList.end(); ++i ){
-            push_back( *i );
+            addSource( *i );
         }
         delete smf;
         return;
     }
 
-    if( verbose ) cout << "WARN.TileCache.push_back: unrecognised format: "
-        << fileName << endl;
+    LOG(ERROR) << "unrecognised format: " << fileName;
 }

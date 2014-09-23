@@ -1,14 +1,15 @@
 #ifndef __SMF_H
 #define __SMF_H
+#include "tilemap.h"
 
 #include <cstring>
 #include <climits>
+#include <cstdint>
 #include <string>
 #include <vector>
-using namespace std;
 
 #include <OpenImageIO/imagebuf.h>
-OIIO_NAMESPACE_USING
+
 
 /** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>
  * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4\n
@@ -123,89 +124,85 @@ class SMF {
 
     bool init = false;
     int dirty = INT_MAX;
-    string fileName;
+    std::string fileName;
 
     Header header;
-    vector<SMF::HeaderExtra *> headerExtras;
+    std::vector<SMF::HeaderExtra *> headerExtras;
 
-    ImageSpec heightSpec;
-    ImageSpec typeSpec;
+    OpenImageIO::ImageSpec heightSpec;
+    OpenImageIO::ImageSpec typeSpec;
 
     HeaderTiles headerTiles;
-    vector<string> smtList;      ///< list of smt files references
-    vector<unsigned int> nTiles; ///< number of tiles in corresponding files from smtList
-    unsigned int mapPtr;         ///< pointer to beginning of the tilemap
-    ImageSpec mapSpec;
+    std::vector< std::string > smtList;      ///< list of smt files references
+    std::vector< uint32_t > nTiles; ///< number of tiles in corresponding files from smtList
+    uint32_t mapPtr;         ///< pointer to beginning of the tilemap
+    uint32_t mapBytes = 65536;
+    uint32_t mapWidth = 128;
+    uint32_t mapHeight = 128;
 
-    ImageSpec miniSpec;
-    ImageSpec metalSpec;
+    OpenImageIO::ImageSpec miniSpec;
+    OpenImageIO::ImageSpec metalSpec;
 
     HeaderFeatures headerFeatures;
-    vector<string> featureTypes; ///< names of features
-    vector<SMF::Feature> features;
+    std::vector< std::string > featureTypes; ///< names of features
+    std::vector< SMF::Feature > features;
 
-    ImageSpec grassSpec;
+    OpenImageIO::ImageSpec grassSpec;
 
     void updatePtrs( );
     void updateSpecs( );
     void setDirty( int i );
     int getDirty();
 
-    ImageBuf *getImage( unsigned int ptr, ImageSpec spec );
-    bool    writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf = NULL );
+    OpenImageIO::ImageBuf *getImage( uint32_t ptr, OpenImageIO::ImageSpec spec );
+    bool writeImage( uint32_t ptr, OpenImageIO::ImageSpec spec,
+            OpenImageIO::ImageBuf *sourceBuf = NULL );
 
 public:
-    bool verbose = false;  ///< Print info to stdout
-    bool quiet = false;    ///< supress errros to stderr
-    bool dxt1_quality = false; ///< whethe to use slow/quality dxt1 algorithm
-
     SMF( ){ };
-    SMF( string f, bool v = false, bool q = false, bool d = false )
-        : fileName( f ), verbose( v ), quiet( q ), dxt1_quality( d )
-        { };
+    SMF( std::string f ): fileName( f )
+    { };
 
-    static SMF *create( string fileName, bool overwrite = false,
-            bool verbose = false, bool quiet = false, bool dxt1_quality = false );
-
-    static SMF *open( string fileName,
-            bool verbose = false, bool quiet = false, bool dxt1_quality = false );
+    static SMF *create( std::string fileName, bool overwrite = false );
+    static SMF *open( std::string fileName );
 
     bool read( );
-    bool saveAs( string fileName );
+    bool saveAs( std::string fileName );
     bool initialised( ){ return init; };
-    string info( );
+    std::string info( );
 
     void setSize( int width, int length );
     void setDepth( float floor, float ceiling );
     void setTileSize( int size );
     
-    bool addTileFile( string fileName );
-    void addFeature( string name, float x, float y, float z, float r, float s );
-    void addFeatures( string fileName );
+    bool addTileFile( std::string fileName );
+    void addFeature( std::string name,
+            float x, float y, float z, float r, float s );
+    void addFeatures( std::string fileName );
 
     bool writeHeaders( );
-    bool writeHeight  ( ImageBuf *buf );
-    bool writeType    ( ImageBuf *buf );
+    bool writeHeight  ( OpenImageIO::ImageBuf *buf );
+    bool writeType    ( OpenImageIO::ImageBuf *buf );
     bool writeTileHeader( );
-    bool writeMap     ( ImageBuf *buf );
-    bool writeMini    ( ImageBuf *buf );
-    bool writeMetal   ( ImageBuf *buf );
+    bool writeMap     ( TileMap *tileMap );
+    bool writeMini    ( OpenImageIO::ImageBuf *buf );
+    bool writeMetal   ( OpenImageIO::ImageBuf *buf );
     bool writeFeaturesHeader();
     bool writeFeatures();
     // Extra
-    bool writeGrass   ( ImageBuf *buf );
+    bool writeGrass   ( OpenImageIO::ImageBuf *buf );
 
     bool reWrite( );
 
-    ImageBuf *getHeight();
-    ImageBuf *getType();
-    vector<string> getTileFileNames(){ return smtList; };
-    ImageBuf *getMap();
-    ImageBuf *getMini();
-    ImageBuf *getMetal();
-    string    getFeatureTypes();
-    string    getFeatures();
-    ImageBuf *getGrass();
+    OpenImageIO::ImageBuf *getHeight();
+    OpenImageIO::ImageBuf *getType();
+    std::vector< std::string> getTileFileNames(){ return smtList; };
+    TileMap *getMap();
+    OpenImageIO::ImageBuf *getMini();
+    OpenImageIO::ImageBuf *getMetal();
+    std::string getFeatureTypes();
+    std::string getFeatures();
+    OpenImageIO::ImageBuf *getGrass();
 
 };
 #endif //__SMF_H
