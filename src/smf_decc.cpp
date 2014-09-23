@@ -98,18 +98,24 @@ int main( int argc, char **argv )
         LOG(FATAL) << "cannot open smf file";
     }
 
-
+    std::fstream file;
     OpenImageIO::ImageBuf *buf = NULL;
+    TileMap *tileMap = NULL;
+
+    LOG(INFO) << "INFO: Extracting Header Info";
+    file.open( "out_Header_Info.txt", std::ios::out );
+    file << smf->info();
+    file.close();
+
 
     LOG(INFO) << "INFO: Extracting height image";
     buf = smf->getHeight();
-    buf->write("height.tif", "tif" );
+    buf->write("out_height.tif", "tif" );
+
     LOG(INFO) << "INFO: Extracting type image";
     buf = smf->getType();
-    buf->write("type.tif", "tif");
+    buf->write("out_type.tif", "tif");
 
-    std::fstream file;
-    TileMap *tileMap = NULL;
     LOG(INFO) << "INFO: Extracting map image";
     tileMap = smf->getMap();
     file.open("out_tilemap.csv", std::ios::out );
@@ -118,24 +124,27 @@ int main( int argc, char **argv )
 
     LOG(INFO) << "INFO: Extracting mini image";
     buf = smf->getMini();
-    buf->write("mini.tif", "tif");
+    buf->write("out_mini.tif", "tif");
+
     LOG(INFO) << "INFO: Extracting metal image";
     buf = smf->getMetal();
-    buf->write("metal.tif", "tif");
+    buf->write("out_metal.tif", "tif");
+
     LOG(INFO) << "INFO: Extracting featureList";
-    file.open( "featuretypes.txt", std::ios::out );
+    file.open( "out_featuretypes.txt", std::ios::out );
     file << smf->getFeatureTypes();
     file.close();
+
     LOG(INFO) << "INFO: Extracting features";
-    file.open( "features.csv", std::ios::out );
+    file.open( "out_features.csv", std::ios::out );
     file << smf->getFeatures();
     file.close();
+
     buf = smf->getGrass();
     if( buf ){
         LOG(INFO) << "INFO: Extracting grass image";
-        buf->write("grass.tif", "tif");
+        buf->write("out_grass.tif", "tif");
     }
 
-    LOG(INFO) << smf->info();
     return 0;
 }
