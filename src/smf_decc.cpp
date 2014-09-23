@@ -1,4 +1,5 @@
 #include "smf.h"
+#include "util.h"
 
 #include "elog/elog.h"
 #include "optionparser/optionparser.h"
@@ -51,8 +52,8 @@ enum optionsIndex
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: smfinfo <smf file> \n"
-        "  eg. 'smfinfo myfile.smf'\n"},
+        "USAGE: smf_decc <smf file>\n"
+        "  eg. 'smf_decc myfile.smf'\n"},
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
     { 0, 0, 0, 0, 0, 0 }
@@ -87,12 +88,7 @@ int main( int argc, char **argv )
         exit( 1 );
     }
 
-    SMF *smf = NULL;
-    if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
-        LOG(FATAL) << "cannot open smf file";
-    }
-
-    LOG(INFO) << "\n" << smf->info();
+    LOG(INFO) << "\n" << "Not Yet Implemented";
 
     return 0;
 }

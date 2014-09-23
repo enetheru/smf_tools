@@ -8,8 +8,8 @@ add_library( smt smt.cpp smtool.cpp )
 add_library( tiledimage tiledimage.cpp )
 add_library( util util.cpp )
 
-add_executable( mapconv mapconv.cpp)
-target_link_libraries( mapconv
+add_executable( smf_cc smf_cc.cpp)
+target_link_libraries( smf_cc
     tilecache
     tilemap
     smf
@@ -17,8 +17,8 @@ target_link_libraries( mapconv
     util
     ${LIBS} )
 
-add_executable( tileconv tileconv.cpp )
-target_link_libraries( tileconv
+add_executable( smt_cc smt_cc.cpp )
+target_link_libraries( smt_cc
     tilecache
     tilemap
     tiledimage
@@ -27,15 +27,28 @@ target_link_libraries( tileconv
     util
     ${LIBS} )
 
+add_executable( smf_decc smf_decc.cpp )
+target_link_libraries( smf_decc 
+    smf
+    smt
+    util
+    tilemap
+    ${LIBS} )
 
-add_executable( smtinfo smtinfo.cpp )
-target_link_libraries( smtinfo
+add_executable( smt_decc smt_decc.cpp )
+target_link_libraries( smt_decc
+    smt
+    util
+    ${LIBS} )
+
+add_executable( smt_info smt_info.cpp )
+target_link_libraries( smt_info
    smt
    util
    ${LIBS} )
 
-add_executable( smfinfo smfinfo.cpp )
-target_link_libraries( smfinfo
+add_executable( smf_info smf_info.cpp )
+target_link_libraries( smf_info
    smf
    smt
    util
@@ -43,8 +56,10 @@ target_link_libraries( smfinfo
    ${LIBS} )
 
 INSTALL(PROGRAMS
-	${CMAKE_CURRENT_BINARY_DIR}/mapconv
-	${CMAKE_CURRENT_BINARY_DIR}/tileconv
-	${CMAKE_CURRENT_BINARY_DIR}/smtinfo
-	${CMAKE_CURRENT_BINARY_DIR}/smtextract
+	${CMAKE_CURRENT_BINARY_DIR}/smf_cc
+	${CMAKE_CURRENT_BINARY_DIR}/smf_decc
+	${CMAKE_CURRENT_BINARY_DIR}/smf_info
+	${CMAKE_CURRENT_BINARY_DIR}/smt_cc
+	${CMAKE_CURRENT_BINARY_DIR}/smt_decc
+	${CMAKE_CURRENT_BINARY_DIR}/smt_info
        	DESTINATION bin)

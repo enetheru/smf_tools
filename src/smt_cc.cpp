@@ -72,6 +72,7 @@ enum optionsIndex
     DECALS,
     FILTER,
     IFILE,
+    TILEMAP,
     // Compression
     DXT1_QUALITY,
     CNUM, CPET, CNET,
@@ -138,6 +139,8 @@ const option::Descriptor usage[] = {
     { RECONSTRUCT, 0, "", "reconstruct", Arg::Required,
         "  \t--reconstruct=tilemap.exr  \tReconstruct the extracted tiles "
             "using a tilemap." },
+    { TILEMAP, 0, "", "tilemap", Arg::None,
+        "  \t--tilemap  \t" },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
@@ -176,25 +179,58 @@ main( int argc, char **argv )
 
     // Setup
     // =====
-    bool verbose = false, quiet = false, force = false;
-    bool dxt1_quality = false;
-    unsigned int ix = 1024, iy = 1024;
-    unsigned int tileSize = 32;
-    if( options[ VERBOSE   ] ) verbose = true;
-    if( options[ QUIET     ] ) quiet = true;
-    if( options[ FORCE     ] ) force = true;
+//    bool force = false;
+//    bool dxt1_quality = false;
+//    uint32_t ix = 1024, iy = 1024;
+//    uint32_t tileSize = 32;
+//    if( options[ VERBOSE   ] ) verbose = true;
+//    if( options[ QUIET     ] ) quiet = true;
+//    if( options[ FORCE     ] ) force = true;
 
-    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
-    if( options[ IMAGESIZE ] ) valxval( options[ IMAGESIZE ].arg, ix, iy );
+//    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
+//    if( options[ IMAGESIZE ] ) valxval( options[ IMAGESIZE ].arg, ix, iy );
 
-    SMTool::verbose = verbose;
-    SMTool::quiet = quiet;
+    // Firstly define the source tiled image
+    // =======================================
+    TiledImage tiledImage;
 
-    // Import the filenames into the tilecache
-    TileCache tileCache( verbose, quiet );
-    for( int i = 0; i < parse.nonOptionsCount(); ++i )
-        tileCache.push_back( parse.nonOption( i ) );
+    // Import the filenames into the source image tilecache
+    for( int i = 0; i < parse.nonOptionsCount(); ++i ){
+        LOG(INFO) << "Adding " << parse.nonOption( i ) << " to tileCache.";
+        tiledImage.tileCache.addSource( parse.nonOption( i ) );
+    }
 
+    CHECK(! tiledImage.tileCache.getNTiles() ) << "no tiles in cache";
+
+    // Source the tilemap, or generate it
+    if( options[ TILEMAP ] ){
+        SMF *smf = NULL;
+        if( (smf = SMF::open( options[ TILEMAP ].arg )) ){
+            TileMap *tileMap = smf->getMap();
+            tiledImage.setTileMap( *tileMap );
+            delete smf;
+        }
+        if(! smf ){
+            tiledImage.mapFromCSV( options[ RECONSTRUCT ].arg );
+        }
+    }
+    else {
+        tiledImage.squareFromCache();
+    }
+
+    // test pulling large image.
+    ImageBuf *big = tiledImage.getRegion(0, 0);
+    if( big ){ 
+        big->write("test.jpg", "jpg");
+
+        fstream file("tilemap.csv", ios::out);
+        file << tiledImage.tileMap.toCSV();
+        file.close();
+    }
+
+
+
+/*
     // load up the tilemap
     TileMap *tilemap = NULL;
     if( options[ RECONSTRUCT ] ){
@@ -243,14 +279,14 @@ main( int argc, char **argv )
     tileSize = tileCache.getTileSize();
 
     //filter list
-    vector<unsigned int> filter;
+    vector<uint32_t> filter;
     if( options[ FILTER ] ){
         filter = expandString( options[ FILTER ].arg );
     }
     else {
         // have to generate a vector with consecutive numbering;
         filter.resize( tileCache.getNTiles() );
-        for(unsigned int i = 0; i < filter.size(); ++i) filter[i] = i;
+        for(uint32_t i = 0; i < filter.size(); ++i) filter[i] = i;
     }
 
     // output creation
@@ -290,8 +326,8 @@ main( int argc, char **argv )
     } //FIXME detect map size from diffuse images
 
     // MapSize & Stride
-    unsigned int mx = 2, my = 2;
-    unsigned int hstride = 0, vstride = 0;
+    uint32_t mx = 2, my = 2;
+    uint32_t hstride = 0, vstride = 0;
     if( options[ MAPSIZE ] ){
         valxval( options[ MAPSIZE ].arg, mx, my);
         hstride = mx * 512 / tileSize;
@@ -360,5 +396,6 @@ main( int argc, char **argv )
 
     delete[] options;
     delete[] buffer;
+    */
     exit( 0 );
 }

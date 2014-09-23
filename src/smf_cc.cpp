@@ -3,12 +3,15 @@
 #include "smf.h"
 #include "util.h"
 
+#include "elog/elog.h"
 #include "optionparser/optionparser.h"
 
 #include <cstring>
 #include <string>
 #include <fstream>
 
+using namespace std;
+OIIO_NAMESPACE_USING;
 
 // Argument tests //
 ////////////////////
@@ -145,7 +148,7 @@ main( int argc, char **argv )
 
     bool fail = false;
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        cout << "Unknown option: " << string( opt->name, opt->namelen ) << "\n";
+        LOG(WARN) << "Unknown option: " << string( opt->name, opt->namelen );
         fail = true;
     }
     if( fail ) exit( 1 );
@@ -158,15 +161,12 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
-    bool verbose = false,
-         quiet = false,
-         overwrite = false,
-         dxt1_quality = false;
+    bool overwrite = false;
 
     unsigned int mx = 2, my = 2;
-    if( options[ VERBOSE   ] ) verbose = true;
-    if( options[ QUIET     ] ) quiet = true;
-    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
+//    if( options[ VERBOSE   ] ) verbose = true;
+//    if( options[ QUIET     ] ) quiet = true;
+//    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
     if( options[ OVERWRITE ] ) overwrite = true;
 
     // output creation
@@ -177,10 +177,10 @@ main( int argc, char **argv )
     else
         fileName = "rename_me.smf";
 
-    smf = SMF::open( fileName, verbose, quiet, dxt1_quality );
-    if(! smf ) smf = SMF::create( fileName, overwrite, verbose, quiet, dxt1_quality );
+    smf = SMF::open( fileName );
+    if(! smf ) smf = SMF::create( fileName, overwrite );
     if(! smf ){
-        if(! quiet )cout << "ERROR.main: unable to create " << fileName << endl;
+        LOG(WARN) << "ERROR.main: unable to create " << fileName;
         exit(1);
     }
     
@@ -200,7 +200,7 @@ main( int argc, char **argv )
 
     if( options[ HEIGHT ] ){
         if(! strcmp( options[ HEIGHT ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Height\n";
+            LOG(INFO) << "INFO: Clearing Height\n";
             smf->writeHeight(NULL);
         }
         else {
@@ -211,7 +211,7 @@ main( int argc, char **argv )
 
     if( options[ TYPE ] ){
         if(! strcmp( options[ TYPE ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Type\n";
+            LOG(INFO) << "INFO: Clearing Type\n";
             smf->writeType(NULL);
         }
         else {
@@ -224,7 +224,7 @@ main( int argc, char **argv )
     TileMap *tileMap = NULL;
     if( options[ MAP ] ){
         if(! strcmp( options[ MAP ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Map\n";
+            LOG(INFO) << "INFO: Clearing Map\n";
             smf->writeMap(NULL);
         }
         else if( (smfTemp = SMF::open( options[ MAP ].arg )) ){
@@ -239,7 +239,7 @@ main( int argc, char **argv )
 
     if( options[ MINI ] ){
         if(! strcmp( options[ MINI ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Mini\n";
+            LOG(INFO) << "INFO: Clearing Mini\n";
             smf->writeMini(NULL);
         }
         else {
@@ -250,7 +250,7 @@ main( int argc, char **argv )
 
     if( options[ METAL ] ){
         if(! strcmp( options[ METAL ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Metal\n";
+            LOG(INFO) << "INFO: Clearing Metal\n";
             smf->writeMetal(NULL);
         }
         else {
@@ -261,7 +261,7 @@ main( int argc, char **argv )
 
     if( options[ FEATURES ] ){
         if(! strcmp( options[ FEATURES ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Features\n";
+            LOG(INFO) << "INFO: Clearing Features\n";
             smf->addFeatures("CLEAR");
         }
         else {
@@ -271,7 +271,7 @@ main( int argc, char **argv )
 
     if( options[ GRASS ] ){
         if(! strcmp( options[ GRASS ].arg, "CLEAR" ) ){
-            if( verbose ) cout << "INFO: Clearing Grass\n";
+            LOG(INFO) << "INFO: Clearing Grass\n";
             smf->writeGrass(NULL);
         }
         else {
@@ -286,45 +286,40 @@ main( int argc, char **argv )
     std::fstream file;
     ImageBuf *buf = NULL;
     if( options[ EXTRACT ] ){
-        if( verbose ) cout << "INFO: Extracting height image" << endl;
+        LOG(INFO) << "INFO: Extracting height image";
         buf = smf->getHeight();
         buf->write("height.tif", "tif" );
-        if( verbose ) cout << "INFO: Extracting type image" << endl;
+        LOG(INFO) << "INFO: Extracting type image";
         buf = smf->getType();
         buf->write("type.tif", "tif");
 
-        if( verbose ) cout << "INFO: Extracting map image" << endl;
+        LOG(INFO) << "INFO: Extracting map image";
         tileMap = smf->getMap();
         file.open("out_tilemap.csv", ios::out );
         file << tileMap->toCSV();
         file.close();
 
-        if( verbose ) cout << "INFO: Extracting mini image" << endl;
+        LOG(INFO) << "INFO: Extracting mini image";
         buf = smf->getMini();
         buf->write("mini.tif", "tif");
-        if( verbose ) cout << "INFO: Extracting metal image" << endl;
+        LOG(INFO) << "INFO: Extracting metal image";
         buf = smf->getMetal();
         buf->write("metal.tif", "tif");
-        if( verbose ) cout << "INFO: Extracting featureList" << endl;
+        LOG(INFO) << "INFO: Extracting featureList";
         file.open( "featuretypes.txt", ios::out );
         file << smf->getFeatureTypes();
         file.close();
-        if( verbose ) cout << "INFO: Extracting features" << endl;
+        LOG(INFO) << "INFO: Extracting features";
         file.open( "features.csv", ios::out );
         file << smf->getFeatures();
         file.close();
         buf = smf->getGrass();
         if( buf ){
-            if( verbose ) cout << "INFO: Extracting grass image" << endl;
+            LOG(INFO) << "INFO: Extracting grass image";
             buf->write("grass.tif", "tif");
         }
     }
 
-    if( verbose ) cout << smf->info();
+    LOG(INFO) << smf->info();
     return 0;
-}
-
-void process_csv( string fileName )
-{
-    return;
 }

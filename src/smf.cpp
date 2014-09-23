@@ -186,20 +186,27 @@ string SMF::info(){
          << "\n\tID:      " << header.id
 
          << "\n\n\tWidth:          " << header.width
+         << " | " << header.width / 64
          << "\n\tLength:         "   << header.length 
+         << " | " << header.length / 64
          << "\n\tSquareSize:     "   << header.squareWidth 
          << "\n\tTexelPerSquare: "   << header.squareTexels 
          << "\n\tTileSize:       "   << header.tileSize 
          << "\n\tMinHeight:      "   << header.floor 
          << "\n\tMaxHeight:      "   << header.ceiling 
 
-         << "\n\n\tHeightPtr:    "   << int_to_hex( header.heightPtr )
-         << "\n\tTypePtr:      "     << int_to_hex( header.typePtr )
-         << "\n\tTilesPtr:     "     << int_to_hex( header.tilesPtr )
-         << "\n\tMapPtr:       "     << int_to_hex( mapPtr )
-         << "\n\tMiniPtr:      "     << int_to_hex( header.miniPtr )
-         << "\n\tMetalPtr:     "     << int_to_hex( header.metalPtr )
-         << "\n\tFeaturesPtr:  "     << int_to_hex( header.featuresPtr )
+         << "\n\n\tHeightPtr:   "   << int_to_hex( header.heightPtr )
+         << " " << header.width+1 << "x" << header.length+1 << ":" << 1 << " UINT16"
+         << "\n\tTypePtr:     "     << int_to_hex( header.typePtr )
+         << " " << header.width << "x" << header.length << ":" << 1 << " UINT8"
+         << "\n\tTilesPtr:    "     << int_to_hex( header.tilesPtr )
+         << "\n\tMapPtr:      "     << int_to_hex( mapPtr )
+         << " " << header.width / 4 << "x" << header.length / 4 << ":" << 1 << " UINT32"
+         << "\n\tMiniPtr:     "     << int_to_hex( header.miniPtr )
+         << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
+         << "\n\tMetalPtr:    "     << int_to_hex( header.metalPtr )
+         << " " << header.width << "x" << header.length << ":" << 1 << "  UINT8"
+         << "\n\tFeaturesPtr: "     << int_to_hex( header.featuresPtr )
         ;
 
     //HeaderExtras
@@ -235,7 +242,7 @@ string SMF::info(){
          << "\n\tTotal tiles: " << headerTiles.nTiles
         ;
     for( int i = 0; i < headerTiles.nFiles; ++i ){
-        info << "\t" << smtList[ i ] << ":" << nTiles[ i ] <<  endl;
+        info << "\n\t    " << smtList[ i ] << ":" << nTiles[ i ] <<  endl;
     }  
 
     // Features Information
