@@ -65,8 +65,6 @@ enum optionsIndex
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
     // Compression
     DXT1_QUALITY, 
-    // Deconstruction
-    EXTRACT, 
 };
 
 const option::Descriptor usage[] = {
@@ -124,15 +122,12 @@ const option::Descriptor usage[] = {
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nDECONSTRUCTION:" },
-    { EXTRACT, 0, "e", "extract", Arg::None,
-        "  -e,  \t--extract  \tpulls all information out of the smf in more easily understood forms, ie images and text" },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nNOTES:\n"
         "Passing 'CLEAR' to the options that take a paremeter will clear the contents of that part of the file" },
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
-        "$ mapconv -vef mymap.smf\n"
         "$ mapconv -vf mymap.smf --features CLEAR --type CLEAR" },
     {0,0,0,0,0,0}
 };
@@ -282,43 +277,6 @@ main( int argc, char **argv )
 
     /// Finalise any pending changes.
     smf->reWrite();
-
-    std::fstream file;
-    ImageBuf *buf = NULL;
-    if( options[ EXTRACT ] ){
-        LOG(INFO) << "INFO: Extracting height image";
-        buf = smf->getHeight();
-        buf->write("height.tif", "tif" );
-        LOG(INFO) << "INFO: Extracting type image";
-        buf = smf->getType();
-        buf->write("type.tif", "tif");
-
-        LOG(INFO) << "INFO: Extracting map image";
-        tileMap = smf->getMap();
-        file.open("out_tilemap.csv", ios::out );
-        file << tileMap->toCSV();
-        file.close();
-
-        LOG(INFO) << "INFO: Extracting mini image";
-        buf = smf->getMini();
-        buf->write("mini.tif", "tif");
-        LOG(INFO) << "INFO: Extracting metal image";
-        buf = smf->getMetal();
-        buf->write("metal.tif", "tif");
-        LOG(INFO) << "INFO: Extracting featureList";
-        file.open( "featuretypes.txt", ios::out );
-        file << smf->getFeatureTypes();
-        file.close();
-        LOG(INFO) << "INFO: Extracting features";
-        file.open( "features.csv", ios::out );
-        file << smf->getFeatures();
-        file.close();
-        buf = smf->getGrass();
-        if( buf ){
-            LOG(INFO) << "INFO: Extracting grass image";
-            buf->write("grass.tif", "tif");
-        }
-    }
 
     LOG(INFO) << smf->info();
     return 0;

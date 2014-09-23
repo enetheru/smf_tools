@@ -114,8 +114,8 @@ TileMap::consecutive( )
 uint32_t &
 TileMap::operator() ( uint32_t x, uint32_t y )
 {
-    CHECK( x > width ) << x << " > " << width;
-    CHECK( y > height ) << y << " > " << height;
+    CHECK( x < width ) << x << " > " << width;
+    CHECK( y < height ) << y << " > " << height;
     return map[ x + width * y ];
 }
 

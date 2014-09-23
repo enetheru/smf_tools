@@ -1,8 +1,13 @@
 #include "smf.h"
 #include "util.h"
+#include "tilemap.h"
 
 #include "elog/elog.h"
 #include "optionparser/optionparser.h"
+
+#include <OpenImageIO/imagebuf.h>
+#include <fstream>
+#include <string>
 
 // Argument tests //
 ////////////////////
@@ -88,7 +93,49 @@ int main( int argc, char **argv )
         exit( 1 );
     }
 
-    LOG(INFO) << "\n" << "Not Yet Implemented";
+    SMF *smf = NULL;
+    if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
+        LOG(FATAL) << "cannot open smf file";
+    }
 
+
+    OpenImageIO::ImageBuf *buf = NULL;
+
+    LOG(INFO) << "INFO: Extracting height image";
+    buf = smf->getHeight();
+    buf->write("height.tif", "tif" );
+    LOG(INFO) << "INFO: Extracting type image";
+    buf = smf->getType();
+    buf->write("type.tif", "tif");
+
+    std::fstream file;
+    TileMap *tileMap = NULL;
+    LOG(INFO) << "INFO: Extracting map image";
+    tileMap = smf->getMap();
+    file.open("out_tilemap.csv", std::ios::out );
+    file << tileMap->toCSV();
+    file.close();
+
+    LOG(INFO) << "INFO: Extracting mini image";
+    buf = smf->getMini();
+    buf->write("mini.tif", "tif");
+    LOG(INFO) << "INFO: Extracting metal image";
+    buf = smf->getMetal();
+    buf->write("metal.tif", "tif");
+    LOG(INFO) << "INFO: Extracting featureList";
+    file.open( "featuretypes.txt", std::ios::out );
+    file << smf->getFeatureTypes();
+    file.close();
+    LOG(INFO) << "INFO: Extracting features";
+    file.open( "features.csv", std::ios::out );
+    file << smf->getFeatures();
+    file.close();
+    buf = smf->getGrass();
+    if( buf ){
+        LOG(INFO) << "INFO: Extracting grass image";
+        buf->write("grass.tif", "tif");
+    }
+
+    LOG(INFO) << smf->info();
     return 0;
 }
