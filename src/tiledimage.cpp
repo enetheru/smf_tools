@@ -27,8 +27,8 @@ TiledImage::TiledImage( uint32_t w, uint32_t h, uint32_t tw, uint32_t th )
 void
 TiledImage::setTileMap( TileMap tm )
 {
-    CHECK(! tm.width ) << "tilemap has no width";
-    CHECK(! tm.height ) << "tilemap has no height";
+    CHECK( tm.width ) << "tilemap has no width";
+    CHECK( tm.height ) << "tilemap has no height";
 
     tileMap = tm;
     mw = tileMap.width;
@@ -89,8 +89,8 @@ void
 TiledImage::squareFromCache( )
 {
     // early out
-    int tc;
-    CHECK(! (tc = tileCache.getNTiles()) ) << "tileCache has no tiles";
+    int tc = tileCache.getNTiles();
+    CHECK( tc ) << "tileCache has no tiles";
     mw = mh = sqrt( tc );
     pw = ph = mw * tw;
     tileMap.setSize( mw, mh );
@@ -104,8 +104,8 @@ TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
 {
     OIIO_NAMESPACE_USING;
 
-    CHECK( x1 > pw ) << "x1 is out of range";
-    CHECK( y1 > pw ) << "y1 is out of range";
+    CHECK( x1 < pw ) << "x1 is out of range";
+    CHECK( y1 < pw ) << "y1 is out of range";
     if( x2 == 0 || x2 > pw ) x2 = pw;
     if( y2 == 0 || y2 > pw ) y2 = ph;
 

@@ -200,7 +200,8 @@ main( int argc, char **argv )
         tiledImage.tileCache.addSource( parse.nonOption( i ) );
     }
 
-    CHECK(! tiledImage.tileCache.getNTiles() ) << "no tiles in cache";
+    CHECK( tiledImage.tileCache.getNTiles() )
+        << tiledImage.tileCache.getNTiles() << " tiles in cache";
 
     // Source the tilemap, or generate it
     if( options[ TILEMAP ] ){
