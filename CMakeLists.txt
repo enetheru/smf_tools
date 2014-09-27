@@ -7,6 +7,12 @@ find_package(OpenImageIO REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(libSquish)
 
+if (NOT LIBSQUISH_FOUND)
+	add_subdirectory(src/squish)
+	set(LIBSQUISH_LIBRARIES "squish")
+	include_directories(src/squish)
+endif()
+
 include_directories(${OpenImageIO_INCLUDE_DIRS})
 include_directories(${NVTT_INCLUDE_DIRS})
 
