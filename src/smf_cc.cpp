@@ -90,7 +90,7 @@ const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
         "\nSPECIFICATIONS:" },
     { MAPSIZE, 0, "", "mapsize", Arg::Required,
-        "\t--mapsize=XxY  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
+        "\t--mapsize=XxZ  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
     { FLOOR, 0, "y", "floor", Arg::Numeric,
         "  -y,  \t--floor=1.0f  \tMinimum height of the map." },
     { CEILING, 0, "Y", "ceiling", Arg::Numeric,
@@ -112,6 +112,7 @@ const option::Descriptor usage[] = {
         "\t--metal=metal.tif  \t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
     { FEATURES, 0, "", "features", Arg::Required,
         "\t--features=list.csv  \tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
+//FIXME better description of feature list specification
     { GRASS, 0, "", "grass", Arg::Required,
         "\t--grass=grass.tif  \t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
 
@@ -119,9 +120,6 @@ const option::Descriptor usage[] = {
         "\nCOMPRESSION:" },
     { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None,
         "\t--dxt1-quality  \tUse slower but better analytics when compressing DXT1 textures" },
-
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nDECONSTRUCTION:" },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nNOTES:\n"
@@ -141,6 +139,15 @@ main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
+    // setup logging level.
+    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    if( options[ VERBOSE ] )
+        LOG::SetDefaultLoggerLevel( LOG::INFO );
+
+    if( options[ QUIET ] )
+        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+
+    // parse options
     bool fail = false;
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         LOG(WARN) << "Unknown option: " << string( opt->name, opt->namelen );
@@ -159,8 +166,6 @@ main( int argc, char **argv )
     bool overwrite = false;
 
     unsigned int mx = 2, my = 2;
-//    if( options[ VERBOSE   ] ) verbose = true;
-//    if( options[ QUIET     ] ) quiet = true;
 //    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
     if( options[ OVERWRITE ] ) overwrite = true;
 

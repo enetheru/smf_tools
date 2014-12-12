@@ -75,6 +75,13 @@ int main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
+    // setup logging level.
+    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    if( options[ VERBOSE ] )
+        LOG::SetDefaultLoggerLevel( LOG::INFO );
+    if( options[ QUIET ] )
+        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         LOG(INFO) << "Unknown option: " << std::string( opt->name,opt->namelen );

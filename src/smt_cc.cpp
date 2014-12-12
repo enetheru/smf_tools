@@ -161,6 +161,14 @@ main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
+    // setup logging level.
+    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    if( options[ VERBOSE ] )
+        LOG::SetDefaultLoggerLevel( LOG::INFO );
+    if( options[ QUIET ] )
+        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+
+    // Parse Options
     bool fail = false;
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         std::cout << "Unknown option: "
@@ -183,8 +191,6 @@ main( int argc, char **argv )
 //    bool dxt1_quality = false;
 //    uint32_t ix = 1024, iy = 1024;
 //    uint32_t tileSize = 32;
-//    if( options[ VERBOSE   ] ) verbose = true;
-//    if( options[ QUIET     ] ) quiet = true;
 //    if( options[ FORCE     ] ) force = true;
 
 //    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
