@@ -12,6 +12,7 @@ before_script:
   - git clone -b RB-1.4 https://github.com/OpenImageIO/oiio.git
   - cd oiio
   - sudo make -e dist_dir= INSTALLDIR=/usr
+  - cd ..
 script:
   - cmake -DCMAKE_CXX_COMPILER=g++-4.7 -DCMAKE_C_COMPILER=gcc-4.7
   - make
