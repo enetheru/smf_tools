@@ -8,7 +8,8 @@ before_script:
   - sudo add-apt-repository ppa:boost-latest/ppa --yes
   - sudo add-apt-repository ppa:irie/openimageio --yes
   - sudo apt-get update -qq
-  - yes | sudo apt-get upgrade
+  - yes | sudo apt-get dist-upgrade
+  - sudo apt-get install libboost-all-dev
   - sudo apt-get build-dep openimageio
   - sudo apt-get install cmake git
   - git clone -b RB-1.4 https://github.com/OpenImageIO/oiio.git
