@@ -11,7 +11,8 @@ before_script:
   - sudo apt-get install -y gcc-4.7 g++-4.7 cmake git
   - git clone -b RB-1.4 https://github.com/OpenImageIO/oiio.git
   - cd oiio
-  - sudo make -e dist_dir= INSTALLDIR=/usr
+  - git apply ../oiio.patch
+  - sudo make USE_QT=0 USE_OPENGL=0 USE_PYTHON=0 USE_FIELD3D=0 USE_OPENJPEG=0 USE_GIF=0 USE_OCIO=0 USE_OPENSSL=0 USE_LIBRAW=0 NOTHREADS=0 OIIO_BUILD_TOOLS=0 OIIO_BUILD_TESTS=0 -e dist_dir= INSTALLDIR=/usr
   - cd ..
 script:
   - cmake -DCMAKE_CXX_COMPILER=g++-4.7 -DCMAKE_C_COMPILER=gcc-4.7
