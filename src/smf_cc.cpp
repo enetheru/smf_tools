@@ -54,7 +54,7 @@ struct Arg: public option::Arg
 enum optionsIndex
 {
     UNKNOWN,
-    VERBOSE, HELP, QUIET, 
+    VERBOSE, HELP, QUIET,
     //File Operations
     IFILE, OVERWRITE,
     // Specification
@@ -64,7 +64,7 @@ enum optionsIndex
     // Source materials
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
     // Compression
-    DXT1_QUALITY, 
+    DXT1_QUALITY,
 };
 
 const option::Descriptor usage[] = {
@@ -133,35 +133,45 @@ const option::Descriptor usage[] = {
 int
 main( int argc, char **argv )
 {
+    // Options Parsing
+    // ===============
+    bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
     option::Option* options = new option::Option[ stats.options_max ];
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
-    // setup logging level.
-    LOG::SetDefaultLoggerLevel( LOG::WARN );
-    if( options[ VERBOSE ] )
-        LOG::SetDefaultLoggerLevel( LOG::INFO );
-
-    if( options[ QUIET ] )
-        LOG::SetDefaultLoggerLevel( LOG::CHECK );
-
-    // parse options
-    bool fail = false;
-    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG(WARN) << "Unknown option: " << string( opt->name, opt->namelen );
-        fail = true;
-    }
-    if( fail ) exit( 1 );
-    if( parse.error() ) exit( 1 );
-
-
     if( options[ HELP ] || argc == 0 ){
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
         exit( 1 );
     }
+
+    // setup logging level.
+    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    if( options[ VERBOSE ] )
+        LOG::SetDefaultLoggerLevel( LOG::INFO );
+    if( options[ QUIET ] )
+        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+
+    // unknown options
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
+        LOG(WARN) << "Unknown option: " << string( opt->name, opt->namelen );
+        fail = true;
+    }
+
+    // non options
+    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
+        LOG(WARN) << "Superflous Argument: " << parse.nonOption( i );
+        fail = true;
+    }
+
+    if( fail || parse.error() ){
+        LOG( ERROR ) << "Options parsing";
+        exit( 1 );
+    }
+    // end option parsing
 
     bool overwrite = false;
 
@@ -183,7 +193,7 @@ main( int argc, char **argv )
         LOG(WARN) << "ERROR.main: unable to create " << fileName;
         exit(1);
     }
-    
+
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf->addTileFile( parse.nonOption( i ) );
     }

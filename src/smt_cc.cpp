@@ -107,7 +107,7 @@ const option::Descriptor usage[] = {
         "\t--imagesize=XxY  \tScale the resultant extraction to this size" },
     { STRIDE, 0, "", "stride", Arg::Numeric,
         "\t--stride=N  \tNumber of tiles horizontally" },
-    
+
     { UNKNOWN, 0, "", "", Arg::None,
         "\nCREATION:" },
     { FILTER, 0, "", "filter", Arg::Required,
@@ -155,11 +155,18 @@ main( int argc, char **argv )
 {
     // Option parsing
     // ==============
+    bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
     option::Option* options = new option::Option[ stats.options_max ];
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
+
+    if( options[ HELP ] || argc == -1 ) {
+        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+        option::printUsage( std::cout, usage, columns );
+        exit( 1 );
+    }
 
     // setup logging level.
     LOG::SetDefaultLoggerLevel( LOG::WARN );
@@ -168,22 +175,23 @@ main( int argc, char **argv )
     if( options[ QUIET ] )
         LOG::SetDefaultLoggerLevel( LOG::CHECK );
 
-    // Parse Options
-    bool fail = false;
+    // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        std::cout << "Unknown option: "
-            << std::string( opt->name,opt->namelen ) << endl;
+        LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
         fail = true;
     }
-    if( fail ) exit( 1 );
 
-    if( parse.error() ) exit( 1 );
+    // non options
+    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
+        LOG( WARN ) << "Superflous Argument: " << parse.nonOption( i );
+        fail = true;
+    }
 
-    if( options[ HELP ] || argc == 0 ) {
-        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
-        option::printUsage( std::cout, usage, columns );
+    if( fail || parse.error() ){
+        LOG( ERROR ) << "Options parsing";
         exit( 1 );
     }
+    // end of options parsing
 
     // Setup
     // =====
@@ -227,7 +235,7 @@ main( int argc, char **argv )
 
     // test pulling large image.
     ImageBuf *big = tiledImage.getRegion(0, 0);
-    if( big ){ 
+    if( big ){
         big->write("test.jpg", "jpg");
 
         fstream file("tilemap.csv", ios::out);

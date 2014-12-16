@@ -47,6 +47,8 @@ struct Arg: public option::Arg
 enum optionsIndex
 {
     UNKNOWN,
+    VERBOSE,
+    QUIET,
     HELP
 };
 
@@ -59,16 +61,23 @@ const option::Descriptor usage[] = {
     { 0, 0, 0, 0, 0, 0 }
 };
 
-
-int main( int argc, char **argv )
+int
+main( int argc, char **argv )
 {
     // Option parsing
     // ==============
+    bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
     option::Option* options = new option::Option[ stats.options_max ];
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
+
+    if( options[ HELP ] || argc == 0 ) {
+        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+        option::printUsage( std::cout, usage, columns );
+        exit( 1 );
+    }
 
     // setup logging level
     LOG::SetDefaultLoggerLevel( LOG::WARN );
@@ -79,27 +88,34 @@ int main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG(INFO) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        fail = true;
     }
 
     // non options
-    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG(INFO) << "Unknown Option " << parse.nonOption( i );
+    if( parse.nonOptionsCount() == 0 ){
+        LOG( WARN ) << "Missing input filename";
+        fail = true;
     }
 
-    if( parse.error() ) exit( 1 );
+    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
+        LOG( WARN ) << "Superflous argument: " << parse.nonOption( i );
+        fail = true;
+    }
 
-    if( options[ HELP ] || argc == 0 ) {
-        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
-        option::printUsage( std::cout, usage, columns );
+    if( fail || parse.error() ){
+        LOG( ERROR ) << "Options parsing.";
         exit( 1 );
     }
+    // end of options parsing
 
     SMT *smt = NULL;
     if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
-        LOG(FATAL) << "cannot open smt file";
+        LOG( ERROR ) << "cannot open smt file";
+        exit( 1 );
     }
 
+//FIXME fill out
     LOG(INFO) << "\n" << smt->info();
 
     return 0;
