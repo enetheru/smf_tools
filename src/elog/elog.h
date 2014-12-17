@@ -11,7 +11,7 @@ namespace LOG {
 
 struct NullStream {
   template <typename T>
-  NullStream& operator<<(T) const {
+  const NullStream& operator<<(T) const {
     return *this;
   }
 };
