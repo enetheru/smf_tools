@@ -12,7 +12,7 @@ su vagrant
 
 mkdir -p ~/git/enetheru
 cd ~/git/enetheru
-git clone https://github.com/enetheru/MapConv.git
+git clone https://github.com/enetheru/smf_tools.git
 
 mkdir -p ~/git/OpenImageIO
 cd ~/git/OpenImageIO
@@ -21,7 +21,7 @@ cd oiio
 git apply ~/git/enetheru/MapConv/oiio.patch
 sudo make USE_QT=0 USE_OPENGL=0 USE_PYTHON=0 USE_FIELD3D=0 USE_OPENJPEG=0 USE_GIF=0 USE_OCIO=0 USE_OPENSSL=0 USE_LIBRAW=0 NOTHREADS=0 OIIO_BUILD_TOOLS=0 OIIO_BUILD_TESTS=0 -e dist_dir= INSTALLDIR=/usr
 
-cd ~/git/enetheru/MapConv
+cd ~/git/enetheru/smf_tools
 mkdir build
 cd build
 cmake ../ -DCMAKE_INSTALL_PREFIX:PATH=/usr
