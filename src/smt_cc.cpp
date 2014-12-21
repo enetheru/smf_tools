@@ -234,7 +234,7 @@ main( int argc, char **argv )
     }
 
     // test pulling large image.
-    ImageBuf *big = tiledImage.getRegion(0, 0);
+    ImageBuf *big = tiledImage.getRegion();
     if( big ){
         big->write("test.jpg", "jpg");
 

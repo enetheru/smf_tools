@@ -6,11 +6,11 @@ do
         echo -n "TEST: $i "
         cd $i
         ./test.sh &> log.txt
-        cd ../
         if [ $? -eq 0 ]; then
             echo OK
         else
             echo FAIL
         fi
+        cd ../
     fi
 done

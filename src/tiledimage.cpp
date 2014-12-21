@@ -13,12 +13,10 @@ TiledImage::TiledImage( )
 { }
 
 TiledImage::TiledImage( uint32_t w, uint32_t h, uint32_t tw, uint32_t th )
-    : pw( w ), ph( h ), tw( tw ), th( th )
 {
-    mw = pw / tw;
-    mh = ph / th;
-
-    tileMap.setSize( mw, mh );
+    setTileSize( tw, th );
+    setSize( w, h );
+    tileMap.setSize( w / tw, h / th );
 }
 
 // MODIFICATION
@@ -31,55 +29,47 @@ TiledImage::setTileMap( TileMap tm )
     CHECK( tm.height ) << "tilemap has no height";
 
     tileMap = tm;
-    mw = tileMap.width;
-    mh = tileMap.height;
-    pw = mw * tw;
-    ph = mh * th;
+    w = tileMap.width * tw;
+    h = tileMap.height * th;
 }
 
 void
 TiledImage::setSize( uint32_t w, uint32_t h )
 {
-    CHECK( w < tw )
+    CHECK( w >= tw )
         << "pixel width must be >= tile width (" << tw << ")";
     CHECK(! w % tw )
         << "pixel width must be a multiple of tile width (" << tw << ")";
 
-    CHECK( h < th )
-        << "pixel height must be >= tile height (" << tw << ")";
+    CHECK( h >= th )
+        << "pixel height must be >= tile height (" << th << ")";
     CHECK(! h % th )
-        << "pixel height must be a multiple of tile height (" << tw << ")";
+        << "pixel height must be a multiple of tile height (" << th << ")";
 
-    pw = w;
-    ph = h;
-    mw = pw / tw;
-    mh = ph / th;
+    this->w = w;
+    this->h = h;
 
-    tileMap.setSize( mw, mh );
+    tileMap.setSize( w / tw, h / th );
 }
 
 void
 TiledImage::setTileSize( uint32_t w, uint32_t h )
 {
-    CHECK( w < 4 ) << "width must be >= 4";
-    CHECK( h < 4 ) << "height must be >= 4";
+    CHECK(! w % 4 && w > 0 ) << "width must be a multiple of four and greater than zero";
+    CHECK(! h % 4 && h > 0 ) << "height must be a multiple of four and greater than zero";
     
     tw = w;
     th = h;
-    mw = pw / tw;
-    mh = ph / th;
-
-    tileMap.setSize( mw, mh );
+    this->w = tw * tileMap.width;
+    this->h = th * tileMap.height;
 }
 
 void
 TiledImage::mapFromCSV( std::string fileName )
 {
     tileMap.fromCSV( fileName );
-    mw = tileMap.width;
-    mh = tileMap.height;
-    pw = mw * tw;
-    ph = mh * th;
+    w = tileMap.width * tw;
+    h = tileMap.height * th;
 }
 
 
@@ -88,13 +78,14 @@ TiledImage::mapFromCSV( std::string fileName )
 void
 TiledImage::squareFromCache( )
 {
-    // early out
     int tc = tileCache.getNTiles();
     CHECK( tc ) << "tileCache has no tiles";
-    mw = mh = sqrt( tc );
-    pw = ph = mw * tw;
-    tileMap.setSize( mw, mh );
+    
+    int sq = sqrt(tc);
+    tileMap.setSize( sq, sq );
     tileMap.consecutive();
+    w = h = sq * tw;
+    //FIXME set tilesize based on images sizes in cache
 }
 
 // ACCESS
@@ -104,10 +95,10 @@ TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
 {
     OIIO_NAMESPACE_USING;
 
-    CHECK( x1 < pw ) << "x1 is out of range";
-    CHECK( y1 < pw ) << "y1 is out of range";
-    if( x2 == 0 || x2 > pw ) x2 = pw;
-    if( y2 == 0 || y2 > pw ) y2 = ph;
+    CHECK( x1 < w ) << "x1 is out of range";
+    CHECK( y1 < w ) << "y1 is out of range";
+    if( x2 == 0 || x2 > w ) x2 = w;
+    if( y2 == 0 || y2 > h ) y2 = h;
 
     ImageSpec spec( x2 - x1, y2 - y1, 4, TypeDesc::UINT8 );
     ImageBuf *dest = new ImageBuf( spec );
@@ -164,4 +155,16 @@ TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
         }
     }
     return dest;
+}
+
+OpenImageIO::ImageBuf *
+TiledImage::getUVRegion( float u1, float v1, float u2, float v2)
+{
+    return getRegion( u1 * w, v1 * h, u2 * w, v2 * h );
+}
+
+OpenImageIO::ImageBuf *
+TiledImage::getTile( uint32_t idx )
+{
+    return tileCache.getScaled( idx, tw, th );
 }

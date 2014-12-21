@@ -91,8 +91,8 @@ TileMap::toCSV( )
 void
 TileMap::setSize( uint32_t w, uint32_t h )
 {
-    CHECK( w ) << "Width must be >= 1";
-    CHECK( h ) << "Height must be >= 1";
+    CHECK( w > 0 ) << "Width must be > 0";
+    CHECK( h > 0 ) << "Height must be ";
 
     width = w; height = h;
     map.resize( width * height );
