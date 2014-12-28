@@ -17,7 +17,8 @@ OIIO_NAMESPACE_USING;
 ////////////////////
 struct Arg: public option::Arg
 {
-    static void printError(const char* msg1, const option::Option& opt, const char* msg2)
+    static void printError(const char* msg1, const option::Option& opt,
+            const char* msg2)
     {
         fprintf(stderr, "%s", msg1);
         fwrite(opt.name, opt.namelen, 1, stderr);
@@ -54,7 +55,7 @@ struct Arg: public option::Arg
 enum optionsIndex
 {
     UNKNOWN,
-    VERBOSE, HELP, QUIET,
+    HELP, VERBOSE, QUIET,
     //File Operations
     IFILE, OVERWRITE,
     // Specification

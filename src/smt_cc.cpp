@@ -61,31 +61,26 @@ enum optionsIndex
 {
     UNKNOWN,
     // General Options
-    HELP, VERBOSE, QUIET, FORCE,
-    //TODO add append, overwrite, clobber, force
+    HELP, VERBOSE, QUIET,
+    // File Operations
+    IFILE, OVERWRITE,
     //Specification
     MAPSIZE,
     TILESIZE,
-    IMAGESIZE,
     STRIDE,
     // Creation
     DECALS,
     FILTER,
-    IFILE,
     TILEMAP,
     // Compression
     DXT1_QUALITY,
     CNUM, CPET, CNET,
-    // Deconstruction
-    SEPARATE,
-    COLLATE,
-    RECONSTRUCT
 };
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: tileconv [options] [source files] \n"
-        "  eg. 'tileconv -v -o mysmt.smt *.jpg'\n"
+        "USAGE: smt_cc [options] [source files] \n"
+        "  eg. 'smt_cc -v -f mysmt.smt *.jpg'\n"
         "\nGENERAL OPTIONS:" },
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
@@ -93,7 +88,7 @@ const option::Descriptor usage[] = {
         "  -v,  \t--verbose  \tPrint extra information." },
     { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress output." },
-    { FORCE, 0, "f", "force", Arg::None,
+    { OVERWRITE, 0, "f", "force", Arg::None,
         "  -f,  \t--force  \toverwrite existing files." },
 
     { UNKNOWN, 0, "", "", Arg::None,
@@ -103,8 +98,6 @@ const option::Descriptor usage[] = {
            "must be multiples of two." },
     { TILESIZE, 0, "", "tilesize", Arg::Numeric,
         "\t--tilesize=X  \tXY resolution of tiles to save" },
-    { IMAGESIZE, 0, "", "imagesize", Arg::Required,
-        "\t--imagesize=XxY  \tScale the resultant extraction to this size" },
     { STRIDE, 0, "", "stride", Arg::Numeric,
         "\t--stride=N  \tNumber of tiles horizontally" },
 
@@ -131,21 +124,8 @@ const option::Descriptor usage[] = {
         "\t--cnet=[0-N]  \tErrors threshold 0-1024." },
 
     { UNKNOWN, 0, "", "", Arg::None,
-        "\nDECONSTRUCTION OPTIONS:" },
-    { SEPARATE, 0, "", "separate", Arg::None,
-        "  \t--separate  \tSplit the source files into individual images." },
-    { COLLATE, 0, "", "collate", Arg::None,
-        "  \t--collate  \tCollate the extracted tiles." },
-    { RECONSTRUCT, 0, "", "reconstruct", Arg::Required,
-        "  \t--reconstruct=tilemap.exr  \tReconstruct the extracted tiles "
-            "using a tilemap." },
-    { TILEMAP, 0, "", "tilemap", Arg::None,
-        "  \t--tilemap  \t" },
-
-    { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
-        "  tileconv \n"
-        "  tileconv"
+        "  smt_cc \n"
     },
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -162,7 +142,7 @@ main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
-    if( options[ HELP ] || argc == -1 ) {
+    if( options[ HELP ] || argc == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
         exit( 1 );
@@ -191,11 +171,22 @@ main( int argc, char **argv )
         LOG( ERROR ) << "Options parsing";
         exit( 1 );
     }
+
+    // get non bool options
+    uint32_t mw,ml;
+    if( options[ MAPSIZE ] ) valxval( options[ MAPSIZE ].arg, mw, ml );
+
+
+    uint32_t ts;
+    if( options[ TILESIZE ] ){
+        ts = std::atoi( options[ TILESIZE ].arg );
+        CHECK( 0 < ts && ts <= 1024 ) << "tilesize is too large, must be <= 1024";
+        CHECK(! ts % 4 ) << "tilesize must be a multiple of 4";
+    }
     // end of options parsing
 
     // Setup
     // =====
-//    bool force = false;
 //    bool dxt1_quality = false;
 //    uint32_t ix = 1024, iy = 1024;
 //    uint32_t tileSize = 32;
@@ -206,6 +197,16 @@ main( int argc, char **argv )
 
     // Firstly define the source tiled image
     // =======================================
+    /* Assumptions:
+        if only a single image, assume it needs to be split up into tiles
+            - assume tilesize of 512 unless specified
+            - assume map size is smallest square 2x2 unless specified
+            - use tilesize and mapsize to determine how to scale the image
+        if multiple images/sources then assume images are tiles
+            - unless tilesize is given, assume tiles are the same size as the
+                first source
+            - assume map size is x= y= sqrt(numtiles) unless specified
+    */
     TiledImage tiledImage;
 
     // Import the filenames into the source image tilecache
@@ -214,9 +215,11 @@ main( int argc, char **argv )
         tiledImage.tileCache.addSource( parse.nonOption( i ) );
     }
 
-    CHECK( tiledImage.tileCache.getNTiles() )
-        << tiledImage.tileCache.getNTiles() << " tiles in cache";
-
+    LOG( INFO ) << tiledImage.tileCache.getNTiles() << " tiles in cache";
+    if( tiledImage.tileCache.getNTiles() == 1 ){
+        LOG( WARN ) << "only one image supplied, assuming whole map.";
+    }
+    
     // Source the tilemap, or generate it
     if( options[ TILEMAP ] ){
         SMF *smf = NULL;
@@ -226,23 +229,12 @@ main( int argc, char **argv )
             delete smf;
         }
         if(! smf ){
-            tiledImage.mapFromCSV( options[ RECONSTRUCT ].arg );
+            tiledImage.mapFromCSV( options[ TILEMAP ].arg );
         }
     }
     else {
         tiledImage.squareFromCache();
     }
-
-    // test pulling large image.
-    ImageBuf *big = tiledImage.getRegion();
-    if( big ){
-        big->write("test.jpg", "jpg");
-
-        fstream file("tilemap.csv", ios::out);
-        file << tiledImage.tileMap.toCSV();
-        file.close();
-    }
-
 
 
 /*
