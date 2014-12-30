@@ -1,8 +1,17 @@
 #include "smt.h"
+#include "smf.h"
 #include "util.h"
+#include "tilemap.h"
+#include "tilecache.h"
 
 #include "elog/elog.h"
 #include "optionparser/optionparser.h"
+
+#include <OpenImageIO/imagebuf.h>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
 
 // Argument tests //
 ////////////////////
@@ -47,23 +56,36 @@ struct Arg: public option::Arg
 enum optionsIndex
 {
     UNKNOWN,
-    VERBOSE,
-    QUIET,
-    HELP
+    HELP, VERBOSE, QUIET,
+    OVERWRITE,
+    TILEMAP,
+    COLLATE,
+    FILTER
 };
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
         "USAGE: smt_info <smt file> \n"
-        "  eg. 'smt_info myfile.smt'\n"},
+        "  eg. 'smt_info myfile.smt'\n"
+        "\nGENERAL OPTIONS:"},
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
+    { VERBOSE, 0, "v", "verbose", Arg::None,
+        "  -v  \t--verbose  \tPrint extra information." },
+    { TILEMAP, 0, "t", "tilemap", Arg::Required,
+        "  -t  \t--tilemap  \treconstruction tilemap." },
+    { COLLATE, 0, "c", "collate", Arg::None,
+        "  -c  \t--collate  \tjoin the tiles together into a large image" },
+    { FILTER, 0, "f", "filter", Arg::Required,
+        "  -f  \t--filter  \tonly pull selected tiles" },
     { 0, 0, 0, 0, 0, 0 }
 };
 
 int
 main( int argc, char **argv )
 {
+    int tileCount = 0; // how many tiles to extract.
+    
     // Option parsing
     // ==============
     bool fail = false;
@@ -94,12 +116,7 @@ main( int argc, char **argv )
 
     // non options
     if( parse.nonOptionsCount() == 0 ){
-        LOG( WARN ) << "Missing input filename";
-        fail = true;
-    }
-
-    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG( WARN ) << "Superflous argument: " << parse.nonOption( i );
+        LOG( ERROR ) << "Missing input tilesources";
         fail = true;
     }
 
@@ -107,16 +124,82 @@ main( int argc, char **argv )
         LOG( ERROR ) << "Options parsing.";
         exit( 1 );
     }
-    // end of options parsing
 
-    SMT *smt = NULL;
-    if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
-        LOG( ERROR ) << "cannot open smt file";
-        exit( 1 );
+    // non options will be considered tile sources
+    TileCache tileCache;
+    for( int i = 0; i < parse.nonOptionsCount(); ++i ){
+        LOG( INFO ) << "adding " << parse.nonOption( i ) << " to tilecache.";
+        tileCache.addSource( parse.nonOption( i ) );
+    }
+    LOG( INFO ) << tileCache.getNTiles() << " tiles in cache";
+    tileCount = tileCache.getNTiles();
+
+    // == TILEMAP ==
+    // Source the tilemap, or generate it
+    TileMap tileMap;
+    if( options[ TILEMAP ] ){
+        SMF *smf = NULL;
+        // attempt to load from smf
+        if( (smf = SMF::open( options[ TILEMAP ].arg )) ){
+            tileMap = *(smf->getMap());
+            delete smf;
+        }
+        else if(! smf ){ // attempt to load from csv
+            std::ifstream inFile( options[ TILEMAP ].arg );
+            std::string csv;
+
+            inFile.seekg(0, std::ios::end);
+            csv.reserve(inFile.tellg());
+            inFile.seekg(0, std::ios::beg);
+
+            csv.assign((std::istreambuf_iterator<char>(inFile)),
+                std::istreambuf_iterator<char>());
+            tileMap.fromCSV( csv );
+            inFile.close();
+        }
+    }
+    
+    // == FILTER ==
+    // resolve filter list
+    std::vector<unsigned int> filter;
+    if( options[ FILTER ] ) {
+        filter = expandString( options[ FILTER ].arg );
+        
+        tileCount = filter.size();
+    }
+    else {// otherwise set the filter list to all tiles.
+        filter.reserve( tileCache.getNTiles() );
+        for( unsigned int i = 0; i < filter.size(); ++i ) filter[i] = i;
+    }
+
+    // == COLLATE ==
+    // square up the tilemap and give it consecutive numbering
+    if( options[ COLLATE ] ) { //generate a square map with consecutive numbering
+        int tc = std::sqrt( tileCount );
+        tileMap.setSize( tc, tc );
+        tileMap.consecutive();
+    }
+
+    OpenImageIO::ImageBuf *buf = NULL;
+    std::stringstream name;
+    if(! options[ TILEMAP ] && ! options[ COLLATE] ) {
+        for( auto i = filter.begin(); i != filter.end(); ++i ) {
+            buf = tileCache.getOriginal( *i );
+            name << "tile_" << *i << ".jpg";
+            buf->write( name.str() );
+            name.str( std::string() );// clear the string
+        }
     }
 
 //FIXME fill out
-    LOG(INFO) << "\n" << smt->info();
+    /* What I want to be able to do
+        * extract the tiles from the file at original size
+        * extract specific tiles at original size
+        * use tilemap or collate(square)
+            * construct large image
+            * construct scaled image
+            * construct scaled image, scale and split
+    */
 
     return 0;
 }
