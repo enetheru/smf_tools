@@ -57,6 +57,13 @@ target_link_libraries( smf_info
    tilemap
    ${LIBS} )
 
+add_executable( smt_repair smt_repair.cpp )
+target_link_libraries( smt_repair
+    smt
+    util
+    ${LIBS} )
+
+
 INSTALL(PROGRAMS
 	${CMAKE_CURRENT_BINARY_DIR}/smf_cc
 	${CMAKE_CURRENT_BINARY_DIR}/smf_decc
@@ -64,4 +71,5 @@ INSTALL(PROGRAMS
 	${CMAKE_CURRENT_BINARY_DIR}/smt_cc
 	${CMAKE_CURRENT_BINARY_DIR}/smt_decc
 	${CMAKE_CURRENT_BINARY_DIR}/smt_info
+	${CMAKE_CURRENT_BINARY_DIR}/smt_repair
        	DESTINATION bin)
