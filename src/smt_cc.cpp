@@ -1,6 +1,3 @@
-
-#include <fstream>
-
 #include "smt.h"
 #include "smf.h"
 #include "smtool.h"
@@ -13,6 +10,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+
+#include <fstream>
 
 using namespace std;
 OIIO_NAMESPACE_USING;
@@ -74,7 +73,7 @@ enum optionsIndex
     TILEMAP,
     // Compression
     DXT1_QUALITY,
-    CNUM, CPET, CNET,
+    CNUM, CPET, CNET
 };
 
 const option::Descriptor usage[] = {
@@ -207,6 +206,9 @@ main( int argc, char **argv )
                 first source
             - assume map size is x= y= sqrt(numtiles) unless specified
     */
+    /* what i want to be able to do:
+        * add a single tile
+        * replace a single tile
     TiledImage tiledImage;
 
     // Import the filenames into the source image tilecache
@@ -235,7 +237,7 @@ main( int argc, char **argv )
     else {
         tiledImage.squareFromCache();
     }
-
+*/
 
 /*
     // load up the tilemap
