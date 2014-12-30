@@ -19,7 +19,7 @@ SMT::create( string fileName, bool overwrite, bool dxt1_quality )
     SMT *smt;
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
-    
+
     smt = new SMT( fileName, dxt1_quality );
     smt->reset();
     return smt;
@@ -46,7 +46,6 @@ SMT::open( string fileName )
     SMT *smt;
     if( good ){
         smt = new SMT( fileName );
-        smt->load();
         return smt;
     }
     return NULL;
@@ -109,9 +108,30 @@ SMT::load( )
 {
     ifstream inFile(fileName, ifstream::in);
     inFile.read( (char *)&header, sizeof(SMT::Header) );
-    inFile.close();
     calcTileBytes();
     init = true;
+
+    // do some simple checking of file size vs reported tile numbers
+    inFile.seekg( 0, std::ios::end );
+    uint32_t dataBytes = inFile.tellg();
+    inFile.close();
+    dataBytes -= 32; // file size - header
+    uint32_t tileGuess = dataBytes / tileBytes;
+    
+    if( header.nTiles != tileGuess ) {
+        LOG( WARN ) << "Possible Data Issue\n"
+            << "\t(" << fileName << ").header.nTiles = " << header.nTiles << "\n"
+            << "\tcalculated from file size = " << tileGuess;
+    }
+    
+    if( dataBytes % tileBytes ) {
+        LOG( WARN ) << "Possible Data Issue\n"
+            << "\t(" << fileName << ").data = " << dataBytes << "\n"
+            << "\t(" << fileName << ").tileBytes = " << tileBytes << "\n"
+            << "\tdata % tileBytes = " << dataBytes % tileBytes
+            << "\t should be zero, possible truncation";
+        
+    }
 }
 
 std::string
@@ -138,7 +158,7 @@ void
 SMT::append( ImageBuf *sourceBuf )
 {
 #ifdef DEBUG_IMG
-    static int i = 0;    
+    static int i = 0;
     sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_0.tif", "tif" );
 #endif //DEBUG_IMG
 
@@ -147,9 +167,9 @@ SMT::append( ImageBuf *sourceBuf )
     float fill[] = { 0, 0, 0, 255 };
     if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
     else map[3] = 3;
-    ImageBuf *tempBufa = new ImageBuf; 
+    ImageBuf *tempBufa = new ImageBuf;
     ImageBufAlgo::channels( *tempBufa, *sourceBuf, 4, map, fill );
-   
+
 #ifdef DEBUG_IMG
     sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_1_swizzle.tif", "tif" );
 #endif //DEBUG_IMG
@@ -220,5 +240,5 @@ SMT::getTile( uint32_t n )
     imageBuf->write("getTile(" + to_string(n) + ").tif", "tif");
 #endif //DEBUG_IMG
 
-    return imageBuf;    
+    return imageBuf;
 }
