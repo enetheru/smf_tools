@@ -39,6 +39,7 @@ target_link_libraries( smf_decc
 
 add_executable( smt_decc smt_decc.cpp )
 target_link_libraries( smt_decc
+    tiledimage
     tilecache
     tilemap
     smf
