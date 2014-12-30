@@ -14,16 +14,17 @@
 #include "tilemap.h"
 #include "util.h"
 
-namespace SMTool
+using namespace std;
+OIIO_NAMESPACE_USING;
+
+namespace SMF_Tools
 {
-    bool verbose = false;
-    bool quiet = false;
     float cpet;
     int cnet, cnum;
 }
 /*
 ImageBuf *
-SMTool::reconstruct( TileCache &cache, TileMap *tileMap)
+SMF_Tools::reconstruct( TileCache &cache, TileMap *tileMap)
 {
     if(! tileMap || tileMap->width == 0 || tileMap->height == 0 )return NULL;
 
@@ -33,7 +34,7 @@ SMTool::reconstruct( TileCache &cache, TileMap *tileMap)
             tileMap->height * cache.getTileSize(),
             4, TypeDesc::UINT8 );
 
-    if( verbose )cout << "INFO.SMTool.reconstruct: Generating "
+    if( verbose )cout << "INFO.SMF_Tools.reconstruct: Generating "
         << bigSpec.width << "x" << bigSpec.height << endl;
 
     ImageBuf *bigBuf = new ImageBuf( "reconstruction", bigSpec );
@@ -60,7 +61,7 @@ SMTool::reconstruct( TileCache &cache, TileMap *tileMap)
 }
 
 ImageBuf *
-SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
+SMF_Tools::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
 {
     if( verbose )cout << "INFO: Collating Big\n";
     // OpenImageIO
@@ -103,7 +104,7 @@ SMTool::collate( TileCache &cache, unsigned int hstride, unsigned int vstride )
 
 /*
 ImageBuf *
-SMTool::openTilemap( string fileName )
+SMF_Tools::openTilemap( string fileName )
 {
     ImageBuf *buf = NULL;
     ImageSpec spec;
@@ -147,7 +148,7 @@ SMTool::openTilemap( string fileName )
 }*/
 
 bool
-SMTool::consolidate(SMT *smt, TileCache &cache, ImageBuf *tilemap)
+SMF_Tools::consolidate(SMT *smt, TileCache &cache, ImageBuf *tilemap)
 {
     // TODO write consolidation method
     return false;
@@ -162,7 +163,7 @@ public:
 };
 
 void
-SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
+SMF_Tools::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
 {
     using namespace std::chrono;
 
@@ -216,7 +217,7 @@ SMTool::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
         ImageBufAlgo::cut( tileBuf, *sourceBuf, roi );
 
 #ifdef DEBUG_IMG
-        tileBuf.save("SMTool::imageToSMT_tileBuf_" + to_string( currentTile + 1 ) + ".tif", "tif");
+        tileBuf.save("SMF_Tools::imageToSMT_tileBuf_" + to_string( currentTile + 1 ) + ".tif", "tif");
 #endif //DEBUG_IMG
 
         // reset match variables
