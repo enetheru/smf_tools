@@ -3,6 +3,7 @@
 #include "util.h"
 #include "tilemap.h"
 #include "tilecache.h"
+#include "tiledimage.h"
 
 #include "elog/elog.h"
 #include "optionparser/optionparser.h"
@@ -164,11 +165,10 @@ main( int argc, char **argv )
     std::vector<unsigned int> filter;
     if( options[ FILTER ] ) {
         filter = expandString( options[ FILTER ].arg );
-        
         tileCount = filter.size();
     }
     else {// otherwise set the filter list to all tiles.
-        filter.reserve( tileCache.getNTiles() );
+        filter.resize( tileCache.getNTiles() );
         for( unsigned int i = 0; i < filter.size(); ++i ) filter[i] = i;
     }
 
@@ -180,25 +180,34 @@ main( int argc, char **argv )
         tileMap.consecutive();
     }
 
+    // == EXPORT TILES ==
     OpenImageIO::ImageBuf *buf = NULL;
     std::stringstream name;
     if(! options[ TILEMAP ] && ! options[ COLLATE] ) {
         for( auto i = filter.begin(); i != filter.end(); ++i ) {
+            if( *i >= tileCache.getNTiles() ) {
+                LOG( WARN ) << "tile: " << *i << " is out of range.";
+                continue;
+            }
             buf = tileCache.getOriginal( *i );
             name << "tile_" << *i << ".jpg";
             buf->write( name.str() );
             name.str( std::string() );// clear the string
         }
     }
+    
+    // == EXPORT LARGE IMAGE ==
+    TiledImage tiledImage;
 
 //FIXME fill out
     /* What I want to be able to do
-        * extract the tiles from the file at original size
-        * extract specific tiles at original size
-        * use tilemap or collate(square)
-            * construct large image
-            * construct scaled image
-            * construct scaled image, scale and split
+        [*] extract the tiles from the file at original size
+        [*] extract specific tiles at original size
+        [ ] extract only the tiles listed in a tilemap
+        [ ] use tilemap or collate(square)
+            [ ] construct large image
+            [ ] construct scaled image
+            [ ] construct scaled image, scale and split
     */
 
     return 0;
