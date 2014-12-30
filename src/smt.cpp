@@ -38,6 +38,9 @@ SMT::open( string fileName )
             good = true;
             file.close();
         }
+        else {
+            LOG( ERROR ) << fileName << " is not an SMT file.";
+        }
     }
 
     SMT *smt;

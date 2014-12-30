@@ -20,7 +20,7 @@ public:
 
     //import
     void fromCSV( std::string fileName );
-    
+
     //export
     std::string toCSV();
 
