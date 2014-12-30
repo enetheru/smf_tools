@@ -207,26 +207,27 @@ string SMF::info(){
          << "\n\tMetalPtr:    "     << int_to_hex( header.metalPtr )
          << " " << header.width << "x" << header.length << ":" << 1 << "  UINT8"
          << "\n\tFeaturesPtr: "     << int_to_hex( header.featuresPtr )
+         << "\n  HeaderExtras: "   << header.nHeaderExtras
         ;
 
     //HeaderExtras
     if( header.nHeaderExtras ){
         for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
             if( (*i)->type == 0 ){
-                info << "    Null Header"
+                info << "\n    Null Header"
                      << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                     ;
             }
             else if( (*i)->type == 1 ){
-                info << "    Grass"
+                info << "\n    Grass"
                      << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                      << "\n\tptr:  " << int_to_hex( ((HeaderGrass *)(*i))->ptr )
                     ;
             }
             else {
-                info << "    Unknown"
+                info << "\n    Unknown"
                      << "\n\tsize: " << (*i)->bytes
                      << "\n\ttype: " << (*i)->type
                     ;
@@ -236,8 +237,7 @@ string SMF::info(){
     }
 
     // Tileindex Information
-    info << "\n  HeaderExtras: "   << header.nHeaderExtras
-         << "\n    Tile Index Information"
+    info << "\n  Tile Index Information"
          << "\n\tTile Files:  " << headerTiles.nFiles
          << "\n\tTotal tiles: " << headerTiles.nTiles
         ;
@@ -246,7 +246,7 @@ string SMF::info(){
     }  
 
     // Features Information
-    info << "\n    Features Information"
+    info << "\n  Features Information"
          << "\n\tFeatures: " << headerFeatures.nFeatures
          << "\n\tTypes:    " << headerFeatures.nTypes
         ;
