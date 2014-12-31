@@ -61,7 +61,10 @@ enum optionsIndex
     OVERWRITE,
     TILEMAP,
     COLLATE,
-    FILTER
+    FILTER,
+    TILESIZE,
+    SPLITSIZE,
+    IMAGESIZE,
 };
 
 const option::Descriptor usage[] = {
@@ -74,11 +77,17 @@ const option::Descriptor usage[] = {
     { VERBOSE, 0, "v", "verbose", Arg::None,
         "  -v  \t--verbose  \tPrint extra information." },
     { TILEMAP, 0, "t", "tilemap", Arg::Required,
-        "  -t  \t--tilemap  \treconstruction tilemap." },
+        "  -t  \t--tilemap=filename.[csv,smf]  \treconstruction tilemap." },
     { COLLATE, 0, "c", "collate", Arg::None,
         "  -c  \t--collate  \tjoin the tiles together into a large image" },
     { FILTER, 0, "f", "filter", Arg::Required,
-        "  -f  \t--filter  \tonly pull selected tiles" },
+        "  -f  \t--filter=1,2-n  \tonly pull selected tiles" },
+    { TILESIZE, 0, "s", "tilesize", Arg::Required,
+        "  -s  \t--tilesize=XxY  \tXxY" },
+    { SPLITSIZE, 0, "", "splitsize", Arg::Required,
+        "\t--splitsize=XxY  \tXxY" },
+    { IMAGESIZE, 0, "", "imagesize", Arg::Required,
+        "\t--imagesize=XxY  \tXxY" },
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -175,10 +184,31 @@ main( int argc, char **argv )
     // == COLLATE ==
     // square up the tilemap and give it consecutive numbering
     if( options[ COLLATE ] ) { //generate a square map with consecutive numbering
-        int tc = std::sqrt( tileCount );
+        int tc = std::ceil( std::sqrt( tileCount ) );
         tileMap.setSize( tc, tc );
         tileMap.consecutive();
     }
+    
+    // == TILESIZE ==
+    uint32_t tx, ty;
+    if( options[ TILESIZE ] ){
+        valxval( options[ TILESIZE ].arg, tx, ty );
+    }
+    else tx = ty = 32;
+    
+    // == SPLITSIZE ==
+    uint32_t sx, sy;
+    if( options[ SPLITSIZE ] ){
+        valxval( options[ SPLITSIZE ].arg, sx, sy );
+    }
+    else sx = sy = 1024;
+    
+    // == IMAGESIZE ==
+    uint32_t ix, iy;
+    if( options[ IMAGESIZE ] ){
+        valxval( options[ IMAGESIZE ].arg, ix, iy );
+    }
+    else ix = iy = 0;
 
     // == EXPORT TILES ==
     OpenImageIO::ImageBuf *buf = NULL;
@@ -194,10 +224,38 @@ main( int argc, char **argv )
             buf->write( name.str() );
             name.str( std::string() );// clear the string
         }
+        exit( 0 );
     }
     
     // == EXPORT LARGE IMAGE ==
     TiledImage tiledImage;
+    tiledImage.setTileMap( tileMap );
+    tiledImage.tileCache = tileCache;
+    tiledImage.setTileSize(tx, ty);
+    
+    if(! options[ SPLITSIZE ] ){
+        buf = tiledImage.getUVRegion( 0, 0, 1, 1 );
+        buf->write("collate_out.jpg");
+    }
+    else {
+        uint32_t sxc, syc;
+        LOG( INFO ) << "Processing Split Image"
+            << "\n\tFull Size: " << tiledImage.w << "x" << tiledImage.h
+            << "\n\tSplit Size: " << sx << "x" << sy
+            << "\n\t" << (sxc = tiledImage.w / sx) << " horizontal segments"
+            << "\n\t" << (syc = tiledImage.h / sy) << " vertical segments";
+        for( uint32_t i = 0; i < syc; ++i ) {
+            for( uint32_t j = 0; j < sxc; ++j ){
+                LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
+                //buf = tiledImage.getRegion(j * sx, i * sy, j * sx + sx , i * sy + sy );
+                name << "split_" << j << "_" << i << ".jpg";
+                //buf->write( name.str() );
+                name.str( std::string() );
+            }
+        }
+    }
+    buf = tiledImage.getRegion( 1024, 1024, 2048, 2048 );
+    buf->write( "test.jpg");
 
 //FIXME fill out
     /* What I want to be able to do

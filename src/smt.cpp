@@ -130,7 +130,6 @@ SMT::load( )
             << "\t(" << fileName << ").tileBytes = " << tileBytes << "\n"
             << "\tdata % tileBytes = " << dataBytes % tileBytes
             << "\t should be zero, possible truncation";
-        
     }
 }
 
