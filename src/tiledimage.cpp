@@ -37,14 +37,14 @@ void
 TiledImage::setSize( uint32_t w, uint32_t h )
 {
     CHECK( w >= tw )
-        << "pixel width must be >= tile width (" << tw << ")";
-    CHECK(! w % tw )
-        << "pixel width must be a multiple of tile width (" << tw << ")";
+        << "width must be >= tile width (" << tw << ")";
+    CHECK(! (w % tw) )
+        << "width must be a multiple of tile width (" << tw << ")";
 
     CHECK( h >= th )
-        << "pixel height must be >= tile height (" << th << ")";
-    CHECK(! h % th )
-        << "pixel height must be a multiple of tile height (" << th << ")";
+        << "height must be >= tile height (" << th << ")";
+    CHECK(! (h % th) )
+        << "height must be a multiple of tile height (" << th << ")";
 
     this->w = w;
     this->h = h;
@@ -55,8 +55,11 @@ TiledImage::setSize( uint32_t w, uint32_t h )
 void
 TiledImage::setTileSize( uint32_t w, uint32_t h )
 {
-    CHECK(! w % 4 && w > 0 ) << "width must be a multiple of four and greater than zero";
-    CHECK(! h % 4 && h > 0 ) << "height must be a multiple of four and greater than zero";
+    CHECK( w > 0 ) << "width(" << w << ") must be greater than zero";
+    CHECK( !(w % 4) ) << "width % 4 = " << w % 4 << "!= 0 must be a multiple of four";
+    CHECK( h > 0 ) << "height(" << h << ") must be greater than zero";
+    CHECK( !(h % 4) ) << "height % 4 = " << h % 4 << "!= 0 must be a multiple of four";
+    
     
     tw = w;
     th = h;
