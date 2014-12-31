@@ -94,16 +94,23 @@ TiledImage::squareFromCache( )
 // ACCESS
 // ======
 OpenImageIO::ImageBuf *
-TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
+TiledImage::getRegion(
+    uint32_t x1, uint32_t y1, // begin point
+    uint32_t x2, uint32_t y2, // end point
+    uint32_t sw, uint32_t sh) // scale width/height
 {
     OIIO_NAMESPACE_USING;
+    //FIXME needs to get region scaled rather than full size.
 
     CHECK( x1 < w ) << "x1 is out of range";
     CHECK( y1 < w ) << "y1 is out of range";
     if( x2 == 0 || x2 > w ) x2 = w;
     if( y2 == 0 || y2 > h ) y2 = h;
+    
+    if( sw == 0 ) sw = x2 - x1;
+    if( sh == 0 ) sh = y2 - y1;
 
-    ImageSpec spec( x2 - x1, y2 - y1, 4, TypeDesc::UINT8 );
+    ImageSpec spec( sw, sh, 4, TypeDesc::UINT8 );
     ImageBuf *dest = new ImageBuf( spec );
     //current point of interest
     uint32_t ix = x1;
@@ -161,9 +168,15 @@ TiledImage::getRegion( uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2 )
 }
 
 OpenImageIO::ImageBuf *
-TiledImage::getUVRegion( float u1, float v1, float u2, float v2)
+TiledImage::getUVRegion(
+    float u1, float v1, // begin point
+    float u2, float v2, // end point
+    uint32_t sw, uint32_t sh ) // scale width/height
 {
-    return getRegion( u1 * w, v1 * h, u2 * w, v2 * h );
+    return getRegion(
+        u1 * w, v1 * h,
+        u2 * w, v2 * h,
+        sw, sh );
 }
 
 OpenImageIO::ImageBuf *
