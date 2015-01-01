@@ -1,2 +1,2 @@
 #!/bin/bash
-smt_decc -v -f 1-5 ../data/data.smt
+smt_decc -v ../data/data.smt

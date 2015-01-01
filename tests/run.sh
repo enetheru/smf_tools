@@ -1,5 +1,6 @@
 #!/bin/bash
-for i in *
+shopt -s extglob
+for i in !(data)
 do
     if [[ -d $i ]]
     then
