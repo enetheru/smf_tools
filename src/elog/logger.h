@@ -19,6 +19,7 @@
 namespace LOG {
 
 enum LogLevel {
+  DEBUG,
   INFO,
   WARN,
   ERROR,
@@ -36,11 +37,12 @@ inline bool IsVerboseEnough(int log_verbosity, int logger_verbosity) {
 
 template <AvoidODR>
 struct LogLevelNamesTemplate {
-  static const char* names[5];
+  static const char* names[6];
 };
 
 template <AvoidODR N>
-const char* LogLevelNamesTemplate<N>::names[5] = {
+const char* LogLevelNamesTemplate<N>::names[6] = {
+  "DEBUG",
   "INFO",
   "WARN",
   "ERROR",
