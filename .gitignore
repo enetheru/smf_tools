@@ -10,3 +10,9 @@ CMakeCache.txt
 
 # temp files
 *.swp
+
+# Cloud9
+.c9
+
+# compiling
+build
