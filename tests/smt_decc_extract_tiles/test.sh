@@ -1,2 +1,5 @@
 #!/bin/bash
-smt_decc -v ../data/data.smt
+COMMAND="smt_decc -v ../data/data.smt"
+echo COMMAND = $COMMAND
+eval $COMMAND
+exit $?

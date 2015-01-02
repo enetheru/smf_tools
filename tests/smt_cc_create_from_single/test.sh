@@ -1,4 +1,5 @@
 #!/bin/bash
-
-smt_cc -v -f single.smt ../data/image_1.png
-exit $? 
+COMMAND="smt_cc -v -f smt.smt ../data/image_1.png"
+echo COMMAND = $COMMAND
+eval $COMMAND
+exit $?

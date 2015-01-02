@@ -1,3 +1,5 @@
 #!/bin/bash
-smt_info ../data/data.smt
+COMMAND="smt_info ../data/data.smt"
+echo COMMAND = $COMMAND
+eval $COMMAND
 exit $?

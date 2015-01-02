@@ -1,5 +1,5 @@
 #!/bin/bash
-smf_cc -f blank.smf
-smf_info blank.smf
-
+COMMAND="smf_cc -f test.smf"
+echo $COMMAND
+eval $COMMAND
 exit $?

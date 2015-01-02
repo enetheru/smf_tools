@@ -1,5 +1,5 @@
 #!/bin/bash
-smf_cc -f blank.smf
-smf_info blank.smf
-
-exit $?
+COMMAND="echo not yet implemented"
+echo COMMAND = $COMMAND
+eval $COMMAND
+exit 1 $?
