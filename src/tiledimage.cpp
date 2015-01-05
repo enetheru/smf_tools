@@ -183,7 +183,7 @@ TiledImage::getRegion(
 }
 
 OpenImageIO::ImageBuf *
-TiledImqage::getUVRegion(
+TiledImage::getUVRegion(
     float u1, float v1, // begin point
     float u2, float v2, // end point
     uint32_t sw, uint32_t sh ) // scale width/height
