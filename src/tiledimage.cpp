@@ -59,8 +59,8 @@ TiledImage::setTileSize( uint32_t w, uint32_t h )
     CHECK( !(w % 4) ) << "width % 4 = " << w % 4 << "!= 0 must be a multiple of four";
     CHECK( h > 0 ) << "height(" << h << ") must be greater than zero";
     CHECK( !(h % 4) ) << "height % 4 = " << h % 4 << "!= 0 must be a multiple of four";
-    
-    
+
+
     tw = w;
     th = h;
     this->w = tw * tileMap.width;
@@ -83,7 +83,7 @@ TiledImage::squareFromCache( )
 {
     int tc = tileCache.getNTiles();
     CHECK( tc ) << "tileCache has no tiles";
-    
+
     int sq = sqrt(tc);
     tileMap.setSize( sq, sq );
     tileMap.consecutive();
@@ -101,12 +101,16 @@ TiledImage::getRegion(
 {
     OIIO_NAMESPACE_USING;
     //FIXME needs to get region scaled rather than full size.
+//    LOG( INFO ) << "source window "
+//        << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
 
     CHECK( x1 < w ) << "x1 is out of range";
     CHECK( y1 < w ) << "y1 is out of range";
     if( x2 == 0 || x2 > w ) x2 = w;
     if( y2 == 0 || y2 > h ) y2 = h;
-    
+    // LOG( INFO ) << "source window "
+    //     << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
+
     if( sw == 0 ) sw = x2 - x1;
     if( sh == 0 ) sh = y2 - y1;
 
@@ -116,6 +120,7 @@ TiledImage::getRegion(
     uint32_t ix = x1;
     uint32_t iy = y1;
     while( true ){
+        // LOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
         //determine the tile under the point of interest
         uint32_t mx = ix / tw;
@@ -126,12 +131,20 @@ TiledImage::getRegion(
         uint32_t wy1 = iy - my * th;
 
         //determine the bottom right corner of the copy window
-        uint32_t wx2 = std::min( tw, x2 - ix );
-        uint32_t wy2 = std::min( th, y2 - iy );
+        uint32_t wx2, wy2;
+        if( x2 / tw > mx ) wx2 = tw;
+        else wx2 = x2 - mx * tw;
+        
+        if( y2 / tw > my ) wy2 = th;
+        else wy2 = y2 - my * th;
+
+        // LOG( INFO ) << "copy window "
+        //     << "(" << wx1 << ", " << wy1 << ")->(" << wx2 << ", " << wy2 << ")";
 
         //determine the dimensions of the copy window
         uint32_t ww = wx2 - wx1;
         uint32_t wh = wy2 - wy1;
+        // LOG( INFO ) << "copy window " << ww << "x" << wh;
 
         //determine the top left of the paste window
         uint32_t dx = ix - x1;
@@ -153,6 +166,7 @@ TiledImage::getRegion(
             ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *tile, window );
         }
 
+
         //determine the next point of interest
         ix += ww;
         if( ix >= x2 ){
@@ -164,11 +178,12 @@ TiledImage::getRegion(
             }
         }
     }
+
     return dest;
 }
 
 OpenImageIO::ImageBuf *
-TiledImage::getUVRegion(
+TiledImqage::getUVRegion(
     float u1, float v1, // begin point
     float u2, float v2, // end point
     uint32_t sw, uint32_t sh ) // scale width/height
