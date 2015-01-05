@@ -38,9 +38,6 @@ SMT::open( string fileName )
             good = true;
             file.close();
         }
-        else {
-            LOG( ERROR ) << fileName << " is not an SMT file.";
-        }
     }
 
     SMT *smt;
@@ -117,13 +114,13 @@ SMT::load( )
     inFile.close();
     dataBytes -= 32; // file size - header
     uint32_t tileGuess = dataBytes / tileBytes;
-    
+
     if( header.nTiles != tileGuess ) {
         LOG( WARN ) << "Possible Data Issue\n"
             << "\t(" << fileName << ").header.nTiles = " << header.nTiles << "\n"
             << "\tcalculated from file size = " << tileGuess;
     }
-    
+
     if( dataBytes % tileBytes ) {
         LOG( WARN ) << "Possible Data Issue\n"
             << "\t(" << fileName << ").data = " << dataBytes << "\n"
