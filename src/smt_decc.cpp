@@ -60,10 +60,8 @@ enum optionsIndex
     HELP, VERBOSE, QUIET,
     OVERWRITE,
     TILEMAP,
-    COLLATE,
     FILTER,
     TILESIZE,
-    SPLITSIZE,
     IMAGESIZE,
 };
 
@@ -77,15 +75,11 @@ const option::Descriptor usage[] = {
     { VERBOSE, 0, "v", "verbose", Arg::None,
         "  -v  \t--verbose  \tPrint extra information." },
     { TILEMAP, 0, "t", "tilemap", Arg::Required,
-        "  -t  \t--tilemap=filename.[csv,smf]  \treconstruction tilemap." },
-    { COLLATE, 0, "c", "collate", Arg::None,
-        "  -c  \t--collate  \tjoin the tiles together into a large image" },
+        "  -t  \t--tilemap=[.csv,.smf,GENERATE]  \treconstruction tilemap." },
     { FILTER, 0, "f", "filter", Arg::Required,
         "  -f  \t--filter=1,2-n  \tonly pull selected tiles" },
     { TILESIZE, 0, "s", "tilesize", Arg::Required,
         "  -s  \t--tilesize=XxY  \tXxY" },
-    { SPLITSIZE, 0, "", "splitsize", Arg::Required,
-        "\t--splitsize=XxY  \tXxY" },
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
         "\t--imagesize=XxY  \tXxY" },
     { 0, 0, 0, 0, 0, 0 }
@@ -94,8 +88,6 @@ const option::Descriptor usage[] = {
 int
 main( int argc, char **argv )
 {
-    int tileCount = 0; // how many tiles to extract.
-    
     // Option parsing
     // ==============
     bool fail = false;
@@ -130,6 +122,12 @@ main( int argc, char **argv )
         fail = true;
     }
 
+    // == IMAGESIZE ==
+    uint32_t ix = 0, iy = 0;
+    if( options[ IMAGESIZE ] ){
+        valxval( options[ IMAGESIZE ].arg, ix, iy );
+    }
+
     if( fail || parse.error() ){
         LOG( ERROR ) << "Options parsing.";
         exit( 1 );
@@ -142,7 +140,49 @@ main( int argc, char **argv )
         tileCache.addSource( parse.nonOption( i ) );
     }
     LOG( INFO ) << tileCache.getNTiles() << " tiles in cache";
-    tileCount = tileCache.getNTiles();
+
+    // == TILESIZE ==
+    uint32_t dest_tw = 32, dest_th = 32;
+    if( options[ TILESIZE ] ){
+        valxval( options[ TILESIZE ].arg, dest_tw, dest_th );
+    }
+
+    // Source Tile Size
+    uint32_t src_tw = 32, src_th = 32;
+    OpenImageIO::ImageBuf *tile;
+    tile = tileCache( 0 );
+    src_tw = tile->spec().width;
+    src_th = tile->spec().height;
+
+    // == FILTER ==
+    // resolve filter list
+    std::vector<unsigned int> filter;
+    if( options[ FILTER ] ) {
+        filter = expandString( options[ FILTER ].arg );
+    }
+    else {// otherwise set the filter list to all tiles.
+        filter.resize( tileCache.getNTiles() );
+        for( unsigned int i = 0; i < filter.size(); ++i ) filter[i] = i;
+    }
+    //FIXME filter based on tilemap?
+
+    // == EXPORT TILES ==
+    OpenImageIO::ImageBuf *buf = NULL;
+    std::stringstream name;
+    if(! options[ TILEMAP ] ) {
+        for( auto i = filter.begin(); i != filter.end(); ++i ) {
+            if( *i >= tileCache.getNTiles() ) {
+                LOG( WARN ) << "tile: " << *i << " is out of range.";
+                continue;
+            }
+            buf = tileCache.getOriginal( *i );
+            //FIXME scale based on tilesize?
+            name << "tile_" << *i << ".jpg";
+            buf->write( name.str() );
+            name.str( std::string() );// clear the string
+        }
+        exit( 0 );
+    }
 
     // == TILEMAP ==
     // Source the tilemap, or generate it
@@ -150,7 +190,12 @@ main( int argc, char **argv )
     if( options[ TILEMAP ] ){
         SMF *smf = NULL;
         // attempt to load from smf
-        if( (smf = SMF::open( options[ TILEMAP ].arg )) ){
+        if(! strcmp( options[ TILEMAP ].arg, "GENERATE" ) ){
+            int tc = std::ceil( std::sqrt( filter.size() ) );
+            tileMap.setSize( tc, tc );
+            tileMap.consecutive();
+        }
+        else if( (smf = SMF::open( options[ TILEMAP ].arg )) ){
             tileMap = *(smf->getMap());
             delete smf;
         }
@@ -168,94 +213,35 @@ main( int argc, char **argv )
             inFile.close();
         }
     }
-    
-    // == FILTER ==
-    // resolve filter list
-    std::vector<unsigned int> filter;
-    if( options[ FILTER ] ) {
-        filter = expandString( options[ FILTER ].arg );
-        tileCount = filter.size();
-    }
-    else {// otherwise set the filter list to all tiles.
-        filter.resize( tileCache.getNTiles() );
-        for( unsigned int i = 0; i < filter.size(); ++i ) filter[i] = i;
-    }
 
-    // == COLLATE ==
-    // square up the tilemap and give it consecutive numbering
-    if( options[ COLLATE ] ) { //generate a square map with consecutive numbering
-        int tc = std::ceil( std::sqrt( tileCount ) );
-        tileMap.setSize( tc, tc );
-        tileMap.consecutive();
-    }
-    
-    // == TILESIZE ==
-    uint32_t tx, ty;
-    if( options[ TILESIZE ] ){
-        valxval( options[ TILESIZE ].arg, tx, ty );
-    }
-    else tx = ty = 32;
-    
-    // == SPLITSIZE ==
-    uint32_t sx, sy;
-    if( options[ SPLITSIZE ] ){
-        valxval( options[ SPLITSIZE ].arg, sx, sy );
-    }
-    else sx = sy = 1024;
-    
-    // == IMAGESIZE ==
-    uint32_t ix, iy;
-    if( options[ IMAGESIZE ] ){
-        valxval( options[ IMAGESIZE ].arg, ix, iy );
-    }
-    else ix = iy = 0;
-
-    // == EXPORT TILES ==
-    OpenImageIO::ImageBuf *buf = NULL;
-    std::stringstream name;
-    if(! options[ TILEMAP ] && ! options[ COLLATE] ) {
-        for( auto i = filter.begin(); i != filter.end(); ++i ) {
-            if( *i >= tileCache.getNTiles() ) {
-                LOG( WARN ) << "tile: " << *i << " is out of range.";
-                continue;
-            }
-            buf = tileCache.getOriginal( *i );
-            name << "tile_" << *i << ".jpg";
-            buf->write( name.str() );
-            name.str( std::string() );// clear the string
-        }
-        exit( 0 );
-    }
-    
-    // == EXPORT LARGE IMAGE ==
+    // == Build TiledImage ==
     TiledImage tiledImage;
     tiledImage.setTileMap( tileMap );
     tiledImage.tileCache = tileCache;
-    tiledImage.setTileSize(tx, ty);
-    
-    if(! options[ SPLITSIZE ] ){
-        buf = tiledImage.getUVRegion( 0, 0, 1, 1 );
-        buf->write("collate_out.jpg");
-    }
-    else {
-        uint32_t sxc, syc;
-        LOG( INFO ) << "Processing Split Image"
-            << "\n\tFull Size: " << tiledImage.w << "x" << tiledImage.h
-            << "\n\tSplit Size: " << sx << "x" << sy
-            << "\n\t" << (sxc = tiledImage.w / sx) << " horizontal segments"
-            << "\n\t" << (syc = tiledImage.h / sy) << " vertical segments";
-        for( uint32_t i = 0; i < syc; ++i ) {
-            for( uint32_t j = 0; j < sxc; ++j ){
-                LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
-                //buf = tiledImage.getRegion(j * sx, i * sy, j * sx + sx , i * sy + sy );
-                name << "split_" << j << "_" << i << ".jpg";
-                //buf->write( name.str() );
-                name.str( std::string() );
-            }
+    tiledImage.setTileSize( src_tw, src_th );
+
+    LOG( INFO ) << "\n    Source Tiled Image:"
+        << "\n\tsize: " << tiledImage.w << "x" << tiledImage.h
+        << "\n\ttile size: " << tiledImage.tw << "x" << tiledImage.th
+        << "\n\ttileMap size: " << tiledImage.tileMap.width << "x" << tiledImage.tileMap.height;
+
+    uint32_t sxc, syc;
+    LOG( INFO ) << "\n    Converting "
+        << "\n\tFull Size: " << tiledImage.w << "x" << tiledImage.h
+        << "\n\tTile Size: " << dest_tw << "x" << dest_th
+        << "\n\t" << (sxc = tiledImage.w / dest_tw) << " horizontal segments"
+        << "\n\t" << (syc = tiledImage.h / dest_th) << " vertical segments";
+    for( uint32_t i = 0; i < syc; ++i ) {
+        for( uint32_t j = 0; j < sxc; ++j ){
+            LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
+            buf = tiledImage.getRegion(
+                j * dest_tw, i * dest_th,
+                j * dest_tw + dest_tw , i * dest_th + dest_th );
+            name << "split_" << j << "_" << i << ".jpg";
+            buf->write( name.str() );
+            name.str( std::string() );
         }
     }
-    buf = tiledImage.getRegion( 1024, 1024, 2048, 2048 );
-    buf->write( "test.jpg");
 
 //FIXME fill out
     /* What I want to be able to do
