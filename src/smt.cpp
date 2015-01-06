@@ -25,23 +25,27 @@ SMT::create( string fileName, bool overwrite, bool dxt1_quality )
     return smt;
 }
 
-SMT *
-SMT::open( string fileName )
-{
-    bool good = false;
 
+bool
+SMT::test( string fileName )
+{
     char magic[ 16 ] = "";
     ifstream file( fileName );
     if( file.good() ){
         file.read( (char *)magic, 16 );
         if(! strcmp( magic, "spring tilefile" ) ){
-            good = true;
             file.close();
+            return true;
         }
     }
+    return false;
+}
 
+SMT *
+SMT::open( string fileName )
+{
     SMT *smt;
-    if( good ){
+    if( test( fileName ) ){
         smt = new SMT( fileName );
         return smt;
     }

@@ -163,6 +163,7 @@ public:
     SMF( std::string f ): fileName( f )
     { };
 
+    static bool test( std::string fileName );
     static SMF *create( std::string fileName, bool overwrite = false );
     static SMF *open( std::string fileName );
 

@@ -44,6 +44,8 @@ public:
         load();
     };
 
+    static bool test( std::string fileName );
+    
     static SMT *create( std::string fileName,
             bool overwrite = false,
             bool dxt1_quality = false );
