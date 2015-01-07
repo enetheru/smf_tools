@@ -7,16 +7,20 @@
 
 class TileMap
 {
+    uint32_t _width, _height;
+    std::vector< uint32_t > map;
 public:
     // data members
-    uint32_t width;
-    uint32_t height;
-    std::vector< uint32_t > map;
+    const uint32_t width = _width;;
+    const uint32_t height = _height;
 
     // constructors
     TileMap( );
-    TileMap( uint32_t w, uint32_t h );
+    TileMap( uint32_t width, uint32_t height );
     TileMap( std::string fileName );
+    
+    TileMap( const TileMap &rhs);
+    TileMap &operator=( const TileMap &rhs);
 
     //import
     void fromCSV( std::string fileName );
@@ -25,7 +29,7 @@ public:
     std::string toCSV();
 
     //modification
-    void setSize( uint32_t w, uint32_t h );
+    void setSize( uint32_t width, uint32_t height );
 
     //generation
     void consecutive( );
