@@ -9,33 +9,35 @@
 
 class TiledImage
 {
+    // == data members ==
+    uint32_t _tileWidth = 32;
+    uint32_t _tileHeight = 32;
 public:
-    // data members
     TileMap tileMap; //< tile map
     TileCache tileCache; //< tile cache
 
-    // numtiles_x: tileMap.width
-    // numtiles_y: tileMap.height
-    uint32_t tw = 32; //< Tile width
-    uint32_t th = 32; //< Tile hight
-    uint32_t w; //< Image Width
-    uint32_t h; //< Image Hight
+    // read only references
+    const uint32_t &tileWidth = _tileWidth; //< Tile width
+    const uint32_t &tileHeight = _tileHeight; //< Tile hight
 
-    //constructors
+    // == constructors ==
     TiledImage( ); //< default constructor
-    TiledImage( uint32_t w, uint32_t h, uint32_t tw = 32, uint32_t th = 32 );
+    TiledImage( uint32_t inWidth, uint32_t inHeight,
+        uint32_t inTileWidth = 32, uint32_t inTileHeight = 32 );
 
-    // modifications
-    void setSize( uint32_t w, uint32_t h );
-    void setTileSize( uint32_t w, uint32_t h );
+    // == Modifications ==
+    void setSize( uint32_t width, uint32_t height );
+    void setTileSize( uint32_t width, uint32_t height );
     void setTileMap( TileMap tileMap );
 
     void mapFromCSV( std::string );
 
-    /// generation
+    /// == Generation ==
     void squareFromCache();
 
-    // data access
+    // == Access ==
+    uint32_t getWidth();
+    uint32_t getHeight();
     // Get pixel region
     OpenImageIO::ImageBuf *getRegion(
             uint32_t x1 = 0, uint32_t y1 = 0,

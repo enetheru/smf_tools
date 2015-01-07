@@ -12,87 +12,88 @@
 TiledImage::TiledImage( )
 { }
 
-TiledImage::TiledImage( uint32_t w, uint32_t h, uint32_t tw, uint32_t th )
+TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
+    uint32_t inTileWidth, uint32_t inTileHeight )
 {
-    setTileSize( tw, th );
-    setSize( w, h );
-    tileMap.setSize( w / tw, h / th );
+    setTileSize( inTileWidth, inTileHeight );
+    setSize( inWidth, inHeight );
+    tileMap.setSize( inWidth / inTileHeight, inHeight / inTileHeight );
 }
 
 // MODIFICATION
 // ============
 
 void
-TiledImage::setTileMap( TileMap tm )
+TiledImage::setTileMap( TileMap inTileMap )
 {
-    CHECK( tm.width ) << "tilemap has no width";
-    CHECK( tm.height ) << "tilemap has no height";
+    CHECK( inTileMap.width ) << "tilemap has no width";
+    CHECK( inTileMap.height ) << "tilemap has no height";
 
-    tileMap = tm;
-    w = tileMap.width * tw;
-    h = tileMap.height * th;
+    tileMap = inTileMap;
 }
 
 void
-TiledImage::setSize( uint32_t w, uint32_t h )
+TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
-    CHECK( w >= tw )
-        << "width must be >= tile width (" << tw << ")";
-    CHECK(! (w % tw) )
-        << "width must be a multiple of tile width (" << tw << ")";
+    CHECK( inWidth >= tileWidth )
+        << "width must be >= tile width (" << tileWidth << ")";
+    CHECK(! (inWidth % tileWidth) )
+        << "width must be a multiple of tile width (" << tileWidth << ")";
 
-    CHECK( h >= th )
-        << "height must be >= tile height (" << th << ")";
-    CHECK(! (h % th) )
-        << "height must be a multiple of tile height (" << th << ")";
+    CHECK( inHeight >= tileHeight )
+        << "height must be >= tile height (" << tileHeight << ")";
+    CHECK(! (inHeight % tileHeight) )
+        << "height must be a multiple of tile height (" << tileHeight << ")";
 
-    this->w = w;
-    this->h = h;
-
-    tileMap.setSize( w / tw, h / th );
+    tileMap.setSize( inWidth / tileWidth, inHeight / tileHeight );
 }
 
 void
-TiledImage::setTileSize( uint32_t w, uint32_t h )
+TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 {
-    CHECK( w > 0 ) << "width(" << w << ") must be greater than zero";
-    CHECK( !(w % 4) ) << "width % 4 = " << w % 4 << "!= 0 must be a multiple of four";
-    CHECK( h > 0 ) << "height(" << h << ") must be greater than zero";
-    CHECK( !(h % 4) ) << "height % 4 = " << h % 4 << "!= 0 must be a multiple of four";
+    CHECK( inWidth > 0 ) << "width(" << inWidth << ") must be greater than zero";
+    CHECK( !(inWidth % 4) ) << "width % 4 = " << inWidth % 4 << "!= 0 must be a multiple of four";
+    CHECK( inHeight > 0 ) << "height(" << inHeight << ") must be greater than zero";
+    CHECK( !(inHeight % 4) ) << "height % 4 = " << inHeight % 4 << "!= 0 must be a multiple of four";
 
-
-    tw = w;
-    th = h;
-    this->w = tw * tileMap.width;
-    this->h = th * tileMap.height;
+    _tileWidth = inWidth;
+    _tileHeight = inHeight;
 }
 
 void
 TiledImage::mapFromCSV( std::string fileName )
 {
     tileMap.fromCSV( fileName );
-    w = tileMap.width * tw;
-    h = tileMap.height * th;
 }
-
 
 // GENERATION
 // ==========
 void
 TiledImage::squareFromCache( )
 {
-    int tc = tileCache.getNTiles();
-    CHECK( tc ) << "tileCache has no tiles";
+    int tileCount = tileCache.getNTiles();
+    CHECK( tileCount ) << "tileCache has no tiles";
 
-    int sq = sqrt(tc);
-    tileMap.setSize( sq, sq );
+    int square = sqrt(tileCount);
+    tileMap.setSize( square, square );
     tileMap.consecutive();
-    w = h = sq * tw;
-    //FIXME set tilesize based on images sizes in cache
 }
 
 // ACCESS
 // ======
+
+uint32_t
+TiledImage::getWidth()
+{
+    return tileMap.width * tileWidth;
+}
+
+uint32_t
+TiledImage::getHeight()
+{
+    return tileMap.height * tileHeight;
+}
+
 OpenImageIO::ImageBuf *
 TiledImage::getRegion(
     uint32_t x1, uint32_t y1, // begin point
@@ -104,10 +105,10 @@ TiledImage::getRegion(
 //    LOG( INFO ) << "source window "
 //        << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
 
-    CHECK( x1 < w ) << "x1 is out of range";
-    CHECK( y1 < w ) << "y1 is out of range";
-    if( x2 == 0 || x2 > w ) x2 = w;
-    if( y2 == 0 || y2 > h ) y2 = h;
+    CHECK( x1 < getWidth() ) << "x1 is out of range";
+    CHECK( y1 < getHeight() ) << "y1 is out of range";
+    if( x2 == 0 || x2 > getWidth() ) x2 = getWidth();
+    if( y2 == 0 || y2 > getHeight() ) y2 = getHeight();
     // LOG( INFO ) << "source window "
     //     << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
 
@@ -123,20 +124,20 @@ TiledImage::getRegion(
         // LOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
         //determine the tile under the point of interest
-        uint32_t mx = ix / tw;
-        uint32_t my = iy / th;
+        uint32_t mx = ix / tileWidth;
+        uint32_t my = iy / tileHeight;
 
         //determine the top left corner of the copy window
-        uint32_t wx1 = ix - mx * tw;
-        uint32_t wy1 = iy - my * th;
+        uint32_t wx1 = ix - mx * tileWidth;
+        uint32_t wy1 = iy - my * tileHeight;
 
         //determine the bottom right corner of the copy window
         uint32_t wx2, wy2;
-        if( x2 / tw > mx ) wx2 = tw;
-        else wx2 = x2 - mx * tw;
+        if( x2 / tileWidth > mx ) wx2 = tileWidth;
+        else wx2 = x2 - mx * tileWidth;
         
-        if( y2 / tw > my ) wy2 = th;
-        else wy2 = y2 - my * th;
+        if( y2 / tileHeight > my ) wy2 = tileHeight;
+        else wy2 = y2 - my * tileHeight;
 
         // LOG( INFO ) << "copy window "
         //     << "(" << wx1 << ", " << wy1 << ")->(" << wx2 << ", " << wy2 << ")";
@@ -151,7 +152,7 @@ TiledImage::getRegion(
         uint32_t dy = iy - y1;
 
         uint32_t index = tileMap(mx, my);
-        ImageBuf *tile = tileCache.getScaled( index, tw, th );
+        ImageBuf *tile = tileCache.getScaled( index, tileWidth, tileHeight );
         if( tile ){
             //copy pixel data from source tile to dest
             ROI window;
@@ -189,13 +190,13 @@ TiledImage::getUVRegion(
     uint32_t sw, uint32_t sh ) // scale width/height
 {
     return getRegion(
-        u1 * w, v1 * h,
-        u2 * w, v2 * h,
+        u1 * getWidth(), v1 * getHeight(),
+        u2 * getWidth(), v2 * getHeight(),
         sw, sh );
 }
 
 OpenImageIO::ImageBuf *
 TiledImage::getTile( uint32_t idx )
 {
-    return tileCache.getScaled( idx, tw, th );
+    return tileCache.getScaled( idx, tileWidth, tileHeight );
 }
