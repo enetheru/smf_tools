@@ -1,0 +1,48 @@
+img_w, img_h
+tileCache
+tileMap
+dest_tw, dest_th
+src_th, src_th (auto)
+filer
+tiledImage
+tilecountX, tilecountY
+
+Destination must have:
+tilesize[x,y]
+imagesize[w,h]
+tileMap
+and can export to image[s] or tilemap
+
+new option output as smt
+
+
+the idea is that we build a tiledimage from the input parameters
+from there we pull information from the tiled image to generate either an smt+csv
+or push images with csv
+
+pretty much always output the csv
+
+== SOURCE PAREMETERS ==
+=== INPUTS ===
+* tiles/smt's
+* tilemap
+* filter
+map_width = sqrt( filter.size() ) || tilemap.width.
+map_height = sqrt( filter.size() ) || tilemap.height
+tile_width = smt.tileWidth || tilecache.getOriginal( 0 ).width
+tile_height = smt.tileHeight || tilecache.getOriginal( 0 ).height
+image_width = map_width * tile_width
+image_height = map_height * tile_height
+^^ this creates the tiledImage ^^
+
+DESTINATION PAREMETERS
+=== INPUTS ===
+* --tilesize
+* --imagesize
+we want to generate a tilemap and a set of images, or an smt file
+out_image_width = --imagesize.width
+out_image_height = --imagesize.width
+out_tile_width = --tilesize.width
+out_tile_height = --tilesize.height
+out_map_width = out_image_width / out_tile_width
+out_map_height = out_image_height / out_tile_height
