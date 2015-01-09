@@ -38,6 +38,7 @@ TileMap::operator=( const TileMap &rhs)
 {
     _width = rhs.width;
     _height = rhs.height;
+    map = rhs.map;
     return *this;
 }
 

@@ -11,8 +11,8 @@ class TileMap
     std::vector< uint32_t > map;
 public:
     // data members
-    const uint32_t width = _width;;
-    const uint32_t height = _height;
+    const uint32_t &width = _width;
+    const uint32_t &height = _height;
 
     // constructors
     TileMap( );
