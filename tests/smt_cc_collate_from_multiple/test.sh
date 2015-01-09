@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="smt_decc -v ../data/data.smt"
+COMMAND="echo not yet implemented"
 echo COMMAND = $COMMAND
 eval $COMMAND
-exit $?
+exit 1 #$?

@@ -1,4 +1,5 @@
 #include "util.h"
+#include "elog/elog.h"
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -23,14 +24,14 @@ std::vector< uint32_t >
 expandString( const char *s )
 {
     std::vector< uint32_t > result;
-
     int start;
-    bool sequence = false;
+    bool sequence = false, fail = false;
     const char *begin;
+
     do {
         begin = s;
 
-        while( *s != ',' && *s != '-' && *s ) s++;
+        while( *s != ',' && *s != '\n' && *s != '-' && *s ) s++;
         if( begin == s) continue;
 
         if( sequence ){
@@ -40,14 +41,27 @@ expandString( const char *s )
 
         if( *(s) == '-' ){
             sequence = true;
-            start = std::stoi( std::string( begin, s ) );
+            try {
+                start = std::stoi( std::string( begin, s ) );
+            }
+            catch( std::invalid_argument ){
+                fail = true;
+            }
         } else {
             sequence = false;
-            result.push_back( std::stoi( std::string( begin, s ) ) );
+            try {
+                result.push_back( std::stoi( std::string( begin, s ) ) );
+            }
+            catch( std::invalid_argument ){
+                fail = true;
+            }
         }
     }
     while( *s++ != '\0' );
 
+    if( fail ){
+        LOG( WARN ) << "Possible Parse Error while spliting filter string";
+    }
     return result;
 }
 

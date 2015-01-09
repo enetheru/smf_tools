@@ -64,24 +64,28 @@ SMF *SMF::create( string fileName, bool overwrite ){
     return smf;
 }
 
-/// Opens an existing SMF file and returns pointer to management class
-/*
- */
-SMF *SMF::open( string fileName ){
-    bool good = false;
-    SMF *smf;
-
+bool
+SMF::test( std::string fileName )
+{
     char magic[ 16 ] = "";
     ifstream file( fileName );
     if( file.good() ){
         file.read( magic, 16 );
         if(! strcmp( magic, "spring map file" ) ){
-            good = true;
             file.close();
+            return true;
         }
     }
+    return false;
+}
 
-    if( good ){
+/// Opens an existing SMF file and returns pointer to management class
+/*
+ */
+SMF *SMF::open( string fileName )
+{
+    SMF *smf;
+    if( test( fileName ) ){
         LOG(INFO) << "INFO: Opening " << fileName;
         smf = new SMF( fileName );
         smf->init = !smf->read();

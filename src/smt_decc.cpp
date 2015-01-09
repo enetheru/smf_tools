@@ -60,42 +60,44 @@ enum optionsIndex
     HELP, VERBOSE, QUIET,
     OVERWRITE,
     TILEMAP,
-    COLLATE,
     FILTER,
     TILESIZE,
-    SPLITSIZE,
     IMAGESIZE,
+    SMT,
+    IMG,
 };
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: smt_info <smt file> \n"
+        "USAGE: smt_info <source1> [source2...sourceN]> \n"
         "  eg. 'smt_info myfile.smt'\n"
         "\nGENERAL OPTIONS:"},
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
     { VERBOSE, 0, "v", "verbose", Arg::None,
         "  -v  \t--verbose  \tPrint extra information." },
-    { TILEMAP, 0, "t", "tilemap", Arg::Required,
-        "  -t  \t--tilemap=filename.[csv,smf]  \treconstruction tilemap." },
-    { COLLATE, 0, "c", "collate", Arg::None,
-        "  -c  \t--collate  \tjoin the tiles together into a large image" },
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nINPUT OPTIONS:" },
     { FILTER, 0, "f", "filter", Arg::Required,
         "  -f  \t--filter=1,2-n  \tonly pull selected tiles" },
+    { TILEMAP, 0, "t", "tilemap", Arg::Required,
+        "  -t  \t--tilemap=[.csv,.smf]  \treconstruction tilemap." },
+    { UNKNOWN, 0, "", "", Arg::None,
+        "\nOUTPUT OPTIONS:" },
     { TILESIZE, 0, "s", "tilesize", Arg::Required,
         "  -s  \t--tilesize=XxY  \tXxY" },
-    { SPLITSIZE, 0, "", "splitsize", Arg::Required,
-        "\t--splitsize=XxY  \tXxY" },
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
         "\t--imagesize=XxY  \tXxY" },
+    { SMT, 0, "", "smt", Arg::None,
+        "\t--smt  \t" },
+    { IMG, 0, "", "img", Arg::None,
+        "\t--img  \t" },
     { 0, 0, 0, 0, 0, 0 }
 };
 
 int
 main( int argc, char **argv )
 {
-    int tileCount = 0; // how many tiles to extract.
-    
     // Option parsing
     // ==============
     bool fail = false;
@@ -130,140 +132,175 @@ main( int argc, char **argv )
         fail = true;
     }
 
+    if( (options[ IMG ] && options[ SMT ]) 
+        || (!options[ IMG ] && !options[ SMT ]) ){
+        LOG( ERROR ) << "must have only one output format --img or --smt";
+        fail = true;
+    }
+
     if( fail || parse.error() ){
         LOG( ERROR ) << "Options parsing.";
         exit( 1 );
     }
 
-    // non options will be considered tile sources
-    TileCache tileCache;
+    // == Variables ==
+    // temporary
+    OpenImageIO::ImageBuf *tempBuf;
+    SMF *tempSMF = NULL;
+    //SMT *tempSMT = NULL;
+    std::stringstream name;
+
+    // source
+    TileCache src_tileCache;
+    TileMap src_tileMap;
+    std::vector<uint32_t> src_filter;
+    uint32_t src_tile_width, src_tile_height;
+    //uint32_t src_map_width, src_map_height;
+    //uint32_t src_img_width, src_img_height;
+
+    // output
+    uint32_t out_tile_width, out_tile_height;
+    uint32_t out_map_width, out_map_height;
+    uint32_t out_img_width, out_img_height;
+
+
+    // == TILE CACHE ==
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         LOG( INFO ) << "adding " << parse.nonOption( i ) << " to tilecache.";
-        tileCache.addSource( parse.nonOption( i ) );
+        src_tileCache.addSource( parse.nonOption( i ) );
     }
-    LOG( INFO ) << tileCache.getNTiles() << " tiles in cache";
-    tileCount = tileCache.getNTiles();
+    LOG( INFO ) << src_tileCache.getNTiles() << " tiles in cache";
+
+    // == SOURCE TILE SIZE ==
+    tempBuf = src_tileCache( 0 );
+    src_tile_width = tempBuf->spec().width;
+    src_tile_height = tempBuf->spec().height;
+    delete tempBuf;
+
+    // == FILTER ==
+    if( options[ FILTER ] ){
+        src_filter = expandString( options[ FILTER ].arg );
+        if( src_filter.size() == 0 ) {
+            LOG( ERROR ) << "failed to interpret filter string";
+            exit( 1 );
+        }
+    }
+    else {
+        src_filter.resize( src_tileCache.getNTiles() );
+        for( unsigned i = 0; i < src_filter.size(); ++i ) src_filter[ i ] = i;
+    }
 
     // == TILEMAP ==
     // Source the tilemap, or generate it
-    TileMap tileMap;
     if( options[ TILEMAP ] ){
-        SMF *smf = NULL;
         // attempt to load from smf
-        if( (smf = SMF::open( options[ TILEMAP ].arg )) ){
-            tileMap = *(smf->getMap());
-            delete smf;
+        if( SMT::test( options[ TILEMAP ].arg ) ){
+            LOG( INFO ) << "tilemap derived from smt";
+            tempSMF = SMF::open( options[ TILEMAP ].arg );
+            src_tileMap = *(tempSMF->getMap());
+            delete tempSMF;
+            tempSMF = NULL;
         }
-        else if(! smf ){ // attempt to load from csv
-            std::ifstream inFile( options[ TILEMAP ].arg );
-            std::string csv;
-
-            inFile.seekg(0, std::ios::end);
-            csv.reserve(inFile.tellg());
-            inFile.seekg(0, std::ios::beg);
-
-            csv.assign((std::istreambuf_iterator<char>(inFile)),
-                std::istreambuf_iterator<char>());
-            tileMap.fromCSV( csv );
-            inFile.close();
-        }
-    }
-    
-    // == FILTER ==
-    // resolve filter list
-    std::vector<unsigned int> filter;
-    if( options[ FILTER ] ) {
-        filter = expandString( options[ FILTER ].arg );
-        tileCount = filter.size();
-    }
-    else {// otherwise set the filter list to all tiles.
-        filter.resize( tileCache.getNTiles() );
-        for( unsigned int i = 0; i < filter.size(); ++i ) filter[i] = i;
-    }
-
-    // == COLLATE ==
-    // square up the tilemap and give it consecutive numbering
-    if( options[ COLLATE ] ) { //generate a square map with consecutive numbering
-        int tc = std::ceil( std::sqrt( tileCount ) );
-        tileMap.setSize( tc, tc );
-        tileMap.consecutive();
-    }
-    
-    // == TILESIZE ==
-    uint32_t tx, ty;
-    if( options[ TILESIZE ] ){
-        valxval( options[ TILESIZE ].arg, tx, ty );
-    }
-    else tx = ty = 32;
-    
-    // == SPLITSIZE ==
-    uint32_t sx, sy;
-    if( options[ SPLITSIZE ] ){
-        valxval( options[ SPLITSIZE ].arg, sx, sy );
-    }
-    else sx = sy = 1024;
-    
-    // == IMAGESIZE ==
-    uint32_t ix, iy;
-    if( options[ IMAGESIZE ] ){
-        valxval( options[ IMAGESIZE ].arg, ix, iy );
-    }
-    else ix = iy = 0;
-
-    // == EXPORT TILES ==
-    OpenImageIO::ImageBuf *buf = NULL;
-    std::stringstream name;
-    if(! options[ TILEMAP ] && ! options[ COLLATE] ) {
-        for( auto i = filter.begin(); i != filter.end(); ++i ) {
-            if( *i >= tileCache.getNTiles() ) {
-                LOG( WARN ) << "tile: " << *i << " is out of range.";
-                continue;
+        // attempt to load from csv
+        else {
+            src_tileMap.fromCSV( options[ TILEMAP ].arg );
+            if( src_tileMap.width != 0 && src_tileMap.height != 0 ){\
+                LOG( INFO ) << "tilemap derived from csv";
             }
-            buf = tileCache.getOriginal( *i );
-            name << "tile_" << *i << ".jpg";
-            buf->write( name.str() );
-            name.str( std::string() );// clear the string
         }
-        exit( 0 );
-    }
-    
-    // == EXPORT LARGE IMAGE ==
-    TiledImage tiledImage;
-    tiledImage.setTileMap( tileMap );
-    tiledImage.tileCache = tileCache;
-    tiledImage.setTileSize(tx, ty);
-    
-    if(! options[ SPLITSIZE ] ){
-        buf = tiledImage.getUVRegion( 0, 0, 1, 1 );
-        buf->write("collate_out.jpg");
+        // check for failure
+        if( src_tileMap.width == 0 || src_tileMap.height == 0 ){
+            LOG( ERROR ) << "unable to open: " << options[ TILEMAP ].arg;
+            exit( 1 );
+        }
     }
     else {
-        uint32_t sxc, syc;
-        LOG( INFO ) << "Processing Split Image"
-            << "\n\tFull Size: " << tiledImage.w << "x" << tiledImage.h
-            << "\n\tSplit Size: " << sx << "x" << sy
-            << "\n\t" << (sxc = tiledImage.w / sx) << " horizontal segments"
-            << "\n\t" << (syc = tiledImage.h / sy) << " vertical segments";
-        for( uint32_t i = 0; i < syc; ++i ) {
-            for( uint32_t j = 0; j < sxc; ++j ){
-                LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
-                //buf = tiledImage.getRegion(j * sx, i * sy, j * sx + sx , i * sy + sy );
-                name << "split_" << j << "_" << i << ".jpg";
-                //buf->write( name.str() );
-                name.str( std::string() );
-            }
+        LOG( INFO ) << "tilemap generated ";
+        uint32_t squareSize = std::ceil( std::sqrt( src_filter.size() ) );
+        src_tileMap.setSize( squareSize, squareSize );
+        src_tileMap.consecutive();
+        LOG( INFO ) << "src_tileMap: " << src_tileMap.width << "x" << src_tileMap.height;
+    }
+
+    // == TILESIZE ==
+    if( options[ TILESIZE ] ){
+        valxval( options[ TILESIZE ].arg, out_tile_width, out_tile_height );
+    }
+    else {
+        out_tile_width = src_tile_width;
+        out_tile_height = src_tile_height;
+    }
+
+    // == IMAGESIZE ==
+    if( options[ IMAGESIZE ] ){
+        valxval( options[ IMAGESIZE ].arg, out_img_width, out_img_height );
+    }
+    else {
+        out_img_width = out_tile_width * src_tileMap.width;
+        out_img_height = out_tile_height * src_tileMap.height;
+    }
+
+    if(! options[ TILESIZE ] ){
+        if( options[ IMG ] ){
+            out_tile_width = out_img_width;
+            out_tile_height = out_img_height;
         }
     }
-    buf = tiledImage.getRegion( 1024, 1024, 2048, 2048 );
-    buf->write( "test.jpg");
+
+    // // == EXPORT TILES ==
+    // if(! options[ TILEMAP ] ) {
+    //     for( auto i = src_filter.begin(); i != src_filter.end(); ++i ) {
+    //         if( *i >= src_tileCache.getNTiles() ) {
+    //             LOG( WARN ) << "tile: " << *i << " is out of range.";
+    //             continue;
+    //         }
+    //         tempBuf = src_tileCache.getOriginal( *i );
+    //         //FIXME scale based on tilesize?
+    //         name << "tile_" << *i << ".jpg";
+    //         tempBuf->write( name.str() );
+    //         name.str( std::string() );// clear the string
+    //     }
+    //     exit( 0 );
+    // }
+
+    // == Build TiledImage ==
+    TiledImage src_tiledImage;
+    src_tiledImage.setTileMap( src_tileMap );
+    src_tiledImage.tileCache = src_tileCache;
+    src_tiledImage.setTileSize( src_tile_width, src_tile_height );
+    
+    LOG( INFO ) << "\n    Source Tiled Image:"
+        << "\n\tFull size: " << src_tiledImage.getWidth() << "x" << src_tiledImage.getHeight()
+        << "\n\tTile size: " << src_tiledImage.tileWidth << "x" << src_tiledImage.tileHeight
+        << "\n\tTileMap size: " << src_tiledImage.tileMap.width << "x" << src_tiledImage.tileMap.height;
+
+    out_map_width = out_img_width / out_tile_width;
+    out_map_height = out_img_height / out_tile_height;
+             
+    LOG( INFO ) << "\n    Output "
+        << "\n\tFull Size: " << out_img_width << "x" << out_img_height
+        << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
+        << "\n\ttileMap Size" << out_map_width << "x" << out_map_height;
+        
+    for( uint32_t i = 0; i < out_map_height; ++i ) {
+        for( uint32_t j = 0; j < out_map_width; ++j ){
+            LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
+            tempBuf = src_tiledImage.getRegion(
+                j * out_tile_width, i * out_tile_height,
+                j * out_tile_width + out_tile_width , i * out_tile_height + out_tile_height );
+            name << "split_" << j << "_" << i << ".jpg";
+            tempBuf->write( name.str() );
+            name.str( std::string() );
+        }
+    }
 
 //FIXME fill out
     /* What I want to be able to do
         [*] extract the tiles from the file at original size
         [*] extract specific tiles at original size
-        [ ] extract only the tiles listed in a tilemap
-        [ ] use tilemap or collate(square)
-            [ ] construct large image
+        [*] extract only the tiles listed in a tilemap
+        [*] use tilemap or collate(square)
+            [*] construct large image
             [ ] construct scaled image
             [ ] construct scaled image, scale and split
     */

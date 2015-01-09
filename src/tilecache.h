@@ -20,6 +20,7 @@ public:
     uint32_t getNTiles ( ){ return nTiles; };
     uint32_t getNFiles ( ){ return fileNames.size(); };
     OpenImageIO::ImageBuf *getOriginal( uint32_t n );
+    OpenImageIO::ImageBuf *operator() ( uint32_t idx );
     OpenImageIO::ImageBuf* getScaled( uint32_t n, uint32_t w, uint32_t h = 0 );
 };
 

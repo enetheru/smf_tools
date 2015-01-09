@@ -25,26 +25,27 @@ SMT::create( string fileName, bool overwrite, bool dxt1_quality )
     return smt;
 }
 
-SMT *
-SMT::open( string fileName )
-{
-    bool good = false;
 
+bool
+SMT::test( string fileName )
+{
     char magic[ 16 ] = "";
     ifstream file( fileName );
     if( file.good() ){
         file.read( (char *)magic, 16 );
         if(! strcmp( magic, "spring tilefile" ) ){
-            good = true;
             file.close();
-        }
-        else {
-            LOG( ERROR ) << fileName << " is not an SMT file.";
+            return true;
         }
     }
+    return false;
+}
 
+SMT *
+SMT::open( string fileName )
+{
     SMT *smt;
-    if( good ){
+    if( test( fileName ) ){
         smt = new SMT( fileName );
         return smt;
     }
@@ -117,13 +118,13 @@ SMT::load( )
     inFile.close();
     dataBytes -= 32; // file size - header
     uint32_t tileGuess = dataBytes / tileBytes;
-    
+
     if( header.nTiles != tileGuess ) {
         LOG( WARN ) << "Possible Data Issue\n"
             << "\t(" << fileName << ").header.nTiles = " << header.nTiles << "\n"
             << "\tcalculated from file size = " << tileGuess;
     }
-    
+
     if( dataBytes % tileBytes ) {
         LOG( WARN ) << "Possible Data Issue\n"
             << "\t(" << fileName << ").data = " << dataBytes << "\n"

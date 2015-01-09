@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="smt_decc -v ../data/data.smt"
+COMMAND="smf_info ../data/data.smf"
 echo COMMAND = $COMMAND
 eval $COMMAND
 exit $?

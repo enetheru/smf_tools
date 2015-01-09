@@ -26,9 +26,9 @@ TileCache::getOriginal( uint32_t n )
 
     if( (smt = SMT::open( *fileName )) ){
         tileBuf = smt->getTile( n - *i + smt->getNTiles() );
-        LOG(INFO) << "request: " << n << " - tiles to date: " << *i
-            << " + tiles in file: " << smt->getNTiles() << " = " 
-            << n - *i + smt->getNTiles();
+        // LOG(INFO) << "request: " << n << " - tiles to date: " << *i
+        //     << " + tiles in file: " << smt->getNTiles() << " = "
+        //     << n - *i + smt->getNTiles();
         delete smt;
     }
     else if( (image = ImageInput::open( *fileName )) ){
@@ -39,6 +39,7 @@ TileCache::getOriginal( uint32_t n )
         tileBuf->read( 0, 0, false, TypeDesc::UINT8 );
         if(! tileBuf->initialized() ) {
             delete tileBuf;
+            LOG( ERROR ) << "failed to open source for tile: " << n;
             return NULL;
         }
     }
@@ -58,13 +59,13 @@ TileCache::getScaled( uint32_t n, uint32_t w, uint32_t h )
     if( h == 0 ) h = w;
 
     // Scale the tile to match output requirements
-    ImageBuf fixBuf; 
+    ImageBuf fixBuf;
     ROI roi( 0, w, 0, h, 0, 1, 0, 4 );
     if( w != 0 || spec.width != roi.xend || spec.height != roi.yend ){
 //            printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
 //                " Resampling.\n",
 //                spec.width, spec.height, roi.xend, roi.yend );
- 
+
         ImageBufAlgo::resample( fixBuf, *tileBuf, false, roi );
         tileBuf->copy( fixBuf );
         fixBuf.clear();
@@ -119,4 +120,10 @@ TileCache::addSource( std::string fileName )
     }
 
     LOG(ERROR) << "unrecognised format: " << fileName;
+}
+
+ImageBuf *
+TileCache::operator() ( uint32_t idx )
+{
+    return getOriginal( idx);
 }

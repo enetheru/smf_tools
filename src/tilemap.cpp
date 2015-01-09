@@ -14,8 +14,8 @@
 TileMap::TileMap( )
 { }
 
-TileMap::TileMap( uint32_t w,  uint32_t h )
-    : width( w ), height( h )
+TileMap::TileMap( uint32_t width,  uint32_t height )
+    : _width( width ), _height( height )
 {
     map.resize( width * height , 0 );
 }
@@ -25,13 +25,30 @@ TileMap::TileMap( std::string fileName )
     fromCSV( fileName );
 }
 
+// Copy Constructor
+TileMap::TileMap( const TileMap& rhs)
+:   _width( rhs.width ), _height( rhs.height )
+{
+    map = rhs.map;
+}
+
+// Assignment operator
+TileMap &
+TileMap::operator=( const TileMap &rhs)
+{
+    _width = rhs.width;
+    _height = rhs.height;
+    map = rhs.map;
+    return *this;
+}
+
 // IMPORT
 // ======
 void
 TileMap::fromCSV( std::string fileName )
 {
     // reset
-    width = height = 0;
+    _width = _height = 0;
     // setup
     std::string cell;
     std::stringstream line;
@@ -40,12 +57,12 @@ TileMap::fromCSV( std::string fileName )
     CHECK(! file.good() ) << "cannot open " << fileName;
 
     // get dimensions
-    if( std::getline( file, cell ) ) ++height;
+    if( std::getline( file, cell ) ) ++_height;
     else return;
 
     line.str( cell );
-    while( std::getline( line, cell, ',' ) ) ++width;
-    while( std::getline( file, cell ) ) ++height;
+    while( std::getline( line, cell, ',' ) ) ++_width;
+    while( std::getline( file, cell ) ) ++_height;
 
     //reserve space to avoid many memory allocations
     map.resize( width * height );
@@ -89,12 +106,12 @@ TileMap::toCSV( )
 }
 
 void
-TileMap::setSize( uint32_t w, uint32_t h )
+TileMap::setSize( uint32_t width, uint32_t height )
 {
-    CHECK( w > 0 ) << "Width must be > 0";
-    CHECK( h > 0 ) << "Height must be ";
+    CHECK( width > 0 ) << "Width must be > 0";
+    CHECK( height > 0 ) << "Height must be ";
 
-    width = w; height = h;
+    _width = width; _height = height;
     map.resize( width * height );
 }
 
