@@ -63,8 +63,8 @@ enum optionsIndex
     FILTER,
     TILESIZE,
     IMAGESIZE,
-    SMT,
-    IMG,
+    SMTOUT,
+    IMGOUT,
 };
 
 const option::Descriptor usage[] = {
@@ -88,9 +88,9 @@ const option::Descriptor usage[] = {
         "  -s  \t--tilesize=XxY  \tXxY" },
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
         "\t--imagesize=XxY  \tXxY" },
-    { SMT, 0, "", "smt", Arg::None,
+    { SMTOUT, 0, "", "smt", Arg::None,
         "\t--smt  \t" },
-    { IMG, 0, "", "img", Arg::None,
+    { IMGOUT, 0, "", "img", Arg::None,
         "\t--img  \t" },
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -98,6 +98,34 @@ const option::Descriptor usage[] = {
 int
 main( int argc, char **argv )
 {
+    // == Variables ==
+    // temporary
+    OpenImageIO::ImageBuf *tempBuf;
+    OpenImageIO::ImageSpec tempSpec;
+    tempSpec.nchannels = 4;
+    tempSpec.set_format( OpenImageIO::TypeDesc::UINT8 );
+    SMF *tempSMF = NULL;
+    SMT *tempSMT = NULL;
+    std::stringstream name;
+
+    // source
+    TileCache src_tileCache;
+    TileMap src_tileMap;
+    TiledImage src_tiledImage;
+    std::vector<uint32_t> src_filter;
+    uint32_t src_tile_width, src_tile_height;
+    //uint32_t src_map_width, src_map_height;
+    //uint32_t src_img_width, src_img_height;
+
+    // output
+    TileMap out_tileMap;
+    uint32_t out_tile_width, out_tile_height;
+    //uint32_t out_map_width, out_map_height;
+    uint32_t out_img_width, out_img_height;
+
+    // relative intermediate size
+    uint32_t rel_tile_width, rel_tile_height;
+
     // Option parsing
     // ==============
     bool fail = false;
@@ -132,36 +160,32 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    if( (options[ IMG ] && options[ SMT ]) 
-        || (!options[ IMG ] && !options[ SMT ]) ){
+    if( (options[ IMGOUT ] && options[ SMTOUT ]) 
+        || (!options[ IMGOUT ] && !options[ SMTOUT ]) ){
         LOG( ERROR ) << "must have only one output format --img or --smt";
         fail = true;
+    }
+
+    if( options[ TILESIZE ] ){
+        valxval( options[ TILESIZE ].arg, out_tile_width, out_tile_height );
+        if( (out_tile_width % 4) || (out_tile_height % 4) ){
+            LOG( ERROR ) << "tilesize must be a multiple of 4x4";
+            fail = true;
+        }
+    }
+
+    if( options[ IMAGESIZE ] ){
+        valxval( options[ IMAGESIZE ].arg, out_img_width, out_img_height );
+        if( (out_img_width % 4) || (out_img_height % 4) ){
+            LOG( ERROR ) << "imagesize must be a multiple of 4x4";
+            fail = true;
+        }
     }
 
     if( fail || parse.error() ){
         LOG( ERROR ) << "Options parsing.";
         exit( 1 );
     }
-
-    // == Variables ==
-    // temporary
-    OpenImageIO::ImageBuf *tempBuf;
-    SMF *tempSMF = NULL;
-    //SMT *tempSMT = NULL;
-    std::stringstream name;
-
-    // source
-    TileCache src_tileCache;
-    TileMap src_tileMap;
-    std::vector<uint32_t> src_filter;
-    uint32_t src_tile_width, src_tile_height;
-    //uint32_t src_map_width, src_map_height;
-    //uint32_t src_img_width, src_img_height;
-
-    // output
-    uint32_t out_tile_width, out_tile_height;
-    uint32_t out_map_width, out_map_height;
-    uint32_t out_img_width, out_img_height;
 
 
     // == TILE CACHE ==
@@ -194,7 +218,7 @@ main( int argc, char **argv )
     // Source the tilemap, or generate it
     if( options[ TILEMAP ] ){
         // attempt to load from smf
-        if( SMT::test( options[ TILEMAP ].arg ) ){
+        if( SMF::test( options[ TILEMAP ].arg ) ){
             LOG( INFO ) << "tilemap derived from smt";
             tempSMF = SMF::open( options[ TILEMAP ].arg );
             src_tileMap = *(tempSMF->getMap());
@@ -222,31 +246,48 @@ main( int argc, char **argv )
         LOG( INFO ) << "src_tileMap: " << src_tileMap.width << "x" << src_tileMap.height;
     }
 
-    // == TILESIZE ==
-    if( options[ TILESIZE ] ){
-        valxval( options[ TILESIZE ].arg, out_tile_width, out_tile_height );
-    }
-    else {
-        out_tile_width = src_tile_width;
-        out_tile_height = src_tile_height;
-    }
+    // == Build TiledImage ==
+    src_tiledImage.setTileMap( src_tileMap );
+    src_tiledImage.tileCache = src_tileCache;
+    src_tiledImage.setTileSize( src_tile_width, src_tile_height );
+    LOG( INFO ) << "\n    Source Tiled Image:"
+        << "\n\tFull size: " << src_tiledImage.getWidth() << "x" << src_tiledImage.getHeight()
+        << "\n\tTile size: " << src_tiledImage.tileWidth << "x" << src_tiledImage.tileHeight
+        << "\n\tTileMap size: " << src_tiledImage.tileMap.width << "x" << src_tiledImage.tileMap.height;
 
     // == IMAGESIZE ==
-    if( options[ IMAGESIZE ] ){
-        valxval( options[ IMAGESIZE ].arg, out_img_width, out_img_height );
-    }
-    else {
-        out_img_width = out_tile_width * src_tileMap.width;
-        out_img_height = out_tile_height * src_tileMap.height;
+    if(! options[ IMAGESIZE ] ){
+        out_img_width = src_tiledImage.getWidth();
+        out_img_height = src_tiledImage.getHeight();
     }
 
+    // == TILESIZE ==
     if(! options[ TILESIZE ] ){
-        if( options[ IMG ] ){
+        out_tile_width = src_tile_width;
+        out_tile_height = src_tile_height;
+        if( options[ IMGOUT ] ){
             out_tile_width = out_img_width;
-            out_tile_height = out_img_height;
+            out_tile_height = out_img_height; 
         }
     }
 
+    if( out_img_width % out_tile_width || out_img_height % out_tile_height ){
+        LOG( ERROR ) << "image size must be a multiple of image size";
+        LOG( INFO ) << "image size: " << out_img_width << "x" << out_img_height;
+        LOG( INFO ) << "tile size: " << out_tile_width << "x" << out_tile_height;
+        exit( 1 );
+    }
+
+    // == Output Tile Map ==
+    out_tileMap.setSize( out_img_width / out_tile_width,
+                         out_img_height / out_tile_height);
+             
+    LOG( INFO ) << "\n    Output "
+        << "\n\tFull Size: " << out_img_width << "x" << out_img_height
+        << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
+        << "\n\ttileMap Size: " << out_tileMap.width << "x" << out_tileMap.height;
+
+    // TODO IF( src and out match, why not do it the simple way?
     // // == EXPORT TILES ==
     // if(! options[ TILEMAP ] ) {
     //     for( auto i = src_filter.begin(); i != src_filter.end(); ++i ) {
@@ -255,46 +296,55 @@ main( int argc, char **argv )
     //             continue;
     //         }
     //         tempBuf = src_tileCache.getOriginal( *i );
-    //         //FIXME scale based on tilesize?
     //         name << "tile_" << *i << ".jpg";
     //         tempBuf->write( name.str() );
     //         name.str( std::string() );// clear the string
     //     }
     //     exit( 0 );
     // }
-
-    // == Build TiledImage ==
-    TiledImage src_tiledImage;
-    src_tiledImage.setTileMap( src_tileMap );
-    src_tiledImage.tileCache = src_tileCache;
-    src_tiledImage.setTileSize( src_tile_width, src_tile_height );
     
-    LOG( INFO ) << "\n    Source Tiled Image:"
-        << "\n\tFull size: " << src_tiledImage.getWidth() << "x" << src_tiledImage.getHeight()
-        << "\n\tTile size: " << src_tiledImage.tileWidth << "x" << src_tiledImage.tileHeight
-        << "\n\tTileMap size: " << src_tiledImage.tileMap.width << "x" << src_tiledImage.tileMap.height;
+    // work out the relative tile size
+    float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
+    float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
+    LOG( INFO ) << "Scale Ratio: " << xratio << "x" << yratio;
 
-    out_map_width = out_img_width / out_tile_width;
-    out_map_height = out_img_height / out_tile_height;
-             
-    LOG( INFO ) << "\n    Output "
-        << "\n\tFull Size: " << out_img_width << "x" << out_img_height
-        << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
-        << "\n\ttileMap Size" << out_map_width << "x" << out_map_height;
-        
-    for( uint32_t i = 0; i < out_map_height; ++i ) {
-        for( uint32_t j = 0; j < out_map_width; ++j ){
+    rel_tile_width = out_tile_width * xratio;
+    rel_tile_height = out_tile_height * yratio;
+    LOG( INFO ) << "Pre-scaled tile: " << rel_tile_width << "x" << rel_tile_height;
+
+    tempSpec.width = out_tile_width;
+    tempSpec.height = out_tile_height;
+
+    if( options[ SMTOUT ] ){
+        tempSMT = SMT::create( "output.smt" );
+        tempSMT->setTileSize( out_tile_width );
+    }
+
+    if( options[ SMTOUT ] ){
+        LOG( ERROR ) << "WTF";
+        if( options[ IMGOUT ] )exit ( 1 );
+    }
+
+    // == OUTPUT THE IMAGES == 
+    for( uint32_t i = 0; i < out_tileMap.height; ++i ) {
+        for( uint32_t j = 0; j < out_tileMap.width; ++j ){
             LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
             tempBuf = src_tiledImage.getRegion(
-                j * out_tile_width, i * out_tile_height,
-                j * out_tile_width + out_tile_width , i * out_tile_height + out_tile_height );
-            name << "split_" << j << "_" << i << ".jpg";
-            tempBuf->write( name.str() );
+                j * rel_tile_width, i * rel_tile_height,
+                j * rel_tile_width + rel_tile_width , i * rel_tile_height + rel_tile_height );
+            tempBuf = scale( tempBuf, tempSpec );
+            //tempBuf = src_tiledImage.getRegion(
+            //    j * out_tile_width, i * out_tile_height,
+            //    j * out_tile_width + out_tile_width , i * out_tile_height + out_tile_height );
+            name << "output_" << j << "_" << i << ".jpg";
+            if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
+            if( options[ IMGOUT ] ) tempBuf->write( name.str() );
+            delete tempBuf;
             name.str( std::string() );
         }
     }
 
-//FIXME fill out
+//TODO fill out
     /* What I want to be able to do
         [*] extract the tiles from the file at original size
         [*] extract specific tiles at original size
