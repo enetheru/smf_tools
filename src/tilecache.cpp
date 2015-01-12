@@ -86,7 +86,7 @@ TileCache::getScaled( uint32_t n, uint32_t w, uint32_t h )
 void
 TileCache::addSource( std::string fileName )
 {
-    ImageInput *image;
+    ImageInput *image = NULL;
     ImageSpec spec;
     if( (image = ImageInput::open( fileName )) ){
         nTiles++;

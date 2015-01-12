@@ -316,13 +316,8 @@ main( int argc, char **argv )
     tempSpec.height = out_tile_height;
 
     if( options[ SMTOUT ] ){
-        tempSMT = SMT::create( "output.smt" );
+        tempSMT = SMT::create( "output.smt", true );
         tempSMT->setTileSize( out_tile_width );
-    }
-
-    if( options[ SMTOUT ] ){
-        LOG( ERROR ) << "WTF";
-        if( options[ IMGOUT ] )exit ( 1 );
     }
 
     // == OUTPUT THE IMAGES == 
