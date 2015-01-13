@@ -91,8 +91,12 @@ int main( int argc, char **argv )
     if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
         LOG(FATAL) << "cannot open smf file";
     }
+    else {
+        LOG(INFO) << "\n" << smf->info();
+        delete smf;
+    }
 
-    LOG(INFO) << "\n" << smf->info();
-
+    delete [] options;
+    delete [] buffer;
     return 0;
 }

@@ -295,5 +295,9 @@ main( int argc, char **argv )
     smf->reWrite();
 
     LOG(INFO) << smf->info();
+
+    delete smf;
+    delete [] options;
+    delete [] buffer;
     return 0;
 }

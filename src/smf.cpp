@@ -575,15 +575,16 @@ bool SMF::writeHeaders(){
 bool
 SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
 {
+    ImageBuf *tempBuf;
     if( sourceBuf ){
         sourceBuf->read( 0, 0, true, spec.format );
-    ImageBuf *tempBuf = new ImageBuf;
-    tempBuf->copy( *sourceBuf );
-    channels( tempBuf, spec );
-    scale( tempBuf, spec );
+        tempBuf = new ImageBuf;
+        tempBuf->copy( *sourceBuf );
+        channels( tempBuf, spec );
+        scale( tempBuf, spec );
     } 
     else {
-        
+        tempBuf = new ImageBuf( spec );
     }
 
     // write the data to the smf
