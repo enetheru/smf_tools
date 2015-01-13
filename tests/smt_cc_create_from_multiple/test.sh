@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="echo not yet implemented"
+COMMAND="valgrind --leak-check=full echo not yet implemented"
 echo COMMAND = $COMMAND
 eval $COMMAND
 exit 1 $?

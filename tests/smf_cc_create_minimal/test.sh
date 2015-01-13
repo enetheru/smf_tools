@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="smf_cc -f test.smf"
+COMMAND="valgrind --leak-check=full smf_cc -f test.smf"
 echo $COMMAND
 eval $COMMAND
 exit $?
