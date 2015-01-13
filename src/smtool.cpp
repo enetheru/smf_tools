@@ -57,7 +57,7 @@ SMF_Tools::reconstruct( TileCache &cache, TileMap *tileMap)
             << tileMap->width * tileMap->height << " tiles" << endl;
         ++current;
     }
-    return bigBuf;    
+    return bigBuf;
 }
 
 ImageBuf *
@@ -78,7 +78,7 @@ SMF_Tools::collate( TileCache &cache, unsigned int hstride, unsigned int vstride
             4, TypeDesc::UINT8 );
 
     ImageBuf *bigBuf = new ImageBuf( "big", bigSpec);
-    
+
     if( verbose ){
         cout << "\tImage created: " << bigSpec.width << "x" << bigSpec.height << endl;
     }
@@ -169,7 +169,7 @@ SMF_Tools::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
 
     if( verbose )
         cout << "INFO: Converting image to tiles and saving to smt" << endl;
-    
+
     ImageSpec sourceSpec = sourceBuf->spec();
     unsigned int tileRes = smt->getTileSize();
 
@@ -232,7 +232,7 @@ SMF_Tools::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
                 if(! hashTable[ i ].compare( hash ) ){
                     match = true;
                     break;
-                } 
+                }
             }
             if(! match ) hashTable.push_back( hash );
         }

@@ -42,7 +42,7 @@ int SMF::getDirty(){
 SMF *SMF::create( string fileName, bool overwrite ){
     SMF *smf;
     fstream file;
-    
+
     // check for existing file and whether to overwrite
     file.open( fileName, ios::in );
     if( file.good() && !overwrite ) return NULL;
@@ -142,7 +142,7 @@ bool SMF::read(){
     // Tileindex Information
     file.seekg( header.tilesPtr );
     file.read( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
-    
+
     // TileFiles
     int nTiles;
     char temp[256];
@@ -170,7 +170,7 @@ bool SMF::read(){
     if( eeof > filesize ) {
         LOG(WARN)
             << "WARNING: Filesize is not large enough to contain the reported number of features. Ignoring feature data.\n";
-        
+
     }
     else {
         for( int i = 0; i < headerFeatures.nTypes; ++i ){
@@ -194,19 +194,19 @@ bool SMF::read(){
  */
 string SMF::info(){
     stringstream info;
-    info << "INFO: " << fileName 
+    info << "INFO: " << fileName
          << "\n\tVersion: " << header.version
          << "\n\tID:      " << header.id
 
          << "\n\n\tWidth:          " << header.width
          << " | " << header.width / 64
-         << "\n\tLength:         "   << header.length 
+         << "\n\tLength:         "   << header.length
          << " | " << header.length / 64
-         << "\n\tSquareSize:     "   << header.squareWidth 
-         << "\n\tTexelPerSquare: "   << header.squareTexels 
-         << "\n\tTileSize:       "   << header.tileSize 
-         << "\n\tMinHeight:      "   << header.floor 
-         << "\n\tMaxHeight:      "   << header.ceiling 
+         << "\n\tSquareSize:     "   << header.squareWidth
+         << "\n\tTexelPerSquare: "   << header.squareTexels
+         << "\n\tTileSize:       "   << header.tileSize
+         << "\n\tMinHeight:      "   << header.floor
+         << "\n\tMaxHeight:      "   << header.ceiling
 
          << "\n\n\tHeightPtr:   "   << int_to_hex( header.heightPtr )
          << " " << header.width+1 << "x" << header.length+1 << ":" << 1 << " UINT16"
@@ -245,7 +245,7 @@ string SMF::info(){
                      << "\n\ttype: " << (*i)->type
                     ;
             }
- 
+
         }
     }
 
@@ -256,7 +256,7 @@ string SMF::info(){
         ;
     for( int i = 0; i < headerTiles.nFiles; ++i ){
         info << "\n\t    " << smtList[ i ] << ":" << nTiles[ i ] <<  endl;
-    }  
+    }
 
     // Features Information
     info << "\n  Features Information"
@@ -278,7 +278,7 @@ bool SMF::reWrite( ){
     // 1: extra headers onwards
     // 2: tile headers onwards
     // 3: feature headers onwards
-    
+
     // First switch gathers the data from the file that may be overwritten
     // Second switch writes to the file from the gathered data
 
@@ -286,14 +286,14 @@ bool SMF::reWrite( ){
         case INT_MAX:
             return false;
         case 0:
-        case 1: 
+        case 1:
             height = getHeight();
             type = getType();
-        case 2: 
+        case 2:
             tileMap = getMap();
             mini = getMini();
             metal = getMetal();
-        case 3: 
+        case 3:
             grass = getGrass();
     }
 
@@ -377,7 +377,7 @@ void SMF::updatePtrs(){
 
     header.typePtr = header.heightPtr + heightSpec.image_bytes();
 
-    header.tilesPtr = header.typePtr + typeSpec.image_bytes(); 
+    header.tilesPtr = header.typePtr + typeSpec.image_bytes();
 
     mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
 
@@ -525,7 +525,7 @@ void SMF::addFeatures( string fileName ){
         tokens.clear();
         while( getline( line, cell, ',' ) ) tokens.push_back( cell );
         if( tokens.size() != 6 ) continue;
-       
+
         try{
             addFeature(
                 tokens[ 0 ],           //name
@@ -544,7 +544,7 @@ void SMF::addFeatures( string fileName ){
     }
     file.close();
 
-    LOG(INFO) 
+    LOG(INFO)
         << "INFO.addFeatures"
         << "\n\tTypes: " << headerFeatures.nTypes
         << "\n\tTypes: " << headerFeatures.nFeatures;
@@ -594,12 +594,12 @@ SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
 
 bool SMF::writeHeight( ImageBuf *sourceBuf ){
     LOG(INFO) << "INFO: Writing height\n";
-    return writeImage( header.heightPtr, heightSpec, sourceBuf );   
+    return writeImage( header.heightPtr, heightSpec, sourceBuf );
 }
 
 bool SMF::writeType( ImageBuf *sourceBuf ){
     LOG(INFO) << "INFO: Writing type\n";
-    return writeImage( header.typePtr, typeSpec, sourceBuf );   
+    return writeImage( header.typePtr, typeSpec, sourceBuf );
 }
 
 bool SMF::writeMini( ImageBuf * sourceBuf ){
@@ -676,7 +676,7 @@ bool SMF::writeMap( TileMap *tileMap ){
 /// write the metal image to the smf
 bool SMF::writeMetal( ImageBuf *sourceBuf ){
     LOG(INFO) << "INFO: Writing metal\n";
-    return writeImage( header.metalPtr, metalSpec, sourceBuf );   
+    return writeImage( header.metalPtr, metalSpec, sourceBuf );
 }
 
 /// write the feature header information to the smf
@@ -758,7 +758,7 @@ bool SMF::writeGrass( ImageBuf *sourceBuf ) {
         return writeImage( headerGrass->ptr, grassSpec, sourceBuf );
     else
         setDirty( 0 );
-        reWrite();   
+        reWrite();
 
     return false;
 }

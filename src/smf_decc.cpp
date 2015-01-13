@@ -172,4 +172,4 @@ main( int argc, char **argv )
         buf->write("out_grass.tif", "tif");
     }
     return 0;
-}
+}   

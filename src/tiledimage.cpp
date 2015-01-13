@@ -135,7 +135,7 @@ TiledImage::getRegion(
         uint32_t wx2, wy2;
         if( x2 / tileWidth > mx ) wx2 = tileWidth;
         else wx2 = x2 - mx * tileWidth;
-        
+
         if( y2 / tileHeight > my ) wy2 = tileHeight;
         else wy2 = y2 - my * tileHeight;
 

@@ -160,7 +160,7 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    if( (options[ IMGOUT ] && options[ SMTOUT ]) 
+    if( (options[ IMGOUT ] && options[ SMTOUT ])
         || (!options[ IMGOUT ] && !options[ SMTOUT ]) ){
         LOG( ERROR ) << "must have only one output format --img or --smt";
         fail = true;
@@ -268,7 +268,7 @@ main( int argc, char **argv )
         out_tile_height = src_tile_height;
         if( options[ IMGOUT ] ){
             out_tile_width = out_img_width;
-            out_tile_height = out_img_height; 
+            out_tile_height = out_img_height;
         }
     }
 
@@ -282,7 +282,7 @@ main( int argc, char **argv )
     // == Output Tile Map ==
     out_tileMap.setSize( out_img_width / out_tile_width,
                          out_img_height / out_tile_height);
-             
+
     LOG( INFO ) << "\n    Output "
         << "\n\tFull Size: " << out_img_width << "x" << out_img_height
         << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
@@ -303,7 +303,7 @@ main( int argc, char **argv )
     //     }
     //     exit( 0 );
     // }
-    
+
     // work out the relative tile size
     float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
     float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
@@ -321,7 +321,7 @@ main( int argc, char **argv )
         tempSMT->setTileSize( out_tile_width );
     }
 
-    // == OUTPUT THE IMAGES == 
+    // == OUTPUT THE IMAGES ==
     for( uint32_t i = 0; i < out_tileMap.height; ++i ) {
         for( uint32_t j = 0; j < out_tileMap.width; ++j ){
             LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
