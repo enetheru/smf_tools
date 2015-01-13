@@ -39,13 +39,12 @@ std::string int_to_hex( T i )
  *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
  *  If sourceBuf is NULL then a blank image is returned.
  */
-OpenImageIO::ImageBuf *channels( OpenImageIO::ImageBuf *sourceBuf,
+void channels( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
 
 /// Scales an ImageBuf according to a given ImageSpec
-/*  If sourceBuf is NULL then return a blank image.
- */
-OpenImageIO::ImageBuf *scale( OpenImageIO::ImageBuf *sourceBuf,
+/* in place scale */
+void scale( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
    
 #endif //UTIL_H

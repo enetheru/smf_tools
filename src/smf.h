@@ -160,8 +160,8 @@ class SMF {
 
 public:
     SMF( ){ };
-    SMF( std::string f ): fileName( f )
-    { };
+    SMF( std::string f ): fileName( f ) { };
+    ~SMF();
 
     static bool test( std::string fileName );
     static SMF *create( std::string fileName, bool overwrite = false );

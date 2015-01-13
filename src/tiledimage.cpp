@@ -166,6 +166,8 @@ TiledImage::getRegion(
             window.chbegin = 0;
             window.chend = 4;
             ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *tile, window );
+            tile->clear();
+            delete tile;
         }
 
 

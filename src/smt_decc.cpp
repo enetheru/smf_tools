@@ -221,9 +221,10 @@ main( int argc, char **argv )
         if( SMF::test( options[ TILEMAP ].arg ) ){
             LOG( INFO ) << "tilemap derived from smt";
             tempSMF = SMF::open( options[ TILEMAP ].arg );
-            src_tileMap = *(tempSMF->getMap());
+            TileMap *temp_tileMap = tempSMF->getMap();
+            src_tileMap = *temp_tileMap;
+            delete temp_tileMap;
             delete tempSMF;
-            tempSMF = NULL;
         }
         // attempt to load from csv
         else {
@@ -327,13 +328,14 @@ main( int argc, char **argv )
             tempBuf = src_tiledImage.getRegion(
                 j * rel_tile_width, i * rel_tile_height,
                 j * rel_tile_width + rel_tile_width , i * rel_tile_height + rel_tile_height );
-            tempBuf = scale( tempBuf, tempSpec );
+            scale( tempBuf, tempSpec );
             //tempBuf = src_tiledImage.getRegion(
             //    j * out_tile_width, i * out_tile_height,
             //    j * out_tile_width + out_tile_width , i * out_tile_height + out_tile_height );
             name << "output_" << j << "_" << i << ".jpg";
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ) tempBuf->write( name.str() );
+            tempBuf->clear();
             delete tempBuf;
             name.str( std::string() );
         }
@@ -350,5 +352,7 @@ main( int argc, char **argv )
             [ ] construct scaled image, scale and split
     */
 
+    delete[] buffer;
+    delete[] options;
     return 0;
 }

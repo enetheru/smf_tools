@@ -175,7 +175,6 @@ SMT::append( ImageBuf *sourceBuf )
 #endif //DEBUG_IMG
 
     ImageSpec spec;
-    ImageBuf *tempBufb = NULL;
     int blocks_size = 0;
     squish::u8 *blocks = NULL;
     fstream file(fileName, ios::binary | ios::in | ios::out);
@@ -196,9 +195,7 @@ SMT::append( ImageBuf *sourceBuf )
 
         spec.width = spec.width >> 1;
         spec.height = spec.height >> 1;
-        tempBufb = tempBufa;
-        tempBufa = scale( tempBufb, spec );
-        delete tempBufb;
+        scale( tempBufa, spec );
     }
     delete blocks;
     delete tempBufa;
@@ -215,7 +212,8 @@ SMT::append( ImageBuf *sourceBuf )
 ImageBuf *
 SMT::getTile( uint32_t n )
 {
-    ImageBuf *imageBuf = NULL;
+    ImageBuf *tempBuf = NULL;
+    ImageBuf *outBuf = new ImageBuf;;
     ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
 
     char *raw_dxt1a = new char[ tileBytes ];
@@ -231,7 +229,11 @@ SMT::getTile( uint32_t n )
         squish::DecompressImage( (squish::u8 *)rgba8888,
                 header.tileSize, header.tileSize, raw_dxt1a, squish::kDxt1 );
 
-        imageBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
+        tempBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
+        outBuf->copy(*tempBuf);
+        tempBuf->clear();
+        delete tempBuf;
+        delete [] rgba8888;
     }
     delete [] raw_dxt1a;
     file.close();
@@ -240,5 +242,5 @@ SMT::getTile( uint32_t n )
     imageBuf->write("getTile(" + to_string(n) + ").tif", "tif");
 #endif //DEBUG_IMG
 
-    return imageBuf;
+    return outBuf;
 }

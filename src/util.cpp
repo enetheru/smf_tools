@@ -65,64 +65,49 @@ expandString( const char *s )
     return result;
 }
 
-OpenImageIO::ImageBuf *
-scale( OpenImageIO::ImageBuf *sourceBuf, OpenImageIO::ImageSpec spec )
+void
+scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
-    ImageBuf *resultBuf = NULL;
 
-    // Guarantee that a correct sized image is returned regardless of the input.
-    if(! sourceBuf ) return (resultBuf = new ImageBuf( spec ));
+    CHECK( sourceBuf ) << " NULL pointer passed to scale()";
 
-    // return a copy of the original if its the correct size.
-    ImageSpec sourceSpec = sourceBuf->specmod();
-    if( sourceSpec.width == spec.width && sourceSpec.height == spec.height ){
-        resultBuf = new ImageBuf;
-        resultBuf->copy( *sourceBuf );
-        return resultBuf;
+    // do nothing if the original if its the correct size.
+    if( sourceBuf->spec().width == spec.width && sourceBuf->spec().height == spec.height ){
+        return;
     }
 
     // Otherwise scale
-    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, sourceSpec.nchannels);
-    resultBuf = new ImageBuf;
-    ImageBufAlgo::resample( *resultBuf, *sourceBuf, false, roi );
-#ifdef DEBUG_IMG
-    static int i = 0;
-    resultBuf->write("SMF::scale_" + to_string(i) + ".tif", "tif");
-    i++;
-#endif //DEBUG_IMG
-    return resultBuf;
+    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, sourceBuf->spec().nchannels);
+    ImageBuf *tempBuf = new ImageBuf;
+    ImageBufAlgo::resample( *tempBuf, *sourceBuf, false, roi );
+    sourceBuf->clear();
+    delete sourceBuf;
+    sourceBuf = tempBuf;
 }
 
-OpenImageIO::ImageBuf *
-channels( OpenImageIO::ImageBuf *sourceBuf, OpenImageIO::ImageSpec spec )
+void
+channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
-    ImageBuf *resultBuf = NULL;
-    int map[] = {0,1,2,3,4};
-    float fill[] = {0,0,0,255};
+    int map[] = { 0, 1, 2, 3 };
+    float fill[] = { 0, 0, 0, 255 };
 
     // Guarantee that a correct sized image is returned regardless of the input.
-    if(! sourceBuf ) return (resultBuf = new ImageBuf( spec ));
+    CHECK( sourceBuf ) << "NULL Pointer passed to channels()";
 
     // return a copy of the original if its the correct size.
     ImageSpec sourceSpec = sourceBuf->specmod();
-    if( sourceSpec.nchannels == spec.nchannels ){
-        resultBuf = new ImageBuf;
-        resultBuf->copy( *sourceBuf );
-        return resultBuf;
-    }
+    if( sourceBuf->spec().nchannels == spec.nchannels ) return;
+
     if( sourceSpec.nchannels < 4 ) map[3] = -1;
 
     // Otherwise re-order channels
-    resultBuf = new ImageBuf;
-    ImageBufAlgo::channels( *resultBuf, *sourceBuf, spec.nchannels, map, fill );
-#ifdef DEBUG_IMG
-    static int i = 0;
-    resultBuf->write("SMF::channels_" + to_string(i) + ".tif", "tif");
-    i++;
-#endif //DEBUG_IMG
-    return resultBuf;
+    ImageBuf *tempBuf = new ImageBuf;
+    ImageBufAlgo::channels( *tempBuf, *sourceBuf, spec.nchannels, map, fill );
+    sourceBuf->clear();
+    delete sourceBuf;
+    sourceBuf = tempBuf;
 }
 
 

@@ -282,7 +282,7 @@ SMF_Tools::imageToSMT( SMT *smt, ImageBuf *sourceBuf )
     if( verbose ) cout << endl;
 
     // Save tileindex
-    mapBuf.save( "tilemap.exr", "exr" );
+    mapBuf.write( "tilemap.exr", "exr" );
 }
 
 

@@ -14,6 +14,15 @@
 
 OIIO_NAMESPACE_USING
 using namespace std;
+
+SMF::~SMF()
+{
+    //delete extra headers
+    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ) {
+        delete *i;
+    }
+}
+
 /// Sets the dirty flag so that we know where to re-write
 /* The dirst flag will always be the lower of it current state
  * or the requested state
@@ -563,19 +572,23 @@ bool SMF::writeHeaders(){
     return false;
 }
 
-bool SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf ){
+bool
+SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
+{
     if( sourceBuf ) sourceBuf->read( 0, 0, true, spec.format );
-    ImageBuf *imageBufa = channels( sourceBuf, spec );
-    ImageBuf *imageBufb = scale( imageBufa, spec );
-    delete imageBufa;
+    ImageBuf *tempBuf = new ImageBuf;
+    tempBuf->copy( *sourceBuf );
+    channels( tempBuf, spec );
+    scale( tempBuf, spec );
 
     // write the data to the smf
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( ptr );
-    file.write( (char *)imageBufb->localpixels(), spec.image_bytes() );
+    file.write( (char *)tempBuf->localpixels(), spec.image_bytes() );
     file.close();
 
-    delete imageBufb;
+    tempBuf->clear();
+    delete tempBuf;
     return false;
 }
 
@@ -591,9 +604,11 @@ bool SMF::writeType( ImageBuf *sourceBuf ){
 
 bool SMF::writeMini( ImageBuf * sourceBuf ){
     LOG(INFO) << "INFO: Writing mini\n";
-    ImageBuf *tempBufa = channels( sourceBuf, miniSpec );    
-    ImageBuf *miniBuf = scale( tempBufa, miniSpec );  
-    delete tempBufa; 
+    ImageBuf *miniBuf = new ImageBuf;
+    miniBuf->copy( *sourceBuf );
+
+    channels( miniBuf, miniSpec );
+    scale( miniBuf, miniSpec );
 
     ImageSpec spec;
     int blocks_size = 0;
@@ -616,11 +631,10 @@ bool SMF::writeMini( ImageBuf * sourceBuf ){
 
         spec.width = spec.width >> 1;
         spec.height = spec.height >> 1;
-        tempBufa = miniBuf;
-        miniBuf = scale( tempBufa, spec );
-        delete tempBufa;
+        scale( miniBuf, spec );
     }
     file.close();
+    miniBuf->clear();
     delete miniBuf;
     delete blocks;
 

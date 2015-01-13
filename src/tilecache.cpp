@@ -52,35 +52,21 @@ TileCache::getOriginal( uint32_t n )
 ImageBuf *
 TileCache::getScaled( uint32_t n, uint32_t w, uint32_t h )
 {
-    ImageBuf *tileBuf = NULL;
-    if(! (tileBuf = getOriginal( n )) )return NULL;
-    ImageSpec spec = tileBuf->spec();
-
+    CHECK( w ) << "TileCache::getScaled, cannot input zero width";
     if( h == 0 ) h = w;
 
-    // Scale the tile to match output requirements
-    ImageBuf fixBuf;
-    ROI roi( 0, w, 0, h, 0, 1, 0, 4 );
-    if( w != 0 || spec.width != roi.xend || spec.height != roi.yend ){
-//            printf( "WARNING: Image is (%i,%i), wanted (%i, %i),"
-//                " Resampling.\n",
-//                spec.width, spec.height, roi.xend, roi.yend );
+    ImageBuf *tempBuf = NULL;
+    if(! (tempBuf = getOriginal( n )) )return NULL;
 
-        ImageBufAlgo::resample( fixBuf, *tileBuf, false, roi );
-        tileBuf->copy( fixBuf );
-        fixBuf.clear();
-    }
+    ImageSpec spec;
+    spec.width = w;
+    spec.height = h;
+    spec.nchannels = 4;
 
-    // Add alpha channel if it doesnt exist
-    if( spec.nchannels < 4 ){
-        int map[] = { 0, 1, 2, -1 };
-        float fill[] = { 0, 0, 0, 255 };
-        ImageBufAlgo::channels( fixBuf, *tileBuf, 4, map, fill );
-        tileBuf->copy( fixBuf );
-        fixBuf.clear();
-    }
+    scale( tempBuf, spec );
+    channels( tempBuf, spec );
 
-    return tileBuf;
+    return tempBuf;
 }
 
 void
@@ -89,11 +75,12 @@ TileCache::addSource( std::string fileName )
     ImageInput *image = NULL;
     ImageSpec spec;
     if( (image = ImageInput::open( fileName )) ){
+        image->close();
+        delete image;
+
         nTiles++;
         map.push_back( nTiles );
         fileNames.push_back( fileName );
-
-        delete image;
         return;
     }
 
