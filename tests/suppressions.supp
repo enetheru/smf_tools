@@ -1,0 +1,27 @@
+{
+   Stupid Conditional Jump
+   Memcheck:Cond
+   fun:strlen
+   fun:_ZN10tinyformat6detail14FormatIterator6acceptIA2_hEEvRKT_
+   fun:_ZN11OpenImageIO4v1_48JpgInput4openERKSsRNS0_9ImageSpecE
+   fun:_ZN11OpenImageIO4v1_48JpgInput4openERKSsRNS0_9ImageSpecERKS4_
+   fun:_ZN11OpenImageIO4v1_410ImageInput6createERKSsbS3_
+   fun:_ZN11OpenImageIO4v1_410ImageInput4openERKSsPKNS0_9ImageSpecE
+   ...
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN11OpenImageIO4v1_47ustring11make_uniqueENS0_11string_viewE
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znwm
+   ...
+}
