@@ -19,7 +19,6 @@
 namespace LOG {
 
 enum LogLevel {
-  DEBUG,
   INFO,
   WARN,
   ERROR,
@@ -42,7 +41,6 @@ struct LogLevelNamesTemplate {
 
 template <AvoidODR N>
 const char* LogLevelNamesTemplate<N>::names[6] = {
-  "DEBUG",
   "INFO",
   "WARN",
   "ERROR",

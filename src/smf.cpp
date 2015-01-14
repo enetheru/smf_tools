@@ -272,7 +272,8 @@ string SMF::info(){
 /*
  */
 bool SMF::reWrite( ){
-    ImageBuf *height, *type, *mini, *metal, *grass = NULL;
+    ImageBuf *height = NULL, *type = NULL, *mini = NULL;
+    ImageBuf *metal = NULL, *grass = NULL;
     TileMap *tileMap = NULL;
     // 0: from the very beginning full re-write
     // 1: extra headers onwards

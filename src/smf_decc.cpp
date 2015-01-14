@@ -98,7 +98,7 @@ main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        DLOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
         fail = true;
     }
 

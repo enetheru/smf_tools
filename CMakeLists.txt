@@ -21,7 +21,12 @@ set( LIBS ${LIBS}
 	${Boost_LIBRARIES}
     ${LIBSQUISH_LIBRARIES} )
 
-set( CMAKE_CXX_FLAGS "-g -O1 -Wall -std=c++11" )
+if( NOT CMAKE_BUILD_TYPE )
+    set( CMAKE_BUILD_TYPE Debug CACHE STRING
+        "Choose the type of build, options are None, Debug, Release, RelWithDebInfo, MinSizeRel" FORCE )
+endif()
+
+set( CMAKE_CXX_FLAGS "-Wall -std=c++11" )
 set( DEBUG_IMG OFF CACHE BOOL "Output debug images, warning there are lots of them :)" )
 
 add_subdirectory( src )
