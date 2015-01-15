@@ -190,7 +190,7 @@ main( int argc, char **argv )
 
     // == TILE CACHE ==
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
-        LOG( INFO ) << "adding " << parse.nonOption( i ) << " to tilecache.";
+        DLOG( INFO ) << "adding " << parse.nonOption( i ) << " to tilecache.";
         src_tileCache.addSource( parse.nonOption( i ) );
     }
     LOG( INFO ) << src_tileCache.getNTiles() << " tiles in cache";
@@ -210,6 +210,7 @@ main( int argc, char **argv )
         }
     }
     else {
+        DLOG( INFO ) << "no filter specified, using all tiles";
         src_filter.resize( src_tileCache.getNTiles() );
         for( unsigned i = 0; i < src_filter.size(); ++i ) src_filter[ i ] = i;
     }
@@ -219,7 +220,7 @@ main( int argc, char **argv )
     if( options[ TILEMAP ] ){
         // attempt to load from smf
         if( SMF::test( options[ TILEMAP ].arg ) ){
-            LOG( INFO ) << "tilemap derived from smt";
+            DLOG( INFO ) << "tilemap derived from smt";
             tempSMF = SMF::open( options[ TILEMAP ].arg );
             TileMap *temp_tileMap = tempSMF->getMap();
             src_tileMap = *temp_tileMap;
@@ -230,7 +231,7 @@ main( int argc, char **argv )
         else {
             src_tileMap.fromCSV( options[ TILEMAP ].arg );
             if( src_tileMap.width != 0 && src_tileMap.height != 0 ){\
-                LOG( INFO ) << "tilemap derived from csv";
+                DLOG( INFO ) << "tilemap derived from csv";
             }
         }
         // check for failure
@@ -240,11 +241,10 @@ main( int argc, char **argv )
         }
     }
     else {
-        LOG( INFO ) << "tilemap generated ";
+        DLOG( INFO ) << "tilemap generated ";
         uint32_t squareSize = std::ceil( std::sqrt( src_filter.size() ) );
         src_tileMap.setSize( squareSize, squareSize );
         src_tileMap.consecutive();
-        LOG( INFO ) << "src_tileMap: " << src_tileMap.width << "x" << src_tileMap.height;
     }
 
     // == Build TiledImage ==
@@ -273,9 +273,9 @@ main( int argc, char **argv )
     }
 
     if( out_img_width % out_tile_width || out_img_height % out_tile_height ){
-        LOG( ERROR ) << "image size must be a multiple of image size";
-        LOG( INFO ) << "image size: " << out_img_width << "x" << out_img_height;
-        LOG( INFO ) << "tile size: " << out_tile_width << "x" << out_tile_height;
+        LOG( ERROR ) << "image size must be a multiple of image size"
+            << "\n\timage size: " << out_img_width << "x" << out_img_height
+            << "\n\ttile size: " << out_tile_width << "x" << out_tile_height;
         exit( 1 );
     }
 
@@ -283,7 +283,7 @@ main( int argc, char **argv )
     out_tileMap.setSize( out_img_width / out_tile_width,
                          out_img_height / out_tile_height);
 
-    LOG( INFO ) << "\n    Output "
+    LOG( INFO ) << "\n    Output Sizes: "
         << "\n\tFull Size: " << out_img_width << "x" << out_img_height
         << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
         << "\n\ttileMap Size: " << out_tileMap.width << "x" << out_tileMap.height;
@@ -307,11 +307,11 @@ main( int argc, char **argv )
     // work out the relative tile size
     float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
     float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
-    LOG( INFO ) << "Scale Ratio: " << xratio << "x" << yratio;
+    DLOG( INFO ) << "Scale Ratio: " << xratio << "x" << yratio;
 
     rel_tile_width = out_tile_width * xratio;
     rel_tile_height = out_tile_height * yratio;
-    LOG( INFO ) << "Pre-scaled tile: " << rel_tile_width << "x" << rel_tile_height;
+    DLOG( INFO ) << "Pre-scaled tile: " << rel_tile_width << "x" << rel_tile_height;
 
     tempSpec.width = out_tile_width;
     tempSpec.height = out_tile_height;
@@ -324,7 +324,7 @@ main( int argc, char **argv )
     // == OUTPUT THE IMAGES ==
     for( uint32_t i = 0; i < out_tileMap.height; ++i ) {
         for( uint32_t j = 0; j < out_tileMap.width; ++j ){
-            LOG( INFO ) << "Processing split (" << j << ", " << i << ")";
+            DLOG( INFO ) << "Processing split (" << j << ", " << i << ")";
             tempBuf = src_tiledImage.getRegion(
                 j * rel_tile_width, i * rel_tile_height,
                 j * rel_tile_width + rel_tile_width , i * rel_tile_height + rel_tile_height );
