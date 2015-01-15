@@ -20,7 +20,9 @@ SMT::create( string fileName, bool overwrite, bool dxt1_quality )
     ifstream file( fileName );
     if( file.good() && !overwrite ) return NULL;
 
-    smt = new SMT( fileName, dxt1_quality );
+    smt = new SMT;
+    smt->fileName = fileName;
+    smt->dxt1_quality = dxt1_quality;
     smt->reset();
     return smt;
 }
@@ -108,6 +110,7 @@ void
 SMT::load( )
 {
     ifstream inFile(fileName, ifstream::in);
+    CHECK( inFile.good() ) << "Failed to load: " << fileName;
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     calcTileBytes();
     init = true;
