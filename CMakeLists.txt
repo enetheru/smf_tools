@@ -14,12 +14,11 @@ if (NOT LIBSQUISH_FOUND)
 endif()
 
 include_directories(${OpenImageIO_INCLUDE_DIRS})
-include_directories(${NVTT_INCLUDE_DIRS})
 
 set( LIBS ${LIBS}
+    ${LIBSQUISH_LIBRARIES}
 	${OPENIMAGEIO_LIBRARY}
-	${Boost_LIBRARIES}
-    ${LIBSQUISH_LIBRARIES} )
+	${Boost_LIBRARIES} )
 
 if( NOT CMAKE_BUILD_TYPE )
     set( CMAKE_BUILD_TYPE Debug CACHE STRING
