@@ -216,15 +216,21 @@ ImageBuf *
 SMT::getTile( uint32_t n )
 {
     ImageBuf *tempBuf = NULL;
-    ImageBuf *outBuf = new ImageBuf;;
     ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
+    if( n >= header.nTiles ){
+        tempBuf = new ImageBuf( imageSpec );
+        return tempBuf;
+    }
 
-    char *raw_dxt1a = new char[ tileBytes ];
-    char *rgba8888 = new char[ header.tileSize * header.tileSize * 4 ];
+    char *raw_dxt1a = NULL;
+    char *rgba8888 = NULL;
+    ImageBuf *outBuf = NULL;
 
     ifstream file( fileName );
-    if( file.good() )
-    {
+    if( file.good() ){
+        raw_dxt1a = new char[ tileBytes ];
+        rgba8888 = new char[ header.tileSize * header.tileSize * 4 ];
+        outBuf = new ImageBuf;
 
         file.seekg( sizeof(SMT::Header) + tileBytes * n );
         file.read( (char *)raw_dxt1a, tileBytes );
@@ -233,17 +239,14 @@ SMT::getTile( uint32_t n )
                 header.tileSize, header.tileSize, raw_dxt1a, squish::kDxt1 );
 
         tempBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
+
         outBuf->copy(*tempBuf);
-        tempBuf->clear();
+
         delete tempBuf;
         delete [] rgba8888;
+        delete [] raw_dxt1a;
     }
-    delete [] raw_dxt1a;
     file.close();
-
-#ifdef DEBUG_IMG
-    imageBuf->write("getTile(" + to_string(n) + ").tif", "tif");
-#endif //DEBUG_IMG
 
     return outBuf;
 }

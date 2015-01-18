@@ -18,7 +18,7 @@ TileCache::getOriginal( uint32_t n )
     ImageBuf *tileBuf = NULL;
     ImageInput *image = NULL;
     SMT *smt = NULL;
-    if( n > nTiles ) return NULL;
+    if( n >= nTiles ) return NULL;
 
     auto i = map.begin();
     auto fileName = fileNames.begin();
