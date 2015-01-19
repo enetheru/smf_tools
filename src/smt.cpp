@@ -166,7 +166,7 @@ SMT::append( ImageBuf *sourceBuf )
     ImageBuf *tempBuf = new ImageBuf;
     tempBuf->copy( *sourceBuf );
 
-    swizzle( tempBuf );
+    //swizzle( tempBuf );
 
     ImageSpec spec;
     int blocks_size = 0;
@@ -239,6 +239,6 @@ SMT::getTile( uint32_t n )
     }
     file.close();
 
-    swizzle( outBuf );
+    //swizzle( outBuf );
     return outBuf;
 }
