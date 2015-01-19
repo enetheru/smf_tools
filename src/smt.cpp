@@ -69,6 +69,7 @@ SMT::reset( )
 
     //reset tile count
     header.nTiles = 0;
+    calcTileBytes();
 
     // write header
     file.write( (char *)&header, sizeof(SMT::Header) );
@@ -116,24 +117,26 @@ SMT::load( )
     init = true;
 
     // do some simple checking of file size vs reported tile numbers
+    uint32_t actualBytes = 0;
+    uint32_t guessBytes = 0;
+    uint32_t guessTiles = 0;
+    uint32_t remainderBytes = 0;
     inFile.seekg( 0, std::ios::end );
-    uint32_t dataBytes = inFile.tellg();
+    actualBytes = (uint32_t)inFile.tellg() - 32;
     inFile.close();
-    dataBytes -= 32; // file size - header
-    uint32_t tileGuess = dataBytes / tileBytes;
+    guessBytes = header.nTiles * tileBytes; // file size - header
+    guessTiles = actualBytes / tileBytes;
+    remainderBytes = actualBytes % tileBytes;
 
-    if( header.nTiles != tileGuess ) {
-        LOG( WARN ) << "Possible Data Issue\n"
-            << "\t(" << fileName << ").header.nTiles = " << header.nTiles << "\n"
-            << "\tcalculated from file size = " << tileGuess;
-    }
 
-    if( dataBytes % tileBytes ) {
-        LOG( WARN ) << "Possible Data Issue\n"
-            << "\t(" << fileName << ").data = " << dataBytes << "\n"
-            << "\t(" << fileName << ").tileBytes = " << tileBytes << "\n"
-            << "\tdata % tileBytes = " << dataBytes % tileBytes
-            << "\t should be zero, possible truncation";
+    if( header.nTiles != guessTiles || actualBytes != guessBytes ) {
+        LOG( WARN ) << "Possible Data Issue"
+            << "\n\t(" << fileName << ").header.nTiles:\033[40G" << header.nTiles
+            << "\n\tFile data bytes:\033[40G" << actualBytes
+            << "\n\tBytes per tile:\033[40G" << tileBytes
+            << "\n\tGuess Tiles:\033[40G" << guessTiles
+            << "\n\tGuess Bytes:\033[40G" << guessBytes
+            << "\n\tModulus remainder:\033[40G" << remainderBytes;
     }
 }
 

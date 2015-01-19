@@ -8,9 +8,9 @@ do
         cd $i
         ./test.sh &> log.txt
         if [ $? -eq 0 ]; then
-            echo -e "\033[40GOK"
+            echo -e "\033[40G ...OK"
         else
-            echo -e "\033[40GFAIL"
+            echo -e "\033[40G ...FAIL"
         fi
         cd ../
     fi
