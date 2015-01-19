@@ -288,21 +288,6 @@ main( int argc, char **argv )
         << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
         << "\n\ttileMap Size: " << out_tileMap.width << "x" << out_tileMap.height;
 
-    // TODO IF( src and out match, why not do it the simple way?
-    // // == EXPORT TILES ==
-    // if(! options[ TILEMAP ] ) {
-    //     for( auto i = src_filter.begin(); i != src_filter.end(); ++i ) {
-    //         if( *i >= src_tileCache.getNTiles() ) {
-    //             LOG( WARN ) << "tile: " << *i << " is out of range.";
-    //             continue;
-    //         }
-    //         tempBuf = src_tileCache.getOriginal( *i );
-    //         name << "tile_" << *i << ".jpg";
-    //         tempBuf->write( name.str() );
-    //         name.str( std::string() );// clear the string
-    //     }
-    //     exit( 0 );
-    // }
 
     // work out the relative tile size
     float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
@@ -325,32 +310,23 @@ main( int argc, char **argv )
     for( uint32_t i = 0; i < out_tileMap.height; ++i ) {
         for( uint32_t j = 0; j < out_tileMap.width; ++j ){
             DLOG( INFO ) << "Processing split (" << j << ", " << i << ")";
+            
+            name << "output_" << j << "_" << i << ".jpg";
+            
             tempBuf = src_tiledImage.getRegion(
                 j * rel_tile_width, i * rel_tile_height,
                 j * rel_tile_width + rel_tile_width , i * rel_tile_height + rel_tile_height );
+                
             scale( tempBuf, tempSpec );
-            //tempBuf = src_tiledImage.getRegion(
-            //    j * out_tile_width, i * out_tile_height,
-            //    j * out_tile_width + out_tile_width , i * out_tile_height + out_tile_height );
-            name << "output_" << j << "_" << i << ".jpg";
+            
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ) tempBuf->write( name.str() );
+            
             tempBuf->clear();
             delete tempBuf;
             name.str( std::string() );
         }
     }
-
-//TODO fill out
-    /* What I want to be able to do
-        [*] extract the tiles from the file at original size
-        [*] extract specific tiles at original size
-        [*] extract only the tiles listed in a tilemap
-        [*] use tilemap or collate(square)
-            [*] construct large image
-            [ ] construct scaled image
-            [ ] construct scaled image, scale and split
-    */
 
     delete[] buffer;
     delete[] options;
