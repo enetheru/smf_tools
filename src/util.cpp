@@ -93,7 +93,6 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     int map[] = { 0, 1, 2, 3 };
     float fill[] = { 0, 0, 0, 255 };
 
-    // Guarantee that a correct sized image is returned regardless of the input.
     CHECK( sourceBuf ) << "NULL Pointer passed to channels()";
 
     // return a copy of the original if its the correct size.
@@ -110,4 +109,22 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     sourceBuf = tempBuf;
 }
 
+void
+swizzle( OpenImageIO::ImageBuf *&sourceBuf )
+{
+    OIIO_NAMESPACE_USING;
+
+    int map[] = { 2, 1, 0, 3 };
+    float fill[] = { 0, 0, 0, 255 };
+
+    CHECK( sourceBuf ) << "NULL Pointer passed to swizzle()";
+
+    if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
+    ImageBuf *tempBuf = new ImageBuf;
+    ImageBufAlgo::channels( *tempBuf, *sourceBuf, 4, map, fill );
+
+    sourceBuf->clear();
+    delete sourceBuf;
+    sourceBuf = tempBuf;
+}
 

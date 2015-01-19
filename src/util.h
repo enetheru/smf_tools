@@ -46,5 +46,7 @@ void channels( OpenImageIO::ImageBuf *&sourceBuf,
 /* in place scale */
 void scale( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
+        
+void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
    
 #endif //UTIL_H

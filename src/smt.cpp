@@ -163,22 +163,10 @@ SMT::info( )
 void
 SMT::append( ImageBuf *sourceBuf )
 {
-#ifdef DEBUG_IMG
-    static int i = 0;
-    sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_0.tif", "tif" );
-#endif //DEBUG_IMG
+    ImageBuf *tempBuf = new ImageBuf;
+    tempBuf->copy( *sourceBuf );
 
-    // Swizzle
-    int map[] = { 2, 1, 0, 3 };
-    float fill[] = { 0, 0, 0, 255 };
-    if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
-    else map[3] = 3;
-    ImageBuf *tempBufa = new ImageBuf;
-    ImageBufAlgo::channels( *tempBufa, *sourceBuf, 4, map, fill );
-
-#ifdef DEBUG_IMG
-    sourceBuf->save( "SMT::append_sourceBuf_" + to_string(i) + "_1_swizzle.tif", "tif" );
-#endif //DEBUG_IMG
+    swizzle( tempBuf );
 
     ImageSpec spec;
     int blocks_size = 0;
@@ -186,14 +174,14 @@ SMT::append( ImageBuf *sourceBuf )
     fstream file(fileName, ios::binary | ios::in | ios::out);
     file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
     for( int i = 0; i < 4; ++i ){
-        spec = tempBufa->specmod();
+        spec = tempBuf->specmod();
 
         blocks_size = squish::GetStorageRequirements(
                 spec.width, spec.height, squish::kDxt1 );
 
         if(! blocks ) blocks = new squish::u8[ blocks_size ];
 
-        squish::CompressImage( (squish::u8 *)tempBufa->localpixels(),
+        squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
                 spec.width, spec.height, blocks, squish::kDxt1 );
 
         // Write data to smf
@@ -201,10 +189,10 @@ SMT::append( ImageBuf *sourceBuf )
 
         spec.width = spec.width >> 1;
         spec.height = spec.height >> 1;
-        scale( tempBufa, spec );
+        scale( tempBuf, spec );
     }
     delete blocks;
-    delete tempBufa;
+    delete tempBuf;
 
     ++header.nTiles;
 
@@ -251,5 +239,6 @@ SMT::getTile( uint32_t n )
     }
     file.close();
 
+    swizzle( outBuf );
     return outBuf;
 }
