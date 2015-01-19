@@ -80,7 +80,7 @@ scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     // Otherwise scale
     ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, sourceBuf->spec().nchannels);
     ImageBuf *tempBuf = new ImageBuf;
-    ImageBufAlgo::resample( *tempBuf, *sourceBuf, false, roi );
+    ImageBufAlgo::resize( *tempBuf, *sourceBuf, "", false, roi );
     sourceBuf->clear();
     delete sourceBuf;
     sourceBuf = tempBuf;

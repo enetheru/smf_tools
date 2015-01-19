@@ -58,7 +58,7 @@ enum optionsIndex
 {
     UNKNOWN,
     HELP, VERBOSE, QUIET,
-    OVERWRITE,
+    OUTPUT, FORCE,
     TILEMAP,
     FILTER,
     TILESIZE,
@@ -69,29 +69,42 @@ enum optionsIndex
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: smt_info <source1> [source2...sourceN]> \n"
-        "  eg. 'smt_info myfile.smt'\n"
-        "\nGENERAL OPTIONS:"},
+        "USAGE: smt_convert [options] <source1> [source2...sourceN]> \n"
+        "  eg. 'smt_convert -o myfile.smt tilesource1.smt tilesource2.jpg'\n"
+        "\nOPTIONS:"},
+
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
+
     { VERBOSE, 0, "v", "verbose", Arg::None,
         "  -v  \t--verbose  \tPrint extra information." },
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nINPUT OPTIONS:" },
+
+    { QUIET, 0, "q", "quiet", Arg::None,
+        "  -q  \t--quiet  \tsuppress output." },
+
+    { OUTPUT, 0, "o", "output", Arg::Required,
+        "  -o  \t--output <filename>  \tfilename to save as, default is output[etc]" },
+
+    { FORCE, 0, "f", "force", Arg::None,
+        "  -f  \t--force  \toverwrite files with the same output name" },
+
     { FILTER, 0, "f", "filter", Arg::Required,
         "  -f  \t--filter=1,2-n  \tonly pull selected tiles" },
+
     { TILEMAP, 0, "t", "tilemap", Arg::Required,
         "  -t  \t--tilemap=[.csv,.smf]  \treconstruction tilemap." },
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nOUTPUT OPTIONS:" },
+
     { TILESIZE, 0, "s", "tilesize", Arg::Required,
         "  -s  \t--tilesize=XxY  \tXxY" },
+
     { IMAGESIZE, 0, "", "imagesize", Arg::Required,
         "\t--imagesize=XxY  \tXxY" },
+
     { SMTOUT, 0, "", "smt", Arg::None,
-        "\t--smt  \t" },
+        "\t--smt  \tsave tiles to smt file" },
+
     { IMGOUT, 0, "", "img", Arg::None,
-        "\t--img  \t" },
+        "\t--img  \tsave tiles as images" },
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -99,6 +112,7 @@ int
 main( int argc, char **argv )
 {
     // == Variables ==
+    bool overwrite = false;
     // temporary
     OpenImageIO::ImageBuf *tempBuf;
     OpenImageIO::ImageSpec tempSpec;
@@ -118,6 +132,7 @@ main( int argc, char **argv )
     //uint32_t src_img_width, src_img_height;
 
     // output
+    std::string outFileName = "output.smt";
     TileMap out_tileMap;
     uint32_t out_tile_width, out_tile_height;
     //uint32_t out_map_width, out_map_height;
@@ -148,6 +163,7 @@ main( int argc, char **argv )
     if( options[ QUIET ] )
         LOG::SetDefaultLoggerLevel( LOG::CHECK );
 
+
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
@@ -159,6 +175,8 @@ main( int argc, char **argv )
         LOG( ERROR ) << "Missing input tilesources";
         fail = true;
     }
+
+    if( options[ FORCE ] )overwrite = true;
 
     if( (options[ IMGOUT ] && options[ SMTOUT ])
         || (!options[ IMGOUT ] && !options[ SMTOUT ]) ){
@@ -187,6 +205,15 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
+    if( options[ SMTOUT ] ){
+        if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
+        tempSMT = SMT::create( outFileName , overwrite );
+        if(! tempSMT ) LOG( FATAL ) << "cannot overwrite existing file";
+    }
+
+    if( options[ IMGOUT ] ){
+        if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
+    }
 
     // == TILE CACHE ==
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
@@ -301,7 +328,7 @@ main( int argc, char **argv )
     tempSpec.height = out_tile_height;
 
     if( options[ SMTOUT ] ){
-        tempSMT = SMT::create( "output.smt", true );
+        
         tempSMT->setTileSize( out_tile_width );
     }
 
