@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="smt_decc -v --imagesize 512x512 --img ../data/data.smt"
+COMMAND="smt_convert -v --imagesize 512x512 --img ../data/data.smt"
 echo COMMAND = $COMMAND
 eval $COMMAND
 exit $?

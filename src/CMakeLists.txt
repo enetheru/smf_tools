@@ -19,16 +19,6 @@ target_link_libraries( smf_cc
     util
     ${LIBS} )
 
-add_executable( smt_cc smt_cc.cpp )
-target_link_libraries( smt_cc
-    tiledimage
-    tilecache
-    tilemap
-    smf
-    smt
-    util
-    ${LIBS} )
-
 add_executable( smf_decc smf_decc.cpp )
 target_link_libraries( smf_decc
     smf
@@ -37,8 +27,8 @@ target_link_libraries( smf_decc
     tilemap
     ${LIBS} )
 
-add_executable( smt_decc smt_decc.cpp )
-target_link_libraries( smt_decc
+add_executable( smt_convert smt_convert.cpp )
+target_link_libraries( smt_convert
     tiledimage
     tilecache
     tilemap
@@ -72,8 +62,7 @@ INSTALL(PROGRAMS
 	${CMAKE_CURRENT_BINARY_DIR}/smf_cc
 	${CMAKE_CURRENT_BINARY_DIR}/smf_decc
 	${CMAKE_CURRENT_BINARY_DIR}/smf_info
-	${CMAKE_CURRENT_BINARY_DIR}/smt_cc
-	${CMAKE_CURRENT_BINARY_DIR}/smt_decc
+	${CMAKE_CURRENT_BINARY_DIR}/smt_convert
 	${CMAKE_CURRENT_BINARY_DIR}/smt_info
 	${CMAKE_CURRENT_BINARY_DIR}/smt_repair
        	DESTINATION bin)
