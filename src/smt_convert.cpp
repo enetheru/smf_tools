@@ -288,7 +288,6 @@ main( int argc, char **argv )
         << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
         << "\n\ttileMap Size: " << out_tileMap.width << "x" << out_tileMap.height;
 
-
     // work out the relative tile size
     float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
     float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
@@ -307,26 +306,32 @@ main( int argc, char **argv )
     }
 
     // == OUTPUT THE IMAGES ==
-    for( uint32_t i = 0; i < out_tileMap.height; ++i ) {
-        for( uint32_t j = 0; j < out_tileMap.width; ++j ){
-            DLOG( INFO ) << "Processing split (" << j << ", " << i << ")";
-            
-            name << "output_" << j << "_" << i << ".jpg";
-            
+    for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
+        for( uint32_t x = 0; x < out_tileMap.width; ++x ){
+            out_tileMap(x,y) = y * out_tileMap.height + x;
+            DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";
+
+            name << "output_" << x << "_" << y << ".jpg";
+
             tempBuf = src_tiledImage.getRegion(
-                j * rel_tile_width, i * rel_tile_height,
-                j * rel_tile_width + rel_tile_width , i * rel_tile_height + rel_tile_height );
-                
+                x * rel_tile_width, y * rel_tile_height,
+                x * rel_tile_width + rel_tile_width , y * rel_tile_height + rel_tile_height );
+
             scale( tempBuf, tempSpec );
-            
+
+            //TODO optimisation
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ) tempBuf->write( name.str() );
-            
+
             tempBuf->clear();
             delete tempBuf;
             name.str( std::string() );
         }
     }
+
+    std::fstream out_csv("output.csv", std::ios::out );
+    out_csv << out_tileMap.toCSV();
+    out_csv.close();
 
     delete[] buffer;
     delete[] options;
