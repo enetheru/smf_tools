@@ -55,14 +55,16 @@ struct Arg: public option::Arg
 enum optionsIndex
 {
     UNKNOWN,
-    HELP, VERBOSE, QUIET,
-    //File Operations
-    IFILE, OVERWRITE,
-    // Specification
+    HELP,
+    VERBOSE,
+    QUIET,
+    OUTPUT,
+    FORCE,
     MAPSIZE,
-    FLOOR, CEILING,
     TILESIZE,
-    // Source materials
+    //UNUSED: TEXELS, SQUARESIZE
+    FLOOR,
+    CEILING,
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
     // Compression
     DXT1_QUALITY,
@@ -70,64 +72,71 @@ enum optionsIndex
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: mapconv [options] [smt1 ... smtn]\n\n"
-        "eg. $ mapconv -v -f mymap.smf --mapsize 8x8 --height height.tif \\ \n"
+        "USAGE: smf_cc [options] [smt1 ... smtn]\n\n"
+        "eg. $ smf_cc -v -o mymap.smf --mapsize 8x8 --height height.tif \\ \n"
         "    > --mini minimap.jpeg --metal metalmap.png --grass grass.png mymap.smt \n"
         "\nGENERAL OPTIONS:" },
-    { HELP, 0, "h", "help", Arg::None,
-        "  -h,  \t--help  \tPrint usage and exit." },
-    { VERBOSE, 0, "v", "verbose", Arg::None,
-        "  -v,  \t--verbose  \tPrint extra information." },
-    { QUIET, 0, "q", "quiet", Arg::None,
-        "  -q,  \t--quiet  \tSupress output." },
+        
+    { HELP, 0, "h", "help", Arg::None, "  -h,  \t--help"
+        "\tPrint usage and exit." },
+        
+    { VERBOSE, 0, "v", "verbose", Arg::None, "  -v,  \t--verbose"
+        "\tPrint extra information." },
+        
+    { QUIET, 0, "q", "quiet", Arg::None, "  -q,  \t--quiet"
+        "\tSupress output." },
 
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nFILE OPS:" },
-    { IFILE, 0, "f", "file", Arg::Required,
-        "  -f,  \t--file=mymap.smf  \tFile to operate on, will create if it doesnt exist" },
-    { OVERWRITE, 0, "", "overwrite", Arg::Required,
-        "\t--overwrite  \tOverwrite existing files" },
+    { OUTPUT, 0, "o", "output", Arg::Required, "  -o,  \t--output=mymap.smf"
+        "\tFile to operate on, will create if it doesnt exist" },
+        
+    { FORCE, 0, "f", "force", Arg::Required, "  -f,  \t--force"
+        "\tOverwrite existing files" },
 
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nSPECIFICATIONS:" },
-    { MAPSIZE, 0, "", "mapsize", Arg::Required,
-        "\t--mapsize=XxZ  \tWidth and length of map, in spring map units eg. '--mapsize=4x4', must be multiples of two." },
-    { FLOOR, 0, "y", "floor", Arg::Numeric,
-        "  -y,  \t--floor=1.0f  \tMinimum height of the map." },
-    { CEILING, 0, "Y", "ceiling", Arg::Numeric,
-        "  -Y,  \t--ceiling=1.0f  \tMaximum height of the map." },
-    { TILESIZE, 0, "", "tilesize", Arg::Numeric,
-        "\t--tilesize=X  \tXY resolution of tiles referenced, eg. '--tileres=32'." },
+    { MAPSIZE, 0, "", "mapsize", Arg::Required, "\t--mapsize=XxZ"
+        "\tWidth and length of map, in spring map units eg. '--mapsize=4x4',"
+        "must be multiples of two." },
+        
+    { TILESIZE, 0, "", "tilesize", Arg::Required, "\t--tilesize=X"
+        "\tSize of tiles, in pixels eg. '--tilesize=32',"
+        "must be multiples of 4." },
+        
+    { FLOOR, 0, "y", "floor", Arg::Numeric, "  -y,  \t--floor=1.0f"
+        "\tMinimum height of the map." },
+        
+    { CEILING, 0, "Y", "ceiling", Arg::Numeric, "  -Y,  \t--ceiling=1.0f"
+        "\tMaximum height of the map." },
 
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nCREATION:" },
-    { HEIGHT, 0, "", "height", Arg::Required,
-        "\t--height=height.tif  \t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap." },
-    { TYPE, 0, "", "type", Arg::Required,
-        "\t--type=type.tif  \t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
-    { MAP, 0, "", "map", Arg::Required,
-        "\t--map=map.tif  \t(x*16)x(y*16):1 UINT32 Image to use for tilemap." },
-    { MINI, 0, "", "mini", Arg::Required,
-        "\t--mini=mini.tif  \t(1024)x(1024):4 UINT8 Image to use for minimap." },
-    { METAL, 0, "", "metal", Arg::Required,
-        "\t--metal=metal.tif  \t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
-    { FEATURES, 0, "", "features", Arg::Required,
-        "\t--features=list.csv  \tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
-//FIXME better description of feature list specification
-    { GRASS, 0, "", "grass", Arg::Required,
-        "\t--grass=grass.tif  \t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
+    { HEIGHT, 0, "", "height", Arg::Required, "\t--height=height.tif"
+        "\t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap." },
+        
+    { TYPE, 0, "", "type", Arg::Required, "\t--type=type.tif"
+        "\t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
+        
+    { MAP, 0, "", "map", Arg::Required, "\t--map=map.tif"
+        "\t(x*16)x(y*16):1 UINT32 Image to use for tilemap." },
+        
+    { MINI, 0, "", "mini", Arg::Required, "\t--mini=mini.tif"
+        "\t(1024)x(1024):4 UINT8 Image to use for minimap." },
+        
+    { METAL, 0, "", "metal", Arg::Required, "\t--metal=metal.tif"
+        "\t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
+        
+    { FEATURES, 0, "", "features", Arg::Required, "\t--features=list.csv"
+        "\tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
+        
+    { GRASS, 0, "", "grass", Arg::Required, "\t--grass=grass.tif"
+        "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
 
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nCOMPRESSION:" },
-    { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None,
-        "\t--dxt1-quality  \tUse slower but better analytics when compressing DXT1 textures" },
+    { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None, "\t--dxt1-quality"
+        "\tUse slower but better analytics when compressing DXT1 textures" },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nNOTES:\n"
         "Passing 'CLEAR' to the options that take a paremeter will clear the contents of that part of the file" },
+        
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
-        "$ mapconv -vf mymap.smf --features CLEAR --type CLEAR" },
+        "$ smf_cc -v -o mymap.smf --features CLEAR --type CLEAR" },
     {0,0,0,0,0,0}
 };
 
@@ -178,13 +187,13 @@ main( int argc, char **argv )
 
     unsigned int mx = 2, my = 2;
 //    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
-    if( options[ OVERWRITE ] ) overwrite = true;
+    if( options[ FORCE ] ) overwrite = true;
 
     // output creation
     SMF *smf = NULL;
     string fileName;
-    if( options[ IFILE ] )
-        fileName = options[ IFILE ].arg;
+    if( options[ OUTPUT ] )
+        fileName = options[ OUTPUT ].arg;
     else
         fileName = "rename_me.smf";
 

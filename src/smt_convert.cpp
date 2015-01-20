@@ -73,38 +73,39 @@ const option::Descriptor usage[] = {
         "  eg. 'smt_convert -o myfile.smt tilesource1.smt tilesource2.jpg'\n"
         "\nOPTIONS:"},
 
-    { HELP, 0, "h", "help", Arg::None,
-        "  -h,  \t--help  \tPrint usage and exit." },
+    { HELP, 0, "h", "help", Arg::None, "  -h,  \t--help"
+        "\tPrint usage and exit." },
 
-    { VERBOSE, 0, "v", "verbose", Arg::None,
-        "  -v  \t--verbose  \tPrint extra information." },
+    { VERBOSE, 0, "v", "verbose", Arg::None, "  -v  \t--verbose"
+        "\tPrint extra information." },
 
-    { QUIET, 0, "q", "quiet", Arg::None,
-        "  -q  \t--quiet  \tsuppress output." },
+    { QUIET, 0, "q", "quiet", Arg::None, "  -q  \t--quiet"
+        "\tSuppress print output." },
 
-    { OUTPUT, 0, "o", "output", Arg::Required,
-        "  -o  \t--output <filename>  \tfilename to save as, default is output[etc]" },
+    { OUTPUT, 0, "o", "output", Arg::Required, "  -o  \t--output <filename>"
+        "\tFilename to save as, default is output.smt" },
 
-    { FORCE, 0, "f", "force", Arg::None,
-        "  -f  \t--force  \toverwrite files with the same output name" },
+    { FORCE, 0, "f", "force", Arg::None, "  -f  \t--force"
+        "\tOverwrite files with the same output name" },
 
-    { FILTER, 0, "f", "filter", Arg::Required,
-        "  -f  \t--filter=1,2-n  \tonly pull selected tiles" },
+    { FILTER, 0, "f", "filter", Arg::Required, "  -f  \t--filter=1,2-n"
+        "\tFilter input tile sources to only these values, filter syntax is in"
+        " the form 1,2,3,n and 1-5,n-n and can be mixed, 1-300,350,400-900" },
 
-    { TILEMAP, 0, "t", "tilemap", Arg::Required,
-        "  -t  \t--tilemap=[.csv,.smf]  \treconstruction tilemap." },
+    { TILEMAP, 0, "t", "tilemap", Arg::Required, "  -t  \t--tilemap=[.csv,.smf]"
+        "\tReconstruction tilemap." },
 
-    { TILESIZE, 0, "s", "tilesize", Arg::Required,
-        "  -s  \t--tilesize=XxY  \tXxY" },
+    { IMAGESIZE, 0, "", "imagesize", Arg::Required, "\t--imagesize=XxY"
+        "\tScale the constructed image to this size before splitting." },
 
-    { IMAGESIZE, 0, "", "imagesize", Arg::Required,
-        "\t--imagesize=XxY  \tXxY" },
+    { TILESIZE, 0, "s", "tilesize", Arg::Required, "  -s  \t--tilesize=XxY"
+        "\tSplit the constructed image into tiles of this size." },
 
-    { SMTOUT, 0, "", "smt", Arg::None,
-        "\t--smt  \tsave tiles to smt file" },
+    { SMTOUT, 0, "", "smt", Arg::None, "\t--smt"
+        "\tSave tiles to smt file" },
 
-    { IMGOUT, 0, "", "img", Arg::None,
-        "\t--img  \tsave tiles as images" },
+    { IMGOUT, 0, "", "img", Arg::None, "\t--img"
+        "\tSave tiles as images" },
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -328,7 +329,7 @@ main( int argc, char **argv )
     tempSpec.height = out_tile_height;
 
     if( options[ SMTOUT ] ){
-        
+
         tempSMT->setTileSize( out_tile_width );
     }
 
