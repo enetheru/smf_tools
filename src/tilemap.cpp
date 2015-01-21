@@ -54,7 +54,7 @@ TileMap::fromCSV( std::string fileName )
     std::stringstream line;
     std::vector< std::string > tokens;
     std::fstream file( fileName, std::ios::in );
-    CHECK(! file.good() ) << "cannot open " << fileName;
+    CHECK( file.good() ) << "cannot open " << fileName;
 
     // get dimensions
     if( std::getline( file, cell ) ) ++_height;
