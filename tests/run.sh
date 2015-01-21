@@ -1,6 +1,6 @@
 #!/bin/bash
 shopt -s extglob
-for i in !(data)
+for i in !(data|$1*)
 do
     if [[ -d $i ]]
     then
