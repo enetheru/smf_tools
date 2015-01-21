@@ -14,7 +14,7 @@ using namespace std;
 OIIO_NAMESPACE_USING;
 
 SMT *
-SMT::create( string fileName, bool overwrite, bool dxt1_quality )
+SMT::create( string fileName, bool overwrite )
 {
     SMT *smt;
     ifstream file( fileName );
@@ -22,7 +22,6 @@ SMT::create( string fileName, bool overwrite, bool dxt1_quality )
 
     smt = new SMT;
     smt->fileName = fileName;
-    smt->dxt1_quality = dxt1_quality;
     smt->reset();
     return smt;
 }
@@ -48,7 +47,9 @@ SMT::open( string fileName )
 {
     SMT *smt;
     if( test( fileName ) ){
-        smt = new SMT( fileName );
+        smt = new SMT;
+        smt->fileName = fileName;
+        smt->load();
         return smt;
     }
     return NULL;

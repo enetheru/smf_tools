@@ -36,27 +36,18 @@ private:
     void load();
     
 public:
-    bool dxt1_quality = false;
 
     SMT( ){ };
-    SMT( std::string f, bool d = false )
-        : fileName( f ), dxt1_quality( d ){
-        load();
-    };
 
-    static bool test( std::string fileName );
-    
-    static SMT *create( std::string fileName,
-            bool overwrite = false,
-            bool dxt1_quality = false );
-
-    static SMT *open( std::string fileName );
+    static bool test  ( std::string fileName );
+    static SMT *create( std::string fileName, bool overwrite = false );
+    static SMT *open  ( std::string fileName );
 
     bool initialised( ){ return init; };
     void reset( );
     std::string info();
 
-    void setTileSize( uint32_t r      );
+    void setTileSize( uint32_t r );
     void setType    ( TileType t ); // 1=DXT1
 
     uint32_t getTileType ( ){ return header.tileType; };
