@@ -1,14 +1,16 @@
-#include "config.h"
-#include "tilecache.h"
+#include <string>
 
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
+#include "elog/elog.h"
+
+#include "config.h"
 #include "util.h"
 #include "smt.h"
 #include "smf.h"
+#include "tilecache.h"
 
-#include "elog/elog.h"
-#include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
-#include <string>
 
 OIIO_NAMESPACE_USING;
 

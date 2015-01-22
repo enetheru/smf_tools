@@ -1,11 +1,13 @@
+#include <cstdint>
+
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
+#include "elog/elog.h"
+
 #include "tiledimage.h"
 #include "tilemap.h"
 #include "tilecache.h"
-
-#include "elog/elog.h"
-#include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
-#include <cstdint>
 
 // CONSTRUCTORS
 // ============

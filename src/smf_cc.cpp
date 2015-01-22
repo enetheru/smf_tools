@@ -1,56 +1,17 @@
-// local headers
-#include "smt.h"
-#include "smf.h"
-#include "util.h"
-
-#include "elog/elog.h"
-#include "optionparser/optionparser.h"
-
 #include <cstring>
 #include <string>
 #include <fstream>
 
+#include "elog/elog.h"
+#include "optionparser/optionparser.h"
+
+#include "option_args.h"
+#include "smt.h"
+#include "smf.h"
+#include "util.h"
+
 using namespace std;
 OIIO_NAMESPACE_USING;
-
-// Argument tests //
-////////////////////
-struct Arg: public option::Arg
-{
-    static void printError(const char* msg1, const option::Option& opt,
-            const char* msg2)
-    {
-        fprintf(stderr, "%s", msg1);
-        fwrite(opt.name, opt.namelen, 1, stderr);
-        fprintf(stderr, "%s", msg2);
-    }
-
-    static option::ArgStatus Unknown(const option::Option& option, bool msg)
-    {
-        if (msg) printError("Unknown option '", option, "'\n");
-        return option::ARG_ILLEGAL;
-    }
-
-    static option::ArgStatus Required(const option::Option& option, bool msg)
-    {
-        if (option.arg != 0)
-            return option::ARG_OK;
-
-        if (msg) printError("Option '", option, "' requires an argument\n");
-        return option::ARG_ILLEGAL;
-    }
-
-    static option::ArgStatus Numeric(const option::Option& option, bool msg)
-    {
-        char* endptr = 0;
-        if (option.arg != 0 && strtof(option.arg, &endptr)){};
-        if (endptr != option.arg && *endptr == 0)
-            return option::ARG_OK;
-
-        if (msg) printError("Option '", option, "' requires a numeric argument\n");
-        return option::ARG_ILLEGAL;
-    }
-};
 
 enum optionsIndex
 {
@@ -76,54 +37,54 @@ const option::Descriptor usage[] = {
         "eg. $ smf_cc -v -o mymap.smf --mapsize 8x8 --height height.tif \\ \n"
         "    > --mini minimap.jpeg --metal metalmap.png --grass grass.png mymap.smt \n"
         "\nGENERAL OPTIONS:" },
-        
+
     { HELP, 0, "h", "help", Arg::None, "  -h,  \t--help"
         "\tPrint usage and exit." },
-        
+
     { VERBOSE, 0, "v", "verbose", Arg::None, "  -v,  \t--verbose"
         "\tPrint extra information." },
-        
+
     { QUIET, 0, "q", "quiet", Arg::None, "  -q,  \t--quiet"
         "\tSupress output." },
 
     { OUTPUT, 0, "o", "output", Arg::Required, "  -o,  \t--output=mymap.smf"
         "\tFile to operate on, will create if it doesnt exist" },
-        
+
     { FORCE, 0, "f", "force", Arg::Required, "  -f,  \t--force"
         "\tOverwrite existing files" },
 
     { MAPSIZE, 0, "", "mapsize", Arg::Required, "\t--mapsize=XxZ"
         "\tWidth and length of map, in spring map units eg. '--mapsize=4x4',"
         "must be multiples of two." },
-        
+
     { TILESIZE, 0, "", "tilesize", Arg::Required, "\t--tilesize=X"
         "\tSize of tiles, in pixels eg. '--tilesize=32',"
         "must be multiples of 4." },
-        
+
     { FLOOR, 0, "y", "floor", Arg::Numeric, "  -y,  \t--floor=1.0f"
         "\tMinimum height of the map." },
-        
+
     { CEILING, 0, "Y", "ceiling", Arg::Numeric, "  -Y,  \t--ceiling=1.0f"
         "\tMaximum height of the map." },
 
     { HEIGHT, 0, "", "height", Arg::Required, "\t--height=height.tif"
         "\t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap." },
-        
+
     { TYPE, 0, "", "type", Arg::Required, "\t--type=type.tif"
         "\t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
-        
+
     { MAP, 0, "", "map", Arg::Required, "\t--map=map.tif"
         "\t(x*16)x(y*16):1 UINT32 Image to use for tilemap." },
-        
+
     { MINI, 0, "", "mini", Arg::Required, "\t--mini=mini.tif"
         "\t(1024)x(1024):4 UINT8 Image to use for minimap." },
-        
+
     { METAL, 0, "", "metal", Arg::Required, "\t--metal=metal.tif"
         "\t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
-        
+
     { FEATURES, 0, "", "features", Arg::Required, "\t--features=list.csv"
         "\tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
-        
+
     { GRASS, 0, "", "grass", Arg::Required, "\t--grass=grass.tif"
         "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
 
@@ -133,7 +94,7 @@ const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
         "\nNOTES:\n"
         "Passing 'CLEAR' to the options that take a paremeter will clear the contents of that part of the file" },
-        
+
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
         "$ smf_cc -v -o mymap.smf --features CLEAR --type CLEAR" },
@@ -143,6 +104,12 @@ const option::Descriptor usage[] = {
 int
 main( int argc, char **argv )
 {
+    // === Variables ===
+    bool force = false;
+    unsigned int mx = 2, my = 2; // map size
+    SMF *smf = NULL; //out smf
+    string fileName; //out filename
+
     // Options Parsing
     // ===============
     bool fail = false;
@@ -171,6 +138,7 @@ main( int argc, char **argv )
         fail = true;
     }
 
+    //FIXME non options should be counted as smt files
     // non options
     for( int i = 1; i < parse.nonOptionsCount(); ++i ){
         LOG(WARN) << "Superflous Argument: " << parse.nonOption( i );
@@ -183,22 +151,17 @@ main( int argc, char **argv )
     }
     // end option parsing
 
-    bool overwrite = false;
-
-    unsigned int mx = 2, my = 2;
 //    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
-    if( options[ FORCE ] ) overwrite = true;
+    if( options[ FORCE ] ) force = true;
 
     // output creation
-    SMF *smf = NULL;
-    string fileName;
     if( options[ OUTPUT ] )
         fileName = options[ OUTPUT ].arg;
     else
         fileName = "rename_me.smf";
 
     smf = SMF::open( fileName );
-    if(! smf ) smf = SMF::create( fileName, overwrite );
+    if(! smf ) smf = SMF::create( fileName, force );
     if(! smf ){
         LOG(WARN) << "ERROR.main: unable to create " << fileName;
         exit(1);

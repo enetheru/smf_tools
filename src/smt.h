@@ -1,8 +1,8 @@
-#ifndef __SMT_H
-#define __SMT_H
+#pragma once
+
+#include <cstdint>
 
 #include <OpenImageIO/imagebuf.h>
-#include <cstdint>
 
 class SMT {
 public:
@@ -34,7 +34,7 @@ private:
     uint32_t tileBytes = 680; //< Tile Bytes as calculated by calcTileBytes()
 
     void load();
-    
+
 public:
     bool dxt1_quality = false;
 
@@ -45,7 +45,7 @@ public:
     };
 
     static bool test( std::string fileName );
-    
+
     static SMT *create( std::string fileName,
             bool overwrite = false,
             bool dxt1_quality = false );
@@ -68,5 +68,3 @@ public:
     OpenImageIO::ImageBuf *getTile( uint32_t tile );
     void append( OpenImageIO::ImageBuf * );
 };
-
-#endif //ndef __SMT_H

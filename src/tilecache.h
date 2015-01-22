@@ -1,9 +1,9 @@
-#ifndef TILECACHE_H
-#define TILECACHE_H
+#pragma once
 
-#include <OpenImageIO/imagebuf.h>
 #include <vector>
 #include <string>
+
+#include <OpenImageIO/imagebuf.h>
 
 class TileCache
 {
@@ -23,5 +23,3 @@ public:
     OpenImageIO::ImageBuf *operator() ( uint32_t idx );
     OpenImageIO::ImageBuf* getScaled( uint32_t n, uint32_t w, uint32_t h = 0 );
 };
-
-#endif //TILECACHE_H

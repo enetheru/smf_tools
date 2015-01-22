@@ -1,6 +1,3 @@
-#include "config.h"
-#include "smtool.h"
-
 #include <chrono>
 #include <fstream>
 #include <deque>
@@ -9,6 +6,8 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
+#include "config.h"
+#include "smtool.h"
 #include "smt.h"
 #include "smf.h"
 #include "tilemap.h"

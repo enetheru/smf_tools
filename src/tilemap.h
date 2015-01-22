@@ -1,5 +1,4 @@
-#ifndef TILEMAP_H
-#define TILEMAP_H
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -39,5 +38,3 @@ public:
     uint32_t &operator() ( uint32_t idx );
     uint32_t *data();
 };
-
-#endif //TILEMAP_H

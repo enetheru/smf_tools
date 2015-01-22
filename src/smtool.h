@@ -1,11 +1,11 @@
-#ifndef SMTOOL_H
-#define SMTOOL_H
+#pragma once
+
+#include <OpenImageIO/imagebuf.h>
 
 #include "smt.h"
 #include "tilecache.h"
 #include "tilemap.h"
 
-#include <OpenImageIO/imagebuf.h>
 
 namespace SMF_Tools
 {
@@ -23,5 +23,3 @@ namespace SMF_Tools
     void imageToSMT( SMT *smt, OpenImageIO::ImageBuf *image );
 
 }
-
-#endif //SMTOOL_H
