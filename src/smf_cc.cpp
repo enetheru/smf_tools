@@ -19,6 +19,7 @@ enum optionsIndex
     HELP,
     VERBOSE,
     QUIET,
+    INPUT,
     OUTPUT,
     FORCE,
     MAPSIZE,
@@ -28,7 +29,6 @@ enum optionsIndex
     CEILING,
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
     // Compression
-    DXT1_QUALITY,
 };
 
 const option::Descriptor usage[] = {
@@ -50,14 +50,14 @@ const option::Descriptor usage[] = {
     { OUTPUT, 0, "o", "output", Arg::Required, "  -o,  \t--output=mymap.smf"
         "\tFile to operate on, will create if it doesnt exist" },
 
-    { FORCE, 0, "f", "force", Arg::Required, "  -f,  \t--force"
-        "\tOverwrite existing files" },
+    { FORCE, 0, "f", "force", Arg::None, "  -f,  \t--force"
+        "\tOverwrite existing output files" },
 
     { MAPSIZE, 0, "", "mapsize", Arg::Required, "\t--mapsize=XxZ"
         "\tWidth and length of map, in spring map units eg. '--mapsize=4x4',"
         "must be multiples of two." },
 
-    { TILESIZE, 0, "", "tilesize", Arg::Required, "\t--tilesize=X"
+    { TILESIZE, 0, "", "tilesize", Arg::Numeric, "\t--tilesize=X"
         "\tSize of tiles, in pixels eg. '--tilesize=32',"
         "must be multiples of 4." },
 
@@ -67,34 +67,32 @@ const option::Descriptor usage[] = {
     { CEILING, 0, "Y", "ceiling", Arg::Numeric, "  -Y,  \t--ceiling=1.0f"
         "\tMaximum height of the map." },
 
-    { HEIGHT, 0, "", "height", Arg::Required, "\t--height=height.tif"
+    { HEIGHT, 0, "", "height", Arg::File, "\t--height=height.tif"
         "\t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap." },
 
-    { TYPE, 0, "", "type", Arg::Required, "\t--type=type.tif"
+    { TYPE, 0, "", "type", Arg::File, "\t--type=type.tif"
         "\t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
 
-    { MAP, 0, "", "map", Arg::Required, "\t--map=map.tif"
+    { MAP, 0, "", "map", Arg::File, "\t--map=map.tif"
         "\t(x*16)x(y*16):1 UINT32 Image to use for tilemap." },
 
-    { MINI, 0, "", "mini", Arg::Required, "\t--mini=mini.tif"
+    { MINI, 0, "", "mini", Arg::File, "\t--mini=mini.tif"
         "\t(1024)x(1024):4 UINT8 Image to use for minimap." },
 
-    { METAL, 0, "", "metal", Arg::Required, "\t--metal=metal.tif"
+    { METAL, 0, "", "metal", Arg::File, "\t--metal=metal.tif"
         "\t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
 
-    { FEATURES, 0, "", "features", Arg::Required, "\t--features=list.csv"
+    { FEATURES, 0, "", "features", Arg::File, "\t--features=list.csv"
         "\tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
 
-    { GRASS, 0, "", "grass", Arg::Required, "\t--grass=grass.tif"
+    { GRASS, 0, "", "grass", Arg::File, "\t--grass=grass.tif"
         "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
-
-    { DXT1_QUALITY, 0, "", "dxt1-quality", Arg::None, "\t--dxt1-quality"
-        "\tUse slower but better analytics when compressing DXT1 textures" },
 
     { UNKNOWN, 0, "", "", Arg::None,
         "\nNOTES:\n"
-        "Passing 'CLEAR' to the options that take a paremeter will clear the contents of that part of the file" },
-
+        "Passing 'CLEAR' to the options that take a paremeter will clear the"
+        "contents of that part of the file" },
+        
     { UNKNOWN, 0, "", "", Arg::None,
         "\nEXAMPLES:\n"
         "$ smf_cc -v -o mymap.smf --features CLEAR --type CLEAR" },
@@ -104,11 +102,14 @@ const option::Descriptor usage[] = {
 int
 main( int argc, char **argv )
 {
-    // === Variables ===
+    // == temporary/global variables
+    SMF *smf = NULL;
     bool force = false;
-    unsigned int mx = 2, my = 2; // map size
-    SMF *smf = NULL; //out smf
-    string fileName; //out filename
+    uint32_t mapWidth = 0, mapLength = 0;
+    string outFileName;
+    fstream tempFile;
+    uint32_t tileSize = 32;
+    float floor = 0.01f, ceiling = 1.0f;
 
     // Options Parsing
     // ===============
@@ -134,53 +135,83 @@ main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG(WARN) << "Unknown option: " << string( opt->name, opt->namelen );
+        LOG( ERROR ) << "Unknown option: " << string( opt->name, opt->namelen );
         fail = true;
     }
 
     //FIXME non options should be counted as smt files
     // non options
-    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG(WARN) << "Superflous Argument: " << parse.nonOption( i );
+    //FIXME non options are supposed to be treated as additional smt's
+    //for( int i = 1; i < parse.nonOptionsCount(); ++i ){
+    //    LOG( ERROR ) << "Superflous Argument: " << parse.nonOption( i );
+    //    fail = true;
+    //}
+
+    // --force
+    if( options[ FORCE ] ) force = true;
+
+    // --output filename
+    if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
+    else outFileName = "output.smf";
+
+    tempFile.open( outFileName, ios::in );
+    if( tempFile.good() && !force ){
+        LOG( ERROR ) << outFileName << " already exists.";
+        fail = true;
+    }
+    tempFile.close();
+
+    // --mapsize
+    if( options[ MAPSIZE ] ){
+        valxval( options[ MAPSIZE ].arg, mapWidth, mapLength );
+    }
+    if(! mapWidth || ! mapLength){
+        LOG( ERROR ) << "--mapsize not specified";
+        fail = true;
+    }
+    if( mapWidth % 2 || mapLength % 2 ){
+        LOG( ERROR ) << "map sizes must be multiples of two";
         fail = true;
     }
 
+    // --tilesize
+    if( options[ TILESIZE ] ){
+        tileSize = atoi( options[ TILESIZE ].arg );
+    }
+    if( tileSize % 4 ){
+        LOG( ERROR ) << "tile size must be a multiple of 4";
+        fail = true;
+    }
+
+    // --floor
+    if( options[ FLOOR ] ){
+        floor = atof( options[ FLOOR ].arg );
+    }
+
+    // --ceiling
+    if( options[ CEILING ] ){
+        ceiling = atof( options[ CEILING ].arg );
+    }
+
+    // end option parsing
     if( fail || parse.error() ){
-        LOG( ERROR ) << "Options parsing";
         exit( 1 );
     }
-    // end option parsing
 
-//    if( options[ DXT1_QUALITY ] ) dxt1_quality = true;
-    if( options[ FORCE ] ) force = true;
-
-    // output creation
-    if( options[ OUTPUT ] )
-        fileName = options[ OUTPUT ].arg;
-    else
-        fileName = "rename_me.smf";
-
-    smf = SMF::open( fileName );
-    if(! smf ) smf = SMF::create( fileName, force );
+    // == lets do it! ==
+    smf = SMF::open( outFileName );
     if(! smf ){
-        LOG(WARN) << "ERROR.main: unable to create " << fileName;
+        smf = SMF::create( outFileName, force );
+    }
+
+    if(! smf ){
+        LOG(WARN) << "ERROR.main: unable to create " << outFileName;
         exit(1);
     }
 
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf->addTileFile( parse.nonOption( i ) );
     }
-
-    if( options[ TILESIZE ] ){
-        smf->setTileSize( stoi( options[ TILESIZE ].arg ) );
-    }
-
-
-    if( options[ MAPSIZE ] ){
-        valxval( options[ MAPSIZE ].arg, mx, my );
-        smf->setSize( mx, my );
-    }
-
     if( options[ HEIGHT ] ){
         if(! strcmp( options[ HEIGHT ].arg, "CLEAR" ) ){
             LOG(INFO) << "INFO: Clearing Height\n";

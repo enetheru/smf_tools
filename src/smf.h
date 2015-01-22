@@ -159,15 +159,13 @@ class SMF {
 
 public:
     SMF( ){ };
-    SMF( std::string f ): fileName( f ) { };
     ~SMF();
 
-    static bool test( std::string fileName );
+    static bool test  ( std::string fileName );
     static SMF *create( std::string fileName, bool overwrite = false );
-    static SMF *open( std::string fileName );
+    static SMF *open  ( std::string fileName );
 
     bool read( );
-    bool saveAs( std::string fileName );
     bool initialised( ){ return init; };
     std::string info( );
 

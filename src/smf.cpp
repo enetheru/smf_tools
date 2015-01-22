@@ -58,7 +58,8 @@ SMF *SMF::create( string fileName, bool overwrite ){
     }
     file.close();
 
-    smf = new SMF( fileName );
+    smf = new SMF;
+    smf->fileName = fileName;
     smf->updatePtrs();
     smf->writeHeaders();
     smf->writeHeight(NULL);
@@ -96,7 +97,8 @@ SMF *SMF::open( string fileName )
     SMF *smf;
     if( test( fileName ) ){
         LOG(INFO) << "INFO: Opening " << fileName;
-        smf = new SMF( fileName );
+        smf = new SMF;
+        smf->fileName = fileName;
         smf->init = !smf->read();
         return smf;
     }
@@ -554,13 +556,13 @@ void SMF::addFeatures( string fileName ){
 }
 
 bool SMF::writeHeaders(){
-    LOG(INFO) << "INFO: Writing headers\n";
+    LOG(INFO) << "INFO: Writing headers";
 
     header.id = rand();
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
     if(! file.good() ){
-        LOG(WARN) << "ERROR: unable to open file for writing\n";
+        LOG( ERROR ) << "unable to open file for writing";
         return true;
     }
     //file.seekp(0);
@@ -585,6 +587,7 @@ SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
         scale( tempBuf, spec );
     }
     else {
+        LOG( INFO ) << "writing blank";
         tempBuf = new ImageBuf( spec );
     }
 
@@ -600,22 +603,33 @@ SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
 }
 
 bool SMF::writeHeight( ImageBuf *sourceBuf ){
-    LOG(INFO) << "INFO: Writing height\n";
+    LOG(INFO) << "INFO: Writing height";
     return writeImage( header.heightPtr, heightSpec, sourceBuf );
 }
 
 bool SMF::writeType( ImageBuf *sourceBuf ){
-    LOG(INFO) << "INFO: Writing type\n";
+    LOG(INFO) << "INFO: Writing type";
     return writeImage( header.typePtr, typeSpec, sourceBuf );
 }
 
-bool SMF::writeMini( ImageBuf * sourceBuf ){
-    LOG(INFO) << "INFO: Writing mini\n";
-    ImageBuf *miniBuf = new ImageBuf;
-    miniBuf->copy( *sourceBuf );
+bool
+SMF::writeMini( ImageBuf * sourceBuf )
+{
+    LOG(INFO) << "INFO: Writing mini";
 
-    channels( miniBuf, miniSpec );
-    scale( miniBuf, miniSpec );
+    ImageBuf *tempBuf;
+    if( sourceBuf ){
+        sourceBuf->read( 0, 0, true, miniSpec.format );
+        tempBuf = new ImageBuf;
+        tempBuf->copy( *sourceBuf );
+        channels( tempBuf, miniSpec );
+        scale( tempBuf, miniSpec );
+    } 
+    else {
+        LOG( INFO ) << "writing blank";
+        tempBuf = new ImageBuf( miniSpec );
+        tempBuf->read( 0, 0, true, miniSpec.format );
+    }
 
     ImageSpec spec;
     int blocks_size = 0;
@@ -623,14 +637,14 @@ bool SMF::writeMini( ImageBuf * sourceBuf ){
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.miniPtr );
     for( int i = 0; i < 9; ++i ){
-        spec = miniBuf->specmod();
+        spec = tempBuf->specmod();
 
         blocks_size = squish::GetStorageRequirements(
                 spec.width, spec.height, squish::kDxt1 );
 
         if(! blocks ) blocks = new squish::u8[ blocks_size ];
 
-        squish::CompressImage( (squish::u8 *)miniBuf->localpixels(),
+        squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
                 spec.width, spec.height, blocks, squish::kDxt1 );
 
         // Write data to smf
@@ -638,19 +652,19 @@ bool SMF::writeMini( ImageBuf * sourceBuf ){
 
         spec.width = spec.width >> 1;
         spec.height = spec.height >> 1;
-        scale( miniBuf, spec );
-    }
-    file.close();
-    miniBuf->clear();
-    delete miniBuf;
-    delete blocks;
 
+        scale( tempBuf, spec );
+    }
+    delete blocks;
+    delete tempBuf;
+
+    file.close();
     return false;
 }
 
 /// Write the tile header information to the smf
 bool SMF::writeTileHeader(){
-    LOG(INFO) << "INFO: Writing tile reference information\n";
+    LOG(INFO) << "INFO: Writing tile reference information";
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.tilesPtr );
 
@@ -671,7 +685,7 @@ bool SMF::writeTileHeader(){
 // write the tilemap information to the smf
 bool SMF::writeMap( TileMap *tileMap ){
     if(! tileMap ) return true;
-    LOG(INFO) << "INFO: Writing map\n";
+    LOG(INFO) << "INFO: Writing map";
     std::fstream file(fileName,
             std::ios::binary | std::ios::in | std::ios::out);
     file.seekp( mapPtr );
@@ -682,13 +696,13 @@ bool SMF::writeMap( TileMap *tileMap ){
 
 /// write the metal image to the smf
 bool SMF::writeMetal( ImageBuf *sourceBuf ){
-    LOG(INFO) << "INFO: Writing metal\n";
+    LOG(INFO) << "INFO: Writing metal";
     return writeImage( header.metalPtr, metalSpec, sourceBuf );
 }
 
 /// write the feature header information to the smf
 bool SMF::writeFeaturesHeader() {
-    LOG(INFO) << "INFO: Writing feature headers\n";
+    LOG(INFO) << "INFO: Writing feature headers";
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.featuresPtr );
 
@@ -706,7 +720,7 @@ bool SMF::writeFeaturesHeader() {
 }
 
 bool SMF::writeFeatures(){
-    LOG(INFO) << "INFO: Writing features\n";
+    LOG(INFO) << "INFO: Writing features";
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.featuresPtr + 8 );
@@ -751,7 +765,7 @@ bool SMF::writeGrass( ImageBuf *sourceBuf ) {
     }
     else if(! sourceBuf && ! headerGrass ) return false;
 
-    LOG(INFO) << "INFO: Writing Grass\n";
+    LOG(INFO) << "INFO: Writing Grass";
 
     // else create one.
     if(! headerGrass ){

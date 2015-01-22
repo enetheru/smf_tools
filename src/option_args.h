@@ -1,5 +1,9 @@
+#include <fstream>
+#include <cstring>
+
 #include "optionparser/optionparser.h"
 #include "elog/elog.h"
+
 
 // Argument tests //
 ////////////////////
@@ -38,5 +42,25 @@ struct Arg: public option::Arg
         if (msg) printError("Option '", option,
                 "' requires a numeric argument\n");
         return option::ARG_ILLEGAL;
+    }
+
+    static option::ArgStatus File( const option::Option& option, bool msg)
+    {
+        std::fstream tempFile( option.arg, std::ios::in );
+        if( tempFile.good() ){
+            tempFile.close();
+            return option::ARG_OK;
+        }
+        // HACK, to allow passing "CLEAR" as a file argument and save a blank
+        // portion of the smf
+        if(! strcmp( option.arg, "CLEAR") ){
+            return option::ARG_OK;
+        }
+
+        tempFile.close();
+        if (msg) LOG( ERROR ) << "Option '" << option.name << " "
+            << option.arg << "' doesnt exist";
+        return option::ARG_ILLEGAL;
+        
     }
 };
