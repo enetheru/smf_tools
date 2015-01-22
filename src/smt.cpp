@@ -1,14 +1,15 @@
-#include "config.h"
-#include "smt.h"
+#include <fstream>
 
-#include "util.h"
-
-#include "elog/elog.h"
-#include <squish.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include <fstream>
+#include <squish.h>
+
+#include "elog/elog.h"
+
+#include "config.h"
+#include "smt.h"
+#include "util.h"
 
 using namespace std;
 OIIO_NAMESPACE_USING;

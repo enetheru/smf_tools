@@ -1,11 +1,11 @@
-#ifndef TILEDIMAGE_H
-#define TILEDIMAGE_H
+#pragma once
+
+#include <cstdint>
+
+#include <OpenImageIO/imagebuf.h>
 
 #include "tilemap.h"
 #include "tilecache.h"
-
-#include <cstdint>
-#include <OpenImageIO/imagebuf.h>
 
 class TiledImage
 {
@@ -52,5 +52,3 @@ public:
 
     OpenImageIO::ImageBuf *getTile( uint32_t idx );
 };
-
-#endif //TILEDIMAGE_H

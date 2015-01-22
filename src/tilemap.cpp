@@ -1,12 +1,14 @@
-#include "tilemap.h"
-
-#include "elog/elog.h"
 #include <cstdint>
 #include <fstream>
 #include <string>
 #include <sstream>
 #include <vector>
 #include <stdexcept>
+
+#include "elog/elog.h"
+
+#include "tilemap.h"
+
 
 // CONSTRUCTORS
 // ============

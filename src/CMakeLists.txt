@@ -2,7 +2,7 @@ configure_file( config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 
 add_library( smf smf.cpp )
-add_library( smt smt.cpp smtool.cpp )
+add_library( smt smt.cpp )
 
 add_library( tilemap tilemap.cpp )
 add_library( tilecache tilecache.cpp )

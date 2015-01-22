@@ -1,15 +1,15 @@
-#include "config.h"
-#include "smf.h"
-#include "smt.h"
-
 #include <fstream>
 #include <sstream>
 
-#include "elog/elog.h"
-#include <squish.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <squish.h>
 
+#include "elog/elog.h"
+
+#include "config.h"
+#include "smf.h"
+#include "smt.h"
 #include "util.h"
 
 OIIO_NAMESPACE_USING
@@ -583,7 +583,7 @@ SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
         tempBuf->copy( *sourceBuf );
         channels( tempBuf, spec );
         scale( tempBuf, spec );
-    } 
+    }
     else {
         tempBuf = new ImageBuf( spec );
     }

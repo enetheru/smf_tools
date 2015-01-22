@@ -1,11 +1,13 @@
-#include "util.h"
-#include "elog/elog.h"
-
-#include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
+#include "elog/elog.h"
+
+#include "util.h"
 
 void
 valxval( std::string s, uint32_t &x, uint32_t &y )

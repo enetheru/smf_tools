@@ -1,11 +1,11 @@
-#ifndef UTIL_H
-#define UTIL_H
+#pragma once
 
-#include <OpenImageIO/imagebuf.h>
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <iomanip>
+
+#include <OpenImageIO/imagebuf.h>
 
 // Evaluates a string into two integers
 /* The function takes a string in the form of IxK, and assignes
@@ -48,5 +48,3 @@ void scale( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
         
 void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
-   
-#endif //UTIL_H
