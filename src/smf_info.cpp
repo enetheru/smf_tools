@@ -35,29 +35,30 @@ int main( int argc, char **argv )
         LOG(INFO) << "Unknown option: " << std::string( opt->name,opt->namelen );
     }
 
-    // non options
-    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG(INFO) << "Unknown Option " << parse.nonOption( i );
-    }
-
-    if( parse.error() ) exit( 1 );
-
-    if( options[ HELP ] || argc == 0 ) {
+    if( options[ HELP ] || parse.nonOptionsCount() == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
         exit( 1 );
     }
 
-    SMF *smf = NULL;
-    if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
-        LOG(FATAL) << "cannot open smf file";
-    }
-    else {
-        LOG(INFO) << "\n" << smf->info();
-        delete smf;
+    if( parse.error() ) exit( 1 );
+
+    // all non options are treated as smf's options
+    SMF *smf;
+    int retVal = 0;
+    for( int i = 0; i < parse.nonOptionsCount(); ++i ){
+        smf = NULL;
+        if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
+            LOG( ERROR ) << "cannot open smf file";
+            retVal = 1;
+        }
+        else {
+            LOG(INFO) << "\n" << smf->info();
+            delete smf;
+        }
     }
 
     delete [] options;
     delete [] buffer;
-    return 0;
+    return retVal;
 }

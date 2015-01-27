@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="smf_decc -v ../data/data.smf"
+COMMAND="smt_convert -v --smt --tilesize 32x32 --imagesize 1024x1024 ../data/image_1.png"
 
 # == Pre Test Actions ==
 #nothing

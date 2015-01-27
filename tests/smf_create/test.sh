@@ -1,5 +1,13 @@
 #!/bin/bash
-COMMAND="smf_cc -v"
+COMMAND="smf_cc -v --mapsize 8x8"
+
+# == Pre Test Actions ==
+#nothing
+
+# == Test Action ==
 echo COMMAND = $COMMAND
-eval $COMMAND
+eval $TIMER $VALGRIND $COMMAND
+
+# == Post test actions ==
+#nothing
 exit $?
