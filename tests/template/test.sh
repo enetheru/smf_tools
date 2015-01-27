@@ -1,5 +1,6 @@
 #!/bin/bash
-COMMAND="smf_info ../data/data.smf"
+COMMAND="echo command"
 echo COMMAND = $COMMAND
 eval $TIMER $VALGRIND $COMMAND
+
 exit $?
