@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <iostream>
 
 #include <OpenImageIO/imagebuf.h>
 
@@ -316,6 +317,8 @@ main( int argc, char **argv )
             tempBuf->clear();
             delete tempBuf;
             name.str( std::string() );
+
+            progressBar( "[progress]:", out_tileMap.width * out_tileMap.height, y * out_tileMap.width +x );
         }
     }
 

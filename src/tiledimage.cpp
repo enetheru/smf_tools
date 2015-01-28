@@ -104,14 +104,14 @@ TiledImage::getRegion(
 {
     OIIO_NAMESPACE_USING;
     //FIXME needs to get region scaled rather than full size.
-    LOG( INFO ) << "source window "
+    DLOG( INFO ) << "source window "
         << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
 
     CHECK( x1 < getWidth() ) << "x1 is out of range";
     CHECK( y1 < getHeight() ) << "y1 is out of range";
     if( x2 == 0 || x2 > getWidth() ) x2 = getWidth();
     if( y2 == 0 || y2 > getHeight() ) y2 = getHeight();
-     LOG( INFO ) << "source window "
+     DLOG( INFO ) << "source window "
          << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
 
     if( sw == 0 ) sw = x2 - x1;
@@ -123,7 +123,7 @@ TiledImage::getRegion(
     uint32_t ix = x1;
     uint32_t iy = y1;
     while( true ){
-         LOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
+         DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
         //determine the tile under the point of interest
         uint32_t mx = ix / tileWidth;
@@ -141,18 +141,18 @@ TiledImage::getRegion(
         if( y2 / tileHeight > my ) wy2 = tileHeight;
         else wy2 = y2 - my * tileHeight;
 
-         LOG( INFO ) << "copy window "
+         DLOG( INFO ) << "copy window "
              << "(" << wx1 << ", " << wy1 << ")->(" << wx2 << ", " << wy2 << ")";
 
         //determine the dimensions of the copy window
         uint32_t ww = wx2 - wx1;
         uint32_t wh = wy2 - wy1;
-        LOG( INFO ) << "copy window size " << ww << "x" << wh;
+        DLOG( INFO ) << "copy window size " << ww << "x" << wh;
 
         //determine the top left of the paste window
         uint32_t dx = ix - x1;
         uint32_t dy = iy - y1;
-        LOG( INFO ) << "Paste Window: " << dx << "x" << dy;
+        DLOG( INFO ) << "Paste Window: " << dx << "x" << dy;
 
         uint32_t index = tileMap(mx, my);
         ImageBuf *tile = tileCache.getScaled( index, tileWidth, tileHeight );
