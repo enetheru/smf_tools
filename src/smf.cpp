@@ -302,7 +302,7 @@ bool SMF::reWrite( ){
     }
 
     updatePtrs();
-    DLOG( INFO ) << "Re-Writing " << fileName;
+    DLOG( INFO ) << "Re-Writing SMF file: " << fileName;
 
     writeHeaders();
     switch( getDirty() ){
@@ -329,7 +329,7 @@ bool SMF::reWrite( ){
  * in every function we need it in.
  */
 void SMF::updateSpecs(){
-    DLOG( INFO ) << "Updating Specifications";
+    DLOG( INFO ) << "Updating ImageSpec's";
     // Set heightSpec.
     heightSpec.width = header.width + 1;
     heightSpec.height = header.length + 1;
@@ -373,7 +373,7 @@ void SMF::updateSpecs(){
  */
 void SMF::updatePtrs(){
     updateSpecs();
-    DLOG(INFO) << "Updating file offsets";
+    DLOG(INFO) << "Updating file offset pointers";
 
     header.heightPtr = sizeof( SMF::Header );
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
@@ -580,22 +580,24 @@ bool SMF::writeHeaders(){
 bool
 SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
 {
-    ImageBuf *tempBuf;
-    if( sourceBuf ){
-        sourceBuf->read( 0, 0, true, spec.format );
-        tempBuf = new ImageBuf;
-        tempBuf->copy( *sourceBuf );
-        channels( tempBuf, spec );
-        scale( tempBuf, spec );
-    }
-    else {
-        LOG( INFO ) << "writing blank";
-        tempBuf = new ImageBuf( spec );
-    }
-
-    // write the data to the smf
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( ptr );
+
+    if(! sourceBuf ){
+        DLOG( INFO ) << "writing blank image";
+        char zero = 0;
+        for( uint32_t i = 0; i < spec.image_bytes(); ++i )
+            file.write( &zero, sizeof( char ) );
+        return true;
+    }
+
+    sourceBuf->read( 0, 0, true, spec.format );
+    ImageBuf *tempBuf = new ImageBuf;
+    tempBuf->copy( *sourceBuf );
+    channels( tempBuf, spec );
+    scale( tempBuf, spec );
+
+    // write the data to the smf
     file.write( (char *)tempBuf->localpixels(), spec.image_bytes() );
     file.close();
 
@@ -610,7 +612,7 @@ bool SMF::writeHeight( ImageBuf *sourceBuf ){
 }
 
 bool SMF::writeType( ImageBuf *sourceBuf ){
-    LOG(INFO) << "INFO: Writing type";
+    DLOG(INFO) << "INFO: Writing type";
     return writeImage( header.typePtr, typeSpec, sourceBuf );
 }
 
@@ -618,44 +620,50 @@ bool
 SMF::writeMini( ImageBuf * sourceBuf )
 {
     DLOG( INFO ) << "Writing mini";
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    file.seekp( header.miniPtr );
 
-
-    ImageBuf *tempBuf;
-    if( sourceBuf ){
-        sourceBuf->read( 0, 0, true, miniSpec.format );
-        tempBuf = new ImageBuf;
-        tempBuf->copy( *sourceBuf );
-        channels( tempBuf, miniSpec );
-        scale( tempBuf, miniSpec );
-    } 
-    else {
-        LOG( INFO ) << "writing blank";
-        tempBuf = new ImageBuf( miniSpec );
-        tempBuf->read( 0, 0, true, miniSpec.format );
+    if(! sourceBuf ){
+        DLOG( INFO ) << "writing blank image";
+        char zero[ MINIMAP_SIZE ] = { 0 };
+        file.write( zero, sizeof( zero ) );
+        file.close();
+        return true;
     }
+
+    sourceBuf->read( 0, 0, true, miniSpec.format );
+    ImageBuf *tempBuf = new ImageBuf;
+    tempBuf->copy( *sourceBuf );
+    channels( tempBuf, miniSpec );
+    scale( tempBuf, miniSpec );
 
     ImageSpec spec;
     int blocks_size = 0;
     squish::u8 *blocks = NULL;
-    fstream file( fileName, ios::binary | ios::in | ios::out );
-    file.seekp( header.miniPtr );
     for( int i = 0; i < 9; ++i ){
+        DLOG( INFO ) << "mipmap loop: " << i;
         spec = tempBuf->specmod();
 
         blocks_size = squish::GetStorageRequirements(
                 spec.width, spec.height, squish::kDxt1 );
 
-        if(! blocks ) blocks = new squish::u8[ blocks_size ];
+        if(! blocks ){
+            DLOG( INFO ) << "allocating space: " << blocks_size;
+            blocks = new squish::u8[ blocks_size ];
+        }
 
+        DLOG( INFO ) << "compressing to dxt1";
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
                 spec.width, spec.height, blocks, squish::kDxt1 );
 
         // Write data to smf
+        DLOG( INFO ) << "writing dxt1 mip to file";
         file.write( (char*)blocks, blocks_size );
 
         spec.width = spec.width >> 1;
         spec.height = spec.height >> 1;
 
+        DLOG( INFO ) << "Scaling to: " << spec.width << "x" << spec.height;
         scale( tempBuf, spec );
     }
     delete blocks;
