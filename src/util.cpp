@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -130,3 +131,26 @@ swizzle( OpenImageIO::ImageBuf *&sourceBuf )
     sourceBuf = tempBuf;
 }
 
+void
+progressBar( std::string message, float goal, float progress )
+{
+    static std::stringstream text;
+    uint32_t columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+    float ratio = progress / goal;
+    uint32_t barSize = columns - message.length() - 6;
+
+    //construct the bar
+    text.str( std::string() ); // wipe the bar of content
+    text << "\033[0G\033[2K"; // clear the current line and set the cursor position at the beginning
+    for( uint32_t i = 0; i < columns - 6; ++i) text << "-"; //fill the output with a single dotten line
+    text << "\033[G"; // reset the cursor position;
+    text << message; // put the header on
+    for( uint32_t i = 0; i < ratio * barSize; ++i) text << "#"; // fill in current progress
+    text << ">\033[" << columns - 5 << "G[" << (int)(ratio*100) << "%]"; // put the end cap on
+
+    if( ratio < 1.0f ) text << "\033[F"; // if were not done, move the cursor back up.
+
+    LOG( INFO ) << text.str();
+
+    std::cout.flush();
+}

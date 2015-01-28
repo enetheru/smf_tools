@@ -48,3 +48,5 @@ void scale( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
         
 void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
+
+void progressBar( std::string message, float goal, float progress );
