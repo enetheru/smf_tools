@@ -18,6 +18,16 @@
 #define SMF_HEADER_NONE 0
 #define SMF_HEADER_GRASS 1
 
+#define SMF_HEADER      0x00000001
+#define SMF_EXTRAHEADER 0x00000002
+#define SMF_HEIGHT      0x00000004
+#define SMF_TYPE        0x00000008
+#define SMF_MAP         0x00000010
+#define SMF_MINI        0x00000020
+#define SMF_METAL       0x00000040
+#define SMF_FEATURES    0x00000080
+
+
 /// Spring Map File
 /** This class corresponds to a file on disk, operations are performed
  *  on the file on disk as you do them so take care.
@@ -123,6 +133,7 @@ class SMF {
 
     bool init = false;
     int dirty = INT_MAX;
+    uint32_t dirtyMask = 0xFFFFFFFF;
     std::string fileName;
 
     Header header;
@@ -178,7 +189,8 @@ public:
             float x, float y, float z, float r, float s );
     void addFeatures( std::string fileName );
 
-    bool writeHeaders( );
+    void writeHeader( );
+    void writeExtraHeaders();
     bool writeHeight  ( OpenImageIO::ImageBuf *buf );
     bool writeType    ( OpenImageIO::ImageBuf *buf );
     bool writeTileHeader( );

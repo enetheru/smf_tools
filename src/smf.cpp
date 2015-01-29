@@ -62,15 +62,6 @@ SMF *SMF::create( string fileName, bool overwrite ){
     smf->fileName = fileName;
     smf->updatePtrs();
     smf->writeHeaders();
-    smf->writeHeight(NULL);
-    smf->writeType(NULL);
-    smf->writeTileHeader();
-    smf->writeMap(NULL);
-    smf->writeMini(NULL);
-    smf->writeMetal(NULL);
-    smf->writeFeaturesHeader();
-    smf->writeFeatures();
-    smf->init = true;
     return smf;
 }
 
@@ -557,24 +548,33 @@ void SMF::addFeatures( string fileName ){
     reWrite();
 }
 
-bool SMF::writeHeaders(){
-    DLOG( INFO ) << "Writing headers\n";
+void SMF::writeHeader(){
+    DLOG( INFO ) << "Writing headers";
 
     header.id = rand();
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
-    if(! file.good() ){
-        LOG( ERROR ) << "Unable to open file for writing\n";
-        return true;
-    }
-    //file.seekp(0);
-    file.write( (char *)&header, sizeof(SMF::Header) );
+    CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
 
+    file.write( (char *)&header, sizeof(SMF::Header) );
+    file.close();
+
+    dirtyMask &= !SMF_HEADER;
+}
+
+void SMF::writeExtraHeaders(){
+    DLOG( INFO ) << "Writing Extra Headers";
+
+    fstream file( fileName, ios::binary | ios::in | ios::out );
+    CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
+
+    file.seekp( sizeof( Header ) );
     for( auto eHeader = headerExtras.begin(); eHeader != headerExtras.end(); ++eHeader )
         file.write( (char *)*eHeader, (*eHeader)->bytes );
 
     file.close();
-    return false;
+
+    dirtyMask &= !SMF_EXTRAHEADER;
 }
 
 bool

@@ -109,7 +109,7 @@ main( int argc, char **argv )
     string outFileName;
     fstream tempFile;
     uint32_t tileSize = 32;
-    float floor = 0.01f, ceiling = 1.0f;
+    float mapFloor = 0.01f, mapCeiling = 1.0f;
 
     // Options Parsing
     // ===============
@@ -185,12 +185,12 @@ main( int argc, char **argv )
 
     // --floor
     if( options[ FLOOR ] ){
-        floor = atof( options[ FLOOR ].arg );
+        mapFloor = atof( options[ FLOOR ].arg );
     }
 
     // --ceiling
     if( options[ CEILING ] ){
-        ceiling = atof( options[ CEILING ].arg );
+        mapCeiling = atof( options[ CEILING ].arg );
     }
 
     // end option parsing
@@ -209,9 +209,14 @@ main( int argc, char **argv )
         exit(1);
     }
 
+    smf->setSize( mapWidth, mapLength );
+    smf->setDepth( mapFloor, mapCeiling );
+    smf->setTileSize( tileSize );
+
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf->addTileFile( parse.nonOption( i ) );
     }
+    
     if( options[ HEIGHT ] ){
         if(! strcmp( options[ HEIGHT ].arg, "CLEAR" ) ){
             LOG(INFO) << "INFO: Clearing Height\n";
@@ -295,7 +300,7 @@ main( int argc, char **argv )
     }
 
     /// Finalise any pending changes.
-    smf->reWrite();
+    //smf->reWrite();
 
     LOG(INFO) << smf->info();
 
