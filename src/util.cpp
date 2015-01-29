@@ -1,7 +1,9 @@
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <sstream>
+#include <queue>
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -132,22 +134,58 @@ swizzle( OpenImageIO::ImageBuf *&sourceBuf )
 }
 
 void
-progressBar( std::string message, float goal, float progress )
+progressBar( std::string header, float goal, float progress )
 {
-    static std::stringstream text;
-    uint32_t columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+    // calculate times
+    uint32_t seconds = 0;
+    uint32_t minutes = 0;
+    uint32_t hours = 0;
+
+    static uint32_t history[100] = {0};
+    static uint32_t index = 0;
+    uint32_t average = 0;
+    index++;
+    if( index >= 100) index = 0;
+
+    using namespace std::chrono;
+    duration< double > time_span;
+    static steady_clock::time_point last;
+
+    steady_clock::time_point now = steady_clock::now();
+    time_span = duration_cast< duration< double > >(now - last);
+    last = now;
+
+    history[index] = (goal - progress) * time_span.count();
+    for( uint32_t i = 0; i < 100; ++i)average += history[i];
+    average = average/100;
+
+    hours = average / 3600;
+    minutes = (average % 3600 ) / 60;
+    seconds = average % 60;
+
+    // calculate ratio
     float ratio = progress / goal;
-    uint32_t barSize = columns - message.length() - 6;
+
+    //construct the footer
+    std::stringstream footer;
+    footer << "[";
+    if( hours ) footer << hours << ":"; // hours
+    if( minutes ) footer << std::setfill('0') << std::setw(2) << minutes << ":"; //minutes
+    footer << std::setfill('0') << std::setw(2) << seconds << "]"; // seconds
+    footer << "[" << (int)(ratio * 100) << "%]"; // percentage complete
+
+    // calculate formatting factors
+    std::stringstream text;
+    uint32_t columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+    uint32_t barSize = columns - header.size() - footer.str().size();
 
     //construct the bar
-    text.str( std::string() ); // wipe the bar of content
     text << "\033[0G\033[2K"; // clear the current line and set the cursor position at the beginning
-    for( uint32_t i = 0; i < columns - 6; ++i) text << "-"; //fill the output with a single dotten line
+    for( uint32_t i = 0; i < columns; ++i) text << "-"; //fill the output with a single dotten line
     text << "\033[G"; // reset the cursor position;
-    text << message; // put the header on
+    text << header; // put the header on
     for( uint32_t i = 0; i < ratio * barSize; ++i) text << "#"; // fill in current progress
-    text << ">\033[" << columns - 5 << "G[" << (int)(ratio*100) << "%]"; // put the end cap on
-
+    text << ">\033[" << columns - footer.str().size() + 1 << "G" << footer.str(); // put the end cap on
     if( ratio < 1.0f ) text << "\033[F"; // if were not done, move the cursor back up.
 
     LOG( INFO ) << text.str();
