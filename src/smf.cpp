@@ -23,23 +23,24 @@ SMF::~SMF()
     }
 }
 
-/// Sets the dirty flag so that we know where to re-write
-/* The dirst flag will always be the lower of it current state
- * or the requested state
- */
-void SMF::setDirty( int i ){
-    dirty = fmin( dirty, i );
+bool
+SMF::test( std::string fileName )
+{
+    char magic[ 16 ] = "";
+    ifstream file( fileName );
+    if( file.good() ){
+        file.read( magic, 16 );
+        if(! strcmp( magic, "spring map file" ) ){
+            file.close();
+            return true;
+        }
+    }
+    return false;
 }
 
-/// get the dirty state
-int SMF::getDirty(){
-    return dirty;
-}
-
-/// Creates an SMF file and returns a pointer to management class
-/*
- */
-SMF *SMF::create( string fileName, bool overwrite ){
+SMF *
+SMF::create( string fileName, bool overwrite )
+{
     SMF *smf;
     fstream file;
 
@@ -61,29 +62,13 @@ SMF *SMF::create( string fileName, bool overwrite ){
     smf = new SMF;
     smf->fileName = fileName;
     smf->updatePtrs();
-    smf->writeHeaders();
+    smf->updateSpecs();
+    smf->writeHeader();
     return smf;
 }
 
-bool
-SMF::test( std::string fileName )
-{
-    char magic[ 16 ] = "";
-    ifstream file( fileName );
-    if( file.good() ){
-        file.read( magic, 16 );
-        if(! strcmp( magic, "spring map file" ) ){
-            file.close();
-            return true;
-        }
-    }
-    return false;
-}
-
-/// Opens an existing SMF file and returns pointer to management class
-/*
- */
-SMF *SMF::open( string fileName )
+SMF *
+SMF::open( string fileName )
 {
     SMF *smf;
     if( test( fileName ) ){
@@ -91,23 +76,24 @@ SMF *SMF::open( string fileName )
 
         smf = new SMF;
         smf->fileName = fileName;
-        smf->init = !smf->read();
+        smf->read();
         return smf;
     }
-    else {
-        DLOG( INFO ) << "Cannot open " << fileName;
-    }
+    
+    LOG( ERROR ) << "Cannot open " << fileName;
     return NULL;
 }
 
-/// Reads in the data from the file on disk
-/*
- */
-bool SMF::read(){
+void
+SMF::read()
+{
     int offset;
 
     DLOG( INFO ) << "Reading " << fileName;
     ifstream file( fileName );
+    CHECK( file.good() ) << "Unable to read" << fileName;
+    
+    // read header structure.
     file.seekg(0);
     file.read( (char *)&header, sizeof(SMF::Header) );
 
@@ -124,13 +110,15 @@ bool SMF::read(){
             headerExtras.push_back( (SMF::HeaderExtra *)headerGrass );
         }
         else {
-            LOG( WARN ) << "Unknown header type " << i;
+            LOG( WARN ) << "Extra Header(" << i << ")"
+                "has unknown type: " << headerExtra->type;
             headerExtras.push_back( headerExtra );
         }
         file.seekg( offset + headerExtra->bytes);
         delete headerExtra;
     }
 
+    // update image specifications
     updateSpecs();
 
     // Tileindex Information
@@ -138,16 +126,16 @@ bool SMF::read(){
     file.read( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
 
     // TileFiles
-    int nTiles;
-    char temp[256];
+    uint32_t nTiles;
+    char temp[1024];
     for( int i = 0; i < headerTiles.nFiles; ++i){
         file.read( (char *)&nTiles, 4 );
         this->nTiles.push_back( nTiles );
-        file.getline( temp, 255, '\0' );
+        file.getline( temp, 1023, '\0' );
         smtList.push_back( temp );
     }
 
-    // whle were at it lets get the file offset for the tilemap.
+    // while were at it lets get the file offset for the tilemap.
     mapPtr = file.tellg();
 
     // Featurelist information
@@ -180,13 +168,13 @@ bool SMF::read(){
     }
 
     file.close();
-    return false;
+    //FIXME perform tests to verify that there is enough room in the file to 
+    // accomodate all the data.
 }
 
-/// Output map information as string
-/**
- */
-string SMF::info(){
+string
+SMF::info()
+{
     stringstream info;
     info << "[INFO]: " << fileName
          << "\n\tVersion: " << header.version
@@ -239,7 +227,6 @@ string SMF::info(){
                      << "\n\ttype: " << (*i)->type
                     ;
             }
-
         }
     }
 
@@ -262,64 +249,9 @@ string SMF::info(){
     return info.str();
 }
 
-/// Re-writes the data to the disk taking into consideration existing data and preserving file order
-/*
- */
-bool SMF::reWrite( ){
-    ImageBuf *height = NULL, *type = NULL, *mini = NULL;
-    ImageBuf *metal = NULL, *grass = NULL;
-    TileMap *tileMap = NULL;
-    // 0: from the very beginning full re-write
-    // 1: extra headers onwards
-    // 2: tile headers onwards
-    // 3: feature headers onwards
-
-    // First switch gathers the data from the file that may be overwritten
-    // Second switch writes to the file from the gathered data
-
-    switch( getDirty() ){
-        case INT_MAX:
-            return false;
-        case 0:
-        case 1:
-            height = getHeight();
-            type = getType();
-        case 2:
-            tileMap = getMap();
-            mini = getMini();
-            metal = getMetal();
-        case 3:
-            grass = getGrass();
-    }
-
-    updatePtrs();
-    DLOG( INFO ) << "Re-Writing SMF file: " << fileName;
-
-    writeHeaders();
-    switch( getDirty() ){
-        case 0:
-        case 1:
-            writeHeight( height );
-            writeType( type );
-        case 2:
-            writeTileHeader();
-            writeMap( tileMap );
-            writeMini( mini );
-            writeMetal( metal );
-        case 3:
-            writeFeaturesHeader();
-            writeFeatures();
-            if( grass ) writeGrass( grass );
-    }
-    dirty = INT_MAX;
-    return false;
-}
-
-/// Update the data block sizes
-/** Its convenient to know this information off hand, rather than recalculate
- * in every function we need it in.
- */
-void SMF::updateSpecs(){
+void
+SMF::updateSpecs()
+{
     DLOG( INFO ) << "Updating ImageSpec's";
     // Set heightSpec.
     heightSpec.width = header.width + 1;
@@ -334,9 +266,10 @@ void SMF::updateSpecs(){
     typeSpec.set_format( TypeDesc::UINT8 );
 
     // set map spec
-    mapWidth = header.width * 8 / header.tileSize;
-    mapHeight = header.length * 8 / header.tileSize;
-    mapBytes = mapWidth * mapHeight * 4;
+    mapSpec.width = header.width * 8 / header.tileSize;
+    mapSpec.height = header.height * 8 / header.tileSize;
+    mapSpec.nchannels = 1;
+    mapspec.set_format( TypeDesc::UINT );
 
     // set miniSpec
     miniSpec.width = 1024;
@@ -357,35 +290,28 @@ void SMF::updateSpecs(){
     grassSpec.set_format( TypeDesc::UINT8 );
 }
 
-/// Update the file offset pointers
-/** This function makes sure that all data offset pointers are pointing to the
- * correct location and should be called whenever changes to the class are
- * made that will effect its values.
- */
-void SMF::updatePtrs(){
-    updateSpecs();
+void
+SMF::updatePtrs()
+{
     DLOG(INFO) << "Updating file offset pointers";
 
     header.heightPtr = sizeof( SMF::Header );
+    
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
         header.heightPtr += (*i)->bytes;
 
     header.typePtr = header.heightPtr + heightSpec.image_bytes();
-
     header.tilesPtr = header.typePtr + typeSpec.image_bytes();
-
     mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
-
+    
     for( auto i = smtList.begin(); i != smtList.end(); ++i )
         mapPtr += (*i).size() + 5;
-
-    header.miniPtr = mapPtr + mapBytes;
-
+        
+    header.miniPtr = mapPtr + mapSpec.image_bytes();
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
-
     header.featuresPtr = header.metalPtr + metalSpec.image_bytes();
 
-
+    // features
     int eof;
     eof = header.featuresPtr + sizeof( SMF::HeaderFeatures );
     for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i )
@@ -403,32 +329,40 @@ void SMF::updatePtrs(){
     }
 }
 
-/// Set the map x and z depth
-void SMF::setSize( int width, int length ){
+void
+SMF::setSize( int width, int length )
+{
+    if( header.width == width && header.length == length ) return;
     header.width = width * 64;
     header.length = length * 64;
-    setDirty( 0 );
-    reWrite();
+    dirtyMask = 0xFFFFFFFF;
 }
 
-/// Set the map y depth
-void SMF::setDepth( float floor, float ceiling ){
+void
+SMF::setDepth( float floor, float ceiling )
+{
+    if( header.floor == floor && header.ceiling == ceiling ) return;
     header.floor = floor;
     header.ceiling = ceiling;
-    writeHeaders();
+    dirtyMask &= !SMF_HEADER;
 }
 
-void SMF::setTileSize( int size ){
+void
+SMF::setTileSize( int size )
+{
+    if( header.tileSize == size ) return;
     header.tileSize = size;
-    writeHeaders();
+    dirtyMask &= !SMF_HEADER;
+    //FIXME this also effects the tilemap
 }
 
+//TODO Set the map y depth and water level.
 
-///TODO Set the map y depth and water level.
-
-/// Add Tile files
-bool SMF::addTileFile( string fileName ){
+bool
+SMF::addTileFile( string fileName )
+{
     SMT *smt = NULL;
+    HeaderG
 
     if(! fileName.compare( "CLEAR" ) ){
         smtList.clear();
