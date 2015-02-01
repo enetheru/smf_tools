@@ -34,10 +34,9 @@
  * on the file on disk as you do them so take care.
  */
 class SMF {
-    string fileName;
+    std::string fileName;
     bool init = false;
     uint32_t dirtyMask = 0xFFFFFFFF;
-    std::string fileName;
 
     /*! \\brief Header struct as it is written on disk
      *
@@ -130,7 +129,6 @@ class SMF {
     };
     HeaderFeatures headerFeatures;
     std::vector< std::string > featureTypes; ///< names of features
-    std::vector< SMF::Feature > features;
 
     /// Individual features structure
     /**
@@ -144,6 +142,7 @@ class SMF {
         float r;  ///< rotation
         float s;  ///< scale, currently unused.
     };
+    std::vector< SMF::Feature > features;
 
     OpenImageIO::ImageSpec grassSpec;
     

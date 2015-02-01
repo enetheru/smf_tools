@@ -87,15 +87,30 @@ SMF::open( string fileName )
 void
 SMF::read()
 {
-    int offset;
+    FileMap map;
+    uint32_t offset = 0;
 
     DLOG( INFO ) << "Reading " << fileName;
     ifstream file( fileName );
     CHECK( file.good() ) << "Unable to read" << fileName;
     
+    file.seekg( 0, ios::end );
+    // add block after the end of the file to test against.
+    map.addBlock( file.tellg(), 10 );
+
     // read header structure.
     file.seekg(0);
     file.read( (char *)&header, sizeof(SMF::Header) );
+    updateSpecs();
+
+    // for each pointer, make sure they dont overlap with memory space of
+    // other data
+    map.addBlock(0,80);
+    map.addBlock( header.heightPtr, heightSpec.image_bytes() );
+    map.addBlock( header.typePtr, typeSpec.image_bytes() );
+    map.addBlock( header.miniPtr, MINIMAP_SIZE );
+    map.addBlock( header.metalPtr, metalSpec.image_bytes() );
+    
 
     // Extra headers Information
     SMF::HeaderExtra *headerExtra;
@@ -108,24 +123,26 @@ SMF::read()
             SMF::HeaderGrass *headerGrass = new SMF::HeaderGrass;
             file.read( (char *)headerGrass, sizeof(SMF::HeaderGrass));
             headerExtras.push_back( (SMF::HeaderExtra *)headerGrass );
+            updateSpecs();
+            map.addBlock( headerGrass->ptr, grassSpec.image_bytes() );
         }
         else {
             LOG( WARN ) << "Extra Header(" << i << ")"
                 "has unknown type: " << headerExtra->type;
             headerExtras.push_back( headerExtra );
         }
-        file.seekg( offset + headerExtra->bytes);
+        map.addBlock( offset, headerExtra->bytes );
+        file.seekg( offset + headerExtra->bytes );
         delete headerExtra;
     }
-
-    // update image specifications
-    updateSpecs();
 
     // Tileindex Information
     file.seekg( header.tilesPtr );
     file.read( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
+    map.addBlock( header.tilesPtr, sizeof( SMF::HeaderTiles ) );
 
     // TileFiles
+    offset = file.tellg();
     uint32_t nTiles;
     char temp[1024];
     for( int i = 0; i < headerTiles.nFiles; ++i){
@@ -134,42 +151,37 @@ SMF::read()
         file.getline( temp, 1023, '\0' );
         smtList.push_back( temp );
     }
+    map.addBlock( offset, uint32_t( file.tellg() ) - offset);
 
     // while were at it lets get the file offset for the tilemap.
     mapPtr = file.tellg();
+    map.addBlock( mapPtr, mapSpec.image_bytes() );
 
     // Featurelist information
     file.seekg( header.featuresPtr );
     file.read( (char *)&headerFeatures.nTypes, 4 );
     file.read( (char *)&headerFeatures.nFeatures, 4 );
+    map.addBlock( header.featuresPtr, sizeof( SMF::HeaderFeatures ) );
 
     offset = file.tellg();
-    file.seekg( 0, ios::end );
-    int filesize = file.tellg();
-    file.seekg( offset );
-
-    int eeof = offset + headerFeatures.nFeatures * sizeof(SMF::Feature);
-    if( eeof > filesize ) {
-        LOG( WARN ) << "Filesize is not large enough to contain the reported"
-            "number of features. Ignoring feature data.\n";
-
+    for( int i = 0; i < headerFeatures.nTypes; ++i ){
+        file.getline( temp, 255, '\0' );
+        featureTypes.push_back( temp );
     }
-    else {
-        for( int i = 0; i < headerFeatures.nTypes; ++i ){
-            file.getline( temp, 255, '\0' );
-            featureTypes.push_back( temp );
-        }
 
-        SMF::Feature feature;
-        for( int i = 0; i < headerFeatures.nFeatures; ++i ){
-            file.read( (char *)&feature, sizeof(SMF::Feature) );
-            features.push_back( feature );
-        }
+    if( headerFeatures.nTypes)
+        map.addBlock( offset, uint32_t( file.tellg() ) - offset );
+
+    if( headerFeatures.nFeatures )
+        map.addBlock( file.tellg(), sizeof( SMF::Feature) * headerFeatures.nFeatures );
+
+    SMF::Feature feature;
+    for( int i = 0; i < headerFeatures.nFeatures; ++i ){
+        file.read( (char *)&feature, sizeof(SMF::Feature) );
+        features.push_back( feature );
     }
 
     file.close();
-    //FIXME perform tests to verify that there is enough room in the file to 
-    // accomodate all the data.
 }
 
 string
@@ -267,9 +279,9 @@ SMF::updateSpecs()
 
     // set map spec
     mapSpec.width = header.width * 8 / header.tileSize;
-    mapSpec.height = header.height * 8 / header.tileSize;
+    mapSpec.height = header.length * 8 / header.tileSize;
     mapSpec.nchannels = 1;
-    mapspec.set_format( TypeDesc::UINT );
+    mapSpec.set_format( TypeDesc::UINT );
 
     // set miniSpec
     miniSpec.width = 1024;
@@ -362,14 +374,13 @@ bool
 SMF::addTileFile( string fileName )
 {
     SMT *smt = NULL;
-    HeaderG
 
     if(! fileName.compare( "CLEAR" ) ){
         smtList.clear();
         nTiles.clear();
         headerTiles.nFiles = 0;
         headerTiles.nTiles = 0;
-        setDirty( 2 );
+       // //setDirty( 2 );
         return false;
     }
 
@@ -385,7 +396,7 @@ SMF::addTileFile( string fileName )
     headerTiles.nTiles += smt->getNTiles();
 
     delete smt;
-    setDirty( 2 );
+    /////setDirty( 2 );
     return false;
 }
 
@@ -412,7 +423,7 @@ void SMF::addFeature( string name, float x, float y, float z, float r, float s )
 
     headerFeatures.nTypes = featureTypes.size();
     headerFeatures.nFeatures = features.size();
-    setDirty( 3 );
+    //setDirty( 3 );
 }
 
 /*! replaces features in smf with those specified in the fileName.csv
@@ -431,8 +442,8 @@ void SMF::addFeatures( string fileName ){
     featureTypes.clear();
 
     if(! fileName.compare("CLEAR") ){
-        setDirty(3);
-        reWrite();
+        //setDirty(3);
+        //reWrite();
         return;
     }
 
@@ -478,8 +489,8 @@ void SMF::addFeatures( string fileName ){
         << "addFeatures"
         << "\n\tTypes: " << headerFeatures.nTypes
         << "\n\tTypes: " << headerFeatures.nFeatures;
-    setDirty(3);
-    reWrite();
+    //setDirty(3);
+    //reWrite();
 }
 
 void SMF::writeHeader(){
@@ -634,7 +645,7 @@ bool SMF::writeMap( TileMap *tileMap ){
     std::fstream file(fileName,
             std::ios::binary | std::ios::in | std::ios::out);
     file.seekp( mapPtr );
-    file.write( (char *)tileMap->data(), mapBytes);
+    file.write( (char *)tileMap->data(), mapSpec.image_bytes() );
     file.close();
     return false;
 }
@@ -704,8 +715,8 @@ bool SMF::writeGrass( ImageBuf *sourceBuf ) {
                 --header.nHeaderExtras;
             }
         }
-        setDirty( 0 );
-        reWrite();
+        //setDirty( 0 );
+        //reWrite();
         return false;
     }
     else if(! sourceBuf && ! headerGrass ) return false;
@@ -723,8 +734,8 @@ bool SMF::writeGrass( ImageBuf *sourceBuf ) {
     if(! rewrite )
         return writeImage( headerGrass->ptr, grassSpec, sourceBuf );
     else
-        setDirty( 0 );
-        reWrite();
+        //setDirty( 0 );
+        //reWrite();
 
     return false;
 }
@@ -750,11 +761,11 @@ ImageBuf *SMF::getType( ){ return getImage( header.typePtr, typeSpec ); }
 TileMap *
 SMF::getMap( )
 {
-    TileMap *tileMap = new TileMap( mapWidth, mapHeight );
+    TileMap *tileMap = new TileMap( mapSpec.width, mapSpec.height );
     std::fstream file( fileName, std::ios::binary | std::ios::in );
     file.seekg( mapPtr );
-    for( unsigned int y = 0; y < mapHeight; ++y )
-    for( unsigned int x = 0; x < mapWidth; ++x ){
+    for( int y = 0; y < mapSpec.height; ++y )
+    for( int x = 0; x < mapSpec.width; ++x ){
         file.read( (char *)&(*tileMap)( x, y ), 4 );
     }
 

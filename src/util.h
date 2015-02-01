@@ -50,3 +50,31 @@ void scale( OpenImageIO::ImageBuf *&sourceBuf,
 void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
 
 void progressBar( std::string message, float goal, float progress );
+
+
+/**
+ * simple map class for checking overlapping regions of memory
+ */
+class FileMap{
+    struct Block{
+        uint32_t begin;
+        uint32_t end;
+    };
+
+    std::vector< Block > list;
+
+    public:
+    void addBlock( uint32_t begin, uint32_t size)
+    {
+        LOG( INFO ) << "ADDING: " << begin << "-" << begin + size;
+        Block temp{ begin, begin + size };
+        for( auto i = list.begin(); i != list.end(); ++i){
+            if( (temp.begin > i->begin && temp.begin < i->end)
+             || (temp.end > i->begin && temp.end < i->end)
+             || (temp.begin < i->begin && temp.end > i->end) )
+                LOG( WARN ) << "houston, we have a problem";
+        }
+        list.push_back( temp );
+    }
+
+};
