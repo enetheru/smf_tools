@@ -209,6 +209,40 @@ main( int argc, char **argv )
         exit(1);
     }
 
+    // Order of operation should be:
+    // data collection, attributes and extras
+    // write beginning to end
+    //
+    // == Collection ==
+    // header information
+    // * width
+    // * length
+    // * squareWidth
+    // * squareTexels
+    // * tileSize
+    // * floor
+    // * ceiling
+    // extra header information
+    // * enable grass
+    // map header and smt files
+    // * add smt files 
+    // features
+    // * add features
+    //
+    // == Write ==
+    // header
+    // extra headers
+    // height
+    // type
+    // map header
+    // map smt's
+    // map data
+    // minimap
+    // metalmap
+    // featuresheader
+    // featuretypes
+    // features
+    // grass
     smf->setSize( mapWidth, mapLength );
     smf->setDepth( mapFloor, mapCeiling );
     smf->setTileSize( tileSize );

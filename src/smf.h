@@ -28,19 +28,16 @@
 #define SMF_FEATURES    0x00000080 //!<
 
 
-/*! \brief Spring Map File
+
+/*! Spring Map File
  *
- * This class corresponds to a file on disk, operations are performed
- * on the file on disk as you do them so take care.
  */
 class SMF {
     std::string fileName;
     bool init = false;
     uint32_t dirtyMask = 0xFFFFFFFF;
 
-    /*! \\brief Header struct as it is written on disk
-     *
-     * This structure is written to disk as is, its 80 bytes long.
+    /*! Header struct as it is written on disk
      */
     struct Header {
         char magic[ 16 ] = "spring map file"; ///< byte:0 \n "spring map file"
@@ -67,7 +64,7 @@ class SMF {
     };/* byte: 80 */
     Header header;
 
-    /*! \brief Extra Header
+    /*! Extra Header.
      *
      * start of every extra header must look like this, then comes data specific
      * for header type
@@ -80,8 +77,10 @@ class SMF {
     };
     std::vector<SMF::HeaderExtra *> headerExtras;
 
-    /// Extra grass Headerder
-    /** This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
+    
+    /*! Extra grass Headerder.
+     *
+     * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
      * that defines ground vegetation.
      */
     struct HeaderGrass: public HeaderExtra
@@ -93,14 +92,16 @@ class SMF {
     OpenImageIO::ImageSpec heightSpec;
     OpenImageIO::ImageSpec typeSpec;
     
-    /// Tile Section Header
-    /** this is followed by numTileFiles file definition where each file definition
-     *  is an int followed by a zero terminated file name. Each file defines as
-     *  many tiles the int indicates with the following files starting where the
-     *  last one ended. So if there is 2 files with 100 tiles each the first
-     *  defines 0-99 and the second 100-199. After this followes an
-     *  int[ mapx * texelPerSquare / tileSize * mapy * texelPerSquare / tileSize ]
-     *  which is indexes to the defined tiles
+
+    /*! Tile Section Header.
+     *
+     * this is followed by numTileFiles file definition where each file definition
+     * is an int followed by a zero terminated file name. Each file defines as
+     * many tiles the int indicates with the following files starting where the
+     * last one ended. So if there is 2 files with 100 tiles each the first
+     * defines 0-99 and the second 100-199. After this followes an
+     * int[ mapx * texelPerSquare / tileSize * mapy * texelPerSquare / tileSize ]
+     * which is indexes to the defined tiles
      */
     struct HeaderTiles
     {
@@ -108,19 +109,22 @@ class SMF {
         int nTiles = 0; ///< number of tiles total
     };
     HeaderTiles headerTiles;
-    
+
+    //TODO convert this to a vector of pairs, or a tuple 
     std::vector< std::string > smtList;      ///< list of smt files references
     std::vector< uint32_t > nTiles; ///< number of tiles in corresponding files from smtList
+    
     uint32_t mapPtr;         ///< pointer to beginning of the tilemap
     OpenImageIO::ImageSpec mapSpec;
     
     OpenImageIO::ImageSpec miniSpec;
     OpenImageIO::ImageSpec metalSpec;
     
-    /// Features Section Header
-    /** this is followed by numFeatureType zero terminated strings indicating the
-     *  names of the features in the map then follow numFeatures
-     *  MapFeatureStructs
+    /*! Features Section Header.
+     *
+     * this is followed by numFeatureType zero terminated strings indicating the
+     * names of the features in the map then follow numFeatures
+     * MapFeatureStructs
      */
     struct HeaderFeatures
     {
@@ -130,8 +134,7 @@ class SMF {
     HeaderFeatures headerFeatures;
     std::vector< std::string > featureTypes; ///< names of features
 
-    /// Individual features structure
-    /**
+    /*! Individual features structure
      */
     struct Feature
     {
@@ -148,8 +151,8 @@ class SMF {
     
     // == Internal Utility Functions ==
 
-    /// Update the file offset pointers
-    /** This function makes sure that all data offset pointers are pointing to the
+    /*! Update the file offset pointers
+    * This function makes sure that all data offset pointers are pointing to the
     * correct location and should be called whenever changes to the class are
     * made that will effect its values.
     */
