@@ -24,7 +24,7 @@ enum optionsIndex
     FORCE,
     MAPSIZE,
     TILESIZE,
-    //UNUSED: TEXELS, SQUARESIZE
+    TEXELS, SQUARESIZE,
     FLOOR,
     CEILING,
     HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
@@ -88,14 +88,6 @@ const option::Descriptor usage[] = {
     { GRASS, 0, "", "grass", Arg::File, "\t--grass=grass.tif"
         "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
 
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nNOTES:\n"
-        "Passing 'CLEAR' to the options that take a paremeter will clear the"
-        "contents of that part of the file" },
-        
-    { UNKNOWN, 0, "", "", Arg::None,
-        "\nEXAMPLES:\n"
-        "$ smf_cc -v -o mymap.smf --features CLEAR --type CLEAR" },
     {0,0,0,0,0,0}
 };
 
@@ -174,6 +166,8 @@ main( int argc, char **argv )
         fail = true;
     }
 
+    ///FIXME add squarewidth and texels here
+
     // --tilesize
     if( options[ TILESIZE ] ){
         tileSize = atoi( options[ TILESIZE ].arg );
@@ -199,88 +193,82 @@ main( int argc, char **argv )
     }
 
     // == lets do it! ==
-    smf = SMF::open( outFileName );
-    if(! smf ){
-        smf = SMF::create( outFileName, force );
+    if(! (smf = SMF::create( outFileName, force )) ){
+        LOG(FATAL) << "Unable to create: " << outFileName;
     }
 
-    if(! smf ){
-        LOG(WARN) << "ERROR.main: unable to create " << outFileName;
-        exit(1);
-    }
-
-    // Order of operation should be:
-    // data collection, attributes and extras
-    // write beginning to end
-    //
-    // == Collection ==
-    // header information
-    // * width
-    // * length
-    // * squareWidth
-    // * squareTexels
-    // * tileSize
-    // * floor
-    // * ceiling
-    // extra header information
-    // * enable grass
-    // map header and smt files
-    // * add smt files 
-    // features
-    // * add features
-    //
-    // == Write ==
-    // header
-    // extra headers
-    // height
-    // type
-    // map header
-    // map smt's
-    // map data
-    // minimap
-    // metalmap
-    // featuresheader
-    // featuretypes
-    // features
-    // grass
+    // == Information Collection ==
+    // === header information ===
+    // * width & length
     smf->setSize( mapWidth, mapLength );
-    smf->setDepth( mapFloor, mapCeiling );
+
+    // * squareWidth
+    // FIXME
+    // * squareTexels
+    // FIXME
+
+    // * tileSize
     smf->setTileSize( tileSize );
 
+    // * floor & ceiling
+    smf->setDepth( mapFloor, mapCeiling );
+
+    // === extra header information ===
+    // * enable grass
+    if( options[ GRASS ] ){
+        smf->enableGrass(true);
+    }
+
+    // map header and smt files
+    // * add smt files 
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf->addTileFile( parse.nonOption( i ) );
     }
-    
+
+    // features
+    // * add features
+    if( options[ FEATURES ] ){
+        smf->addFeatures( options[ FEATURES ].arg );
+    }
+
+    // == calculate remaining file properties ==
+    smf->updateSpecs();
+    smf->updatePtrs();
+
+    // == Write ==
+    // header
+    smf->writeHeader();
+
+    // extra headers
+    smf->writeExtraHeaders();
+
+    // height
     if( options[ HEIGHT ] ){
-        if(! strcmp( options[ HEIGHT ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Height\n";
-            smf->writeHeight(NULL);
-        }
-        else {
-            ImageBuf heightBuf( options[ HEIGHT ].arg );
-            smf->writeHeight( &heightBuf );
-        }
+        ImageBuf heightBuf( options[ HEIGHT ].arg );
+        smf->writeHeight( &heightBuf );
+    }
+    else {
+        smf->writeHeight(NULL);
     }
 
+    // type
     if( options[ TYPE ] ){
-        if(! strcmp( options[ TYPE ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Type\n";
-            smf->writeType(NULL);
-        }
-        else {
-            ImageBuf typeBuf( options[ TYPE ].arg );
-            smf->writeType( &typeBuf );
-        }
+        ImageBuf typeBuf( options[ TYPE ].arg );
+        smf->writeType( &typeBuf );
+    }
+    else {
+        smf->writeType(NULL);
     }
 
+    // map header
+    // map smt's
+    smf->writeTileHeader();
+
+    // map data
     SMF *smfTemp = NULL;
     TileMap *tileMap = NULL;
     if( options[ MAP ] ){
-        if(! strcmp( options[ MAP ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Map\n";
-            smf->writeMap(NULL);
-        }
-        else if( (smfTemp = SMF::open( options[ MAP ].arg )) ){
+        if( (smfTemp = SMF::open( options[ MAP ].arg )) ){
             smf->writeMap( smfTemp->getMap() );
             delete smfTemp;
         }
@@ -289,54 +277,43 @@ main( int argc, char **argv )
             smf->writeMap( tileMap );
         }
     }
+    else {
+        smf->writeMap(NULL);
+    }
 
+    // minimap
     if( options[ MINI ] ){
-        if(! strcmp( options[ MINI ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Mini\n";
-            smf->writeMini(NULL);
-        }
-        else {
-            ImageBuf miniBuf( options[ MINI ].arg );
-            smf->writeMini( &miniBuf );
-        }
+        ImageBuf miniBuf( options[ MINI ].arg );
+        smf->writeMini( &miniBuf );
+    }
+    else {
+        smf->writeMini(NULL);
     }
 
+    // metalmap
     if( options[ METAL ] ){
-        if(! strcmp( options[ METAL ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Metal\n";
-            smf->writeMetal(NULL);
-        }
-        else {
-            ImageBuf metalBuf( options[ METAL ].arg );
-            smf->writeMetal( &metalBuf );
-        }
+        ImageBuf metalBuf( options[ METAL ].arg );
+        smf->writeMetal( &metalBuf );
+    }
+    else {
+        smf->writeMetal(NULL);
     }
 
-    if( options[ FEATURES ] ){
-        if(! strcmp( options[ FEATURES ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Features\n";
-            smf->addFeatures("CLEAR");
-        }
-        else {
-            smf->addFeatures( options[ FEATURES ].arg );
-        }
-    }
+    // featuresheader
+    // featuretypes
+    smf->writeFeaturesHeader();
 
+    // features
+    smf->writeFeatures();
+
+    // grass
     if( options[ GRASS ] ){
-        if(! strcmp( options[ GRASS ].arg, "CLEAR" ) ){
-            LOG(INFO) << "INFO: Clearing Grass\n";
-            smf->writeGrass(NULL);
-        }
-        else {
-            ImageBuf grassBuf( options[ GRASS ].arg );
-            smf->writeGrass( &grassBuf );
-        }
+        ImageBuf grassBuf( options[ GRASS ].arg );
+        smf->writeGrass( &grassBuf );
     }
-
-    /// Finalise any pending changes.
-    //smf->reWrite();
 
     LOG(INFO) << smf->info();
+    smf->good();
 
     delete smf;
     delete [] options;

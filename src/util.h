@@ -59,20 +59,22 @@ class FileMap{
     struct Block{
         uint32_t begin;
         uint32_t end;
+        std::string name;
     };
 
     std::vector< Block > list;
 
     public:
-    void addBlock( uint32_t begin, uint32_t size)
+    void addBlock( uint32_t begin, uint32_t size, std::string name = "")
     {
-        LOG( INFO ) << "ADDING: " << begin << "-" << begin + size;
-        Block temp{ begin, begin + size };
+        DLOG( INFO ) << "adding: " << name << "(" << begin << "-" << begin + size-1 << ")";
+        Block temp{ begin, begin + size-1, name };
         for( auto i = list.begin(); i != list.end(); ++i){
-            if( (temp.begin > i->begin && temp.begin < i->end)
-             || (temp.end > i->begin && temp.end < i->end)
-             || (temp.begin < i->begin && temp.end > i->end) )
-                LOG( WARN ) << "houston, we have a problem";
+            if( (temp.begin >= i->begin && temp.begin <= i->end)
+             || (temp.end >= i->begin && temp.end <= i->end)
+             || (temp.begin <= i->begin && temp.end >= i->end) ){
+                LOG( ERROR ) << temp.name << "clashes with existing block " << i->name;
+            }
         }
         list.push_back( temp );
     }

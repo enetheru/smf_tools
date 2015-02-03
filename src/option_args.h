@@ -51,15 +51,11 @@ struct Arg: public option::Arg
             tempFile.close();
             return option::ARG_OK;
         }
-        // HACK, to allow passing "CLEAR" as a file argument and save a blank
-        // portion of the smf
-        if(! strcmp( option.arg, "CLEAR") ){
-            return option::ARG_OK;
-        }
-
         tempFile.close();
-        if (msg) LOG( ERROR ) << "Option '" << option.name << " "
-            << option.arg << "' doesnt exist";
+
+        if (msg) {
+            LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
+        }
         return option::ARG_ILLEGAL;
         
     }

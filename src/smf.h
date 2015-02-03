@@ -22,11 +22,17 @@
 #define SMF_EXTRAHEADER 0x00000002 //!<
 #define SMF_HEIGHT      0x00000004 //!<
 #define SMF_TYPE        0x00000008 //!<
-#define SMF_MAP         0x00000010 //!<
-#define SMF_MINI        0x00000020 //!<
-#define SMF_METAL       0x00000040 //!<
-#define SMF_FEATURES    0x00000080 //!<
+#define SMF_MAP_HEADER  0x00000010
+#define SMF_MAP         0x00000020 //!<
+#define SMF_MINI        0x00000040 //!<
+#define SMF_METAL       0x00000080 //!<
+#define SMF_FEATURES_HEADER    0x00000100 //!<
+#define SMF_FEATURES    0x00000200 //!<
+#define SMF_GRASS       0x00000400 //!<
+#define SMF_ALL         0xFFFFFFFF //!<
 
+// (&= !) turns the flag off
+// (|=  ) turns it on
 
 
 /*! Spring Map File
@@ -34,7 +40,6 @@
  */
 class SMF {
     std::string fileName;
-    bool init = false;
     uint32_t dirtyMask = 0xFFFFFFFF;
 
     /*! Header struct as it is written on disk
@@ -54,9 +59,7 @@ class SMF {
         int heightPtr;        //!< byte:52 \n File offset to elevation data `short int[(mapy+1)*(mapx+1)]`
         int typePtr;          //!< byte:56 \n File offset to typedata `unsigned char[mapy/2 * mapx/2]`
         int tilesPtr;         //!< byte:60 \n File offset to tile data
-
         int miniPtr;          //!< byte:64 \n File offset to minimap,
-                              //!< always 1024*1024 dxt1 compresed data with 9 mipmap sublevels
         int metalPtr;         //!< byte:68 \n File offset to metalmap `unsigned char[mapx/2 * mapy/2]`
         int featuresPtr;      //!< byte:72 \n File offset to feature data
 
@@ -151,15 +154,7 @@ class SMF {
     
     // == Internal Utility Functions ==
 
-    /*! Update the file offset pointers
-    * This function makes sure that all data offset pointers are pointing to the
-    * correct location and should be called whenever changes to the class are
-    * made that will effect its values.
-    */
-    void updatePtrs( );
-    
-    void updateSpecs( );
-    void read( );
+
 
     OpenImageIO::ImageBuf *getImage( uint32_t ptr, OpenImageIO::ImageSpec spec );
     bool writeImage( uint32_t ptr, OpenImageIO::ImageSpec spec,
@@ -169,53 +164,121 @@ public:
     SMF( ){ };
     ~SMF();
 
+    void good();
     static bool test  ( std::string fileName );
     static SMF *create( std::string fileName, bool overwrite = false );
     static SMF *open  ( std::string fileName );
 
-    bool initialised( ){ return init; };
+    /*! create info string
+     *
+     * creates a string with information about the class
+     */
     std::string info( );
+    
+    /*! Update the file offset pointers
+     *
+    * This function makes sure that all data offset pointers are pointing to the
+    * correct location and should be called whenever changes to the class are
+    * made that will effect its values.
+    */
+    void updatePtrs( );
 
-    /**
-    * Set Map Size.
-    * A more detail description of setSize
+    /*! Update the Image Specifications
+     *
+     * calculates the image sizes based off the map size
+     */
+    void updateSpecs( );
+
+    /*! Read the file structure from disk
+     *
+     * Populates the class from a file on disk
+     */
+    void read( );
+
+    /*! Set the filename.
+     * 
+     * @param fileName The name of the file to save the data to.
+     */
+    void setFileName( std::string fileName );
+
+    /*! Set Map Size uses spring map units.
+    *
     * @param width map width in spring map sizes
     * @param length map lenght in spring map sizes
     */
     void setSize( int width, int length );
-    
-    /**
-     * Set map Depth
-     * A mode detailed description of setDepth
+
+     /*! set the size of the mesh squares
+     *
+     * This is legacy from old ground drawer code. no longer used.
+     * @param size Size of the mesh squares
+     */
+    void setSquareWidth( int size );
+
+    /*! set the density of the images per square
+     *
+     * @param size density of pixels per square
+     */
+    void setSquareTexels( int size );
+   
+    /*! setTileSize
+     *
+     * Sets the square pixel resolution of the tiles location in the file.
+     * @param size pixels squared
+     */
+    void setTileSize( int size );
+
+    /*! Set map Depth
+     *
+     * Negative values for below sea level, positive values for above sea level.
+     * Height map values are influenced by these.
      * @param floor lowest point in the world
      * @param ceiling highest point in the world
      */
     void setDepth( float floor, float ceiling );
-    
-    /**
-     * setTileSize
-     * a mode detailed description of setTileSize.
-     * @param size description
-     */
-    void setTileSize( int size );
 
-    bool addTileFile( std::string fileName );
-    void addFeature( std::string name,
-            float x, float y, float z, float r, float s );
+    /*! enable grass map
+     * 
+     * @param enable true = grass, false = no grass.
+     */
+    void enableGrass( bool enable = false );
+
+    /*! addTileFile
+     *
+     * @param fileName
+     * Add the filename to the list of filenames used as the tilemap
+     */
+    void addTileFile( std::string fileName );
+
+    /*! add a single feature
+     * @param name
+     * @param x
+     * @param y
+     * @param z
+     * @param r
+     * @param s
+     */
+    void addFeature( std::string name, float x, float y, float z,
+                     float r, float s );
+
+    /*! add a csv list of features
+     * @param fileName
+     */
     void addFeatures( std::string fileName );
+
 
     void writeHeader( );
     void writeExtraHeaders();
-    bool writeHeight  ( OpenImageIO::ImageBuf *buf );
-    bool writeType    ( OpenImageIO::ImageBuf *buf );
-    bool writeTileHeader( );
-    bool writeMap     ( TileMap *tileMap );
-    bool writeMini    ( OpenImageIO::ImageBuf *buf );
-    bool writeMetal   ( OpenImageIO::ImageBuf *buf );
-    bool writeFeaturesHeader();
-    bool writeFeatures();
+    void writeHeight  ( OpenImageIO::ImageBuf *buf );
+    void writeType    ( OpenImageIO::ImageBuf *buf );
+    void writeTileHeader( );
+    void writeMap     ( TileMap *tileMap );
+    void writeMini    ( OpenImageIO::ImageBuf *buf );
+    void writeMetal   ( OpenImageIO::ImageBuf *buf );
+    void writeFeaturesHeader();
+    void writeFeatures();
     // Extra
-    bool writeGrass   ( OpenImageIO::ImageBuf *buf );
+    void writeGrass   ( OpenImageIO::ImageBuf *buf );
 
     OpenImageIO::ImageBuf *getHeight();
     OpenImageIO::ImageBuf *getType();

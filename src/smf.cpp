@@ -15,6 +15,23 @@
 OIIO_NAMESPACE_USING
 using namespace std;
 
+void
+SMF::good()
+{
+    if( dirtyMask & SMF_HEADER          ) LOG( INFO ) << "dirty header";
+    if( dirtyMask & SMF_EXTRAHEADER     ) LOG( INFO ) << "dirty headerExtra";
+    if( dirtyMask & SMF_HEIGHT          ) LOG( INFO ) << "dirty height";
+    if( dirtyMask & SMF_TYPE            ) LOG( INFO ) << "dirty type";
+    if( dirtyMask & SMF_MAP_HEADER      ) LOG( INFO ) << "dirty map header";
+    if( dirtyMask & SMF_MAP             ) LOG( INFO ) << "dirty map";
+    if( dirtyMask & SMF_MINI            ) LOG( INFO ) << "dirty mini";
+    if( dirtyMask & SMF_METAL           ) LOG( INFO ) << "dirty metal";
+    if( dirtyMask & SMF_FEATURES_HEADER ) LOG( INFO ) << "dirty features header";
+    if( dirtyMask & SMF_FEATURES        ) LOG( INFO ) << "dirty features";
+    if( dirtyMask & SMF_GRASS           ) LOG( INFO ) << "dirty grass";
+
+}
+
 SMF::~SMF()
 {
     //delete extra headers
@@ -61,8 +78,8 @@ SMF::create( string fileName, bool overwrite )
 
     smf = new SMF;
     smf->fileName = fileName;
-    smf->updatePtrs();
     smf->updateSpecs();
+    smf->updatePtrs();
     smf->writeHeader();
     return smf;
 }
@@ -75,6 +92,7 @@ SMF::open( string fileName )
         DLOG( INFO ) << "Opening " << fileName;
 
         smf = new SMF;
+        smf->dirtyMask = 0x00000000;
         smf->fileName = fileName;
         smf->read();
         return smf;
@@ -96,7 +114,7 @@ SMF::read()
     
     file.seekg( 0, ios::end );
     // add block after the end of the file to test against.
-    map.addBlock( file.tellg(), 10 );
+    map.addBlock( file.tellg(), INT_MAX, "eof" );
 
     // read header structure.
     file.seekg(0);
@@ -105,11 +123,11 @@ SMF::read()
 
     // for each pointer, make sure they dont overlap with memory space of
     // other data
-    map.addBlock(0,80);
-    map.addBlock( header.heightPtr, heightSpec.image_bytes() );
-    map.addBlock( header.typePtr, typeSpec.image_bytes() );
-    map.addBlock( header.miniPtr, MINIMAP_SIZE );
-    map.addBlock( header.metalPtr, metalSpec.image_bytes() );
+    map.addBlock(0,80, "header");
+    map.addBlock( header.heightPtr, heightSpec.image_bytes(), "height" );
+    map.addBlock( header.typePtr, typeSpec.image_bytes() , "type");
+    map.addBlock( header.miniPtr, MINIMAP_SIZE, "mini" );
+    map.addBlock( header.metalPtr, metalSpec.image_bytes(), "metal" );
     
 
     // Extra headers Information
@@ -123,15 +141,14 @@ SMF::read()
             SMF::HeaderGrass *headerGrass = new SMF::HeaderGrass;
             file.read( (char *)headerGrass, sizeof(SMF::HeaderGrass));
             headerExtras.push_back( (SMF::HeaderExtra *)headerGrass );
-            updateSpecs();
-            map.addBlock( headerGrass->ptr, grassSpec.image_bytes() );
+            map.addBlock( headerGrass->ptr, grassSpec.image_bytes(), "grass" );
         }
         else {
             LOG( WARN ) << "Extra Header(" << i << ")"
                 "has unknown type: " << headerExtra->type;
             headerExtras.push_back( headerExtra );
         }
-        map.addBlock( offset, headerExtra->bytes );
+        map.addBlock( offset, headerExtra->bytes, "extraheader" );
         file.seekg( offset + headerExtra->bytes );
         delete headerExtra;
     }
@@ -139,7 +156,7 @@ SMF::read()
     // Tileindex Information
     file.seekg( header.tilesPtr );
     file.read( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
-    map.addBlock( header.tilesPtr, sizeof( SMF::HeaderTiles ) );
+    map.addBlock( header.tilesPtr, sizeof( SMF::HeaderTiles ), "mapHeader" );
 
     // TileFiles
     offset = file.tellg();
@@ -151,17 +168,20 @@ SMF::read()
         file.getline( temp, 1023, '\0' );
         smtList.push_back( temp );
     }
-    map.addBlock( offset, uint32_t( file.tellg() ) - offset);
+    if( headerTiles.nFiles ){
+        map.addBlock( offset, uint32_t( file.tellg() ) - offset, "tileFileList");
+    }
 
     // while were at it lets get the file offset for the tilemap.
     mapPtr = file.tellg();
-    map.addBlock( mapPtr, mapSpec.image_bytes() );
+    map.addBlock( mapPtr, mapSpec.image_bytes(), "map" );
 
     // Featurelist information
     file.seekg( header.featuresPtr );
     file.read( (char *)&headerFeatures.nTypes, 4 );
     file.read( (char *)&headerFeatures.nFeatures, 4 );
-    map.addBlock( header.featuresPtr, sizeof( SMF::HeaderFeatures ) );
+
+    map.addBlock( header.featuresPtr, sizeof( SMF::HeaderFeatures ), "featuresHeader" );
 
     offset = file.tellg();
     for( int i = 0; i < headerFeatures.nTypes; ++i ){
@@ -170,16 +190,16 @@ SMF::read()
     }
 
     if( headerFeatures.nTypes)
-        map.addBlock( offset, uint32_t( file.tellg() ) - offset );
-
-    if( headerFeatures.nFeatures )
-        map.addBlock( file.tellg(), sizeof( SMF::Feature) * headerFeatures.nFeatures );
+        map.addBlock( offset, uint32_t( file.tellg() ) - offset, "featureNames" );
 
     SMF::Feature feature;
     for( int i = 0; i < headerFeatures.nFeatures; ++i ){
         file.read( (char *)&feature, sizeof(SMF::Feature) );
         features.push_back( feature );
     }
+
+    if( headerFeatures.nFeatures )
+        map.addBlock( file.tellg(), sizeof( SMF::Feature) * headerFeatures.nFeatures, "features" );
 
     file.close();
 }
@@ -257,7 +277,6 @@ SMF::info()
          << "\n\tTypes:    " << headerFeatures.nTypes
         ;
 
-    // TODO put into stream the information for the rest of the file structure.
     return info.str();
 }
 
@@ -317,7 +336,7 @@ SMF::updatePtrs()
     mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
     
     for( auto i = smtList.begin(); i != smtList.end(); ++i )
-        mapPtr += (*i).size() + 5;
+        mapPtr += i->size() + 5;
         
     header.miniPtr = mapPtr + mapSpec.image_bytes();
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
@@ -326,8 +345,10 @@ SMF::updatePtrs()
     // features
     int eof;
     eof = header.featuresPtr + sizeof( SMF::HeaderFeatures );
+
     for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i )
-        eof += (*i).size() + 1;
+        eof += i->size() + 1;
+
     for( auto i = features.begin(); i != features.end(); ++i )
         eof += sizeof( SMF::Feature );
 
@@ -342,12 +363,40 @@ SMF::updatePtrs()
 }
 
 void
+SMF::setFileName( std::string fileName )
+{
+    this->fileName = fileName;
+    dirtyMask |= SMF_ALL;
+}
+
+void
 SMF::setSize( int width, int length )
 {
     if( header.width == width && header.length == length ) return;
     header.width = width * 64;
     header.length = length * 64;
-    dirtyMask = 0xFFFFFFFF;
+    dirtyMask |= SMF_ALL;
+}
+
+void
+SMF::setSquareWidth( int size )
+{
+    //FIXME
+}
+
+void
+SMF::setSquareTexels( int size )
+{
+    //FIXME
+}
+
+void
+SMF::setTileSize( int size )
+{
+    if( header.tileSize == size ) return;
+    header.tileSize = size;
+    dirtyMask |= SMF_HEADER;
+    //FIXME this also effects the tilemap
 }
 
 void
@@ -356,38 +405,63 @@ SMF::setDepth( float floor, float ceiling )
     if( header.floor == floor && header.ceiling == ceiling ) return;
     header.floor = floor;
     header.ceiling = ceiling;
-    dirtyMask &= !SMF_HEADER;
+    dirtyMask |= SMF_HEADER;
 }
 
 void
-SMF::setTileSize( int size )
+SMF::enableGrass( bool enable )
 {
-    if( header.tileSize == size ) return;
-    header.tileSize = size;
-    dirtyMask &= !SMF_HEADER;
-    //FIXME this also effects the tilemap
+    HeaderGrass *headerGrass = NULL;
+
+    // get header if it exists. 
+    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+        if( (*i)->type == 1 ){
+            headerGrass = (HeaderGrass *)*i;
+            break;
+        }
+    }
+
+    // if we have a header and we dont want it anymore
+    if( !enable && headerGrass ){
+        for( auto i = headerExtras.end(); i != headerExtras.begin(); --i ){
+            if( (*i)->type == 1 ){
+                headerGrass = (HeaderGrass *)*i;
+                delete headerGrass;
+                i = headerExtras.erase(i);
+                --header.nHeaderExtras;
+            }
+        }
+        dirtyMask |= SMF_ALL;
+        return;
+    }
+
+    //if it doesnt exist, and we dont want it, do nothing
+    if(! (enable || headerGrass) ) return;
+
+    // otherwise we dont have and we want one
+    headerGrass = new HeaderGrass();
+    headerExtras.push_back( headerGrass );
+    ++header.nHeaderExtras;
+    dirtyMask |= SMF_ALL;
 }
 
-//TODO Set the map y depth and water level.
+//TODO create a new function that Sets the map y depth and water level.
 
-bool
+void
 SMF::addTileFile( string fileName )
 {
-    SMT *smt = NULL;
+    dirtyMask |= SMF_MAP;
 
     if(! fileName.compare( "CLEAR" ) ){
         smtList.clear();
         nTiles.clear();
         headerTiles.nFiles = 0;
         headerTiles.nTiles = 0;
-       // //setDirty( 2 );
-        return false;
+        return;
     }
 
-    if(! (smt = SMT::open( fileName )) ){
-        LOG( ERROR ) << "Invalid smt file " << fileName;
-        return true;
-    }
+    SMT *smt = NULL;
+    CHECK( (smt = SMT::open( fileName )) ) << "Invalid smt file " << fileName;
 
     smtList.push_back( fileName );
     ++headerTiles.nFiles;
@@ -396,11 +470,11 @@ SMF::addTileFile( string fileName )
     headerTiles.nTiles += smt->getNTiles();
 
     delete smt;
-    /////setDirty( 2 );
-    return false;
 }
 
-void SMF::addFeature( string name, float x, float y, float z, float r, float s ){
+void
+SMF::addFeature( string name, float x, float y, float z, float r, float s )
+{
     SMF::Feature feature;
     feature.x = x; feature.y = y; feature.z = z;
     feature.r = r; feature.z = s;
@@ -423,29 +497,22 @@ void SMF::addFeature( string name, float x, float y, float z, float r, float s )
 
     headerFeatures.nTypes = featureTypes.size();
     headerFeatures.nFeatures = features.size();
-    //setDirty( 3 );
+    dirtyMask |= SMF_FEATURES;
 }
 
-/*! replaces features in smf with those specified in the fileName.csv
- */
-void SMF::addFeatures( string fileName ){
-
-    // test the file
-    fstream file( fileName, ifstream::in );
-    if(! file.good() ){
-        LOG( ERROR ) << "addFeatures: Cannot open " << fileName;
-        return;
-    }
-
+void
+SMF::addFeatures( string fileName )
+{
     //Clear out the old list
     features.clear();
     featureTypes.clear();
+    dirtyMask |= SMF_FEATURES;
 
-    if(! fileName.compare("CLEAR") ){
-        //setDirty(3);
-        //reWrite();
-        return;
-    }
+    if(! fileName.compare("CLEAR") )return;
+
+    // test the file
+    fstream file( fileName, ifstream::in );
+    CHECK( file.good() ) << "addFeatures: Cannot open " << fileName;
 
     // build inbuilt list
     char featureType[256];
@@ -485,15 +552,15 @@ void SMF::addFeatures( string fileName ){
     }
     file.close();
 
-    LOG( INFO )
+    DLOG( INFO )
         << "addFeatures"
         << "\n\tTypes: " << headerFeatures.nTypes
         << "\n\tTypes: " << headerFeatures.nFeatures;
-    //setDirty(3);
-    //reWrite();
 }
 
-void SMF::writeHeader(){
+void
+SMF::writeHeader()
+{
     DLOG( INFO ) << "Writing headers";
 
     header.id = rand();
@@ -507,7 +574,9 @@ void SMF::writeHeader(){
     dirtyMask &= !SMF_HEADER;
 }
 
-void SMF::writeExtraHeaders(){
+void
+SMF::writeExtraHeaders()
+{
     DLOG( INFO ) << "Writing Extra Headers";
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
@@ -526,10 +595,10 @@ bool
 SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
 {
     fstream file( fileName, ios::binary | ios::in | ios::out );
+    CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
     file.seekp( ptr );
 
     if(! sourceBuf ){
-        DLOG( INFO ) << "writing blank image";
         char zero = 0;
         for( uint32_t i = 0; i < spec.image_bytes(); ++i )
             file.write( &zero, sizeof( char ) );
@@ -551,29 +620,44 @@ SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
     return false;
 }
 
-bool SMF::writeHeight( ImageBuf *sourceBuf ){
-    DLOG( INFO ) << "Writing height\n";
-    return writeImage( header.heightPtr, heightSpec, sourceBuf );
+void
+SMF::writeHeight( ImageBuf *sourceBuf )
+{
+    DLOG( INFO ) << "Writing height";
+    dirtyMask &= !SMF_HEIGHT;
+
+    if( writeImage( header.heightPtr, heightSpec, sourceBuf ) ){
+        LOG( WARN ) << "Wrote blank heightmap";
+    }
 }
 
-bool SMF::writeType( ImageBuf *sourceBuf ){
+void
+SMF::writeType( ImageBuf *sourceBuf )
+{
     DLOG(INFO) << "INFO: Writing type";
-    return writeImage( header.typePtr, typeSpec, sourceBuf );
+    dirtyMask &= !SMF_TYPE;
+
+    if( writeImage( header.typePtr, typeSpec, sourceBuf ) ){
+        LOG( WARN ) << "Wrote blank typemap";    
+    }
 }
 
-bool
+void
 SMF::writeMini( ImageBuf * sourceBuf )
 {
     DLOG( INFO ) << "Writing mini";
+    dirtyMask &= !SMF_MINI;
+
     fstream file( fileName, ios::binary | ios::in | ios::out );
+    CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
     file.seekp( header.miniPtr );
 
     if(! sourceBuf ){
-        DLOG( INFO ) << "writing blank image";
         char zero[ MINIMAP_SIZE ] = { 0 };
         file.write( zero, sizeof( zero ) );
         file.close();
-        return true;
+        LOG( WARN ) << "Wrote blank minimap";
+        return;
     }
 
     sourceBuf->read( 0, 0, true, miniSpec.format );
@@ -615,12 +699,15 @@ SMF::writeMini( ImageBuf * sourceBuf )
     delete tempBuf;
 
     file.close();
-    return false;
 }
 
 /// Write the tile header information to the smf
-bool SMF::writeTileHeader(){
-    DLOG( INFO ) << "Writing tile reference information\n";
+void
+SMF::writeTileHeader()
+{
+    DLOG( INFO ) << "Writing tile reference information";
+    dirtyMask &= !SMF_MAP_HEADER;
+
     fstream file( fileName, ios::binary | ios::in | ios::out );
     file.seekp( header.tilesPtr );
 
@@ -634,32 +721,48 @@ bool SMF::writeTileHeader(){
         file.write( smtList[ i ].c_str(), smtList[ i ].size() + 1 );
     }
     file.close();
-
-    return false;
 }
 
 // write the tilemap information to the smf
-bool SMF::writeMap( TileMap *tileMap ){
-    if(! tileMap ) return true;
-    DLOG( INFO ) << "Writing map\n";
-    std::fstream file(fileName,
-            std::ios::binary | std::ios::in | std::ios::out);
+void
+SMF::writeMap( TileMap *tileMap )
+{
+    DLOG( INFO ) << "Writing map";
+    dirtyMask &= !SMF_MAP;
+
+    if(! tileMap ){
+        writeImage( mapPtr, mapSpec, NULL);
+        LOG( WARN ) << "Wrote blank map";
+        return;
+    }
+
+    std::fstream file(fileName, std::ios::binary | std::ios::in | std::ios::out);
     file.seekp( mapPtr );
     file.write( (char *)tileMap->data(), mapSpec.image_bytes() );
     file.close();
-    return false;
+
 }
 
 /// write the metal image to the smf
-bool SMF::writeMetal( ImageBuf *sourceBuf ){
-    DLOG( INFO ) << "Writing metal\n";
-    return writeImage( header.metalPtr, metalSpec, sourceBuf );
+void
+SMF::writeMetal( ImageBuf *sourceBuf )
+{
+    DLOG( INFO ) << "Writing metal";
+    dirtyMask &= !SMF_METAL;
+
+    if( writeImage( header.metalPtr, metalSpec, sourceBuf ) )
+        LOG( WARN ) << "Wrote blank typemap";    
 }
 
 /// write the feature header information to the smf
-bool SMF::writeFeaturesHeader() {
-    DLOG( INFO ) << "Writing feature headers\n";
+void
+SMF::writeFeaturesHeader()
+{
+    DLOG( INFO ) << "Writing feature headers";
+    dirtyMask &= !SMF_FEATURES_HEADER;
+        
     fstream file( fileName, ios::binary | ios::in | ios::out );
+    CHECK( file.good() ) << "cannot open " << fileName << "for writing";
     file.seekp( header.featuresPtr );
 
     // Tiles Header
@@ -671,14 +774,16 @@ bool SMF::writeFeaturesHeader() {
         file.write( (*i).c_str(), (*i).size() + 1 );
     }
     file.close();
-
-    return false;
 }
 
-bool SMF::writeFeatures(){
-    DLOG( INFO ) << "Writing features\n";
+void
+SMF::writeFeatures()
+{
+    DLOG( INFO ) << "Writing features";
+    dirtyMask &= !SMF_FEATURES;
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
+    CHECK( file.good() ) << "cannot open " << fileName << "for writing";
     file.seekp( header.featuresPtr + 8 );
 
     for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
@@ -689,61 +794,39 @@ bool SMF::writeFeatures(){
         file.write( (char *)&(*i), sizeof(Feature) );
     }
 
-  //  file.write( '\0', 1 );
     file.close();
-    return false;
 }
 
 
-/// Write the grass image to the smf
-/*
- */
-bool SMF::writeGrass( ImageBuf *sourceBuf ) {
+// Write the grass image to the smf
+void
+SMF::writeGrass( ImageBuf *sourceBuf )
+{
     HeaderGrass *headerGrass = NULL;
-    bool rewrite = false;
 
     // get header if it exists.
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
         if( (*i)->type == 1) headerGrass = (HeaderGrass *)*i;
     }
 
-    if(! sourceBuf && headerGrass ){
-        for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
-            if( (*i)->type == 1 ){
-                i = headerExtras.erase(i);
-                --i;
-                --header.nHeaderExtras;
-            }
-        }
-        //setDirty( 0 );
-        //reWrite();
-        return false;
-    }
-    else if(! sourceBuf && ! headerGrass ) return false;
+    //if it doesnt exist, do nothing.
+    if(! headerGrass ) return;
 
     DLOG( INFO ) << "Writing Grass\n";
 
-    // else create one.
-    if(! headerGrass ){
-        rewrite = true;
-        headerGrass = new HeaderGrass();
-        headerExtras.push_back( headerGrass );
-        ++header.nHeaderExtras;
+    if( writeImage( headerGrass->ptr, grassSpec, sourceBuf ) ){
+        LOG( WARN ) << "wrote blank grass map";
     }
 
-    if(! rewrite )
-        return writeImage( headerGrass->ptr, grassSpec, sourceBuf );
-    else
-        //setDirty( 0 );
-        //reWrite();
-
-    return false;
+    dirtyMask &= !SMF_GRASS;
 }
 
 
-ImageBuf *SMF::getImage( unsigned int ptr, ImageSpec spec){
+ImageBuf *
+SMF::getImage( unsigned int ptr, ImageSpec spec)
+{
     ifstream file( fileName );
-    if(! file.good() ) return NULL;
+    CHECK( file.good() ) << " Failed to open" << fileName << "for reading";
 
     ImageBuf *imageBuf = new ImageBuf( spec );
 
@@ -754,15 +837,24 @@ ImageBuf *SMF::getImage( unsigned int ptr, ImageSpec spec){
     return imageBuf;
 }
 
-ImageBuf *SMF::getHeight( ){ return getImage( header.heightPtr, heightSpec ); }
+ImageBuf *
+SMF::getHeight( )
+{
+    return getImage( header.heightPtr, heightSpec );
+}
 
-ImageBuf *SMF::getType( ){ return getImage( header.typePtr, typeSpec ); }
+ImageBuf *
+SMF::getType( )
+{ 
+    return getImage( header.typePtr, typeSpec );
+}
 
 TileMap *
 SMF::getMap( )
 {
     TileMap *tileMap = new TileMap( mapSpec.width, mapSpec.height );
     std::fstream file( fileName, std::ios::binary | std::ios::in );
+    CHECK( file.good() ) << " Failed to open" << fileName << "for reading";
     file.seekg( mapPtr );
     for( int y = 0; y < mapSpec.height; ++y )
     for( int x = 0; x < mapSpec.width; ++x ){
@@ -776,24 +868,32 @@ ImageBuf *SMF::getMini(){
     ImageBuf * imageBuf = NULL;
     unsigned char data[1024 * 1024 * 4];
 
-    ifstream smf( fileName );
-    if( smf.good() ) {
-        unsigned char *temp = new unsigned char[MINIMAP_SIZE];
-        smf.seekg( header.miniPtr );
-        smf.read( (char *)temp, MINIMAP_SIZE);
+    ifstream file( fileName );
+    CHECK( file.good() ) << " Failed to open" << fileName << "for reading";
 
-        squish::DecompressImage( (squish::u8 *)data, 1024, 1024, temp, squish::kDxt1);
+    unsigned char *temp = new unsigned char[MINIMAP_SIZE];
+    file.seekg( header.miniPtr );
+    file.read( (char *)temp, MINIMAP_SIZE);
 
-        delete [] temp;
-        imageBuf = new ImageBuf( miniSpec, data );
-    }
-    smf.close();
+    squish::DecompressImage( (squish::u8 *)data, 1024, 1024, temp, squish::kDxt1);
+
+    delete [] temp;
+    // FIXME will this go out of context once the frame is complete?
+    imageBuf = new ImageBuf( miniSpec, data );
+
+    file.close();
     return imageBuf;
 }
 
-ImageBuf *SMF::getMetal( ){ return getImage( header.metalPtr, metalSpec ); }
+ImageBuf *
+SMF::getMetal( )
+{ 
+    return getImage( header.metalPtr, metalSpec ); 
+}
 
-string SMF::getFeatureTypes( ){
+string
+SMF::getFeatureTypes( )
+{
     stringstream list;
     for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
         list << *i;
@@ -801,9 +901,9 @@ string SMF::getFeatureTypes( ){
     return list.str();
 }
 
-/*! Gets the features list in csv formatted string
- */
-string SMF::getFeatures( ){
+string
+SMF::getFeatures( )
+{
     stringstream list;
     list << "NAME,X,Y,Z,ANGLE,SCALE\n";
     for( auto i = features.begin(); i != features.end(); ++i ){
@@ -818,19 +918,16 @@ string SMF::getFeatures( ){
     return list.str();
 }
 
-ImageBuf *SMF::getGrass(){
-    bool found = false;
-
-    HeaderGrass *headerGrass;
+ImageBuf *
+SMF::getGrass()
+{
+    HeaderGrass *headerGrass = NULL;
     for( auto i = headerExtras.begin();
             i != headerExtras.end(); ++i ){
         if( (*i)->type == 1 ){
             headerGrass = (HeaderGrass *)(*i);
-            found = true;
-            break;
+            return getImage( headerGrass->ptr, grassSpec );
         }
     }
-    if(! found ) return NULL;
-
-    return (getImage( headerGrass->ptr, grassSpec ));
+    return NULL;
 }

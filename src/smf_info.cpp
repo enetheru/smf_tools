@@ -54,6 +54,7 @@ int main( int argc, char **argv )
         }
         else {
             LOG(INFO) << "\n" << smf->info();
+            smf->good();
             delete smf;
         }
     }
