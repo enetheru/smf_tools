@@ -158,7 +158,7 @@ TiledImage::getRegion(
 
         uint32_t index = tileMap(mx, my);
         if( index != index_p ){
-            if( tile ) delete tile;
+            if( tile ){tile->clear(); delete tile;}
             tile = tileCache.getScaled( index, tileWidth, tileHeight );
             index_p = index;
         }
@@ -174,7 +174,6 @@ TiledImage::getRegion(
             window.chbegin = 0;
             window.chend = 4;
             ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *tile, window );
-            tile->clear();
         }
 
 
