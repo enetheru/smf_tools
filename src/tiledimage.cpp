@@ -122,6 +122,8 @@ TiledImage::getRegion(
     //current point of interest
     uint32_t ix = x1;
     uint32_t iy = y1;
+    static ImageBuf *tile = NULL;
+    static uint32_t index_p = INT_MAX;
     while( true ){
          DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
@@ -155,7 +157,11 @@ TiledImage::getRegion(
         DLOG( INFO ) << "Paste Window: " << dx << "x" << dy;
 
         uint32_t index = tileMap(mx, my);
-        ImageBuf *tile = tileCache.getScaled( index, tileWidth, tileHeight );
+        if( index != index_p ){
+            if( tile ) delete tile;
+            tile = tileCache.getScaled( index, tileWidth, tileHeight );
+            index_p = index;
+        }
         if( tile ){
             //copy pixel data from source tile to dest
             ROI window;
@@ -169,7 +175,6 @@ TiledImage::getRegion(
             window.chend = 4;
             ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *tile, window );
             tile->clear();
-            delete tile;
         }
 
 
