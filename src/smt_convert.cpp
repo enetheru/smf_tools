@@ -190,6 +190,7 @@ main( int argc, char **argv )
     tempBuf = src_tileCache( 0 );
     src_tile_width = tempBuf->spec().width;
     src_tile_height = tempBuf->spec().height;
+    LOG( INFO ) << "Source Tile Size: " << src_tile_width << "x" << src_tile_height;
     delete tempBuf;
 
     // == FILTER ==
@@ -322,7 +323,7 @@ main( int argc, char **argv )
         }
     }
 
-    std::fstream out_csv("output.csv", std::ios::out );
+    std::fstream out_csv( outFileName + ".csv", std::ios::out );
     out_csv << out_tileMap.toCSV();
     out_csv.close();
 

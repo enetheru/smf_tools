@@ -54,9 +54,9 @@ void
 TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 {
     CHECK( inWidth > 0 ) << "width(" << inWidth << ") must be greater than zero";
-    CHECK( !(inWidth % 4) ) << "width % 4 = " << inWidth % 4 << "!= 0 must be a multiple of four";
+    CHECK( !(inWidth % 4) ) << inWidth << " % 4 = " << inWidth % 4 << " != 0 must be a multiple of four";
     CHECK( inHeight > 0 ) << "height(" << inHeight << ") must be greater than zero";
-    CHECK( !(inHeight % 4) ) << "height % 4 = " << inHeight % 4 << "!= 0 must be a multiple of four";
+    CHECK( !(inHeight % 4) ) << inHeight << " % 4 = " << inHeight % 4 << " != 0 must be a multiple of four";
 
     _tileWidth = inWidth;
     _tileHeight = inHeight;
