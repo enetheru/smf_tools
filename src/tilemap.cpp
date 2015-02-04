@@ -77,9 +77,11 @@ TileMap::fromCSV( std::string fileName )
     map.resize( width * height );
 
     // convert csv
+    file.clear();
     file.seekg(0);
     uint32_t y = 0;
     while( std::getline( file, cell ) ){
+        line.clear();
         line.str( cell );
 
         tokens.clear();
