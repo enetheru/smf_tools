@@ -268,18 +268,17 @@ main( int argc, char **argv )
     SMF *smfTemp = NULL;
     TileMap *tileMap = NULL;
     if( options[ MAP ] ){
-        if( (smfTemp = SMF::open( options[ MAP ].arg )) ){
-            smf->writeMap( smfTemp->getMap() );
+        if( SMF::test( options[ MAP ].arg ) ){
+            smfTemp = SMF::open( options[ MAP ].arg );
+            tileMap = smfTemp->getMap();
             delete smfTemp;
         }
         else {
-            tileMap = new TileMap( options[ MAP ].arg );
-            smf->writeMap( tileMap );
+            tileMap = TileMap::createCSV( options[ MAP ].arg );
         }
     }
-    else {
-        smf->writeMap(NULL);
-    }
+    smf->writeMap( tileMap );
+    if( tileMap )delete tileMap;
 
     // minimap
     if( options[ MINI ] ){

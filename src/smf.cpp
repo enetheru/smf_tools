@@ -751,7 +751,7 @@ SMF::writeMetal( ImageBuf *sourceBuf )
     dirtyMask &= !SMF_METAL;
 
     if( writeImage( header.metalPtr, metalSpec, sourceBuf ) )
-        LOG( WARN ) << "Wrote blank typemap";    
+        LOG( WARN ) << "Wrote blank metalmap";    
 }
 
 /// write the feature header information to the smf

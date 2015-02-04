@@ -16,7 +16,8 @@ public:
     // constructors
     TileMap( );
     TileMap( uint32_t width, uint32_t height );
-    TileMap( std::string fileName );
+
+    static TileMap *createCSV( std::string fileName );
     
     TileMap( const TileMap &rhs);
     TileMap &operator=( const TileMap &rhs);
@@ -38,3 +39,4 @@ public:
     uint32_t &operator() ( uint32_t idx );
     uint32_t *data();
 };
+

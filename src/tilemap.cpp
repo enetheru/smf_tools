@@ -22,9 +22,16 @@ TileMap::TileMap( uint32_t width,  uint32_t height )
     map.resize( width * height , 0 );
 }
 
-TileMap::TileMap( std::string fileName )
+TileMap *
+TileMap::createCSV( std::string fileName )
 {
-    fromCSV( fileName );
+    std::fstream file( fileName, std::ios::in );
+    if(! file.good() ) return NULL;
+    file.close();
+
+    TileMap *tileMap = new TileMap;
+    tileMap->fromCSV( fileName );
+    return tileMap;
 }
 
 // Copy Constructor
