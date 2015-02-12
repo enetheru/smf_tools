@@ -96,6 +96,7 @@ main( int argc, char **argv )
 {
     // == temporary/global variables
     SMF *smf = NULL;
+    SMT *smt = NULL;
     bool force = false;
     uint32_t mapWidth = 0, mapLength = 0;
     string outFileName;
@@ -166,9 +167,16 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    ///FIXME add squarewidth and texels here
+    //FIXME add squarewidth
+    //FIXME add texels
 
     // --tilesize
+    if( parse.nonOptionsCount() ){
+        smt = SMT::open( parse.nonOption( 0 ) );
+        tileSize = smt->getTileSize();
+        delete smt;
+        smt = NULL;
+    }
     if( options[ TILESIZE ] ){
         tileSize = atoi( options[ TILESIZE ].arg );
     }

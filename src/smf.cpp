@@ -222,15 +222,17 @@ SMF::info()
          << "\n\tMinHeight:      "   << header.floor
          << "\n\tMaxHeight:      "   << header.ceiling
 
-         << "\n\n\tHeightPtr:   "   << int_to_hex( header.heightPtr )
-         << " " << header.width+1 << "x" << header.length+1 << ":" << 1 << " UINT16"
-         << "\n\tTypePtr:     "     << int_to_hex( header.typePtr )
-         << " " << header.width << "x" << header.length << ":" << 1 << " UINT8"
+         << "\n\n\tHeightPtr:   "   << int_to_hex( header.heightPtr ) << " "
+            << header.width+1 << "x"
+            << header.length+1 << ":" << 1 << " UINT16"
+         << "\n\tTypePtr:     "     << int_to_hex( header.typePtr ) << " " 
+            << header.width << "x" << header.length << ":" << 1 << " UINT8"
          << "\n\tTilesPtr:    "     << int_to_hex( header.tilesPtr )
-         << "\n\tMapPtr:      "     << int_to_hex( mapPtr )
-         << " " << header.width / 4 << "x" << header.length / 4 << ":" << 1 << " UINT32"
+         << "\n\tMapPtr:      "     << int_to_hex( mapPtr ) << " "
+            << header.width * 8 / header.tileSize << "x"
+            << header.length * 8 / header.tileSize << ":" << 1 << " UINT32"
          << "\n\tMiniPtr:     "     << int_to_hex( header.miniPtr )
-         << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
+            << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
          << "\n\tMetalPtr:    "     << int_to_hex( header.metalPtr )
          << " " << header.width << "x" << header.length << ":" << 1 << "  UINT8"
          << "\n\tFeaturesPtr: "     << int_to_hex( header.featuresPtr )
