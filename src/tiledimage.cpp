@@ -22,6 +22,14 @@ TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
     tileMap.setSize( inWidth / inTileHeight, inHeight / inTileHeight );
 }
 
+TiledImage::~TiledImage( )
+{
+    if( currentTile ){
+        currentTile->clear();
+        delete currentTile;
+    }
+}
+
 // MODIFICATION
 // ============
 
@@ -122,7 +130,6 @@ TiledImage::getRegion(
     //current point of interest
     uint32_t ix = x1;
     uint32_t iy = y1;
-    static ImageBuf *tile = NULL;
     static uint32_t index_p = INT_MAX;
     while( true ){
          DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
@@ -158,11 +165,11 @@ TiledImage::getRegion(
 
         uint32_t index = tileMap(mx, my);
         if( index != index_p ){
-            if( tile ){tile->clear(); delete tile;}
-            tile = tileCache.getScaled( index, tileWidth, tileHeight );
+            if( currentTile ){currentTile->clear(); delete currentTile;}
+            currentTile = tileCache.getScaled( index, tileWidth, tileHeight );
             index_p = index;
         }
-        if( tile ){
+        if( currentTile ){
             //copy pixel data from source tile to dest
             ROI window;
             window.xbegin = wx1;
@@ -173,7 +180,7 @@ TiledImage::getRegion(
             window.zend = 1;
             window.chbegin = 0;
             window.chend = 4;
-            ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *tile, window );
+            ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *currentTile, window );
         }
 
 

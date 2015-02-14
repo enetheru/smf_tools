@@ -13,17 +13,19 @@ class TiledImage
     uint32_t _tileWidth = 32;
     uint32_t _tileHeight = 32;
 public:
-    TileMap tileMap; //< tile map
-    TileCache tileCache; //< tile cache
+    TileMap tileMap; //!< tile map
+    TileCache tileCache; //!< tile cache
+    OpenImageIO::ImageBuf *currentTile = NULL; //!< 
 
     // read only references
-    const uint32_t &tileWidth = _tileWidth; //< Tile width
-    const uint32_t &tileHeight = _tileHeight; //< Tile hight
+    const uint32_t &tileWidth = _tileWidth; //!< Tile width
+    const uint32_t &tileHeight = _tileHeight; //!< Tile hight
 
     // == constructors ==
-    TiledImage( ); //< default constructor
+    TiledImage( ); //!< default constructor
     TiledImage( uint32_t inWidth, uint32_t inHeight,
         uint32_t inTileWidth = 32, uint32_t inTileHeight = 32 );
+    ~TiledImage(); //!<
 
     // == Modifications ==
     void setSize( uint32_t width, uint32_t height );
