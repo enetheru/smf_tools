@@ -183,8 +183,13 @@ SMT::append( ImageBuf *sourceBuf )
 
         if(! blocks ) blocks = new squish::u8[ blocks_size ];
 
+        // contemplate giving control of compression options to users
+        // kColourRangeFit = faster|poor quality
+        // kColourMetricPerceptual = default|default
+        // kColourIterativeClusterFit = slow|high quality
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
-                spec.width, spec.height, blocks, squish::kDxt1 );
+                spec.width, spec.height, blocks,
+                squish::kDxt1 | squish::kColourRangeFit );
 
         // Write data to smf
         file.write( (char*)blocks, blocks_size );

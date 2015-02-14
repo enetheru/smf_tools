@@ -125,7 +125,10 @@ TiledImage::getRegion(
     if( sw == 0 ) sw = x2 - x1;
     if( sh == 0 ) sh = y2 - y1;
 
-    ImageSpec spec( sw, sh, 4, TypeDesc::UINT8 );
+    static ImageSpec spec( sw, sh, 4, TypeDesc::UINT8 );
+    spec.width = sw;
+    spec.height = sh;
+
     ImageBuf *dest = new ImageBuf( spec );
     //current point of interest
     uint32_t ix = x1;
