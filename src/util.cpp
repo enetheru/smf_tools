@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <queue>
+#include <iostream>
+#include <list>
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -134,37 +135,47 @@ swizzle( OpenImageIO::ImageBuf *&sourceBuf )
 }
 
 void
-progressBar( std::string header, float goal, float progress )
+progressBar( std::string header, float goal, float current )
 {
-    // calculate times
-    uint32_t seconds = 0;
-    uint32_t minutes = 0;
-    uint32_t hours = 0;
+    static uint32_t seconds;
+    static uint32_t minutes;
+    static uint32_t hours;
+    static uint32_t average;
+    static float ratio;
 
-    static uint32_t history[100] = {0};
-    static uint32_t index = 0;
-    uint32_t average = 0;
-    index++;
-    if( index >= 100) index = 0;
+    static int progress;
+    static int remainder;
+    static int last_current = 0;
+
+    ratio = current / goal;
+
+    static std::list< uint32_t > history;
+    if( history.size() >= 100) history.pop_front();
 
     using namespace std::chrono;
-    duration< double > time_span;
+    static duration< double > time_span;
     static steady_clock::time_point last;
+    static steady_clock::time_point now;
 
-    steady_clock::time_point now = steady_clock::now();
+    now = steady_clock::now();
+
     time_span = duration_cast< duration< double > >(now - last);
+    if( time_span.count() < 1 && ratio < 1 )return;
     last = now;
 
-    history[index] = (goal - progress) * time_span.count();
-    for( uint32_t i = 0; i < 100; ++i)average += history[i];
-    average = average/100;
+    progress = current - last_current;
+    last_current = current;
+    remainder = goal - current;
 
-    hours = average / 3600;
-    minutes = (average % 3600 ) / 60;
-    seconds = average % 60;
+    history.push_back( progress );
+    average = 0;
+    for( auto i = history.begin(); i != history.end(); ++i)average += *i;
+    average = average / history.size();
 
-    // calculate ratio
-    float ratio = progress / goal;
+    seconds = remainder / average;
+    hours = seconds / 3600;
+    minutes = (seconds % 3600 ) / 60;
+    seconds = seconds % 60;
 
     //construct the footer
     std::stringstream footer;
@@ -188,7 +199,5 @@ progressBar( std::string header, float goal, float progress )
     text << ">\033[" << columns - footer.str().size() + 1 << "G" << footer.str(); // put the end cap on
     if( ratio < 1.0f ) text << "\033[F"; // if were not done, move the cursor back up.
 
-    LOG( INFO ) << text.str();
-
-    std::cout.flush();
+    std::cout << text.str() << std::endl;
 }
