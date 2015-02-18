@@ -3,8 +3,12 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <unordered_map>
 
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
+
+using OpenImageIO::ImageBufAlgo::computePixelHashSHA1;
 
 #include "elog/elog.h"
 #include "optionparser/optionparser.h"
@@ -297,13 +301,19 @@ main( int argc, char **argv )
         tempSMT->setTileSize( out_tile_width );
     }
 
+    // tile hashtable for exact duplicate detection
+    std::unordered_map<std::string, int> hash_map;
+    int *item;
+    hash_map.reserve(out_tileMap.width * out_tileMap.height);
+    //computePixelHashSHA1 (const ImageBuf &src, string view extrainfo = "", ROI roi=ROI::All(), int blocksize=0, int nthreads=0)
+
     // == OUTPUT THE IMAGES ==
+    int numTiles = 0;
+    int numDupes = 0;
     for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
         for( uint32_t x = 0; x < out_tileMap.width; ++x ){
-            out_tileMap(x,y) = y * out_tileMap.height + x;
             DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";
 
-            name << "output_" << x << "_" << y << ".jpg";
 
             tempBuf = src_tiledImage.getRegion(
                 x * rel_tile_width, y * rel_tile_height,
@@ -311,17 +321,34 @@ main( int argc, char **argv )
 
             scale( tempBuf, tempSpec );
 
+            item = &hash_map[computePixelHashSHA1(*tempBuf)];
+            if( *item ){
+                out_tileMap(x,y) = *item;
+                ++numDupes;
+                continue;
+            }
+            else {
+                *item = numTiles;
+            }
+
             //TODO optimisation
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
-            if( options[ IMGOUT ] ) tempBuf->write( name.str() );
+            if( options[ IMGOUT ] ){
+                name << "output_" << x << "_" << y << ".jpg";
+                tempBuf->write( name.str() );
+                name.str( std::string() );
+            }
+            out_tileMap(x,y) = numTiles;
+            ++numTiles;
 
             tempBuf->clear();
             delete tempBuf;
-            name.str( std::string() );
 
-            progressBar( "[progress]:", out_tileMap.width * out_tileMap.height, y * out_tileMap.width +x );
+            progressBar( "[Progress]:", out_tileMap.width * out_tileMap.height - numDupes, numTiles );
         }
     }
+    LOG(INFO) << "actual:max = " << numTiles << ":" << out_tileMap.width * out_tileMap.height;
+    LOG(INFO) << "number of dupes = " << numDupes;
 
     std::fstream out_csv( outFileName + ".csv", std::ios::out );
     out_csv << out_tileMap.toCSV();
