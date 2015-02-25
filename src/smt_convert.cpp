@@ -334,7 +334,7 @@ main( int argc, char **argv )
             //TODO optimisation
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ){
-                name << "output_" << x << "_" << y << ".jpg";
+                name << "output_" << x << "_" << y << ".png";
                 tempBuf->write( name.str() );
                 name.str( std::string() );
             }
