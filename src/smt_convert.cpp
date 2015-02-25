@@ -346,7 +346,7 @@ main( int argc, char **argv )
 
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ){
-                name << "output_" << x << "_" << y << ".png";
+                name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".png";
                 tempBuf->write( name.str() );
                 name.str( std::string() );
             }
