@@ -32,6 +32,7 @@ enum optionsIndex
     IMAGESIZE,
     SMTOUT,
     IMGOUT,
+    DUPLI,
 };
 
 const option::Descriptor usage[] = {
@@ -73,6 +74,10 @@ const option::Descriptor usage[] = {
 
     { IMGOUT, 0, "", "img", Arg::None, "\t--img"
         "\tSave tiles as images" },
+
+    { DUPLI, 0, "d", "dupli", Arg::Required, "  -d  \t--dupli=[None,Exact,Perceptual]"
+        "\tdefault=Exact, whether to detect and omit duplcates."},
+
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -181,6 +186,12 @@ main( int argc, char **argv )
 
     if( options[ IMGOUT ] ){
         if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
+    }
+
+    int dupli = 1;
+    if( options[ DUPLI ] ){
+        if( strcmp( options[ DUPLI ].arg, "None" ) == 0 ) dupli = 0;
+        if( strcmp( options[ DUPLI ].arg, "Perceptual" ) == 0 ) dupli = 2;
     }
 
     // == TILE CACHE ==
@@ -321,20 +332,21 @@ main( int argc, char **argv )
 
             scale( tempBuf, tempSpec );
 
-            item = &hash_map[computePixelHashSHA1(*tempBuf)];
-            if( *item ){
-                out_tileMap(x,y) = *item;
-                ++numDupes;
-                continue;
-            }
-            else {
-                *item = numTiles;
+            if( dupli == 1) {
+                item = &hash_map[computePixelHashSHA1(*tempBuf)];
+                if( *item ){
+                    out_tileMap(x,y) = *item;
+                    ++numDupes;
+                    continue;
+                }
+                else {
+                    *item = numTiles;
+                }
             }
 
-            //TODO optimisation
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ){
-                name << "output_" << x << "_" << y << ".jpg";
+                name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".png";
                 tempBuf->write( name.str() );
                 name.str( std::string() );
             }

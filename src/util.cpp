@@ -150,7 +150,7 @@ progressBar( std::string header, float goal, float current )
     ratio = current / goal;
 
     static std::list< uint32_t > history;
-    if( history.size() >= 100) history.pop_front();
+    if( history.size() >= 30) history.pop_front();
 
     using namespace std::chrono;
     static duration< double > time_span;
@@ -160,7 +160,7 @@ progressBar( std::string header, float goal, float current )
     now = steady_clock::now();
 
     time_span = duration_cast< duration< double > >(now - last);
-    if( time_span.count() < 1 && ratio < 1 )return;
+    if( time_span.count() < 0.5 && ratio < 1 )return;
     last = now;
 
     progress = current - last_current;
