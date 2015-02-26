@@ -177,18 +177,24 @@ SMT::info( )
         << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
         << "\tCompression: ";
     if( header.tileType == TileType::DXT1 ) ss << "dxt1" << endl;
+    if( header.tileType == TileType::UINT8 ) ss << "UINT8" << endl;
+    if( header.tileType == TileType::UINT8 ) ss << "UINT16" << endl;
     else {
         ss << "UNKNOWN" << endl;
     }
     return ss.str();
 }
 
-/*! Append tiles to the end of the SMT file and update the count
- * TODO Code assumes that tiles are DXT1 compressed at this stage,
- * TODO abstract the internals out.
- */
 void
 SMT::append( ImageBuf *sourceBuf )
+{
+    if( tileType == TileType::DXT1) appendDXT1( sourceBuf );
+    if( tileType == TileType::UINT8) appendUINT8( sourceBuf );
+    if( tileType == TileType::UINT16) appendUINT16( sourceBuf );
+}
+
+void
+SMT::appendDXT1( ImageBuf *sourceBuf )
 {
     ImageBuf *tempBuf = new ImageBuf;
     tempBuf->copy( *sourceBuf );
@@ -204,17 +210,16 @@ SMT::append( ImageBuf *sourceBuf )
         spec = tempBuf->specmod();
 
         blocks_size = squish::GetStorageRequirements(
-                spec.width, spec.height, squish::kDxt1 );
+            spec.width, spec.height, squish::kDxt1 );
 
         if(! blocks ) blocks = new squish::u8[ blocks_size ];
-
         // contemplate giving control of compression options to users
         // kColourRangeFit = faster|poor quality
         // kColourMetricPerceptual = default|default
         // kColourIterativeClusterFit = slow|high quality
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
-                spec.width, spec.height, blocks,
-                squish::kDxt1 | squish::kColourRangeFit );
+             spec.width, spec.height, blocks,
+            squish::kDxt1 | squish::kColourRangeFit );
 
         // Write data to smf
         file.write( (char*)blocks, blocks_size );
@@ -235,8 +240,29 @@ SMT::append( ImageBuf *sourceBuf )
     file.close();
 }
 
+void
+SMT::appendUINT8( OpenImageIO::ImageBuf *sourceBuf )
+{
+    return;
+}
+
+void
+SMT::appendUINT16( OpenImageIO::ImageBuf *sourceBuf )
+{
+    return;
+}
+
 ImageBuf *
 SMT::getTile( uint32_t n )
+{
+    if( tileType == TileType::DXT1) return getTileDXT1( n );
+    if( tileType == TileType::UINT8) return getTileUINT8( n );
+    if( tileType == TileType::UINT16) return getTileUINT16( n );
+    return NULL;
+}
+
+ImageBuf *
+SMT::getTileDXT1( uint32_t n )
 {
     ImageBuf *tempBuf = NULL;
     ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
@@ -273,4 +299,16 @@ SMT::getTile( uint32_t n )
 
     //swizzle( outBuf );
     return outBuf;
+}
+
+ImageBuf *
+SMT::getTileUINT8( uint32_t n )
+{
+    return NULL;
+}
+
+ImageBuf *
+SMT::getTileUINT16( uint32_t n )
+{
+    return NULL;
 }

@@ -41,6 +41,13 @@ private:
 
     //! load data from fileName
     void load();
+    
+    void appendDXT1( OpenImageIO::ImageBuf * );
+    void appendUINT8( OpenImageIO::ImageBuf * );
+    void appendUINT16( OpenImageIO::ImageBuf * );
+    OpenImageIO::ImageBuf *getTileDXT1( uint32_t );
+    OpenImageIO::ImageBuf *getTileUINT8( uint32_t );
+    OpenImageIO::ImageBuf *getTileUINT16( uint32_t );
 
 public:
 
@@ -77,6 +84,6 @@ public:
     void setType    ( TileType t ); // 1=DXT1
     void setFileName( std::string name );
 
-    OpenImageIO::ImageBuf *getTile( uint32_t tile );
+    OpenImageIO::ImageBuf *getTile( uint32_t );
     void append( OpenImageIO::ImageBuf * );
 };
