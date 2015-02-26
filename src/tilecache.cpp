@@ -27,10 +27,10 @@ TileCache::getOriginal( uint32_t n )
     while( *i <= n ) { ++i; ++fileName; }
 
     if( (smt = SMT::open( *fileName )) ){
-        tileBuf = smt->getTile( n - *i + smt->getNTiles() );
+        tileBuf = smt->getTile( n - *i + smt->nTiles);
         // LOG(INFO) << "request: " << n << " - tiles to date: " << *i
-        //     << " + tiles in file: " << smt->getNTiles() << " = "
-        //     << n - *i + smt->getNTiles();
+        //     << " + tiles in file: " << smt->nTiles << " = "
+        //     << n - *i + smt->nTiles;
         delete smt;
     }
     else if( (image = ImageInput::open( *fileName )) ){
@@ -88,8 +88,8 @@ TileCache::addSource( std::string fileName )
 
     SMT *smt = NULL;
     if( (smt = SMT::open( fileName )) ){
-        if(! smt->getNTiles() ) return;
-        nTiles += smt->getNTiles();
+        if(! smt->nTiles ) return;
+        nTiles += smt->nTiles;
         map.push_back( nTiles );
         fileNames.push_back( fileName );
 

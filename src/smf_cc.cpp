@@ -173,7 +173,7 @@ main( int argc, char **argv )
     // --tilesize
     if( parse.nonOptionsCount() ){
         smt = SMT::open( parse.nonOption( 0 ) );
-        tileSize = smt->getTileSize();
+        tileSize = smt->tileSize;
         delete smt;
         smt = NULL;
     }

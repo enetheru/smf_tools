@@ -98,7 +98,7 @@ main( int argc, char **argv )
     inFile.close();
 
     LOG( INFO ) << inSize << " bytes";
-    int tiles = (inSize - 32) / smt->getTileBytes();
+    int tiles = (inSize - 32) / smt->tileBytes;
     LOG( INFO ) << tiles << " tiles";
     inFile.open( parse.nonOption( 0 ), std::ios::out | std::ios::in );
     inFile.seekp(20);

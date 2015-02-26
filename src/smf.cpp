@@ -468,8 +468,8 @@ SMF::addTileFile( string fileName )
     smtList.push_back( fileName );
     ++headerTiles.nFiles;
 
-    nTiles.push_back( smt->getNTiles() );
-    headerTiles.nTiles += smt->getNTiles();
+    nTiles.push_back( smt->nTiles);
+    headerTiles.nTiles += smt->nTiles;
 
     delete smt;
 }

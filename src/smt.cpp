@@ -22,7 +22,7 @@ SMT::create( string fileName, bool overwrite )
     if( file.good() && !overwrite ) return NULL;
 
     smt = new SMT;
-    smt->fileName = fileName;
+    smt->_fileName = fileName;
     smt->reset();
     return smt;
 }
@@ -49,7 +49,7 @@ SMT::open( string fileName )
     SMT *smt;
     if( test( fileName ) ){
         smt = new SMT;
-        smt->fileName = fileName;
+        smt->_fileName = fileName;
         smt->load();
         return smt;
     }
@@ -61,7 +61,6 @@ SMT::reset( )
 {
     LOG(INFO) << "Resetting " << fileName;
     // Clears content of SMT file and re-writes the header.
-    init = false;
     fstream file( fileName, ios::binary | ios::out );
 
     if(! file.good() ){
@@ -77,7 +76,12 @@ SMT::reset( )
     file.write( (char *)&header, sizeof(SMT::Header) );
     file.flush();
     file.close();
-    init = true;
+}
+
+void
+SMT::setFileName( std::string name)
+{
+    _fileName = name;
 }
 
 void
@@ -97,15 +101,37 @@ SMT::setTileSize( uint32_t r )
 }
 
 void
-SMT::calcTileBytes( )
+SMT::calcTileBytes()
 {
-    tileBytes = 0;
-    if(header.tileType == TileType::DXT1) {
-        int mip = header.tileSize;
-        for( int i=0; i < 4; ++i) {
-            tileBytes += (mip * mip)/2;
+    _tileBytes = 0;
+
+    int mip = header.tileSize;
+    /*!
+     * Calculate the size of the raw format of dxt1 with 4 mip levels
+     * DXT1 consists of 64 bits per 4x4 block of pixels.
+     * 32x32, 16x16, 8x8, 4x4
+     * 512  + 128  + 32 + 8 = 680
+     */
+    if( header.tileType == TileType::DXT1 ){
+        for( int i=0; i < 4; ++i ){
+            _tileBytes += (mip * mip)/2;
             mip /= 2;
         }
+    }
+    else if( header.tileType == TileType::UINT8 ){
+        for( int i=0; i < 4; ++i ){
+            _tileBytes += (mip * mip);
+            mip /= 2;
+        }
+    }
+    else if( header.tileType == TileType::UINT16 ){
+        for( int i=0; i < 4; ++i ){
+            _tileBytes += (mip * mip) * 2;
+            mip /= 2;
+        }
+    }
+    else {
+        LOG( FATAL ) << "Invalid tiletype: " << tileType;
     }
 }
 
@@ -116,7 +142,6 @@ SMT::load( )
     CHECK( inFile.good() ) << "Failed to load: " << fileName;
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     calcTileBytes();
-    init = true;
 
     // do some simple checking of file size vs reported tile numbers
     uint32_t actualBytes = 0;

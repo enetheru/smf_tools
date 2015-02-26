@@ -6,7 +6,17 @@
 
 class SMT {
 public:
-    enum TileType { UNKNOWN, DXT1 };
+    enum TileType{
+        UNKNOWN, // not used
+        DXT1,    // supported
+        DXT3,    // Not supported by spring
+        DXT5,    // Not supported by spring
+        UINT8,   // Not supported by spring
+        UINT16,  // Not supported by spring
+        UINT32,  // Not supported by spring
+        RGBA8,   // Not supported by spring
+        ASTC,    // Not supported by spring
+    };
     /*! Header Structure as written on disk.
      */
     struct Header {
@@ -18,29 +28,29 @@ public:
     };
 
 private:
-    //! not sure
-    bool init = false;
-
     //! File Header
     Header header;
 
     //! Input Files
-    std::string fileName = "output.smt";
+    std::string _fileName = "output.smt";
 
-    /*! Calculates the number of bytes in each tile.
-     * Calculate the size of the raw format of dxt1 with 4 mip levels
-     * DXT1 consists of 64 bits per 4x4 block of pixels.
-     * 32x32, 16x16, 8x8, 4x4
-     * 512  + 128  + 32 + 8 = 680
-     */
+
     void calcTileBytes();
     //! Tile Bytes as calculated by calcTileBytes()
-    uint32_t tileBytes = 680; 
+    uint32_t _tileBytes = 680; 
 
     //! load data from fileName
     void load();
 
 public:
+
+    const std::string &fileName = _fileName;
+    const uint32_t &nTiles = header.nTiles;
+    
+    const uint32_t &tileType = header.tileType;
+    const uint32_t &tileSize = header.tileSize;
+    const uint32_t &tileBytes = _tileBytes;
+    
 
     SMT( ){ };
 
@@ -60,18 +70,12 @@ public:
     static SMT *create( std::string fileName, bool overwrite = false );
     static SMT *open  ( std::string fileName );
 
-    bool initialised( ){ return init; };
     void reset( );
     std::string info();
 
     void setTileSize( uint32_t r );
     void setType    ( TileType t ); // 1=DXT1
-
-    uint32_t getTileType ( ){ return header.tileType; };
-    uint32_t getTileSize ( ){ return header.tileSize; };
-    uint32_t getNTiles   ( ){ return header.nTiles;   };
-    uint32_t getTileBytes( ){ return tileBytes;       };
-    std::string getFileName( ){ return fileName; };
+    void setFileName( std::string name );
 
     OpenImageIO::ImageBuf *getTile( uint32_t tile );
     void append( OpenImageIO::ImageBuf * );
