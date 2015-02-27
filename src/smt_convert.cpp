@@ -9,6 +9,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 
 using OpenImageIO::ImageBufAlgo::computePixelHashSHA1;
+using OpenImageIO::TypeDesc;
 
 #include "elog/elog.h"
 #include "optionparser/optionparser.h"
@@ -33,6 +34,7 @@ enum optionsIndex
     SMTOUT,
     IMGOUT,
     DUPLI,
+    TYPE
 };
 
 const option::Descriptor usage[] = {
@@ -78,6 +80,9 @@ const option::Descriptor usage[] = {
     { DUPLI, 0, "d", "dupli", Arg::Required, "  -d  \t--dupli=[None,Exact,Perceptual]"
         "\tdefault=Exact, whether to detect and omit duplcates."},
 
+    { TYPE, 0, "", "type", Arg::Required, "\t--type=[DXT1,UINT8,UINT16]"
+        "\tdefault=DXT1, what format to put into the smt"},
+
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -88,9 +93,6 @@ main( int argc, char **argv )
     bool overwrite = false;
     // temporary
     OpenImageIO::ImageBuf *tempBuf;
-    OpenImageIO::ImageSpec tempSpec;
-    tempSpec.nchannels = 4;
-    tempSpec.set_format( OpenImageIO::TypeDesc::UINT8 );
     SMF *tempSMF = NULL;
     SMT *tempSMT = NULL;
     std::stringstream name;
@@ -100,15 +102,13 @@ main( int argc, char **argv )
     TileMap src_tileMap;
     TiledImage src_tiledImage;
     std::vector<uint32_t> src_filter;
-    uint32_t src_tile_width, src_tile_height;
-    //uint32_t src_map_width, src_map_height;
-    //uint32_t src_img_width, src_img_height;
+    OpenImageIO::ImageSpec sSpec;
 
     // output
     std::string outFileName = "output.smt";
     TileMap out_tileMap;
-    uint32_t out_tile_width, out_tile_height;
-    //uint32_t out_map_width, out_map_height;
+    SMT::TileType oType = SMT::TileType::DXT1;
+    OpenImageIO::ImageSpec otSpec( 32, 32, 4, TypeDesc::UINT8 );
     uint32_t out_img_width, out_img_height;
 
     // relative intermediate size
@@ -157,14 +157,19 @@ main( int argc, char **argv )
         fail = true;
     }
 
+    // * Tile Size
     if( options[ TILESIZE ] ){
-        valxval( options[ TILESIZE ].arg, out_tile_width, out_tile_height );
-        if( (out_tile_width % 4) || (out_tile_height % 4) ){
+        uint32_t w,h;
+        valxval( options[ TILESIZE ].arg, w, h );
+        otSpec.width = w;
+        otSpec.height = h;
+        if( (otSpec.width % 4) || (otSpec.height % 4) ){
             LOG( ERROR ) << "tilesize must be a multiple of 4x4";
             fail = true;
         }
     }
-
+    
+    // * Image Size
     if( options[ IMAGESIZE ] ){
         valxval( options[ IMAGESIZE ].arg, out_img_width, out_img_height );
         if( (out_img_width % 4) || (out_img_height % 4) ){
@@ -173,25 +178,49 @@ main( int argc, char **argv )
         }
     }
 
-    if( fail || parse.error() ){
-        LOG( ERROR ) << "Options parsing.";
-        exit( 1 );
+    // * Duplicate Detection
+    int dupli = 1;
+    if( options[ DUPLI ] ){
+        if( strcmp( options[ DUPLI ].arg, "None" ) == 0 ) dupli = 0;
+        if( strcmp( options[ DUPLI ].arg, "Perceptual" ) == 0 ) dupli = 2;
     }
 
+    // * Output Format
+    if(  options[ TYPE ] ){
+        if( strcmp( options[ TYPE ].arg, "DXT1" ) == 0 ){
+            oType = SMT::TileType::DXT1;
+            otSpec.nchannels = 4;
+            otSpec.set_format( TypeDesc::UINT8 );
+        }
+
+        if( strcmp( options[ TYPE ].arg, "UINT8" ) == 0 ){
+            oType = SMT::TileType::UINT8;
+            otSpec.nchannels = 1;
+            otSpec.set_format( TypeDesc::UINT8 );
+        }
+
+        if( strcmp( options[ TYPE ].arg, "UINT16" ) == 0 ){
+            oType = SMT::TileType::UINT16;
+            otSpec.nchannels = 1;
+            otSpec.set_format( TypeDesc::UINT16 );
+        }
+    }
+
+    // * Output File
     if( options[ SMTOUT ] ){
         if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
         tempSMT = SMT::create( outFileName , overwrite );
         if(! tempSMT ) LOG( FATAL ) << "cannot overwrite existing file";
+        tempSMT->setType( oType );
     }
 
     if( options[ IMGOUT ] ){
         if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
     }
 
-    int dupli = 1;
-    if( options[ DUPLI ] ){
-        if( strcmp( options[ DUPLI ].arg, "None" ) == 0 ) dupli = 0;
-        if( strcmp( options[ DUPLI ].arg, "Perceptual" ) == 0 ) dupli = 2;
+    if( fail || parse.error() ){
+        LOG( ERROR ) << "Options parsing.";
+        exit( 1 );
     }
 
     // == TILE CACHE ==
@@ -201,11 +230,13 @@ main( int argc, char **argv )
     }
     LOG( INFO ) << src_tileCache.getNTiles() << " tiles in cache";
 
-    // == SOURCE TILE SIZE ==
+    // == SOURCE TILE SPEC ==
     tempBuf = src_tileCache( 0 );
-    src_tile_width = tempBuf->spec().width;
-    src_tile_height = tempBuf->spec().height;
-    LOG( INFO ) << "Source Tile Size: " << src_tile_width << "x" << src_tile_height;
+    sSpec.width = tempBuf->spec().width;
+    sSpec.height = tempBuf->spec().height;
+    sSpec.nchannels = otSpec.nchannels;
+    sSpec.set_format( otSpec.format );
+    LOG( INFO ) << "Source Tile Size: " << sSpec.width << "x" << sSpec.height;
     delete tempBuf;
 
     // == FILTER ==
@@ -222,7 +253,7 @@ main( int argc, char **argv )
         for( unsigned i = 0; i < src_filter.size(); ++i ) src_filter[ i ] = i;
     }
 
-    // == TILEMAP ==
+    // == Source TILEMAP ==
     // Source the tilemap, or generate it
     if( options[ TILEMAP ] ){
         // attempt to load from smf
@@ -254,13 +285,13 @@ main( int argc, char **argv )
         src_tileMap.consecutive();
     }
 
-    // == Build TiledImage ==
+    // == Build source TiledImage ==
     src_tiledImage.setTileMap( src_tileMap );
     src_tiledImage.tileCache = src_tileCache;
-    src_tiledImage.setTileSize( src_tile_width, src_tile_height );
+    src_tiledImage.setTSpec( sSpec );
     LOG( INFO ) << "\n    Source Tiled Image:"
         << "\n\tFull size: " << src_tiledImage.getWidth() << "x" << src_tiledImage.getHeight()
-        << "\n\tTile size: " << src_tiledImage.tileWidth << "x" << src_tiledImage.tileHeight
+        << "\n\tTile size: " << src_tiledImage.tSpec.width << "x" << src_tiledImage.tSpec.height
         << "\n\tTileMap size: " << src_tiledImage.tileMap.width << "x" << src_tiledImage.tileMap.height;
 
     // == IMAGESIZE ==
@@ -271,28 +302,31 @@ main( int argc, char **argv )
 
     // == TILESIZE ==
     if(! options[ TILESIZE ] ){
-        out_tile_width = src_tile_width;
-        out_tile_height = src_tile_height;
         if( options[ IMGOUT ] ){
-            out_tile_width = out_img_width;
-            out_tile_height = out_img_height;
+            otSpec.width = out_img_width;
+            otSpec.height = out_img_height;
+        }
+        else {
+            otSpec.width = sSpec.width;
+            otSpec.height = sSpec.height;
         }
     }
 
-    if( out_img_width % out_tile_width || out_img_height % out_tile_height ){
+    if( out_img_width % otSpec.width
+            || out_img_height % otSpec.height ){
         LOG( ERROR ) << "image size must be a multiple of image size"
             << "\n\timage size: " << out_img_width << "x" << out_img_height
-            << "\n\ttile size: " << out_tile_width << "x" << out_tile_height;
+            << "\n\ttile size: " << otSpec.width << "x" << otSpec.height;
         exit( 1 );
     }
 
-    // == Output Tile Map ==
-    out_tileMap.setSize( out_img_width / out_tile_width,
-                         out_img_height / out_tile_height);
+    // == prepare output Tile Map ==
+    out_tileMap.setSize( out_img_width / otSpec.width,
+                         out_img_height / otSpec.height);
 
     LOG( INFO ) << "\n    Output Sizes: "
         << "\n\tFull Size: " << out_img_width << "x" << out_img_height
-        << "\n\tTile Size: " << out_tile_width << "x" << out_tile_height
+        << "\n\tTile Size: " << otSpec.width << "x" << otSpec.height
         << "\n\ttileMap Size: " << out_tileMap.width << "x" << out_tileMap.height;
 
     // work out the relative tile size
@@ -300,23 +334,16 @@ main( int argc, char **argv )
     float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
     DLOG( INFO ) << "Scale Ratio: " << xratio << "x" << yratio;
 
-    rel_tile_width = out_tile_width * xratio;
-    rel_tile_height = out_tile_height * yratio;
+    rel_tile_width = otSpec.width * xratio;
+    rel_tile_height = otSpec.height * yratio;
     DLOG( INFO ) << "Pre-scaled tile: " << rel_tile_width << "x" << rel_tile_height;
 
-    tempSpec.width = out_tile_width;
-    tempSpec.height = out_tile_height;
-
-    if( options[ SMTOUT ] ){
-
-        tempSMT->setTileSize( out_tile_width );
-    }
+    if( options[ SMTOUT ] )tempSMT->setTileSize( otSpec.width );
 
     // tile hashtable for exact duplicate detection
     std::unordered_map<std::string, int> hash_map;
     int *item;
     hash_map.reserve(out_tileMap.width * out_tileMap.height);
-    //computePixelHashSHA1 (const ImageBuf &src, string view extrainfo = "", ROI roi=ROI::All(), int blocksize=0, int nthreads=0)
 
     // == OUTPUT THE IMAGES ==
     int numTiles = 0;
@@ -329,8 +356,14 @@ main( int argc, char **argv )
             tempBuf = src_tiledImage.getRegion(
                 x * rel_tile_width, y * rel_tile_height,
                 x * rel_tile_width + rel_tile_width , y * rel_tile_height + rel_tile_height );
+            // skip if there was no actual data at that loction
+            if(! tempBuf ){
+                out_tileMap(x,y) = INT_MAX;
+                continue;
+            }
 
-            scale( tempBuf, tempSpec );
+            scale( tempBuf, otSpec );
+            channels( tempBuf, otSpec );
 
             if( dupli == 1) {
                 item = &hash_map[computePixelHashSHA1(*tempBuf)];
@@ -346,7 +379,7 @@ main( int argc, char **argv )
 
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ){
-                name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".png";
+                name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".tif";
                 tempBuf->write( name.str() );
                 name.str( std::string() );
             }

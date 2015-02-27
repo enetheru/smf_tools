@@ -106,6 +106,8 @@ SMT::calcTileBytes()
     _tileBytes = 0;
 
     int mip = header.tileSize;
+    _tileSpec.height = tileSize;
+    _tileSpec.width = tileSize;
     /*!
      * Calculate the size of the raw format of dxt1 with 4 mip levels
      * DXT1 consists of 64 bits per 4x4 block of pixels.
@@ -113,18 +115,24 @@ SMT::calcTileBytes()
      * 512  + 128  + 32 + 8 = 680
      */
     if( header.tileType == TileType::DXT1 ){
+        _tileSpec.nchannels = 4;
+        _tileSpec.set_format( TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip)/2;
             mip /= 2;
         }
     }
     else if( header.tileType == TileType::UINT8 ){
+        _tileSpec.nchannels = 1;
+        _tileSpec.set_format( TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip);
             mip /= 2;
         }
     }
     else if( header.tileType == TileType::UINT16 ){
+        _tileSpec.nchannels = 1;
+        _tileSpec.set_format( TypeDesc::UINT16 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip) * 2;
             mip /= 2;
@@ -176,11 +184,11 @@ SMT::info( )
         << "\tTiles: " << header.nTiles << endl
         << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
         << "\tCompression: ";
-    if( header.tileType == TileType::DXT1 ) ss << "dxt1" << endl;
-    if( header.tileType == TileType::UINT8 ) ss << "UINT8" << endl;
-    if( header.tileType == TileType::UINT8 ) ss << "UINT16" << endl;
+    if( header.tileType == TileType::DXT1 ) ss << "dxt1";
+    else if( header.tileType == TileType::UINT8 ) ss << "UINT8";
+    else if( header.tileType == TileType::UINT16 ) ss << "UINT16";
     else {
-        ss << "UNKNOWN" << endl;
+        ss << "UNKNOWN";
     }
     return ss.str();
 }
@@ -243,12 +251,37 @@ SMT::appendDXT1( ImageBuf *sourceBuf )
 void
 SMT::appendUINT8( OpenImageIO::ImageBuf *sourceBuf )
 {
-    return;
+    ImageBuf *tempBuf = new ImageBuf;
+    tempBuf->copy( *sourceBuf );
+
+    ImageSpec spec;
+    fstream file(fileName, ios::binary | ios::in | ios::out);
+    file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
+    for( int i = 0; i < 4; ++i ){
+        spec = tempBuf->specmod();
+
+        // Write data to smf
+        file.write( (char*)tempBuf->localpixels(), spec.image_bytes() );
+
+        spec.width = spec.width >> 1;
+        spec.height = spec.height >> 1;
+        scale( tempBuf, spec );
+    }
+    delete tempBuf;
+
+    ++header.nTiles;
+
+    file.seekp( 20 );
+    file.write( (char *)&(header.nTiles), 4 );
+
+    file.flush();
+    file.close();
 }
 
 void
 SMT::appendUINT16( OpenImageIO::ImageBuf *sourceBuf )
 {
+
     return;
 }
 
@@ -265,9 +298,8 @@ ImageBuf *
 SMT::getTileDXT1( uint32_t n )
 {
     ImageBuf *tempBuf = NULL;
-    ImageSpec imageSpec( header.tileSize, header.tileSize, 4, TypeDesc::UINT8 );
     if( n >= header.nTiles ){
-        tempBuf = new ImageBuf( imageSpec );
+        tempBuf = new ImageBuf( tileSpec );
         return tempBuf;
     }
 
@@ -287,7 +319,7 @@ SMT::getTileDXT1( uint32_t n )
         squish::DecompressImage( (squish::u8 *)rgba8888,
                 header.tileSize, header.tileSize, raw_dxt1a, squish::kDxt1 );
 
-        tempBuf = new ImageBuf( fileName + "_" + to_string(n), imageSpec, rgba8888);
+        tempBuf = new ImageBuf( fileName + "_" + to_string(n), tileSpec, rgba8888);
 
         outBuf->copy(*tempBuf);
 
@@ -304,7 +336,33 @@ SMT::getTileDXT1( uint32_t n )
 ImageBuf *
 SMT::getTileUINT8( uint32_t n )
 {
-    return NULL;
+    ImageBuf *tempBuf = NULL;
+    if( n >= header.nTiles ){
+        tempBuf = new ImageBuf( tileSpec );
+        return tempBuf;
+    }
+
+    char *pixelData = NULL;
+    ImageBuf *outBuf = NULL;
+
+    ifstream file( fileName );
+    if( file.good() ){
+        pixelData = new char[ tileSpec.image_bytes() ];
+        outBuf = new ImageBuf;
+
+        file.seekg( sizeof(SMT::Header) + tileBytes * n );
+        file.read( pixelData, tileSpec.image_bytes() );
+
+        tempBuf = new ImageBuf( fileName + "_" + to_string(n), tileSpec, pixelData);
+
+        outBuf->copy(*tempBuf);
+
+        delete tempBuf;
+        delete [] pixelData;
+    }
+    file.close();
+
+    return outBuf;
 }
 
 ImageBuf *

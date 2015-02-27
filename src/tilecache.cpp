@@ -38,7 +38,6 @@ TileCache::getOriginal( uint32_t n )
         delete image;
 
         // Load
-        tileBuf->read( 0, 0, false, TypeDesc::UINT8 );
         if(! tileBuf->initialized() ) {
             delete tileBuf;
             LOG( ERROR ) << "failed to open source for tile: " << n;
@@ -49,21 +48,15 @@ TileCache::getOriginal( uint32_t n )
     return tileBuf;
 }
 
-
-
 ImageBuf *
-TileCache::getScaled( uint32_t n, uint32_t w, uint32_t h )
+TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec spec )
 {
-    CHECK( w ) << "TileCache::getScaled, cannot input zero width";
-    if( h == 0 ) h = w;
+    CHECK( spec.width ) << "TileCache::getSpec, cannot request zero width";
+    CHECK( spec.height ) << "TileCache::getSpec, cannot request zero height";
+    CHECK( spec.nchannels ) << "TileCache::getSpec, cannot request zero channels";
 
     ImageBuf *tempBuf = NULL;
     if(! (tempBuf = getOriginal( n )) )return NULL;
-
-    ImageSpec spec;
-    spec.width = w;
-    spec.height = h;
-    spec.nchannels = 4;
 
     scale( tempBuf, spec );
     channels( tempBuf, spec );

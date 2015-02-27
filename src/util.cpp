@@ -97,17 +97,17 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
     int map[] = { 0, 1, 2, 3 };
-    float fill[] = { 0, 0, 0, 255 };
+    float fill[] = { 0, 0, 0, 1.0 };
 
     CHECK( sourceBuf ) << "NULL Pointer passed to channels()";
 
     // return a copy of the original if its the correct size.
-    ImageSpec sourceSpec = sourceBuf->specmod();
     if( sourceBuf->spec().nchannels == spec.nchannels ) return;
+    if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
+    if( sourceBuf->spec().nchannels < 3 ) map[2] = -1;
+    if( sourceBuf->spec().nchannels < 2 ) map[1] = -1;
 
-    if( sourceSpec.nchannels < 4 ) map[3] = -1;
-
-    // Otherwise re-order channels
+    // Otherwise update channels to spec channels
     ImageBuf *tempBuf = new ImageBuf;
     ImageBufAlgo::channels( *tempBuf, *sourceBuf, spec.nchannels, map, fill );
     sourceBuf->clear();
@@ -121,7 +121,7 @@ swizzle( OpenImageIO::ImageBuf *&sourceBuf )
     OIIO_NAMESPACE_USING;
 
     int map[] = { 2, 1, 0, 3 };
-    float fill[] = { 0, 0, 0, 255 };
+    float fill[] = { 0, 0, 0, 1.0 };
 
     CHECK( sourceBuf ) << "NULL Pointer passed to swizzle()";
 

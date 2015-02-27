@@ -36,8 +36,8 @@ private:
 
 
     void calcTileBytes();
-    //! Tile Bytes as calculated by calcTileBytes()
     uint32_t _tileBytes = 680; 
+    OpenImageIO::ImageSpec _tileSpec;
 
     //! load data from fileName
     void load();
@@ -57,6 +57,7 @@ public:
     const uint32_t &tileType = header.tileType;
     const uint32_t &tileSize = header.tileSize;
     const uint32_t &tileBytes = _tileBytes;
+    const OpenImageIO::ImageSpec &tileSpec = _tileSpec;
     
 
     SMT( ){ };

@@ -45,17 +45,23 @@ TiledImage::setTileMap( TileMap inTileMap )
 void
 TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
-    CHECK( inWidth >= tileWidth )
-        << "width must be >= tile width (" << tileWidth << ")";
-    CHECK(! (inWidth % tileWidth) )
-        << "width must be a multiple of tile width (" << tileWidth << ")";
+    CHECK( inWidth >= (uint32_t)tSpec.width )
+        << "width must be >= tile width (" << tSpec.width << ")";
+    CHECK(! (inWidth % tSpec.width) )
+        << "width must be a multiple of tile width (" << tSpec.width << ")";
 
-    CHECK( inHeight >= tileHeight )
-        << "height must be >= tile height (" << tileHeight << ")";
-    CHECK(! (inHeight % tileHeight) )
-        << "height must be a multiple of tile height (" << tileHeight << ")";
+    CHECK( inHeight >= (uint32_t)tSpec.height )
+        << "height must be >= tile height (" << tSpec.height << ")";
+    CHECK(! (inHeight % tSpec.height) )
+        << "height must be a multiple of tile height (" << tSpec.height << ")";
 
-    tileMap.setSize( inWidth / tileWidth, inHeight / tileHeight );
+    tileMap.setSize( inWidth / tSpec.width, inHeight / tSpec.height );
+}
+
+void 
+TiledImage::setTSpec( OpenImageIO::ImageSpec spec )
+{
+    _tSpec = spec;
 }
 
 void
@@ -66,8 +72,8 @@ TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
     CHECK( inHeight > 0 ) << "height(" << inHeight << ") must be greater than zero";
     CHECK( !(inHeight % 4) ) << inHeight << " % 4 = " << inHeight % 4 << " != 0 must be a multiple of four";
 
-    _tileWidth = inWidth;
-    _tileHeight = inHeight;
+    _tSpec.width = inWidth;
+    _tSpec.height = inHeight;
 }
 
 void
@@ -95,13 +101,13 @@ TiledImage::squareFromCache( )
 uint32_t
 TiledImage::getWidth()
 {
-    return tileMap.width * tileWidth;
+    return tileMap.width * tSpec.width;
 }
 
 uint32_t
 TiledImage::getHeight()
 {
-    return tileMap.height * tileHeight;
+    return tileMap.height * tSpec.height;
 }
 
 OpenImageIO::ImageBuf *
@@ -125,12 +131,13 @@ TiledImage::getRegion(
     if( sw == 0 ) sw = x2 - x1;
     if( sh == 0 ) sh = y2 - y1;
 
-    static ImageSpec spec( sw, sh, 4, TypeDesc::UINT8 );
+    static ImageSpec spec( sw, sh, tSpec.nchannels, tSpec.format );
     spec.width = sw;
     spec.height = sh;
 
     ImageBuf *dest = new ImageBuf( spec );
     //current point of interest
+    bool hasData = false;
     uint32_t ix = x1;
     uint32_t iy = y1;
     static uint32_t index_p = INT_MAX;
@@ -138,20 +145,20 @@ TiledImage::getRegion(
          DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
         //determine the tile under the point of interest
-        uint32_t mx = ix / tileWidth;
-        uint32_t my = iy / tileHeight;
+        uint32_t mx = ix / tSpec.width;
+        uint32_t my = iy / tSpec.height;
 
         //determine the top left corner of the copy window
-        uint32_t wx1 = ix - mx * tileWidth;
-        uint32_t wy1 = iy - my * tileHeight;
+        uint32_t wx1 = ix - mx * tSpec.width;
+        uint32_t wy1 = iy - my * tSpec.height;
 
         //determine the bottom right corner of the copy window
         uint32_t wx2, wy2;
-        if( x2 / tileWidth > mx ) wx2 = tileWidth;
-        else wx2 = x2 - mx * tileWidth;
+        if( x2 / tSpec.width > mx ) wx2 = tSpec.width;
+        else wx2 = x2 - mx * tSpec.width;
 
-        if( y2 / tileHeight > my ) wy2 = tileHeight;
-        else wy2 = y2 - my * tileHeight;
+        if( y2 / tSpec.height > my ) wy2 = tSpec.height;
+        else wy2 = y2 - my * tSpec.height;
 
          DLOG( INFO ) << "copy window "
              << "(" << wx1 << ", " << wy1 << ")->(" << wx2 << ", " << wy2 << ")";
@@ -169,10 +176,11 @@ TiledImage::getRegion(
         uint32_t index = tileMap(mx, my);
         if( index != index_p ){
             if( currentTile ){currentTile->clear(); delete currentTile;}
-            currentTile = tileCache.getScaled( index, tileWidth, tileHeight );
+            currentTile = tileCache.getSpec( index, tSpec );
             index_p = index;
         }
         if( currentTile ){
+            hasData = true;
             //copy pixel data from source tile to dest
             ROI window;
             window.xbegin = wx1;
@@ -199,7 +207,8 @@ TiledImage::getRegion(
         }
     }
 
-    return dest;
+    if( hasData )return dest;
+    return NULL;
 }
 
 OpenImageIO::ImageBuf *
@@ -217,5 +226,5 @@ TiledImage::getUVRegion(
 OpenImageIO::ImageBuf *
 TiledImage::getTile( uint32_t idx )
 {
-    return tileCache.getScaled( idx, tileWidth, tileHeight );
+    return tileCache.getSpec( idx, tSpec );
 }

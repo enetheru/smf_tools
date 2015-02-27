@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 
 #include "tilemap.h"
@@ -10,16 +11,14 @@
 class TiledImage
 {
     // == data members ==
-    uint32_t _tileWidth = 32;
-    uint32_t _tileHeight = 32;
+    OpenImageIO::ImageSpec _tSpec = OpenImageIO::ImageSpec( 32, 32, 4, OpenImageIO::TypeDesc::UINT8 );
 public:
     TileMap tileMap; //!< tile map
     TileCache tileCache; //!< tile cache
     OpenImageIO::ImageBuf *currentTile = NULL; //!< 
 
     // read only references
-    const uint32_t &tileWidth = _tileWidth; //!< Tile width
-    const uint32_t &tileHeight = _tileHeight; //!< Tile hight
+    const OpenImageIO::ImageSpec &tSpec = _tSpec;
 
     // == constructors ==
     TiledImage( ); //!< default constructor
@@ -30,6 +29,7 @@ public:
     // == Modifications ==
     void setSize( uint32_t width, uint32_t height );
     void setTileSize( uint32_t width, uint32_t height );
+    void setTSpec( OpenImageIO::ImageSpec spec );
     void setTileMap( TileMap tileMap );
 
     void mapFromCSV( std::string );
@@ -38,6 +38,7 @@ public:
     void squareFromCache();
 
     // == Access ==
+
     uint32_t getWidth();
     uint32_t getHeight();
     // Get pixel region
