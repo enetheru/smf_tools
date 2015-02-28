@@ -76,17 +76,27 @@ scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
 
+    const OpenImageIO::ImageSpec srcSpec = sourceBuf->spec();
     CHECK( sourceBuf ) << " NULL pointer passed to scale()";
 
     // do nothing if the original if its the correct size.
-    if( sourceBuf->spec().width == spec.width && sourceBuf->spec().height == spec.height ){
+    if( srcSpec.width == spec.width && srcSpec.height == spec.height ){
         return;
     }
-
+    
     // Otherwise scale
-    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, sourceBuf->spec().nchannels);
+    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, srcSpec.nchannels );
     ImageBuf *tempBuf = new ImageBuf;
-    ImageBufAlgo::resize( *tempBuf, *sourceBuf, "", false, roi );
+
+    // resmple is faster but creates black outlines when scaling up, so only
+    // use it for scaling down.
+    if( spec.width < srcSpec.width && spec.height < srcSpec.height ){
+        ImageBufAlgo::resample( *tempBuf, *sourceBuf, false, roi );
+    }
+    else {
+        ImageBufAlgo::resize( *tempBuf, *sourceBuf, "", false, roi );
+    }
+
     sourceBuf->clear();
     delete sourceBuf;
     sourceBuf = tempBuf;

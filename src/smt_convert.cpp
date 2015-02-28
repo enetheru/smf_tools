@@ -362,9 +362,6 @@ main( int argc, char **argv )
                 continue;
             }
 
-            scale( tempBuf, otSpec );
-            channels( tempBuf, otSpec );
-
             if( dupli == 1) {
                 item = &hash_map[computePixelHashSHA1(*tempBuf)];
                 if( *item ){
@@ -376,6 +373,9 @@ main( int argc, char **argv )
                     *item = numTiles;
                 }
             }
+
+            scale( tempBuf, otSpec );
+            channels( tempBuf, otSpec );
 
             if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
             if( options[ IMGOUT ] ){
