@@ -107,7 +107,7 @@ main( int argc, char **argv )
     // output
     std::string outFileName = "output.smt";
     TileMap out_tileMap;
-    SMT::TileType oType = SMT::TileType::DXT1;
+    uint32_t oType = 1;
     OpenImageIO::ImageSpec otSpec( 32, 32, 4, TypeDesc::UINT8 );
     uint32_t out_img_width, out_img_height;
 
@@ -188,19 +188,19 @@ main( int argc, char **argv )
     // * Output Format
     if(  options[ TYPE ] ){
         if( strcmp( options[ TYPE ].arg, "DXT1" ) == 0 ){
-            oType = SMT::TileType::DXT1;
+            oType = 1;
             otSpec.nchannels = 4;
             otSpec.set_format( TypeDesc::UINT8 );
         }
 
-        if( strcmp( options[ TYPE ].arg, "UINT8" ) == 0 ){
-            oType = SMT::TileType::UINT8;
+        if( strcmp( options[ TYPE ].arg, "RGBA8" ) == 0 ){
+            oType = GL_RGBA8;
             otSpec.nchannels = 1;
             otSpec.set_format( TypeDesc::UINT8 );
         }
 
-        if( strcmp( options[ TYPE ].arg, "UINT16" ) == 0 ){
-            oType = SMT::TileType::UINT16;
+        if( strcmp( options[ TYPE ].arg, "USHORT" ) == 0 ){
+            oType = GL_UNSIGNED_SHORT;
             otSpec.nchannels = 1;
             otSpec.set_format( TypeDesc::UINT16 );
         }

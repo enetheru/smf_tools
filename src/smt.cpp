@@ -85,7 +85,7 @@ SMT::setFileName( std::string name)
 }
 
 void
-SMT::setType( TileType t )
+SMT::setType( uint32_t t )
 {
     if( header.tileType == t)return;
     header.tileType = t;
@@ -114,7 +114,7 @@ SMT::calcTileBytes()
      * 32x32, 16x16, 8x8, 4x4
      * 512  + 128  + 32 + 8 = 680
      */
-    if( header.tileType == TileType::DXT1 ){
+    if( header.tileType == 1 ){
         _tileSpec.nchannels = 4;
         _tileSpec.set_format( TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
@@ -122,7 +122,7 @@ SMT::calcTileBytes()
             mip /= 2;
         }
     }
-    else if( header.tileType == TileType::UINT8 ){
+    else if( header.tileType == GL_RGBA8 ){
         _tileSpec.nchannels = 1;
         _tileSpec.set_format( TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
@@ -130,7 +130,7 @@ SMT::calcTileBytes()
             mip /= 2;
         }
     }
-    else if( header.tileType == TileType::UINT16 ){
+    else if( header.tileType == GL_UNSIGNED_SHORT ){
         _tileSpec.nchannels = 1;
         _tileSpec.set_format( TypeDesc::UINT16 );
         for( int i=0; i < 4; ++i ){
@@ -184,9 +184,9 @@ SMT::info( )
         << "\tTiles: " << header.nTiles << endl
         << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
         << "\tCompression: ";
-    if( header.tileType == TileType::DXT1 ) ss << "dxt1";
-    else if( header.tileType == TileType::UINT8 ) ss << "UINT8";
-    else if( header.tileType == TileType::UINT16 ) ss << "UINT16";
+    if( header.tileType == 1 ) ss << "dxt1";
+    else if( header.tileType == GL_RGBA8 ) ss << "UINT8";
+    else if( header.tileType == GL_UNSIGNED_SHORT ) ss << "UINT16";
     else {
         ss << "UNKNOWN";
     }
@@ -196,9 +196,9 @@ SMT::info( )
 void
 SMT::append( ImageBuf *sourceBuf )
 {
-    if( tileType == TileType::DXT1) appendDXT1( sourceBuf );
-    if( tileType == TileType::UINT8) appendUINT8( sourceBuf );
-    if( tileType == TileType::UINT16) appendUINT16( sourceBuf );
+    if( tileType == 1                 ) appendDXT1( sourceBuf );
+    if( tileType == GL_RGBA8           ) appendRGBA8( sourceBuf );
+    if( tileType == GL_UNSIGNED_SHORT ) appendUSHORT( sourceBuf );
 }
 
 void
@@ -249,7 +249,7 @@ SMT::appendDXT1( ImageBuf *sourceBuf )
 }
 
 void
-SMT::appendUINT8( OpenImageIO::ImageBuf *sourceBuf )
+SMT::appendRGBA8( OpenImageIO::ImageBuf *sourceBuf )
 {
     ImageBuf *tempBuf = new ImageBuf;
     tempBuf->copy( *sourceBuf );
@@ -279,7 +279,7 @@ SMT::appendUINT8( OpenImageIO::ImageBuf *sourceBuf )
 }
 
 void
-SMT::appendUINT16( OpenImageIO::ImageBuf *sourceBuf )
+SMT::appendUSHORT( OpenImageIO::ImageBuf *sourceBuf )
 {
 
     return;
@@ -288,9 +288,9 @@ SMT::appendUINT16( OpenImageIO::ImageBuf *sourceBuf )
 ImageBuf *
 SMT::getTile( uint32_t n )
 {
-    if( tileType == TileType::DXT1) return getTileDXT1( n );
-    if( tileType == TileType::UINT8) return getTileUINT8( n );
-    if( tileType == TileType::UINT16) return getTileUINT16( n );
+    if( tileType == 1                 ) return getTileDXT1( n );
+    if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
+    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
     return NULL;
 }
 
@@ -334,7 +334,7 @@ SMT::getTileDXT1( uint32_t n )
 }
 
 ImageBuf *
-SMT::getTileUINT8( uint32_t n )
+SMT::getTileRGBA8( uint32_t n )
 {
     ImageBuf *tempBuf = NULL;
     if( n >= header.nTiles ){
@@ -366,7 +366,7 @@ SMT::getTileUINT8( uint32_t n )
 }
 
 ImageBuf *
-SMT::getTileUINT16( uint32_t n )
+SMT::getTileUSHORT( uint32_t n )
 {
     return NULL;
 }
