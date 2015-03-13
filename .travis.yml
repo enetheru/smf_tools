@@ -13,7 +13,7 @@ before_script:
   - sudo apt-get install libboost1.54-dev
   - sudo apt-get install libboost-filesystem1.54-dev libboost-regex1.54-dev libboost-system1.54-dev libboost-thread1.54-dev
 # close openimageio and build/install
-  - git clone -b RB-1.4 https://github.com/OpenImageIO/oiio.git
+  - git clone https://github.com/OpenImageIO/oiio.git --branch RB-1.4 --depth 1
   - cd oiio
   - git apply ../oiio.patch
   - sudo make USE_QT=0 USE_OPENGL=0 USE_PYTHON=0 USE_FIELD3D=0 USE_OPENJPEG=0 USE_GIF=0 USE_OCIO=0 USE_OPENSSL=0 USE_LIBRAW=0 NOTHREADS=0 OIIO_BUILD_TOOLS=0 OIIO_BUILD_TESTS=0 -e dist_dir= INSTALLDIR=/usr
