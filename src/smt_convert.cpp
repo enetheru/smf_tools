@@ -195,7 +195,7 @@ main( int argc, char **argv )
 
         if( strcmp( options[ TYPE ].arg, "RGBA8" ) == 0 ){
             oType = GL_RGBA8;
-            otSpec.nchannels = 1;
+            otSpec.nchannels = 4;
             otSpec.set_format( TypeDesc::UINT8 );
         }
 
