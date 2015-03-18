@@ -20,18 +20,23 @@ TileCache::getOriginal( uint32_t n )
     ImageBuf *tileBuf = NULL;
     ImageInput *image = NULL;
     SMT *smt = NULL;
+    static SMT *lastSmt = NULL;
     if( n >= nTiles ) return NULL;
 
     auto i = map.begin();
     auto fileName = fileNames.begin();
     while( *i <= n ) { ++i; ++fileName; }
 
-    if( (smt = SMT::open( *fileName )) ){
-        tileBuf = smt->getTile( n - *i + smt->nTiles);
+    if( lastSmt && (! lastSmt->fileName.compare( *fileName )) ){
+        tileBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
+    }
+    else if( (smt = SMT::open( *fileName )) ){
         // LOG(INFO) << "request: " << n << " - tiles to date: " << *i
         //     << " + tiles in file: " << smt->nTiles << " = "
         //     << n - *i + smt->nTiles;
-        delete smt;
+        delete lastSmt;
+        lastSmt = smt;
+        tileBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
     }
     else if( (image = ImageInput::open( *fileName )) ){
         tileBuf =  new ImageBuf( *fileName );
