@@ -125,6 +125,17 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     sourceBuf = tempBuf;
 }
 
+void convert( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
+{
+    OIIO_NAMESPACE_USING;
+
+    ImageBuf *tempBuf = new ImageBuf( spec );
+    tempBuf->copy_pixels( *sourceBuf );
+    tempBuf->read(0,0,true, spec.format);
+    delete sourceBuf;
+    sourceBuf = tempBuf;
+}
+
 void
 swizzle( OpenImageIO::ImageBuf *&sourceBuf )
 {

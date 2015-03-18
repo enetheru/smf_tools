@@ -58,8 +58,8 @@ TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec spec )
     ImageBuf *tempBuf = NULL;
     if(! (tempBuf = getOriginal( n )) )return NULL;
 
-    scale( tempBuf, spec );
-    channels( tempBuf, spec );
+    convert( tempBuf, spec);
+    scale( tempBuf, spec);
 
     return tempBuf;
 }
