@@ -11,16 +11,13 @@
 class TiledImage
 {
     // == data members ==
+    OpenImageIO::ImageBuf *currentTile = NULL; //!< 
     OpenImageIO::ImageSpec _tSpec = OpenImageIO::ImageSpec( 32, 32, 4, OpenImageIO::TypeDesc::UINT8 );
-    uint32_t _overlap = 0; //!< used for when tiles share border pixels, or have borders
+    uint32_t _overlap = 0; //!< used for when tiles share border pixels
+
 public:
     TileMap tileMap; //!< tile map
     TileCache tileCache; //!< tile cache
-    OpenImageIO::ImageBuf *currentTile = NULL; //!< 
-
-    // read only references
-    const OpenImageIO::ImageSpec &tSpec = _tSpec;
-    const uint32_t &overlap = _overlap;
 
     // == constructors ==
     TiledImage( ); //!< default constructor
@@ -41,9 +38,14 @@ public:
     void squareFromCache();
 
     // == Access ==
+    // read only references
+    const OpenImageIO::ImageSpec &tSpec = _tSpec;
+    const uint32_t &overlap = _overlap;
 
+    // access methods
     uint32_t getWidth();
     uint32_t getHeight();
+
     // Get pixel region
     OpenImageIO::ImageBuf *getRegion(
             uint32_t x1 = 0, uint32_t y1 = 0,

@@ -31,6 +31,7 @@ enum optionsIndex
     FILTER,
     TILESIZE,
     IMAGESIZE,
+    OVERLAP,
     SMTOUT,
     IMGOUT,
     DUPLI,
@@ -71,6 +72,9 @@ const option::Descriptor usage[] = {
     { TILESIZE, 0, "s", "tilesize", Arg::Required, "  -s  \t--tilesize=XxY"
         "\tSplit the constructed image into tiles of this size." },
 
+    { OVERLAP, 0, "", "overlap", Arg::Numeric, "\t--overlap=0"
+        "\tconsider that pixel values overlap by this amount." },
+
     { SMTOUT, 0, "", "smt", Arg::None, "\t--smt"
         "\tSave tiles to smt file" },
 
@@ -103,6 +107,7 @@ main( int argc, char **argv )
     TiledImage src_tiledImage;
     std::vector<uint32_t> src_filter;
     OpenImageIO::ImageSpec sSpec;
+    uint32_t overlap = 0;
 
     // output
     std::string outFileName = "output.smt";
@@ -157,13 +162,36 @@ main( int argc, char **argv )
         fail = true;
     }
 
+    // * Output Format
+    if(  options[ TYPE ] ){
+        if( strcmp( options[ TYPE ].arg, "DXT1" ) == 0 ){
+            oType = 1;
+            otSpec.nchannels = 4;
+            otSpec.set_format( TypeDesc::UINT8 );
+        }
+
+        if( strcmp( options[ TYPE ].arg, "RGBA8" ) == 0 ){
+            oType = GL_RGBA8;
+            otSpec.nchannels = 4;
+            otSpec.set_format( TypeDesc::UINT8 );
+        }
+
+        if( strcmp( options[ TYPE ].arg, "USHORT" ) == 0 ){
+            oType = GL_UNSIGNED_SHORT;
+            otSpec.nchannels = 1;
+            otSpec.set_format( TypeDesc::UINT16 );
+        }
+    }
+
     // * Tile Size
     if( options[ TILESIZE ] ){
         uint32_t w,h;
         valxval( options[ TILESIZE ].arg, w, h );
         otSpec.width = w;
         otSpec.height = h;
-        if( (otSpec.width % 4) || (otSpec.height % 4) ){
+        if( (oType == 1)
+            && ((otSpec.width % 4) || (otSpec.height % 4))
+          ){
             LOG( ERROR ) << "tilesize must be a multiple of 4x4";
             fail = true;
         }
@@ -172,10 +200,16 @@ main( int argc, char **argv )
     // * Image Size
     if( options[ IMAGESIZE ] ){
         valxval( options[ IMAGESIZE ].arg, out_img_width, out_img_height );
-        if( (out_img_width % 4) || (out_img_height % 4) ){
+        if( (oType == 1)
+            && ((out_img_width % 4) || (out_img_height % 4))
+          ){
             LOG( ERROR ) << "imagesize must be a multiple of 4x4";
             fail = true;
         }
+    }
+
+    if( options[ OVERLAP ] ){
+        overlap = atoi( options[ OVERLAP ].arg );
     }
 
     // * Duplicate Detection
@@ -289,6 +323,7 @@ main( int argc, char **argv )
     src_tiledImage.setTileMap( src_tileMap );
     src_tiledImage.tileCache = src_tileCache;
     src_tiledImage.setTSpec( sSpec );
+    src_tiledImage.setOverlap( overlap );
     LOG( INFO ) << "\n    Source Tiled Image:"
         << "\n\tFull size: " << src_tiledImage.getWidth() << "x" << src_tiledImage.getHeight()
         << "\n\tTile size: " << src_tiledImage.tSpec.width << "x" << src_tiledImage.tSpec.height
@@ -312,13 +347,13 @@ main( int argc, char **argv )
         }
     }
 
-    if( out_img_width % otSpec.width
+/*    if( out_img_width % otSpec.width
             || out_img_height % otSpec.height ){
-        LOG( ERROR ) << "image size must be a multiple of image size"
+        LOG( ERROR ) << "image size must be a multiple of tile size"
             << "\n\timage size: " << out_img_width << "x" << out_img_height
             << "\n\ttile size: " << otSpec.width << "x" << otSpec.height;
         exit( 1 );
-    }
+    }*/
 
     // == prepare output Tile Map ==
     out_tileMap.setSize( out_img_width / otSpec.width,

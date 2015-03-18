@@ -47,13 +47,9 @@ TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
     CHECK( inWidth >= (uint32_t)tSpec.width )
         << "width must be >= tile width (" << tSpec.width << ")";
-    CHECK(! (inWidth % tSpec.width) )
-        << "width must be a multiple of tile width (" << tSpec.width << ")";
 
     CHECK( inHeight >= (uint32_t)tSpec.height )
         << "height must be >= tile height (" << tSpec.height << ")";
-    CHECK(! (inHeight % tSpec.height) )
-        << "height must be a multiple of tile height (" << tSpec.height << ")";
 
     tileMap.setSize( inWidth / tSpec.width, inHeight / tSpec.height );
 }
@@ -68,12 +64,16 @@ void
 TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 {
     CHECK( inWidth > 0 ) << "width(" << inWidth << ") must be greater than zero";
-    CHECK( !(inWidth % 4) ) << inWidth << " % 4 = " << inWidth % 4 << " != 0 must be a multiple of four";
     CHECK( inHeight > 0 ) << "height(" << inHeight << ") must be greater than zero";
-    CHECK( !(inHeight % 4) ) << inHeight << " % 4 = " << inHeight % 4 << " != 0 must be a multiple of four";
 
     _tSpec.width = inWidth;
     _tSpec.height = inHeight;
+}
+
+void
+TiledImage::setOverlap( uint32_t overlap )
+{
+    _overlap = overlap;
 }
 
 void
@@ -101,13 +101,13 @@ TiledImage::squareFromCache( )
 uint32_t
 TiledImage::getWidth()
 {
-    return tileMap.width * tSpec.width;
+    return tileMap.width * (tSpec.width - overlap) + overlap;
 }
 
 uint32_t
 TiledImage::getHeight()
 {
-    return tileMap.height * tSpec.height;
+    return tileMap.height * (tSpec.height - overlap) + overlap;
 }
 
 OpenImageIO::ImageBuf *
@@ -145,20 +145,20 @@ TiledImage::getRegion(
          DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
         //determine the tile under the point of interest
-        uint32_t mx = ix / tSpec.width;
-        uint32_t my = iy / tSpec.height;
+        uint32_t mx = ix / (tSpec.width - overlap);
+        uint32_t my = iy / (tSpec.height - overlap);
 
         //determine the top left corner of the copy window
-        uint32_t wx1 = ix - mx * tSpec.width;
-        uint32_t wy1 = iy - my * tSpec.height;
+        uint32_t wx1 = ix - mx * (tSpec.width - overlap);
+        uint32_t wy1 = iy - my * (tSpec.height - overlap);
 
         //determine the bottom right corner of the copy window
         uint32_t wx2, wy2;
-        if( x2 / tSpec.width > mx ) wx2 = tSpec.width;
-        else wx2 = x2 - mx * tSpec.width;
+        if( x2 / (tSpec.width - overlap) > mx ) wx2 = tSpec.width;
+        else wx2 = x2 - mx * (tSpec.width - overlap);
 
-        if( y2 / tSpec.height > my ) wy2 = tSpec.height;
-        else wy2 = y2 - my * tSpec.height;
+        if( y2 / (tSpec.height - overlap) > my ) wy2 = tSpec.height;
+        else wy2 = y2 - my * (tSpec.height - overlap);
 
          DLOG( INFO ) << "copy window "
              << "(" << wx1 << ", " << wy1 << ")->(" << wx2 << ", " << wy2 << ")";
