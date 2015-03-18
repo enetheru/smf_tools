@@ -12,6 +12,7 @@ class TiledImage
 {
     // == data members ==
     OpenImageIO::ImageSpec _tSpec = OpenImageIO::ImageSpec( 32, 32, 4, OpenImageIO::TypeDesc::UINT8 );
+    uint32_t _overlap = 0; //!< used for when tiles share border pixels, or have borders
 public:
     TileMap tileMap; //!< tile map
     TileCache tileCache; //!< tile cache
@@ -19,18 +20,20 @@ public:
 
     // read only references
     const OpenImageIO::ImageSpec &tSpec = _tSpec;
+    const uint32_t &overlap = _overlap;
 
     // == constructors ==
     TiledImage( ); //!< default constructor
     TiledImage( uint32_t inWidth, uint32_t inHeight,
         uint32_t inTileWidth = 32, uint32_t inTileHeight = 32 );
-    ~TiledImage(); //!<
+    ~TiledImage(); //!< default destructor
 
     // == Modifications ==
     void setSize( uint32_t width, uint32_t height );
     void setTileSize( uint32_t width, uint32_t height );
     void setTSpec( OpenImageIO::ImageSpec spec );
     void setTileMap( TileMap tileMap );
+    void setOverlap( uint32_t overlap );
 
     void mapFromCSV( std::string );
 
