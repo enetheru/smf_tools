@@ -84,7 +84,7 @@ const option::Descriptor usage[] = {
     { DUPLI, 0, "d", "dupli", Arg::Required, "  -d  \t--dupli=[None,Exact,Perceptual]"
         "\tdefault=Exact, whether to detect and omit duplcates."},
 
-    { TYPE, 0, "", "type", Arg::Required, "\t--type=[DXT1,UINT8,UINT16]"
+    { TYPE, 0, "", "type", Arg::Required, "\t--type=[DXT1,RGBA8,USHORT]"
         "\tdefault=DXT1, what format to put into the smt"},
 
     { 0, 0, 0, 0, 0, 0 }

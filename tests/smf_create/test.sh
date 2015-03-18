@@ -1,5 +1,5 @@
 #!/bin/bash
-COMMAND="smf_cc -v --mapsize 8x8"
+COMMAND="smf_cc -vf --mapsize 8x8"
 
 # == Pre Test Actions ==
 #nothing
