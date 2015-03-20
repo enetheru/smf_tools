@@ -18,8 +18,3 @@ Boost_system<br>
 
 elog<br>
 https://github.com/beam2d/elog/
-
-Building
-========
-### Windows 7 with Msys2
- * https://github.com/enetheru/MapConv/wiki/Building-with-msys2
