@@ -1,5 +1,7 @@
 smf_tools
 =======
+[![Build Status](https://travis-ci.org/enetheru/smf_tools.svg?branch=master)](https://travis-ci.org/enetheru/smf_tools)
+
 A cross platform SMF and SMT compiler for SpringRTS http://www.springrts.com
 
 Dependencies
