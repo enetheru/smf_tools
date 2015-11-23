@@ -5,7 +5,6 @@ compiler:
   - clang
   - gcc
 install:
-  - sudo add-apt-repository ppa:boost-latest/ppa --yes
   - sudo apt-get update -qq
   - sudo apt-get install git cmake
   - sudo apt-get install libboost-dev
