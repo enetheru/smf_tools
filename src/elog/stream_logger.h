@@ -82,7 +82,9 @@ class StreamLogger : public Logger {
     }
     MutexLock lock(push_message_mutex_);
     OutputTypedMessageHeader(type_info, verbosity, stream_);
+#ifndef NDEBUG
     OutputFileLine(source_file_name, line_number, stream_);
+#endif //NDEBUG
     stream_ << message << std::endl;
   }
 

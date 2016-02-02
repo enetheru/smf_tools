@@ -11,7 +11,7 @@
 /* The function takes a string in the form of IxK, and assignes
  * the values of I,K to x,y.
  */
-void valxval( std::string s, uint32_t &x, uint32_t &y );
+std::pair< uint32_t, uint32_t > valxval( const std::string s );
 
 /// Expand a string sequence of integers to a vector
 /*  The function takes a string in the form of comma ',' separated values.
@@ -76,7 +76,8 @@ class FileMap{
             if( (temp.begin >= i->begin && temp.begin <= i->end)
              || (temp.end >= i->begin && temp.end <= i->end)
              || (temp.begin <= i->begin && temp.end >= i->end) ){
-                LOG( ERROR ) << temp.name << "clashes with existing block " << i->name;
+                LOG( ERROR ) << "'" << temp.name << "'"
+					<< " clashes with existing block " << "'" << i->name << "'";
             }
         }
         list.push_back( temp );

@@ -13,17 +13,19 @@
 
 #include "util.h"
 
-void
-valxval( std::string s, uint32_t &x, uint32_t &y )
+std::pair< uint32_t, uint32_t >
+valxval( const std::string input )
 {
-    uint32_t d;
-    d = s.find_first_of( 'x', 0 );
+	std::pair< uint32_t, uint32_t> result;
 
-    if(d) x = std::stoi( s.substr( 0, d ) );
-    else x = 0;
+    auto d = input.find_first_of( 'x', 0 );
 
-    if(d == s.size()-1 ) y = 0;
-    else y = std::stoi( s.substr( d + 1, std::string::npos) );
+    if( d ) result.first = std::stoi( input.substr( 0, d ) );
+    else result.first = 0;
+
+    if( d == input.size() - 1 ) result.second = 0;
+    else result.second = std::stoi( input.substr( d + 1, std::string::npos) );
+	return result;
 }
 
 std::vector< uint32_t >

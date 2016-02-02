@@ -184,10 +184,8 @@ main( int argc, char **argv )
 
     // * Tile Size
     if( options[ TILESIZE ] ){
-        uint32_t w,h;
-        valxval( options[ TILESIZE ].arg, w, h );
-        otSpec.width = w;
-        otSpec.height = h;
+		std::tie( otSpec.width, otSpec.height )
+				= valxval( options[ TILESIZE ].arg );
         if( (oType == 1)
             && ((otSpec.width % 4) || (otSpec.height % 4))
           ){
@@ -198,7 +196,8 @@ main( int argc, char **argv )
     
     // * Image Size
     if( options[ IMAGESIZE ] ){
-        valxval( options[ IMAGESIZE ].arg, out_img_width, out_img_height );
+		std::tie( out_img_width, out_img_height )
+				= valxval( options[ IMAGESIZE ].arg );
         if( (oType == 1)
             && ((out_img_width % 4) || (out_img_height % 4))
           ){

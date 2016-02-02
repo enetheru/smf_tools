@@ -156,7 +156,7 @@ main( int argc, char **argv )
 
     // --mapsize
     if( options[ MAPSIZE ] ){
-        valxval( options[ MAPSIZE ].arg, mapWidth, mapLength );
+		std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
     }
     if(! mapWidth || ! mapLength){
         LOG( ERROR ) << "--mapsize not specified";
