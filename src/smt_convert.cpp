@@ -141,7 +141,6 @@ main( int argc, char **argv )
     if( options[ QUIET ] )
         LOG::SetDefaultLoggerLevel( LOG::CHECK );
 
-
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
@@ -423,8 +422,11 @@ main( int argc, char **argv )
 
             tempBuf->clear();
             delete tempBuf;
-
-            progressBar( "[Progress]:", out_tileMap.width * out_tileMap.height - numDupes, numTiles );
+			if(! options[ QUIET ] ){
+            	progressBar( "[Progress]:",
+					out_tileMap.width * out_tileMap.height - numDupes,
+					numTiles );
+			}
         }
     }
     LOG(INFO) << "actual:max = " << numTiles << ":" << out_tileMap.width * out_tileMap.height;
