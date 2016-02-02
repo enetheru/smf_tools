@@ -81,15 +81,15 @@ main( int argc, char **argv )
     }
     // end of options parsing
 
-    SMF *smf = NULL;
+    SMF *smf = nullptr;
     if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
         LOG( ERROR ) << "cannot open " << parse.nonOption(0);
         exit( 1 );
     }
 
     std::fstream file;
-    OpenImageIO::ImageBuf *buf = NULL;
-    TileMap *tileMap = NULL;
+    OpenImageIO::ImageBuf *buf = nullptr; //FIXME is buf really needed here?
+    TileMap *tileMap = nullptr;
 
     LOG( INFO ) << "Extracting Header Info";
     file.open( "out_Header_Info.txt", std::ios::out );

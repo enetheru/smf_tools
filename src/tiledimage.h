@@ -11,7 +11,7 @@
 class TiledImage
 {
     // == data members ==
-    OpenImageIO::ImageBuf *currentTile = NULL; //!< 
+    OpenImageIO::ImageBuf *currentTile = nullptr; //!<
     OpenImageIO::ImageSpec _tSpec = OpenImageIO::ImageSpec( 32, 32, 4, OpenImageIO::TypeDesc::UINT8 );
     uint32_t _overlap = 0; //!< used for when tiles share border pixels
 

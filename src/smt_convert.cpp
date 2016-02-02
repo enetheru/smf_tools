@@ -97,8 +97,8 @@ main( int argc, char **argv )
     bool overwrite = false;
     // temporary
     OpenImageIO::ImageBuf *tempBuf;
-    SMF *tempSMF = NULL;
-    SMT *tempSMT = NULL;
+    SMF *tempSMF = nullptr;
+    SMT *tempSMT = nullptr;
     std::stringstream name;
 
     // source
@@ -193,7 +193,7 @@ main( int argc, char **argv )
             fail = true;
         }
     }
-    
+
     // * Image Size
     if( options[ IMAGESIZE ] ){
 		std::tie( out_img_width, out_img_height )

@@ -63,7 +63,7 @@ SMF::create( string fileName, bool overwrite )
 
     // check for existing file and whether to overwrite
     file.open( fileName, ios::in );
-    if( file.good() && !overwrite ) return NULL;
+    if( file.good() && !overwrite ) return nullptr;
     file.close();
 
     DLOG( INFO ) << "Creating " << fileName;
@@ -72,7 +72,7 @@ SMF::create( string fileName, bool overwrite )
     file.open( fileName, ios::binary | ios::out );
     if(! file.good() ){
         LOG( ERROR ) << "Unable to write to " << fileName;
-        return NULL;
+        return nullptr;
     }
     file.close();
 
@@ -97,9 +97,9 @@ SMF::open( string fileName )
         smf->read();
         return smf;
     }
-    
+
     LOG( ERROR ) << "Cannot open " << fileName;
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -111,7 +111,7 @@ SMF::read()
     DLOG( INFO ) << "Reading " << fileName;
     ifstream file( fileName );
     CHECK( file.good() ) << "Unable to read" << fileName;
-    
+
     file.seekg( 0, ios::end );
     // add block after the end of the file to test against.
     map.addBlock( file.tellg(), INT_MAX, "eof" );
@@ -128,7 +128,7 @@ SMF::read()
     map.addBlock( header.typePtr, typeSpec.image_bytes() , "type");
     map.addBlock( header.miniPtr, MINIMAP_SIZE, "mini" );
     map.addBlock( header.metalPtr, metalSpec.image_bytes(), "metal" );
-    
+
 
     // Extra headers Information
     SMF::HeaderExtra *headerExtra;
@@ -225,7 +225,7 @@ SMF::info()
          << "\n\n\tHeightPtr:   "   << int_to_hex( header.heightPtr ) << " "
             << header.width+1 << "x"
             << header.length+1 << ":" << 1 << " UINT16"
-         << "\n\tTypePtr:     "     << int_to_hex( header.typePtr ) << " " 
+         << "\n\tTypePtr:     "     << int_to_hex( header.typePtr ) << " "
             << header.width << "x" << header.length << ":" << 1 << " UINT8"
          << "\n\tTilesPtr:    "     << int_to_hex( header.tilesPtr )
          << "\n\tMapPtr:      "     << int_to_hex( mapPtr ) << " "
@@ -329,17 +329,17 @@ SMF::updatePtrs()
     DLOG(INFO) << "Updating file offset pointers";
 
     header.heightPtr = sizeof( SMF::Header );
-    
+
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
         header.heightPtr += (*i)->bytes;
 
     header.typePtr = header.heightPtr + heightSpec.image_bytes();
     header.tilesPtr = header.typePtr + typeSpec.image_bytes();
     mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
-    
+
     for( auto i = smtList.begin(); i != smtList.end(); ++i )
         mapPtr += i->size() + 5;
-        
+
     header.miniPtr = mapPtr + mapSpec.image_bytes();
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
     header.featuresPtr = header.metalPtr + metalSpec.image_bytes();
@@ -413,9 +413,9 @@ SMF::setDepth( float floor, float ceiling )
 void
 SMF::enableGrass( bool enable )
 {
-    HeaderGrass *headerGrass = NULL;
+    HeaderGrass *headerGrass = nullptr;
 
-    // get header if it exists. 
+    // get header if it exists.
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
         if( (*i)->type == 1 ){
             headerGrass = (HeaderGrass *)*i;
@@ -462,7 +462,7 @@ SMF::addTileFile( string fileName )
         return;
     }
 
-    SMT *smt = NULL;
+    SMT *smt = nullptr;
     CHECK( (smt = SMT::open( fileName )) ) << "Invalid smt file " << fileName;
 
     smtList.push_back( fileName );
@@ -600,7 +600,7 @@ SMF::writeImage( unsigned int ptr, ImageSpec spec, ImageBuf *sourceBuf )
     CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
     file.seekp( ptr );
 
-    if(! sourceBuf ){
+    if( sourceBuf == nullptr ){
         char zero = 0;
         for( uint32_t i = 0; i < spec.image_bytes(); ++i )
             file.write( &zero, sizeof( char ) );
@@ -640,7 +640,7 @@ SMF::writeType( ImageBuf *sourceBuf )
     dirtyMask &= !SMF_TYPE;
 
     if( writeImage( header.typePtr, typeSpec, sourceBuf ) ){
-        LOG( WARN ) << "Wrote blank typemap";    
+        LOG( WARN ) << "Wrote blank typemap";
     }
 }
 
@@ -654,7 +654,7 @@ SMF::writeMini( ImageBuf * sourceBuf )
     CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
     file.seekp( header.miniPtr );
 
-    if(! sourceBuf ){
+    if( sourceBuf == nullptr ){
         char zero[ MINIMAP_SIZE ] = { 0 };
         file.write( zero, sizeof( zero ) );
         file.close();
@@ -670,7 +670,7 @@ SMF::writeMini( ImageBuf * sourceBuf )
 
     ImageSpec spec;
     int blocks_size = 0;
-    squish::u8 *blocks = NULL;
+    squish::u8 *blocks = nullptr;
     for( int i = 0; i < 9; ++i ){
         DLOG( INFO ) << "mipmap loop: " << i;
         spec = tempBuf->specmod();
@@ -678,7 +678,7 @@ SMF::writeMini( ImageBuf * sourceBuf )
         blocks_size = squish::GetStorageRequirements(
                 spec.width, spec.height, squish::kDxt1 );
 
-        if(! blocks ){
+        if( blocks == nullptr ){
             DLOG( INFO ) << "allocating space: " << blocks_size;
             blocks = new squish::u8[ blocks_size ];
         }
@@ -732,8 +732,8 @@ SMF::writeMap( TileMap *tileMap )
     DLOG( INFO ) << "Writing map";
     dirtyMask &= !SMF_MAP;
 
-    if(! tileMap ){
-        writeImage( mapPtr, mapSpec, NULL);
+    if( tileMap == nullptr ){
+        writeImage( mapPtr, mapSpec, nullptr );
         LOG( WARN ) << "Wrote blank map";
         return;
     }
@@ -753,7 +753,7 @@ SMF::writeMetal( ImageBuf *sourceBuf )
     dirtyMask &= !SMF_METAL;
 
     if( writeImage( header.metalPtr, metalSpec, sourceBuf ) )
-        LOG( WARN ) << "Wrote blank metalmap";    
+        LOG( WARN ) << "Wrote blank metalmap";
 }
 
 /// write the feature header information to the smf
@@ -762,7 +762,7 @@ SMF::writeFeaturesHeader()
 {
     DLOG( INFO ) << "Writing feature headers";
     dirtyMask &= !SMF_FEATURES_HEADER;
-        
+
     fstream file( fileName, ios::binary | ios::in | ios::out );
     CHECK( file.good() ) << "cannot open " << fileName << "for writing";
     file.seekp( header.featuresPtr );
@@ -804,7 +804,7 @@ SMF::writeFeatures()
 void
 SMF::writeGrass( ImageBuf *sourceBuf )
 {
-    HeaderGrass *headerGrass = NULL;
+    HeaderGrass *headerGrass = nullptr;
 
     // get header if it exists.
     for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
@@ -812,7 +812,7 @@ SMF::writeGrass( ImageBuf *sourceBuf )
     }
 
     //if it doesnt exist, do nothing.
-    if(! headerGrass ) return;
+    if( headerGrass == nullptr ) return;
 
     DLOG( INFO ) << "Writing Grass\n";
 
@@ -847,7 +847,7 @@ SMF::getHeight( )
 
 ImageBuf *
 SMF::getType( )
-{ 
+{
     return getImage( header.typePtr, typeSpec );
 }
 
@@ -867,7 +867,7 @@ SMF::getMap( )
 }
 
 ImageBuf *SMF::getMini(){
-    ImageBuf * imageBuf = NULL;
+    ImageBuf * imageBuf = nullptr;
     unsigned char data[1024 * 1024 * 4];
 
     ifstream file( fileName );
@@ -889,8 +889,8 @@ ImageBuf *SMF::getMini(){
 
 ImageBuf *
 SMF::getMetal( )
-{ 
-    return getImage( header.metalPtr, metalSpec ); 
+{
+    return getImage( header.metalPtr, metalSpec );
 }
 
 string
@@ -923,7 +923,7 @@ SMF::getFeatures( )
 ImageBuf *
 SMF::getGrass()
 {
-    HeaderGrass *headerGrass = NULL;
+    HeaderGrass *headerGrass = nullptr;
     for( auto i = headerExtras.begin();
             i != headerExtras.end(); ++i ){
         if( (*i)->type == 1 ){
@@ -931,5 +931,5 @@ SMF::getGrass()
             return getImage( headerGrass->ptr, grassSpec );
         }
     }
-    return NULL;
+    return nullptr;
 }

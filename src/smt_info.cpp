@@ -53,7 +53,7 @@ int main( int argc, char **argv )
 
     if( parse.error() ) exit( 1 );
 
-    SMT *smt = NULL;
+    SMT *smt = nullptr;
     if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
         LOG(FATAL) << "cannot open smt file";
     }

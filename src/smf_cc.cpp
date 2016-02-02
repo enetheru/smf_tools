@@ -95,8 +95,8 @@ int
 main( int argc, char **argv )
 {
     // == temporary/global variables
-    SMF *smf = NULL;
-    SMT *smt = NULL;
+    SMF *smf = nullptr;
+    SMT *smt = nullptr;
     bool force = false;
     uint32_t mapWidth = 0, mapLength = 0;
     string outFileName;
@@ -175,7 +175,7 @@ main( int argc, char **argv )
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->tileSize;
         delete smt;
-        smt = NULL;
+        smt = nullptr;
     }
     if( options[ TILESIZE ] ){
         tileSize = atoi( options[ TILESIZE ].arg );
@@ -228,7 +228,7 @@ main( int argc, char **argv )
     }
 
     // map header and smt files
-    // * add smt files 
+    // * add smt files
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf->addTileFile( parse.nonOption( i ) );
     }
@@ -256,7 +256,7 @@ main( int argc, char **argv )
         smf->writeHeight( &heightBuf );
     }
     else {
-        smf->writeHeight(NULL);
+        smf->writeHeight();
     }
 
     // type
@@ -265,7 +265,7 @@ main( int argc, char **argv )
         smf->writeType( &typeBuf );
     }
     else {
-        smf->writeType(NULL);
+        smf->writeType();
     }
 
     // map header
@@ -273,8 +273,8 @@ main( int argc, char **argv )
     smf->writeTileHeader();
 
     // map data
-    SMF *smfTemp = NULL;
-    TileMap *tileMap = NULL;
+    SMF *smfTemp = nullptr;
+    TileMap *tileMap = nullptr;
     if( options[ MAP ] ){
         if( SMF::test( options[ MAP ].arg ) ){
             smfTemp = SMF::open( options[ MAP ].arg );
@@ -294,7 +294,7 @@ main( int argc, char **argv )
         smf->writeMini( &miniBuf );
     }
     else {
-        smf->writeMini(NULL);
+        smf->writeMini();
     }
 
     // metalmap
@@ -303,7 +303,7 @@ main( int argc, char **argv )
         smf->writeMetal( &metalBuf );
     }
     else {
-        smf->writeMetal(NULL);
+        smf->writeMetal();
     }
 
     // featuresheader

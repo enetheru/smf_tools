@@ -19,7 +19,7 @@ SMT::create( string fileName, bool overwrite )
 {
     SMT *smt;
     ifstream file( fileName );
-    if( file.good() && !overwrite ) return NULL;
+    if( file.good() && !overwrite ) return nullptr;
 
     smt = new SMT;
     smt->_fileName = fileName;
@@ -53,7 +53,7 @@ SMT::open( string fileName )
         smt->load();
         return smt;
     }
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -211,7 +211,7 @@ SMT::appendDXT1( ImageBuf *sourceBuf )
 
     ImageSpec spec;
     int blocks_size = 0;
-    squish::u8 *blocks = NULL;
+    squish::u8 *blocks = nullptr;
     fstream file(fileName, ios::binary | ios::in | ios::out);
     file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
     for( int i = 0; i < 4; ++i ){
@@ -291,21 +291,21 @@ SMT::getTile( uint32_t n )
     if( tileType == 1                 ) return getTileDXT1( n );
     if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
     if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
-    return NULL;
+    return nullptr;
 }
 
 ImageBuf *
 SMT::getTileDXT1( uint32_t n )
 {
-    ImageBuf *tempBuf = NULL;
+    ImageBuf *tempBuf = nullptr;
     if( n >= header.nTiles ){
         tempBuf = new ImageBuf( tileSpec );
         return tempBuf;
     }
 
-    char *raw_dxt1a = NULL;
-    char *rgba8888 = NULL;
-    ImageBuf *outBuf = NULL;
+    char *raw_dxt1a = nullptr;
+    char *rgba8888 = nullptr;
+    ImageBuf *outBuf = nullptr;
 
     ifstream file( fileName );
     if( file.good() ){
@@ -336,14 +336,14 @@ SMT::getTileDXT1( uint32_t n )
 ImageBuf *
 SMT::getTileRGBA8( uint32_t n )
 {
-    ImageBuf *tempBuf = NULL;
+    ImageBuf *tempBuf = nullptr;
     if( n >= header.nTiles ){
         tempBuf = new ImageBuf( tileSpec );
         return tempBuf;
     }
 
-    char *pixelData = NULL;
-    ImageBuf *outBuf = NULL;
+    char *pixelData = nullptr;
+    ImageBuf *outBuf = nullptr;
 
     ifstream file( fileName );
     if( file.good() ){
@@ -368,5 +368,5 @@ SMT::getTileRGBA8( uint32_t n )
 ImageBuf *
 SMT::getTileUSHORT( uint32_t n )
 {
-    return NULL;
+    return nullptr;
 }

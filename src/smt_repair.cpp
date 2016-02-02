@@ -85,7 +85,7 @@ main( int argc, char **argv )
     }
 
 // test file properties
-    SMT *smt = NULL;
+    SMT *smt = nullptr;
     if(! (smt = SMT::open( parse.nonOption( 0 ) )) ){
         LOG( ERROR ) << "\nunable to open file";
         exit ( 1 );

@@ -26,7 +26,7 @@ TileMap *
 TileMap::createCSV( std::string fileName )
 {
     std::fstream file( fileName, std::ios::in );
-    if(! file.good() ) return NULL;
+    if(! file.good() ) return nullptr;
     file.close();
 
     TileMap *tileMap = new TileMap;

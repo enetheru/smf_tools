@@ -17,11 +17,11 @@ OIIO_NAMESPACE_USING;
 ImageBuf *
 TileCache::getOriginal( uint32_t n )
 {
-    ImageBuf *tileBuf = NULL;
-    ImageInput *image = NULL;
-    SMT *smt = NULL;
-    static SMT *lastSmt = NULL;
-    if( n >= nTiles ) return NULL;
+    ImageBuf *tileBuf = nullptr;
+    ImageInput *image = nullptr;
+    SMT *smt = nullptr;
+    static SMT *lastSmt = nullptr;
+    if( n >= nTiles ) return nullptr;
 
     auto i = map.begin();
     auto fileName = fileNames.begin();
@@ -46,7 +46,7 @@ TileCache::getOriginal( uint32_t n )
         if(! tileBuf->initialized() ) {
             delete tileBuf;
             LOG( ERROR ) << "failed to open source for tile: " << n;
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -60,8 +60,8 @@ TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec spec )
     CHECK( spec.height ) << "TileCache::getSpec, cannot request zero height";
     CHECK( spec.nchannels ) << "TileCache::getSpec, cannot request zero channels";
 
-    ImageBuf *tempBuf = NULL;
-    if(! (tempBuf = getOriginal( n )) )return NULL;
+    ImageBuf *tempBuf = nullptr;
+    if(! (tempBuf = getOriginal( n )) )return nullptr;
 
     convert( tempBuf, spec);
     scale( tempBuf, spec);
@@ -72,7 +72,7 @@ TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec spec )
 void
 TileCache::addSource( std::string fileName )
 {
-    ImageInput *image = NULL;
+    ImageInput *image = nullptr;
     ImageSpec spec;
     if( (image = ImageInput::open( fileName )) ){
         image->close();
@@ -84,7 +84,7 @@ TileCache::addSource( std::string fileName )
         return;
     }
 
-    SMT *smt = NULL;
+    SMT *smt = nullptr;
     if( (smt = SMT::open( fileName )) ){
         if(! smt->nTiles ) return;
         nTiles += smt->nTiles;
@@ -95,7 +95,7 @@ TileCache::addSource( std::string fileName )
         return;
     }
 
-    SMF *smf = NULL;
+    SMF *smf = nullptr;
     if( (smf = SMF::open( fileName )) ){
         // get the fileNames here
         std::vector< std::string > smtList = smf->getTileFileNames();

@@ -80,7 +80,6 @@ class SMF {
     };
     std::vector<SMF::HeaderExtra *> headerExtras;
 
-    
     /*! Extra grass Headerder.
      *
      * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
@@ -94,7 +93,6 @@ class SMF {
 
     OpenImageIO::ImageSpec heightSpec;
     OpenImageIO::ImageSpec typeSpec;
-    
 
     /*! Tile Section Header.
      *
@@ -113,16 +111,16 @@ class SMF {
     };
     HeaderTiles headerTiles;
 
-    //TODO convert this to a vector of pairs, or a tuple 
+    //TODO convert this to a vector of pairs, or a tuple
     std::vector< std::string > smtList;      ///< list of smt files references
     std::vector< uint32_t > nTiles; ///< number of tiles in corresponding files from smtList
-    
+
     uint32_t mapPtr;         ///< pointer to beginning of the tilemap
     OpenImageIO::ImageSpec mapSpec;
-    
+
     OpenImageIO::ImageSpec miniSpec;
     OpenImageIO::ImageSpec metalSpec;
-    
+
     /*! Features Section Header.
      *
      * this is followed by numFeatureType zero terminated strings indicating the
@@ -151,14 +149,11 @@ class SMF {
     std::vector< SMF::Feature > features;
 
     OpenImageIO::ImageSpec grassSpec;
-    
+
     // == Internal Utility Functions ==
-
-
-
     OpenImageIO::ImageBuf *getImage( uint32_t ptr, OpenImageIO::ImageSpec spec );
     bool writeImage( uint32_t ptr, OpenImageIO::ImageSpec spec,
-            OpenImageIO::ImageBuf *sourceBuf = NULL );
+            OpenImageIO::ImageBuf *sourceBuf = nullptr );
 
 public:
     SMF( ){ };
@@ -174,7 +169,7 @@ public:
      * creates a string with information about the class
      */
     std::string info( );
-    
+
     /*! Update the file offset pointers
      *
     * This function makes sure that all data offset pointers are pointing to the
@@ -196,7 +191,7 @@ public:
     void read( );
 
     /*! Set the filename.
-     * 
+     *
      * @param fileName The name of the file to save the data to.
      */
     void setFileName( std::string fileName );
@@ -220,7 +215,7 @@ public:
      * @param size density of pixels per square
      */
     void setSquareTexels( int size );
-   
+
     /*! setTileSize
      *
      * Sets the square pixel resolution of the tiles location in the file.
@@ -238,7 +233,7 @@ public:
     void setDepth( float floor, float ceiling );
 
     /*! enable grass map
-     * 
+     *
      * @param enable true = grass, false = no grass.
      */
     void enableGrass( bool enable = false );
@@ -269,16 +264,16 @@ public:
 
     void writeHeader( );
     void writeExtraHeaders();
-    void writeHeight  ( OpenImageIO::ImageBuf *buf );
-    void writeType    ( OpenImageIO::ImageBuf *buf );
+    void writeHeight  ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeType    ( OpenImageIO::ImageBuf *buf = nullptr );
     void writeTileHeader( );
-    void writeMap     ( TileMap *tileMap );
-    void writeMini    ( OpenImageIO::ImageBuf *buf );
-    void writeMetal   ( OpenImageIO::ImageBuf *buf );
+    void writeMap     ( TileMap *tileMap = nullptr );
+    void writeMini    ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeMetal   ( OpenImageIO::ImageBuf *buf = nullptr );
     void writeFeaturesHeader();
     void writeFeatures();
     // Extra
-    void writeGrass   ( OpenImageIO::ImageBuf *buf );
+    void writeGrass   ( OpenImageIO::ImageBuf *buf = nullptr );
 
     OpenImageIO::ImageBuf *getHeight();
     OpenImageIO::ImageBuf *getType();

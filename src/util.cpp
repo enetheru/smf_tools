@@ -79,13 +79,13 @@ scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     OIIO_NAMESPACE_USING;
 
     const OpenImageIO::ImageSpec srcSpec = sourceBuf->spec();
-    CHECK( sourceBuf ) << " NULL pointer passed to scale()";
+    CHECK( sourceBuf ) << "nullptr passed to scale()";
 
     // do nothing if the original if its the correct size.
     if( srcSpec.width == spec.width && srcSpec.height == spec.height ){
         return;
     }
-    
+
     // Otherwise scale
     ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, srcSpec.nchannels );
     ImageBuf *tempBuf = new ImageBuf;
@@ -111,7 +111,7 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     int map[] = { 0, 1, 2, 3 };
     float fill[] = { 0, 0, 0, 1.0 };
 
-    CHECK( sourceBuf ) << "NULL Pointer passed to channels()";
+    CHECK( sourceBuf ) << "nullptr passed to channels()";
 
     // return a copy of the original if its the correct size.
     if( sourceBuf->spec().nchannels == spec.nchannels ) return;
@@ -146,7 +146,7 @@ swizzle( OpenImageIO::ImageBuf *&sourceBuf )
     int map[] = { 2, 1, 0, 3 };
     float fill[] = { 0, 0, 0, 1.0 };
 
-    CHECK( sourceBuf ) << "NULL Pointer passed to swizzle()";
+    CHECK( sourceBuf ) << "nullptr passed to swizzle()";
 
     if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
     ImageBuf *tempBuf = new ImageBuf;

@@ -54,7 +54,7 @@ TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
     tileMap.setSize( inWidth / tSpec.width, inHeight / tSpec.height );
 }
 
-void 
+void
 TiledImage::setTSpec( OpenImageIO::ImageSpec spec )
 {
     _tSpec = spec;
@@ -208,7 +208,7 @@ TiledImage::getRegion(
     }
 
     if( hasData )return dest;
-    return NULL;
+    return nullptr;
 }
 
 OpenImageIO::ImageBuf *

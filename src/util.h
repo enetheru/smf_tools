@@ -28,8 +28,8 @@ template< typename T >
 std::string int_to_hex( T i )
 {
   std::stringstream stream;
-  stream << "0x" 
-         << std::setfill( '0' ) << std::setw( sizeof( T ) * 2 ) 
+  stream << "0x"
+         << std::setfill( '0' ) << std::setw( sizeof( T ) * 2 )
          << std::hex << i;
   return stream.str();
 }
@@ -37,7 +37,7 @@ std::string int_to_hex( T i )
 /// re-orders the channels an imageBuf according to the imagespec
 /*  Returns a copy of the souceBuf with the number of channels in
  *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
- *  If sourceBuf is NULL then a blank image is returned.
+ *  If sourceBuf is nullptr then a blank image is returned.
  */
 void channels( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
@@ -49,7 +49,7 @@ void scale( OpenImageIO::ImageBuf *&sourceBuf,
 
 void convert( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
-        
+
 void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
 
 void progressBar( std::string message, float goal, float progress );
