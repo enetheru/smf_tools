@@ -159,12 +159,11 @@ SMF::read()
     // TileFiles
     offset = file.tellg();
     uint32_t nTiles;
-    char temp[1024];
+    std::string smtFileName;
     for( int i = 0; i < headerTiles.nFiles; ++i){
         file.read( (char *)&nTiles, 4 );
-        this->nTiles.push_back( nTiles );
-        file.getline( temp, 1023, '\0' );
-        smtList.push_back( temp );
+        std::getline( file, smtFileName, '\0' );
+        smtList.push_back( std::make_pair( nTiles, smtFileName ) );
     }
     if( headerTiles.nFiles ){
         map.addBlock( offset, uint32_t( file.tellg() ) - offset, "tileFileList");
@@ -182,9 +181,10 @@ SMF::read()
     map.addBlock( header.featuresPtr, sizeof( SMF::HeaderFeatures ), "featuresHeader" );
 
     offset = file.tellg();
+    std::string featureName;
     for( int i = 0; i < headerFeatures.nTypes; ++i ){
-        file.getline( temp, 255, '\0' );
-        featureTypes.push_back( temp );
+        std::getline( file, featureName, '\0' );
+        featureTypes.push_back( featureName );
     }
 
     if( headerFeatures.nTypes)
@@ -259,10 +259,10 @@ SMF::info()
 
     // Tileindex Information
     info << "\n  Tile Index Information"
-         << "\n\tTile Files:  " << headerTiles.nFiles
+         << "\n\tTile Files:  " << smtList.size()
          << "\n\tTotal tiles: " << headerTiles.nTiles;
-    for( int i = 0; i < headerTiles.nFiles; ++i ){
-        info << "\n\t    " << smtList[ i ] << ":" << nTiles[ i ] <<  endl;
+    for( auto i : smtList ){
+        info << "\n\t    " << i.second << ":" << i.first <<  endl;
     }
 
     // Features Information
@@ -327,7 +327,7 @@ SMF::updatePtrs()
     header.tilesPtr = header.typePtr + typeSpec.image_bytes();
     mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
 
-    for( auto i : smtList ) mapPtr += i.size() + 5;
+    for( auto i : smtList ) mapPtr += (sizeof(uint32_t) + i.second.size() + 1);
 
     header.miniPtr = mapPtr + mapSpec.image_bytes();
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
@@ -444,7 +444,6 @@ SMF::addTileFile( string fileName )
 
     if(! fileName.compare( "CLEAR" ) ){
         smtList.clear();
-        nTiles.clear();
         headerTiles.nFiles = 0;
         headerTiles.nTiles = 0;
         return;
@@ -453,11 +452,9 @@ SMF::addTileFile( string fileName )
     SMT *smt = nullptr;
     CHECK( (smt = SMT::open( fileName )) ) << "Invalid smt file " << fileName;
 
-    smtList.push_back( fileName );
     ++headerTiles.nFiles;
-
-    nTiles.push_back( smt->nTiles);
     headerTiles.nTiles += smt->nTiles;
+    smtList.push_back( std::make_pair( smt->nTiles, fileName ) );
 
     delete smt;
 }
@@ -703,10 +700,9 @@ SMF::writeTileHeader()
     file.write( (char *)&headerTiles, sizeof( SMF::HeaderTiles ) );
 
     // SMT Names & numbers
-    for( int i = 0; i < headerTiles.nFiles; ++i ){
-        int num = nTiles[i];
-        file.write( (char *)&num, 4 );
-        file.write( smtList[ i ].c_str(), smtList[ i ].size() + 1 );
+    for( auto i : smtList ){
+        file.write( (char *)&i.first, sizeof(i.first) );
+        file.write( i.second.c_str(), i.second.size() + 1 );
     }
     file.close();
 }

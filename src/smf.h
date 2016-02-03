@@ -110,10 +110,7 @@ class SMF {
         int nTiles = 0; ///< number of tiles total
     };
     HeaderTiles headerTiles;
-
-    //TODO convert this to a vector of pairs, or a tuple
-    std::vector< std::string > smtList;      ///< list of smt files references
-    std::vector< uint32_t > nTiles; ///< number of tiles in corresponding files from smtList
+    std::vector< std::pair< uint32_t, std::string > > smtList;
 
     uint32_t mapPtr;         ///< pointer to beginning of the tilemap
     OpenImageIO::ImageSpec mapSpec;
@@ -277,7 +274,7 @@ public:
 
     OpenImageIO::ImageBuf *getHeight();
     OpenImageIO::ImageBuf *getType();
-    std::vector< std::string> getTileFileNames(){ return smtList; };
+    std::vector< std::pair< uint32_t, std::string > > getSMTList(){ return smtList; };
     TileMap *getMap();
     OpenImageIO::ImageBuf *getMini();
     OpenImageIO::ImageBuf *getMetal();

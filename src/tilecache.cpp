@@ -98,8 +98,8 @@ TileCache::addSource( std::string fileName )
     SMF *smf = nullptr;
     if( (smf = SMF::open( fileName )) ){
         // get the fileNames here
-        std::vector< std::string > smtList = smf->getTileFileNames();
-        for( auto i : smtList ) addSource( i );
+        auto smtList = smf->getSMTList();
+        for( auto i : smtList ) addSource( i.second );
         delete smf;
         return;
     }
