@@ -63,32 +63,32 @@ class SMF {
         int metalPtr;         //!< byte:68 \n File offset to metalmap `unsigned char[mapx/2 * mapy/2]`
         int featuresPtr;      //!< byte:72 \n File offset to feature data
 
-        int nHeaderExtras = 0;///< byte:76 \n Fumbers of extra headers following this header
+        int nHeaderExtns = 0;///< byte:76 \n Fumbers of extra headers following this header
     };/* byte: 80 */
     Header header;
 
-    /*! Extra Header.
+    /*! Header Extension.
      *
-     * start of every extra header must look like this, then comes data specific
+     * start of every header Extn must look like this, then comes data specific
      * for header type
      */
-    struct HeaderExtra {
+    struct HeaderExtn {
         int bytes = 0;      //!< size of the header
         int type = 0;       //!< type of the header
-        HeaderExtra( ){ };
-        HeaderExtra( int i, int j ) : bytes( i ), type( j ){ };
+        HeaderExtn( ){ };
+        HeaderExtn( int i, int j ) : bytes( i ), type( j ){ };
     };
-    std::vector<SMF::HeaderExtra *> headerExtras;
+    std::vector< SMF::HeaderExtn * > headerExtns;
 
-    /*! Extra grass Headerder.
+    /*! grass Header Extn.
      *
      * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
      * that defines ground vegetation.
      */
-    struct HeaderGrass: public HeaderExtra
+    struct HeaderGrass: public HeaderExtn
     {
         int ptr = 80; ///< offset to beginning of grass map data.
-        HeaderGrass( ) : HeaderExtra( 12, 1 ){ };
+        HeaderGrass( ) : HeaderExtn( 12, 1 ){ };
     };
 
     OpenImageIO::ImageSpec heightSpec;

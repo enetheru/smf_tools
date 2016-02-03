@@ -19,7 +19,7 @@ void
 SMF::good()
 {
     if( dirtyMask & SMF_HEADER          ) LOG( INFO ) << "dirty header";
-    if( dirtyMask & SMF_EXTRAHEADER     ) LOG( INFO ) << "dirty headerExtra";
+    if( dirtyMask & SMF_EXTRAHEADER     ) LOG( INFO ) << "dirty headerExtn";
     if( dirtyMask & SMF_HEIGHT          ) LOG( INFO ) << "dirty height";
     if( dirtyMask & SMF_TYPE            ) LOG( INFO ) << "dirty type";
     if( dirtyMask & SMF_MAP_HEADER      ) LOG( INFO ) << "dirty map header";
@@ -35,7 +35,7 @@ SMF::good()
 SMF::~SMF()
 {
     //delete extra headers
-    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ) {
+    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ) {
         delete *i;
     }
 }
@@ -131,26 +131,26 @@ SMF::read()
 
 
     // Extra headers Information
-    SMF::HeaderExtra *headerExtra;
-    for(int i = 0; i < header.nHeaderExtras; ++i ) {
-        headerExtra = new SMF::HeaderExtra;
+    SMF::HeaderExtn *headerExtn;
+    for(int i = 0; i < header.nHeaderExtns; ++i ) {
+        headerExtn = new SMF::HeaderExtn;
         offset = file.tellg();
-        file.read( (char *)headerExtra, sizeof(SMF::HeaderExtra) );
+        file.read( (char *)headerExtn, sizeof(SMF::HeaderExtn) );
         file.seekg(offset);
-        if(headerExtra->type == 1) {
+        if(headerExtn->type == 1) {
             SMF::HeaderGrass *headerGrass = new SMF::HeaderGrass;
             file.read( (char *)headerGrass, sizeof(SMF::HeaderGrass));
-            headerExtras.push_back( (SMF::HeaderExtra *)headerGrass );
+            headerExtns.push_back( (SMF::HeaderExtn *)headerGrass );
             map.addBlock( headerGrass->ptr, grassSpec.image_bytes(), "grass" );
         }
         else {
             LOG( WARN ) << "Extra Header(" << i << ")"
-                "has unknown type: " << headerExtra->type;
-            headerExtras.push_back( headerExtra );
+                "has unknown type: " << headerExtn->type;
+            headerExtns.push_back( headerExtn );
         }
-        map.addBlock( offset, headerExtra->bytes, "extraheader" );
-        file.seekg( offset + headerExtra->bytes );
-        delete headerExtra;
+        map.addBlock( offset, headerExtn->bytes, "extraheader" );
+        file.seekg( offset + headerExtn->bytes );
+        delete headerExtn;
     }
 
     // Tileindex Information
@@ -236,12 +236,12 @@ SMF::info()
          << "\n\tMetalPtr:    "     << int_to_hex( header.metalPtr )
          << " " << header.width << "x" << header.length << ":" << 1 << "  UINT8"
          << "\n\tFeaturesPtr: "     << int_to_hex( header.featuresPtr )
-         << "\n  HeaderExtras: "   << header.nHeaderExtras
+         << "\n  HeaderExtns: "   << header.nHeaderExtns
         ;
 
-    //HeaderExtras
-    if( header.nHeaderExtras ){
-        for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+    //HeaderExtns
+    if( header.nHeaderExtns ){
+        for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
             if( (*i)->type == 0 ){
                 info << "\n    Null Header"
                      << "\n\tsize: " << (*i)->bytes
@@ -330,7 +330,7 @@ SMF::updatePtrs()
 
     header.heightPtr = sizeof( SMF::Header );
 
-    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i )
+    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i )
         header.heightPtr += (*i)->bytes;
 
     header.typePtr = header.heightPtr + heightSpec.image_bytes();
@@ -355,7 +355,7 @@ SMF::updatePtrs()
         eof += sizeof( SMF::Feature );
 
     // Optional Headers.
-    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
         if( (*i)->type == 1 ){
             HeaderGrass *headerGrass = reinterpret_cast<SMF::HeaderGrass *>(*i);
             headerGrass->ptr = eof;
@@ -416,7 +416,7 @@ SMF::enableGrass( bool enable )
     HeaderGrass *headerGrass = nullptr;
 
     // get header if it exists.
-    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
         if( (*i)->type == 1 ){
             headerGrass = (HeaderGrass *)*i;
             break;
@@ -425,12 +425,12 @@ SMF::enableGrass( bool enable )
 
     // if we have a header and we dont want it anymore
     if( !enable && headerGrass ){
-        for( auto i = headerExtras.end(); i != headerExtras.begin(); --i ){
+        for( auto i = headerExtns.end(); i != headerExtns.begin(); --i ){
             if( (*i)->type == 1 ){
                 headerGrass = (HeaderGrass *)*i;
                 delete headerGrass;
-                i = headerExtras.erase(i);
-                --header.nHeaderExtras;
+                i = headerExtns.erase(i);
+                --header.nHeaderExtns;
             }
         }
         dirtyMask |= SMF_ALL;
@@ -442,8 +442,8 @@ SMF::enableGrass( bool enable )
 
     // otherwise we dont have and we want one
     headerGrass = new HeaderGrass();
-    headerExtras.push_back( headerGrass );
-    ++header.nHeaderExtras;
+    headerExtns.push_back( headerGrass );
+    ++header.nHeaderExtns;
     dirtyMask |= SMF_ALL;
 }
 
@@ -585,7 +585,7 @@ SMF::writeExtraHeaders()
     CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
 
     file.seekp( sizeof( Header ) );
-    for( auto eHeader = headerExtras.begin(); eHeader != headerExtras.end(); ++eHeader )
+    for( auto eHeader = headerExtns.begin(); eHeader != headerExtns.end(); ++eHeader )
         file.write( (char *)*eHeader, (*eHeader)->bytes );
 
     file.close();
@@ -807,7 +807,7 @@ SMF::writeGrass( ImageBuf *sourceBuf )
     HeaderGrass *headerGrass = nullptr;
 
     // get header if it exists.
-    for( auto i = headerExtras.begin(); i != headerExtras.end(); ++i ){
+    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
         if( (*i)->type == 1) headerGrass = (HeaderGrass *)*i;
     }
 
@@ -924,8 +924,8 @@ ImageBuf *
 SMF::getGrass()
 {
     HeaderGrass *headerGrass = nullptr;
-    for( auto i = headerExtras.begin();
-            i != headerExtras.end(); ++i ){
+    for( auto i = headerExtns.begin();
+            i != headerExtns.end(); ++i ){
         if( (*i)->type == 1 ){
             headerGrass = (HeaderGrass *)(*i);
             return getImage( headerGrass->ptr, grassSpec );
