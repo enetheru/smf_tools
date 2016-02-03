@@ -306,9 +306,7 @@ main( int argc, char **argv )
         smf->writeMetal();
     }
 
-    // featuresheader
-    // featuretypes
-    smf->writeFeaturesHeader();
+    //TODO collect feature information from the command line.
 
     // features
     smf->writeFeatures();

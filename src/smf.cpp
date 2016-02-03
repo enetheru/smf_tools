@@ -741,32 +741,20 @@ SMF::writeMetal( ImageBuf *sourceBuf )
 /// write the feature header information to the smf
 //FIXME, why are these separate, features header and features.. just do it all at once...
 void
-SMF::writeFeaturesHeader()
+SMF::writeFeatures()
 {
-    DLOG( INFO ) << "Writing feature headers";
+    DLOG( INFO ) << "Writing features";
     dirtyMask &= !SMF_FEATURES_HEADER;
 
     fstream file( fileName, ios::binary | ios::in | ios::out );
     CHECK( file.good() ) << "cannot open " << fileName << "for writing";
     file.seekp( header.featuresPtr );
 
-    // Tiles Header
+    // set the current state
     headerFeatures.nTypes = featureTypes.size();
     headerFeatures.nFeatures = features.size();
+
     file.write( (char *)&headerFeatures, sizeof( SMF::HeaderFeatures ) );
-    file.close();
-}
-
-void
-SMF::writeFeatures()
-{
-    DLOG( INFO ) << "Writing features";
-    dirtyMask &= !SMF_FEATURES;
-
-    fstream file( fileName, ios::binary | ios::in | ios::out );
-    CHECK( file.good() ) << "cannot open " << fileName << "for writing";
-    file.seekp( header.featuresPtr + 8 );
-
     for( auto i : featureTypes ) file.write( i.c_str(), i.size() + 1 );
     for( auto i : features ) file.write( (char *)&i, sizeof(SMF::Feature) );
 
