@@ -192,7 +192,7 @@ progressBar( std::string header, float goal, float current )
 
     history.push_back( progress );
     average = 0;
-    for( auto i = history.begin(); i != history.end(); ++i)average += *i;
+    for( auto i : history ) average += i;
     average = average / history.size();
 
     seconds = remainder / average;

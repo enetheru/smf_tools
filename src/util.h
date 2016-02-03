@@ -72,12 +72,12 @@ class FileMap{
     {
         DLOG( INFO ) << "adding: " << name << "(" << begin << "-" << begin + size-1 << ")";
         Block temp{ begin, begin + size-1, name };
-        for( auto i = list.begin(); i != list.end(); ++i){
-            if( (temp.begin >= i->begin && temp.begin <= i->end)
-             || (temp.end >= i->begin && temp.end <= i->end)
-             || (temp.begin <= i->begin && temp.end >= i->end) ){
+        for( auto i : list ){
+            if( (temp.begin >= i.begin && temp.begin <= i.end)
+             || (temp.end >= i.begin && temp.end <= i.end)
+             || (temp.begin <= i.begin && temp.end >= i.end) ){
                 LOG( ERROR ) << "'" << temp.name << "'"
-					<< " clashes with existing block " << "'" << i->name << "'";
+					<< " clashes with existing block " << "'" << i.name << "'";
             }
         }
         list.push_back( temp );

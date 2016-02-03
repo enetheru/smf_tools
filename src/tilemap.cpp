@@ -88,9 +88,9 @@ TileMap::fromCSV( std::string fileName )
         while( std::getline( line, cell, ',' ) ) tokens.push_back( cell );
 
         uint32_t x = 0;
-        for( auto i = tokens.begin(); i != tokens.end(); ++i ){
+        for( auto i : tokens ){
             try {
-                map[x + width * y] = stoi( *i );
+                map[x + width * y] = stoi( i );
             }
             catch( std::invalid_argument ){
                 map[x + width * y] = 0;
@@ -107,8 +107,8 @@ TileMap::toCSV( )
 {
     std::stringstream ss;
     uint32_t j = 1;
-    for( auto i = map.begin(); i != map.end(); ++i ){
-        ss << *i;
+    for( auto i : map ){
+        ss << i;
         if( j % width ) ss << ",";
         else ss << "\n";
         ++j;
@@ -132,9 +132,7 @@ TileMap::setSize( uint32_t width, uint32_t height )
 void
 TileMap::consecutive( )
 {
-    for( uint32_t i = 0; i < map.size(); ++i ){
-        map[ i ] = i;
-    }
+    for( uint32_t i = 0; i < map.size(); ++i ) map[ i ] = i;
 }
 
 // ACCESS

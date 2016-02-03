@@ -99,9 +99,7 @@ TileCache::addSource( std::string fileName )
     if( (smf = SMF::open( fileName )) ){
         // get the fileNames here
         std::vector< std::string > smtList = smf->getTileFileNames();
-        for( auto i = smtList.begin(); i != smtList.end(); ++i ){
-            addSource( *i );
-        }
+        for( auto i : smtList ) addSource( i );
         delete smf;
         return;
     }

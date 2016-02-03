@@ -35,9 +35,7 @@ SMF::good()
 SMF::~SMF()
 {
     //delete extra headers
-    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ) {
-        delete *i;
-    }
+    for( auto i : headerExtns ) delete i;
 }
 
 bool
@@ -132,12 +130,12 @@ SMF::read()
 
     // Extra headers Information
     SMF::HeaderExtn *headerExtn;
-    for(int i = 0; i < header.nHeaderExtns; ++i ) {
+    for( int i = 0; i < header.nHeaderExtns; ++i ){
         headerExtn = new SMF::HeaderExtn;
         offset = file.tellg();
         file.read( (char *)headerExtn, sizeof(SMF::HeaderExtn) );
-        file.seekg(offset);
-        if(headerExtn->type == 1) {
+        file.seekg( offset );
+        if( headerExtn->type == 1 ){
             SMF::HeaderGrass *headerGrass = new SMF::HeaderGrass;
             file.read( (char *)headerGrass, sizeof(SMF::HeaderGrass));
             headerExtns.push_back( (SMF::HeaderExtn *)headerGrass );
@@ -240,35 +238,29 @@ SMF::info()
         ;
 
     //HeaderExtns
-    if( header.nHeaderExtns ){
-        for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
-            if( (*i)->type == 0 ){
-                info << "\n    Null Header"
-                     << "\n\tsize: " << (*i)->bytes
-                     << "\n\ttype: " << (*i)->type
-                    ;
-            }
-            else if( (*i)->type == 1 ){
-                info << "\n    Grass"
-                     << "\n\tsize: " << (*i)->bytes
-                     << "\n\ttype: " << (*i)->type
-                     << "\n\tptr:  " << int_to_hex( ((HeaderGrass *)(*i))->ptr )
-                    ;
-            }
-            else {
-                info << "\n    Unknown"
-                     << "\n\tsize: " << (*i)->bytes
-                     << "\n\ttype: " << (*i)->type
-                    ;
-            }
+    for( auto i : headerExtns ){
+        if( i->type == 0 ){
+            info << "\n    Null Header"
+                 << "\n\tsize: " << i->bytes
+                 << "\n\ttype: " << i->type;
+        }
+        else if( i->type == 1 ){
+            info << "\n    Grass"
+                 << "\n\tsize: " << i->bytes
+                 << "\n\ttype: " << i->type
+                 << "\n\tptr:  " << int_to_hex( ((HeaderGrass *)i)->ptr );
+        }
+        else {
+            info << "\n    Unknown"
+                 << "\n\tsize: " << i->bytes
+                 << "\n\ttype: " << i->type;
         }
     }
 
     // Tileindex Information
     info << "\n  Tile Index Information"
          << "\n\tTile Files:  " << headerTiles.nFiles
-         << "\n\tTotal tiles: " << headerTiles.nTiles
-        ;
+         << "\n\tTotal tiles: " << headerTiles.nTiles;
     for( int i = 0; i < headerTiles.nFiles; ++i ){
         info << "\n\t    " << smtList[ i ] << ":" << nTiles[ i ] <<  endl;
     }
@@ -276,8 +268,7 @@ SMF::info()
     // Features Information
     info << "\n  Features Information"
          << "\n\tFeatures: " << headerFeatures.nFeatures
-         << "\n\tTypes:    " << headerFeatures.nTypes
-        ;
+         << "\n\tTypes:    " << headerFeatures.nTypes;
 
     return info.str();
 }
@@ -330,15 +321,13 @@ SMF::updatePtrs()
 
     header.heightPtr = sizeof( SMF::Header );
 
-    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i )
-        header.heightPtr += (*i)->bytes;
+    for( auto i : headerExtns ) header.heightPtr += i->bytes;
 
     header.typePtr = header.heightPtr + heightSpec.image_bytes();
     header.tilesPtr = header.typePtr + typeSpec.image_bytes();
     mapPtr = header.tilesPtr + sizeof( SMF::HeaderTiles );
 
-    for( auto i = smtList.begin(); i != smtList.end(); ++i )
-        mapPtr += i->size() + 5;
+    for( auto i : smtList ) mapPtr += i.size() + 5;
 
     header.miniPtr = mapPtr + mapSpec.image_bytes();
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
@@ -348,16 +337,15 @@ SMF::updatePtrs()
     int eof;
     eof = header.featuresPtr + sizeof( SMF::HeaderFeatures );
 
-    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i )
-        eof += i->size() + 1;
+    for( auto i : featureTypes ) eof += i.size() + 1;
 
-    for( auto i = features.begin(); i != features.end(); ++i )
-        eof += sizeof( SMF::Feature );
+    eof += features.size() * sizeof( SMF::Feature );
 
     // Optional Headers.
-    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
-        if( (*i)->type == 1 ){
-            HeaderGrass *headerGrass = reinterpret_cast<SMF::HeaderGrass *>(*i);
+    //FIXME appears to be not robust
+    for( auto i : headerExtns ){
+        if( i->type == 1 ){
+            HeaderGrass *headerGrass = (SMF::HeaderGrass *)i;
             headerGrass->ptr = eof;
             eof = headerGrass->ptr + grassSpec.image_bytes();
         }
@@ -416,9 +404,9 @@ SMF::enableGrass( bool enable )
     HeaderGrass *headerGrass = nullptr;
 
     // get header if it exists.
-    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
-        if( (*i)->type == 1 ){
-            headerGrass = (HeaderGrass *)*i;
+    for( auto i : headerExtns ){
+        if( i->type == 1 ){
+            headerGrass = (HeaderGrass *)i;
             break;
         }
     }
@@ -585,9 +573,7 @@ SMF::writeExtraHeaders()
     CHECK( file.good() ) << "Unable to open " << fileName << " for writing";
 
     file.seekp( sizeof( Header ) );
-    for( auto eHeader = headerExtns.begin(); eHeader != headerExtns.end(); ++eHeader )
-        file.write( (char *)*eHeader, (*eHeader)->bytes );
-
+    for( auto i : headerExtns ) file.write( (char *)i, i->bytes );
     file.close();
 
     dirtyMask &= !SMF_EXTRAHEADER;
@@ -757,6 +743,7 @@ SMF::writeMetal( ImageBuf *sourceBuf )
 }
 
 /// write the feature header information to the smf
+//FIXME, why are these separate, features header and features.. just do it all at once...
 void
 SMF::writeFeaturesHeader()
 {
@@ -771,10 +758,6 @@ SMF::writeFeaturesHeader()
     headerFeatures.nTypes = featureTypes.size();
     headerFeatures.nFeatures = features.size();
     file.write( (char *)&headerFeatures, sizeof( SMF::HeaderFeatures ) );
-    // SMT Names
-    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
-        file.write( (*i).c_str(), (*i).size() + 1 );
-    }
     file.close();
 }
 
@@ -788,17 +771,11 @@ SMF::writeFeatures()
     CHECK( file.good() ) << "cannot open " << fileName << "for writing";
     file.seekp( header.featuresPtr + 8 );
 
-    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
-        file.write( i->c_str(), i->size() + 1 );
-    }
-
-    for( auto i = features.begin(); i != features.end(); ++i ){
-        file.write( (char *)&(*i), sizeof(Feature) );
-    }
+    for( auto i : featureTypes ) file.write( i.c_str(), i.size() + 1 );
+    for( auto i : features ) file.write( (char *)&i, sizeof(SMF::Feature) );
 
     file.close();
 }
-
 
 // Write the grass image to the smf
 void
@@ -807,8 +784,11 @@ SMF::writeGrass( ImageBuf *sourceBuf )
     HeaderGrass *headerGrass = nullptr;
 
     // get header if it exists.
-    for( auto i = headerExtns.begin(); i != headerExtns.end(); ++i ){
-        if( (*i)->type == 1) headerGrass = (HeaderGrass *)*i;
+    for( auto i : headerExtns ){
+        if( i->type == 1 ){
+            headerGrass = (HeaderGrass *)i;
+            break;
+        }
     }
 
     //if it doesnt exist, do nothing.
@@ -893,13 +873,11 @@ SMF::getMetal( )
     return getImage( header.metalPtr, metalSpec );
 }
 
-string
+std::string
 SMF::getFeatureTypes( )
 {
-    stringstream list;
-    for( auto i = featureTypes.begin(); i != featureTypes.end(); ++i ){
-        list << *i;
-    }
+    std::stringstream list;
+    for( auto i : featureTypes ) list << i;
     return list.str();
 }
 
@@ -908,13 +886,13 @@ SMF::getFeatures( )
 {
     stringstream list;
     list << "NAME,X,Y,Z,ANGLE,SCALE\n";
-    for( auto i = features.begin(); i != features.end(); ++i ){
-        list << featureTypes[i->type] << ","
-             << i->x << ","
-             << i->y << ","
-             << i->z << ","
-             << i->r << ","
-             << i->s;
+    for( auto i : features ){
+        list << featureTypes[ i.type ] << ","
+             << i.x << ","
+             << i.y << ","
+             << i.z << ","
+             << i.r << ","
+             << i.s;
     }
 
     return list.str();
@@ -924,10 +902,9 @@ ImageBuf *
 SMF::getGrass()
 {
     HeaderGrass *headerGrass = nullptr;
-    for( auto i = headerExtns.begin();
-            i != headerExtns.end(); ++i ){
-        if( (*i)->type == 1 ){
-            headerGrass = (HeaderGrass *)(*i);
+    for( auto i : headerExtns ){
+        if( i->type == 1 ){
+            headerGrass = (HeaderGrass *)i;
             return getImage( headerGrass->ptr, grassSpec );
         }
     }
