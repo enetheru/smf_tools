@@ -333,21 +333,21 @@ SMF::updatePtrs()
     header.metalPtr = header.miniPtr + MINIMAP_SIZE;
     header.featuresPtr = header.metalPtr + metalSpec.image_bytes();
 
-    // features
-    int eof;
-    eof = header.featuresPtr + sizeof( SMF::HeaderFeatures );
-
+    // eof is used here to help with optional extras like grass
+    // find out the expected end of the file
+    int eof = header.featuresPtr + sizeof( SMF::HeaderFeatures );
     for( auto i : featureTypes ) eof += i.size() + 1;
-
     eof += features.size() * sizeof( SMF::Feature );
 
     // Optional Headers.
-    //FIXME appears to be not robust
     for( auto i : headerExtns ){
         if( i->type == 1 ){
             HeaderGrass *headerGrass = (SMF::HeaderGrass *)i;
             headerGrass->ptr = eof;
             eof = headerGrass->ptr + grassSpec.image_bytes();
+        }
+        else {
+            LOG( WARN ) << "unknown header extn";
         }
     }
 }
@@ -371,13 +371,13 @@ SMF::setSize( int width, int length )
 void
 SMF::setSquareWidth( int size )
 {
-    //FIXME
+    //TODO
 }
 
 void
 SMF::setSquareTexels( int size )
 {
-    //FIXME
+    //TODO
 }
 
 void
@@ -386,7 +386,7 @@ SMF::setTileSize( int size )
     if( header.tileSize == size ) return;
     header.tileSize = size;
     dirtyMask |= SMF_HEADER;
-    //FIXME this also effects the tilemap
+    //FIXME this also effects the tilemap, really need to write more elaborate statements
 }
 
 void
