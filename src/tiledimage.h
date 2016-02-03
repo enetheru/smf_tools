@@ -49,14 +49,12 @@ public:
     // Get pixel region
     OpenImageIO::ImageBuf *getRegion(
             uint32_t x1 = 0, uint32_t y1 = 0,
-            uint32_t x2 = 0, uint32_t y2 = 0,
-            uint32_t sw = 0, uint32_t sh = 0);
+            uint32_t x2 = 0, uint32_t y2 = 0 );
 
     // Get image Region, relative coords.
     OpenImageIO::ImageBuf *getUVRegion(
             float u1 = 0, float v1 = 0,
-            float u2 = 1.0, float v2 = 1.0,
-            uint32_t sw = 0, uint32_t sh = 0 );
+            float u2 = 1.0, float v2 = 1.0 );
 
     OpenImageIO::ImageBuf *getTile( uint32_t idx );
 };
