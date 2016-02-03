@@ -132,14 +132,6 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    //FIXME non options should be counted as smt files
-    // non options
-    //FIXME non options are supposed to be treated as additional smt's
-    //for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-    //    LOG( ERROR ) << "Superflous Argument: " << parse.nonOption( i );
-    //    fail = true;
-    //}
-
     // --force
     if( options[ FORCE ] ) force = true;
 
@@ -167,16 +159,18 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    //FIXME add squarewidth
-    //FIXME add texels
+    //TODO add squarewidth
+    //TODO add texels
 
     // --tilesize
+    // take the tilesize from the first smt added
     if( parse.nonOptionsCount() ){
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->tileSize;
         delete smt;
         smt = nullptr;
     }
+    // take the tilesize from the arguments
     if( options[ TILESIZE ] ){
         tileSize = atoi( options[ TILESIZE ].arg );
     }
@@ -211,9 +205,9 @@ main( int argc, char **argv )
     smf->setSize( mapWidth, mapLength );
 
     // * squareWidth
-    // FIXME
+    // TODO
     // * squareTexels
-    // FIXME
+    // TODO
 
     // * tileSize
     smf->setTileSize( tileSize );
