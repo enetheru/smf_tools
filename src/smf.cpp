@@ -739,7 +739,6 @@ SMF::writeMetal( ImageBuf *sourceBuf )
 }
 
 /// write the feature header information to the smf
-//FIXME, why are these separate, features header and features.. just do it all at once...
 void
 SMF::writeFeatures()
 {
@@ -832,22 +831,21 @@ SMF::getMap( )
 
 ImageBuf *SMF::getMini(){
     ImageBuf * imageBuf = nullptr;
-    unsigned char data[1024 * 1024 * 4];
+    unsigned char data[ 1024 * 1024 * 4 ];
+    unsigned char temp[ MINIMAP_SIZE ];
 
     ifstream file( fileName );
     CHECK( file.good() ) << " Failed to open" << fileName << "for reading";
 
-    unsigned char *temp = new unsigned char[MINIMAP_SIZE];
     file.seekg( header.miniPtr );
-    file.read( (char *)temp, MINIMAP_SIZE);
+    file.read( (char *)temp, MINIMAP_SIZE );
+    file.close();
 
     squish::DecompressImage( (squish::u8 *)data, 1024, 1024, temp, squish::kDxt1);
 
-    delete [] temp;
-    // FIXME will this go out of context once the frame is complete?
-    imageBuf = new ImageBuf( miniSpec, data );
+    imageBuf = new ImageBuf( miniSpec );
+    memcpy( imageBuf->localpixels(), data, 1024*1024*4 );
 
-    file.close();
     return imageBuf;
 }
 
