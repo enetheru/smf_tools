@@ -39,8 +39,8 @@
  *
  */
 class SMF {
-    std::string fileName;
-    uint32_t dirtyMask = 0xFFFFFFFF;
+    std::string _fileName;
+    uint32_t _dirtyMask = 0xFFFFFFFF;
 
     /*! Header struct as it is written on disk
      */
@@ -65,7 +65,7 @@ class SMF {
 
         int nHeaderExtns = 0;///< byte:76 \n Fumbers of extra headers following this header
     };/* byte: 80 */
-    Header header;
+    Header _header;
 
     /*! Header Extension.
      *
@@ -78,21 +78,21 @@ class SMF {
         HeaderExtn( ){ };
         HeaderExtn( int i, int j ) : bytes( i ), type( j ){ };
     };
-    std::vector< SMF::HeaderExtn * > headerExtns;
+    std::vector< SMF::HeaderExtn * > _headerExtns;
 
     /*! grass Header Extn.
      *
      * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
      * that defines ground vegetation.
      */
-    struct HeaderGrass: public HeaderExtn
+    struct HeaderExtn_Grass: public HeaderExtn
     {
         int ptr = 80; ///< offset to beginning of grass map data.
-        HeaderGrass( ) : HeaderExtn( 12, 1 ){ };
+        HeaderExtn_Grass( ) : HeaderExtn( 12, 1 ){ };
     };
 
-    OpenImageIO::ImageSpec heightSpec;
-    OpenImageIO::ImageSpec typeSpec;
+    OpenImageIO::ImageSpec _heightSpec;
+    OpenImageIO::ImageSpec _typeSpec;
 
     /*! Tile Section Header.
      *
@@ -109,14 +109,14 @@ class SMF {
         int nFiles = 0; ///< number of files referenced
         int nTiles = 0; ///< number of tiles total
     };
-    HeaderTiles headerTiles;
-    std::vector< std::pair< uint32_t, std::string > > smtList;
+    HeaderTiles _headerTiles;
+    std::vector< std::pair< uint32_t, std::string > > _smtList;
 
-    uint32_t mapPtr;         ///< pointer to beginning of the tilemap
-    OpenImageIO::ImageSpec mapSpec;
+    uint32_t _mapPtr;         ///< pointer to beginning of the tilemap
+    OpenImageIO::ImageSpec _mapSpec;
 
-    OpenImageIO::ImageSpec miniSpec;
-    OpenImageIO::ImageSpec metalSpec;
+    OpenImageIO::ImageSpec _miniSpec;
+    OpenImageIO::ImageSpec _metalSpec;
 
     /*! Features Section Header.
      *
@@ -129,8 +129,8 @@ class SMF {
         int nTypes = 0;    ///< number of feature types
         int nFeatures = 0; ///< number of features
     };
-    HeaderFeatures headerFeatures;
-    std::vector< std::string > featureTypes; ///< names of features
+    HeaderFeatures _headerFeatures;
+    std::vector< std::string > _featureTypes; ///< names of features
 
     /*! Individual features structure
      */
@@ -143,9 +143,9 @@ class SMF {
         float r;  ///< rotation
         float s;  ///< scale, currently unused.
     };
-    std::vector< SMF::Feature > features;
+    std::vector< SMF::Feature > _features;
 
-    OpenImageIO::ImageSpec grassSpec;
+    OpenImageIO::ImageSpec _grassSpec;
 
     // == Internal Utility Functions ==
     OpenImageIO::ImageBuf *getImage( uint32_t ptr, OpenImageIO::ImageSpec spec );
@@ -274,7 +274,8 @@ public:
 
     OpenImageIO::ImageBuf *getHeight();
     OpenImageIO::ImageBuf *getType();
-    std::vector< std::pair< uint32_t, std::string > > getSMTList(){ return smtList; };
+    std::vector< std::pair< uint32_t, std::string > >
+            getSMTList(){ return _smtList; };
     TileMap *getMap();
     OpenImageIO::ImageBuf *getMini();
     OpenImageIO::ImageBuf *getMetal();
