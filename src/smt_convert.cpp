@@ -199,6 +199,10 @@ main( int argc, char **argv )
             fail = true;
         }
     }
+	else if(! options[ IMGOUT ] ){
+		otSpec.width = 32;
+		otSpec.height = 32;
+	}
 
     // * Image Size
     if( options[ IMAGESIZE ] ){
@@ -326,8 +330,8 @@ main( int argc, char **argv )
             otSpec.height = out_img_height;
         }
         else {
-            otSpec.width = sSpec.width;
-            otSpec.height = sSpec.height;
+            otSpec.width = 32;
+            otSpec.height = 32;
         }
     }
 
