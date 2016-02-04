@@ -27,7 +27,7 @@ enum optionsIndex
     TEXELS, SQUARESIZE,
     FLOOR,
     CEILING,
-    HEIGHT, TYPE, MAP, MINI, METAL, FEATURES, GRASS,
+    HEIGHT, TYPE, TILEMAP, MINI, METAL, FEATURES, GRASS,
     // Compression
 };
 
@@ -73,8 +73,8 @@ const option::Descriptor usage[] = {
     { TYPE, 0, "", "type", Arg::File, "\t--type=type.tif"
         "\t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
 
-    { MAP, 0, "", "map", Arg::File, "\t--map=map.tif"
-        "\t(x*16)x(y*16):1 UINT32 Image to use for tilemap." },
+    { TILEMAP, 0, "", "tilemap", Arg::File, "\t--tilemap=map.tif"
+        "\t(x*16)x(y*16):1 UINT32 Image or CSV to use for tilemap." },
 
     { MINI, 0, "", "mini", Arg::File, "\t--mini=mini.tif"
         "\t(1024)x(1024):4 UINT8 Image to use for minimap." },
@@ -113,49 +113,48 @@ main( int argc, char **argv )
     option::Option* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
-    if( options[ HELP ] || argc == 0 ){
-        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
-        option::printUsage( std::cout, usage, columns );
-        exit( 1 );
-    }
-
-    // setup logging level.
-    LOG::SetDefaultLoggerLevel( LOG::WARN );
-    if( options[ VERBOSE ] )
-        LOG::SetDefaultLoggerLevel( LOG::INFO );
-    if( options[ QUIET ] )
-        LOG::SetDefaultLoggerLevel( LOG::CHECK );
-
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
         LOG( ERROR ) << "Unknown option: " << string( opt->name, opt->namelen );
         fail = true;
     }
 
-    // --force
-    if( options[ FORCE ] ) force = true;
+	// -h --help
+    if( options[ HELP ] || argc == 0 ){
+        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
+        option::printUsage( std::cout, usage, columns );
+        exit( 1 );
+    }
 
-    // --output filename
+    // -v --verbose
+    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    if( options[ VERBOSE ] )
+        LOG::SetDefaultLoggerLevel( LOG::INFO );
+
+	// -q --quiet
+    if( options[ QUIET ] )
+        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+
+    // -o --output filename
     if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
     else outFileName = "output.smf";
 
-    tempFile.open( outFileName, ios::in );
-    if( tempFile.good() && !force ){
-        LOG( ERROR ) << outFileName << " already exists.";
-        fail = true;
-    }
-    tempFile.close();
+    // -f --force
+    if( options[ FORCE ] ){
+		force = true;
+	}
 
     // --mapsize
     if( options[ MAPSIZE ] ){
 		std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
-    }
-    if(! mapWidth || ! mapLength){
+		if( mapWidth % 2 || mapLength % 2 ){
+			LOG( ERROR ) << "map sizes must be multiples of two";
+			fail = true;
+		}
+	}
+    if( (! mapWidth || ! mapLength) && (! options[ TILEMAP ]) ){
+		//FIXME dont error here, check first if a tilefile is specified.
         LOG( ERROR ) << "--mapsize not specified";
-        fail = true;
-    }
-    if( mapWidth % 2 || mapLength % 2 ){
-        LOG( ERROR ) << "map sizes must be multiples of two";
         fail = true;
     }
 
@@ -165,6 +164,8 @@ main( int argc, char **argv )
     // --tilesize
     // take the tilesize from the first smt added
     if( parse.nonOptionsCount() ){
+		CHECK( SMT::test( parse.nonOption( 0 ) ) )
+				<< " additional arguments are not smt files";
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->tileSize;
         delete smt;
@@ -179,22 +180,54 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    // --floor
+    // -y --floor
     if( options[ FLOOR ] ){
         mapFloor = atof( options[ FLOOR ].arg );
     }
 
-    // --ceiling
+    // -Y --ceiling
     if( options[ CEILING ] ){
         mapCeiling = atof( options[ CEILING ].arg );
     }
+
+	// --tilemap
+    SMF *smfTemp = nullptr;
+    TileMap *tileMap = nullptr;
+    if( options[ TILEMAP ] ){
+        if( SMF::test( options[ TILEMAP ].arg ) ){
+            smfTemp = SMF::open( options[ TILEMAP ].arg );
+            tileMap = smfTemp->getMap();
+            delete smfTemp;
+        }
+        else {
+            tileMap = TileMap::createCSV( options[ TILEMAP ].arg );
+        }
+    }
+
+	// Fix up map height and length to match tile source, and smt files.
+	if( tileMap != nullptr ){
+		int diffuseWidth = tileSize * tileMap->width;
+		int diffuseHeight = tileSize * tileMap->height;
+		if( diffuseWidth % 1024 || diffuseHeight % 1024){
+			LOG( ERROR ) << "(tileMap * tileSize) % 1024 != 0,"
+				"supplied arguments do not construct a valid map";
+			fail = true;
+		}
+		mapWidth = diffuseWidth / 512;
+		mapLength = diffuseHeight / 512;
+		LOG( INFO ) << "Checking input dimensions"
+			<< "\n\ttileMap:  " << tileMap->width << "x" << tileMap->height
+			<< "\n\ttileSize: " << tileSize << "x" << tileSize
+			<< "\n\tdiffuse=  " << diffuseWidth << "x" << diffuseHeight
+			<< "\n\tmapSize=  " << mapWidth << "x" << mapLength;
+	}
+
+    //TODO collect feature information from the command line.
 
     // end option parsing
     if( fail || parse.error() ){
         exit( 1 );
     }
-
-	//TODO calculate map size based on input tilemap and first smt file
 
     // == lets do it! ==
     if(! (smf = SMF::create( outFileName, force )) ){
@@ -268,21 +301,8 @@ main( int argc, char **argv )
     // map smt's
     smf->writeTileHeader();
 
-    // map data
-    SMF *smfTemp = nullptr;
-    TileMap *tileMap = nullptr;
-    if( options[ MAP ] ){
-        if( SMF::test( options[ MAP ].arg ) ){
-            smfTemp = SMF::open( options[ MAP ].arg );
-            tileMap = smfTemp->getMap();
-            delete smfTemp;
-        }
-        else {
-            tileMap = TileMap::createCSV( options[ MAP ].arg );
-        }
-    }
+	// tilemap
     smf->writeMap( tileMap );
-    if( tileMap )delete tileMap;
 
     // minimap
     if( options[ MINI ] ){
@@ -302,7 +322,6 @@ main( int argc, char **argv )
         smf->writeMetal();
     }
 
-    //TODO collect feature information from the command line.
 
     // features
     smf->writeFeatures();

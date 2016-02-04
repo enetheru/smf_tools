@@ -161,6 +161,10 @@ main( int argc, char **argv )
         fail = true;
     }
 
+	if( options[ SMTOUT ] ){
+
+	}
+
 	//TODO if smt is specified as output format, default tilesize to 32x32
 
     // * Output Format
@@ -217,27 +221,6 @@ main( int argc, char **argv )
     if( options[ DUPLI ] ){
         if( strcmp( options[ DUPLI ].arg, "None" ) == 0 ) dupli = 0;
         if( strcmp( options[ DUPLI ].arg, "Perceptual" ) == 0 ) dupli = 2;
-    }
-
-    // * Output Format
-    if(  options[ TYPE ] ){
-        if( strcmp( options[ TYPE ].arg, "DXT1" ) == 0 ){
-            oType = 1;
-            otSpec.nchannels = 4;
-            otSpec.set_format( TypeDesc::UINT8 );
-        }
-
-        if( strcmp( options[ TYPE ].arg, "RGBA8" ) == 0 ){
-            oType = GL_RGBA8;
-            otSpec.nchannels = 4;
-            otSpec.set_format( TypeDesc::UINT8 );
-        }
-
-        if( strcmp( options[ TYPE ].arg, "USHORT" ) == 0 ){
-            oType = GL_UNSIGNED_SHORT;
-            otSpec.nchannels = 1;
-            otSpec.set_format( TypeDesc::UINT16 );
-        }
     }
 
     // * Output File
@@ -336,6 +319,7 @@ main( int argc, char **argv )
     }
 
     // == TILESIZE ==
+	// TODO if smt is specified then default to 32x32
     if(! options[ TILESIZE ] ){
         if( options[ IMGOUT ] ){
             otSpec.width = out_img_width;
@@ -433,9 +417,13 @@ main( int argc, char **argv )
     LOG(INFO) << "actual:max = " << numTiles << ":" << out_tileMap.width * out_tileMap.height;
     LOG(INFO) << "number of dupes = " << numDupes;
 
-    std::fstream out_csv( outFileName + ".csv", std::ios::out );
-    out_csv << out_tileMap.toCSV();
-    out_csv.close();
+	// if the tileMap only contains 1 value, then we are only outputting
+	// 	a single image, so skip tileMap csv export
+	if( out_tileMap.size() > 1 ){
+    	std::fstream out_csv( outFileName + ".csv", std::ios::out );
+    	out_csv << out_tileMap.toCSV();
+    	out_csv.close();
+	}
 
     delete[] buffer;
     delete[] options;
