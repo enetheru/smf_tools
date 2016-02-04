@@ -442,14 +442,6 @@ SMF::addTileFile( string fileName )
 {
     _dirtyMask |= SMF_MAP;
 
-    //FIXME, separate this into its own function
-    if(! fileName.compare( "CLEAR" ) ){
-        _smtList.clear();
-        _headerTiles.nFiles = 0;
-        _headerTiles.nTiles = 0;
-        return;
-    }
-
     SMT *smt = nullptr;
     CHECK( (smt = SMT::open( fileName )) ) << "Invalid smt file " << fileName;
 
@@ -458,6 +450,14 @@ SMF::addTileFile( string fileName )
     _smtList.push_back( std::make_pair( smt->nTiles, fileName ) );
 
     delete smt;
+}
+
+void
+SMF::clearTileFiles()
+{
+    _smtList.clear();
+    _headerTiles.nFiles = 0;
+    _headerTiles.nTiles = 0;
 }
 
 void

@@ -241,6 +241,7 @@ public:
      * Add the filename to the list of filenames used as the tilemap
      */
     void addTileFile( std::string fileName );
+    void clearTileFiles( );
 
     /*! add a single feature
      * @param name
