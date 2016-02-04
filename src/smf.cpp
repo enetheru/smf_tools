@@ -491,25 +491,9 @@ SMF::addFeature( string name, float x, float y, float z, float r, float s )
 void
 SMF::addFeatures( string fileName )
 {
-    //Clear out the old list
-    _features.clear();
-    _featureTypes.clear();
-    _dirtyMask |= SMF_FEATURES;
-
-    if(! fileName.compare("CLEAR") )return;
-
     // test the file
     fstream file( fileName, ifstream::in );
     CHECK( file.good() ) << "addFeatures: Cannot open " << fileName;
-
-    // build inbuilt list
-    //FIXME this shouldnt use c-strings
-    char featureType[256];
-    for( int i = 0; i < 16; ++i ){
-        sprintf( featureType, "TreeType%i", i );
-        _featureTypes.push_back( featureType );
-    }
-    _featureTypes.push_back("GeoVent");
 
     int n = 0;
     string cell;
@@ -545,6 +529,34 @@ SMF::addFeatures( string fileName )
         << "addFeatures"
         << "\n\tTypes: " << _headerFeatures.nTypes
         << "\n\tTypes: " << _headerFeatures.nFeatures;
+    _dirtyMask |= SMF_FEATURES;
+}
+
+void
+SMF::addFeatureDefaults()
+{
+    LOG(WARN) << "adding default features clears any existing features";
+
+    clearFeatures();
+
+    for( int i = 0; i < 16; ++i ){
+        _featureTypes.push_back( "TreeType" + std::to_string( i ) );
+    }
+    _featureTypes.push_back("GeoVent");
+    _headerFeatures.nTypes = _featureTypes.size();
+    _dirtyMask |= SMF_FEATURES;
+}
+
+void
+SMF::clearFeatures()
+{
+    _features.clear();
+    _headerFeatures.nFeatures = 0;
+
+    _featureTypes.clear();
+    _headerFeatures.nTypes = 0;
+
+    _dirtyMask |= SMF_FEATURES;
 }
 
 void
