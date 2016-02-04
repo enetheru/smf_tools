@@ -7,8 +7,7 @@
 class TileMap
 {
     uint32_t _width, _height;
-    std::vector< uint32_t > map;
-	//FIXME rename map to _map
+    std::vector< uint32_t > _map;
 public:
     // data members
     const uint32_t &width = _width;
@@ -19,7 +18,7 @@ public:
     TileMap( uint32_t width, uint32_t height );
 
     static TileMap *createCSV( std::string fileName );
-    
+
     TileMap( const TileMap &rhs);
     TileMap &operator=( const TileMap &rhs);
 
@@ -41,6 +40,6 @@ public:
     uint32_t *data();
 
 	//information
-	int size() { return map.size(); }
+	int size() { return _map.size(); }
 };
 
