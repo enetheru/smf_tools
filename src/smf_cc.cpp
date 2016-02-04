@@ -194,6 +194,8 @@ main( int argc, char **argv )
         exit( 1 );
     }
 
+	//TODO calculate map size based on input tilemap and first smt file
+
     // == lets do it! ==
     if(! (smf = SMF::create( outFileName, force )) ){
         LOG(FATAL) << "Unable to create: " << outFileName;

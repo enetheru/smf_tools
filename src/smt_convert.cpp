@@ -161,6 +161,8 @@ main( int argc, char **argv )
         fail = true;
     }
 
+	//TODO if smt is specified as output format, default tilesize to 32x32
+
     // * Output Format
     if(  options[ TYPE ] ){
         if( strcmp( options[ TYPE ].arg, "DXT1" ) == 0 ){
