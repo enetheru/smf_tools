@@ -1,6 +1,7 @@
 # NOTE: cant cache multi line strings in cmake, so just include this file
 # whenever you need these strings
 
+set( DOC_VERSION "1.0.rc1" )
 set( DOC_TITLE "smf_tools" )
 
 set( DOC_DESCRIPTION_SHORT
