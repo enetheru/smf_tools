@@ -37,6 +37,7 @@ enum optionsIndex
     DUPLI,
     TYPE
 };
+//FIXME what happened to specifying the span of input tiles?
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
