@@ -46,3 +46,10 @@ out_tile_width = --tilesize.width
 out_tile_height = --tilesize.height
 out_map_width = out_image_width / out_tile_width
 out_map_height = out_image_height / out_tile_height
+
+
+some keywords i use when writing source code
+//REMOVE
+//FIXME
+//BUG
+//TODO

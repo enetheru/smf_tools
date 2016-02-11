@@ -73,6 +73,87 @@ expandString( const char *s )
     return result;
 }
 
+std::unique_ptr< OpenImageIO::ImageBuf >
+fix_channels(
+    std::unique_ptr< OpenImageIO::ImageBuf> && inBuf,
+    const OpenImageIO::ImageSpec &spec )
+{
+    OIIO_NAMESPACE_USING;
+
+    int map[] = { 0, 1, 2, 3 };
+    static const float fill[] = { 0, 0, 0, 1.0 };
+
+    CHECK( !inBuf ) << "nullptr passed to fix_channels()";
+
+    // return a copy of the original if its the correct size.
+    if( inBuf->spec().nchannels == spec.nchannels ) return std::move( inBuf );
+    if( inBuf->spec().nchannels < 4 ) map[3] = -1;
+    if( inBuf->spec().nchannels < 3 ) map[2] = -1;
+    if( inBuf->spec().nchannels < 2 ) map[1] = -1;
+
+    // Otherwise update channels to spec channels
+    std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf );
+    ImageBufAlgo::channels( *outBuf, *inBuf, spec.nchannels, map, fill );
+    return std::move( outBuf );
+}
+
+//REMOVE
+void
+channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
+{
+    OIIO_NAMESPACE_USING;
+    int map[] = { 0, 1, 2, 3 };
+    float fill[] = { 0, 0, 0, 1.0 };
+
+    CHECK( sourceBuf ) << "nullptr passed to channels()";
+
+    // return a copy of the original if its the correct size.
+    if( sourceBuf->spec().nchannels == spec.nchannels ) return;
+    if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
+    if( sourceBuf->spec().nchannels < 3 ) map[2] = -1;
+    if( sourceBuf->spec().nchannels < 2 ) map[1] = -1;
+
+    // Otherwise update channels to spec channels
+    ImageBuf *tempBuf = new ImageBuf;
+    ImageBufAlgo::channels( *tempBuf, *sourceBuf, spec.nchannels, map, fill );
+    sourceBuf->clear();
+    delete sourceBuf;
+    sourceBuf = tempBuf;
+}
+
+std::unique_ptr< OpenImageIO::ImageBuf >
+fix_scale(
+    std::unique_ptr< OpenImageIO::ImageBuf> && inBuf,
+    const OpenImageIO::ImageSpec &spec )
+{
+    OIIO_NAMESPACE_USING;
+
+    CHECK( !inBuf ) << "nullptr passed to fix_scale()";
+
+    // return the inBuf if no change is required.
+    if( (inBuf->spec().width  == spec.width )
+     && (inBuf->spec().height == spec.height) ){
+        std::move( inBuf );
+    }
+
+    // Otherwise scale
+    ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, inBuf->spec().nchannels );
+    std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf );
+
+    // BUG with workaround
+    // resample is faster but creates black outlines when scaling up, so only
+    // use it for scaling down.
+    if( (spec.width  < inBuf->spec().width )
+     && (spec.height < inBuf->spec().height) ){
+        ImageBufAlgo::resample( *outBuf, *inBuf, false, roi );
+    }
+    else {
+        ImageBufAlgo::resize( *outBuf, *inBuf, "", false, roi );
+    }
+    return std::move( outBuf );
+}
+
+//REMOVE
 void
 scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
@@ -104,29 +185,23 @@ scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     sourceBuf = tempBuf;
 }
 
-void
-channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
+std::unique_ptr< OpenImageIO::ImageBuf >
+fix_format(
+    std::unique_ptr< OpenImageIO::ImageBuf> && inBuf,
+    const OpenImageIO::ImageSpec &spec )
 {
-    OIIO_NAMESPACE_USING;
-    int map[] = { 0, 1, 2, 3 };
-    float fill[] = { 0, 0, 0, 1.0 };
+    // quick out
+    CHECK( !inBuf ) << "nullptr passed to fix_format()";
+    if( inBuf->spec().format == spec.format ) return std::move( inBuf );
 
-    CHECK( sourceBuf ) << "nullptr passed to channels()";
-
-    // return a copy of the original if its the correct size.
-    if( sourceBuf->spec().nchannels == spec.nchannels ) return;
-    if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
-    if( sourceBuf->spec().nchannels < 3 ) map[2] = -1;
-    if( sourceBuf->spec().nchannels < 2 ) map[1] = -1;
-
-    // Otherwise update channels to spec channels
-    ImageBuf *tempBuf = new ImageBuf;
-    ImageBufAlgo::channels( *tempBuf, *sourceBuf, spec.nchannels, map, fill );
-    sourceBuf->clear();
-    delete sourceBuf;
-    sourceBuf = tempBuf;
+    std::unique_ptr< OpenImageIO::ImageBuf >
+            outBuf( new OpenImageIO::ImageBuf );
+    outBuf->copy( *inBuf );
+    outBuf->read( 0, 0, true, spec.format );
+    return std::move( outBuf );
 }
 
+//REMOVE
 void convert( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
