@@ -204,6 +204,9 @@ main( int argc, char **argv )
 		otSpec.height = 32;
 	}
 
+	//FIXME since this tool is build primarily for springrts, then if --smt is
+	//specified and no --imagesize round the image size based on input to the
+	//closest multiple of 1024 > 0
     // * Image Size
     if( options[ IMAGESIZE ] ){
 		std::tie( out_img_width, out_img_height )

@@ -127,6 +127,7 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     sourceBuf = tempBuf;
 }
 
+// in what circumstances is this really needed?
 void convert( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;

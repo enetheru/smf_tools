@@ -221,7 +221,7 @@ SMT::appendDXT1( ImageBuf *sourceBuf )
             spec.width, spec.height, squish::kDxt1 );
 
         if(! blocks ) blocks = new squish::u8[ blocks_size ];
-        // contemplate giving control of compression options to users
+        // TODO contemplate giving control of compression options to users
         // kColourRangeFit = faster|poor quality
         // kColourMetricPerceptual = default|default
         // kColourIterativeClusterFit = slow|high quality
