@@ -37,6 +37,7 @@ enum optionsIndex
     DUPLI,
     TYPE
 };
+//FIXME what happened to specifying the span of input tiles?
 
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
@@ -114,7 +115,7 @@ main( int argc, char **argv )
     TileMap out_tileMap;
     uint32_t oType = 1;
     OpenImageIO::ImageSpec otSpec( 32, 32, 4, TypeDesc::UINT8 );
-    uint32_t out_img_width, out_img_height;
+    uint32_t out_img_width = 0, out_img_height = 0;
 
     // relative intermediate size
     uint32_t rel_tile_width, rel_tile_height;

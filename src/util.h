@@ -39,25 +39,51 @@ std::string int_to_hex( T i )
  *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
  *  If sourceBuf is nullptr then a blank image is returned.
  */
+std::unique_ptr< OpenImageIO::ImageBuf > fix_channels(
+    std::unique_ptr< OpenImageIO::ImageBuf> &&,
+    const OpenImageIO::ImageSpec & );
+
 void channels( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
 
 /// Scales an ImageBuf according to a given ImageSpec
 /* in place scale */
+std::unique_ptr< OpenImageIO::ImageBuf > fix_scale(
+    std::unique_ptr< OpenImageIO::ImageBuf> &&,
+    const OpenImageIO::ImageSpec & );
+
 void scale( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
+
+/// Converts buffer data to format specified in spec
+/*  the internal data mostly needs to be in RGBA8 format, but sometimes it
+ *  needs to be in USHORT for heightmap etc.. so this forces the issue.
+ */
+std::unique_ptr< OpenImageIO::ImageBuf > fix_format(
+    std::unique_ptr< OpenImageIO::ImageBuf> &&,
+    const OpenImageIO::ImageSpec & );
 
 void convert( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
 
+//FIXME actually check what channel ordering is supposed to be
+/// switch channel ordering to BGRA
+/*  extended description
+ *
+ */
+std::unique_ptr< OpenImageIO::ImageBuf > fix_format(
+    std::unique_ptr< OpenImageIO::ImageBuf> && );
+
 void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
 
+/// output a progress indicator
 void progressBar( std::string message, float goal, float progress );
 
-
-/**
- * simple map class for checking overlapping regions of memory
+/// simple map class for checking overlapping regions of memory
+/*
+ *
  */
+//FIXME rename this function
 class FileMap{
     struct Block{
         uint32_t begin;

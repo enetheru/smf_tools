@@ -110,6 +110,88 @@ TiledImage::getHeight()
     return tileMap.height * (tSpec.height - overlap) + overlap;
 }
 
+std::unique_ptr< OpenImageIO::ImageBuf >
+TiledImage::getRegion(
+    const OpenImageIO::ROI &roi )
+{
+    OIIO_NAMESPACE_USING;
+
+    //BROKEN
+    //CHECK( roi.xbegin < int( getWidth()  ) ) << "xbegin is out of range";
+    //CHECK( roi.ybegin < int( getHeight() ) ) << "ybegin is out of range";
+    //if( (roi.xend == 0) || (roi.xend > int( getWidth()  )) ) roi.xend = getWidth();
+    //if( (roi.yend == 0) || (roi.yend > int( getHeight() )) ) roi.yend = getHeight();
+    DLOG( INFO ) << "source window "
+        << "(" << roi.xbegin << ", " << roi.ybegin << ")"
+      << "->(" << roi.xend   << ", " << roi.yend   << ")";
+
+    ImageSpec outSpec( roi.width(), roi.height(), tSpec.nchannels, tSpec.format );
+
+    std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf( outSpec ) );
+
+    //current point of interest
+    uint32_t ix = roi.xbegin;
+    uint32_t iy = roi.ybegin;
+    static uint32_t index_p = INT_MAX;
+    OpenImageIO::ROI cw; // copy window
+    while( true ){
+         DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
+
+        //determine the tile under the point of interest
+        uint32_t mx = ix / (tSpec.width - overlap);
+        uint32_t my = iy / (tSpec.height - overlap);
+
+        //determine the top left corner of the copy window
+        cw.xbegin = ix - mx * (tSpec.width - overlap);
+        cw.ybegin = iy - my * (tSpec.height - overlap);
+
+        //determine the bottom right corner of the copy window
+        if( roi.xend / (tSpec.width - overlap) > mx ) cw.xend = tSpec.width;
+        else cw.xend = roi.xend - mx * (tSpec.width - overlap);
+
+        if( roi.yend / (tSpec.height - overlap) > my ) cw.yend = tSpec.height;
+        else cw.yend = roi.yend - my * (tSpec.height - overlap);
+
+         DLOG( INFO ) << "copy window "
+             << "(" << cw.xbegin << ", " << cw.ybegin << ")"
+            <<"->(" << cw.xend   << ", " << cw.yend   << ")";
+
+        //determine the dimensions of the copy window
+        DLOG( INFO ) << "copy window size " << cw.width() << "x" << cw.height();
+
+        //determine the top left of the paste window
+        uint32_t dx = ix - roi.xbegin;
+        uint32_t dy = iy - roi.ybegin;
+        DLOG( INFO ) << "Paste Window: " << dx << "x" << dy;
+
+        //Optimisation: exact copy of previous tile test
+        //FIXME
+        uint32_t index = tileMap(mx, my);
+        if( index != index_p ){
+            if( currentTile ){ currentTile->clear(); delete currentTile; }
+            currentTile = tileCache.getSpec( index, tSpec );
+            index_p = index;
+        }
+        if( currentTile ){
+            //copy pixel data from source tile to dest
+            ImageBufAlgo::paste( *outBuf, dx, dy, 0, 0, *currentTile, cw );
+        }
+
+        //determine the next point of interest
+        ix += cw.width();
+        if( int( ix ) >= roi.xend ){
+            ix = roi.xbegin;
+            iy += cw.height();
+            if( int( iy ) >= roi.yend ){
+                //then weve copied all the data and exit;
+                break;
+            }
+        }
+    }
+    return std::move( outBuf );
+}
+
+//REMOVE
 OpenImageIO::ImageBuf *
 TiledImage::getRegion(
     uint32_t x1, uint32_t y1, // begin point
