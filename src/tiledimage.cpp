@@ -11,23 +11,12 @@
 
 // CONSTRUCTORS
 // ============
-TiledImage::TiledImage( )
-{ }
-
 TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
     uint32_t inTileWidth, uint32_t inTileHeight )
 {
     setTileSize( inTileWidth, inTileHeight );
     setSize( inWidth, inHeight );
     tileMap.setSize( inWidth / inTileHeight, inHeight / inTileHeight );
-}
-
-TiledImage::~TiledImage( )
-{
-    if( currentTile ){
-        currentTile->clear();
-        delete currentTile;
-    }
 }
 
 // MODIFICATION
@@ -126,8 +115,8 @@ TiledImage::getRegion(
       << "->(" << roi.xend   << ", " << roi.yend   << ")";
 
     ImageSpec outSpec( roi.width(), roi.height(), tSpec.nchannels, tSpec.format );
-
-    std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf( outSpec ) );
+    std::unique_ptr< OpenImageIO::ImageBuf >
+			outBuf( new OpenImageIO::ImageBuf( outSpec ) );
 
     //current point of interest
     uint32_t ix = roi.xbegin;
@@ -165,10 +154,8 @@ TiledImage::getRegion(
         DLOG( INFO ) << "Paste Window: " << dx << "x" << dy;
 
         //Optimisation: exact copy of previous tile test
-        //FIXME
         uint32_t index = tileMap(mx, my);
         if( index != index_p ){
-            if( currentTile ){ currentTile->clear(); delete currentTile; }
             currentTile = tileCache.getSpec( index, tSpec );
             index_p = index;
         }
@@ -191,113 +178,18 @@ TiledImage::getRegion(
     return std::move( outBuf );
 }
 
-//REMOVE
-OpenImageIO::ImageBuf *
-TiledImage::getRegion(
-    uint32_t x1, uint32_t y1, // begin point
-    uint32_t x2, uint32_t y2 ) // end point
-{
-    OIIO_NAMESPACE_USING;
-    DLOG( INFO ) << "source window "
-        << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
 
-    CHECK( x1 < getWidth() ) << "x1 is out of range";
-    CHECK( y1 < getHeight() ) << "y1 is out of range";
-    if( x2 == 0 || x2 > getWidth() ) x2 = getWidth();
-    if( y2 == 0 || y2 > getHeight() ) y2 = getHeight();
-     DLOG( INFO ) << "source window "
-         << "(" << x1 << ", " << y1 << ")->(" << x2 << ", " << y2 << ")";
-
-    ImageSpec spec( x2 - x1, y2 - y1, tSpec.nchannels, tSpec.format );
-
-    ImageBuf *dest = new ImageBuf( spec );
-    //current point of interest
-    bool hasData = false;
-    uint32_t ix = x1;
-    uint32_t iy = y1;
-    static uint32_t index_p = INT_MAX;
-    while( true ){
-         DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
-
-        //determine the tile under the point of interest
-        uint32_t mx = ix / (tSpec.width - overlap);
-        uint32_t my = iy / (tSpec.height - overlap);
-
-        //determine the top left corner of the copy window
-        uint32_t wx1 = ix - mx * (tSpec.width - overlap);
-        uint32_t wy1 = iy - my * (tSpec.height - overlap);
-
-        //determine the bottom right corner of the copy window
-        uint32_t wx2, wy2;
-        if( x2 / (tSpec.width - overlap) > mx ) wx2 = tSpec.width;
-        else wx2 = x2 - mx * (tSpec.width - overlap);
-
-        if( y2 / (tSpec.height - overlap) > my ) wy2 = tSpec.height;
-        else wy2 = y2 - my * (tSpec.height - overlap);
-
-         DLOG( INFO ) << "copy window "
-             << "(" << wx1 << ", " << wy1 << ")->(" << wx2 << ", " << wy2 << ")";
-
-        //determine the dimensions of the copy window
-        uint32_t ww = wx2 - wx1;
-        uint32_t wh = wy2 - wy1;
-        DLOG( INFO ) << "copy window size " << ww << "x" << wh;
-
-        //determine the top left of the paste window
-        uint32_t dx = ix - x1;
-        uint32_t dy = iy - y1;
-        DLOG( INFO ) << "Paste Window: " << dx << "x" << dy;
-
-        uint32_t index = tileMap(mx, my);
-        if( index != index_p ){
-            if( currentTile ){currentTile->clear(); delete currentTile;}
-            currentTile = tileCache.getSpec( index, tSpec );
-            index_p = index;
-        }
-        if( currentTile ){
-            hasData = true;
-            //copy pixel data from source tile to dest
-            ROI window;
-            window.xbegin = wx1;
-            window.xend = wx2;
-            window.ybegin = wy1;
-            window.yend = wy2;
-            window.zbegin = 0;
-            window.zend = 1;
-            window.chbegin = 0;
-            window.chend = 4;
-            ImageBufAlgo::paste( *dest, dx, dy, 0, 0, *currentTile, window );
-        }
-
-
-        //determine the next point of interest
-        ix += ww;
-        if( ix >= x2 ){
-            ix = x1;
-            iy += wh;
-            if( iy >= y2 ){
-                //then weve copied all the data and exit;
-                break;
-            }
-        }
-    }
-
-    if( hasData )return dest;
-    return nullptr;
-}
-
-OpenImageIO::ImageBuf *
+std::unique_ptr< OpenImageIO::ImageBuf >
 TiledImage::getUVRegion(
-    float u1, float v1, // begin point
-    float u2, float v2 ) // end point
+		const uint32_t xbegin, const uint32_t xend,
+		const uint32_t ybegin, const uint32_t yend )
 {
-    return getRegion(
-        u1 * getWidth(), v1 * getHeight(),
-        u2 * getWidth(), v2 * getHeight() );
+	OpenImageIO::ROI roi(xbegin, xend, ybegin, yend );
+	return getRegion( roi );
 }
 
-OpenImageIO::ImageBuf *
-TiledImage::getTile( uint32_t idx )
+std::unique_ptr< OpenImageIO::ImageBuf >
+TiledImage::getTile( const uint32_t idx )
 {
     return tileCache.getSpec( idx, tSpec );
 }

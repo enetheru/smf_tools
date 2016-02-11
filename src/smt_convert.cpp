@@ -97,7 +97,6 @@ main( int argc, char **argv )
     // == Variables ==
     bool overwrite = false;
     // temporary
-    OpenImageIO::ImageBuf *tempBuf;
     SMF *tempSMF = nullptr;
     SMT *tempSMT = nullptr;
     std::stringstream name;
@@ -256,13 +255,14 @@ main( int argc, char **argv )
     LOG( INFO ) << src_tileCache.getNTiles() << " tiles in cache";
 
     // == SOURCE TILE SPEC ==
-    tempBuf = src_tileCache( 0 );
-    sSpec.width = tempBuf->spec().width;
-    sSpec.height = tempBuf->spec().height;
-    sSpec.nchannels = otSpec.nchannels;
-    sSpec.set_format( otSpec.format );
-    LOG( INFO ) << "Source Tile Size: " << sSpec.width << "x" << sSpec.height;
-    delete tempBuf;
+	{
+		std::unique_ptr< OpenImageIO::ImageBuf > tempBuf( src_tileCache( 0 ) );
+		sSpec.width = tempBuf->spec().width;
+		sSpec.height = tempBuf->spec().height;
+		sSpec.nchannels = otSpec.nchannels;
+		sSpec.set_format( otSpec.format );
+		LOG( INFO ) << "Source Tile Size: " << sSpec.width << "x" << sSpec.height;
+	}
 
     // == FILTER ==
     if( options[ FILTER ] ){
@@ -375,24 +375,28 @@ main( int argc, char **argv )
     // == OUTPUT THE IMAGES ==
     int numTiles = 0;
     int numDupes = 0;
+	OpenImageIO::ROI roi;
     for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
         for( uint32_t x = 0; x < out_tileMap.width; ++x ){
             DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";
 
+			roi.xbegin = x * rel_tile_width; 
+			roi.xend   = x * rel_tile_width + rel_tile_width;
+			roi.ybegin = y * rel_tile_height;
+			roi.yend   = y * rel_tile_height + rel_tile_height;
+			std::unique_ptr< OpenImageIO::ImageBuf >
+				outBuf( src_tiledImage.getRegion( roi ) );
 
-            tempBuf = src_tiledImage.getRegion(
-                x * rel_tile_width, y * rel_tile_height,
-                x * rel_tile_width + rel_tile_width , y * rel_tile_height + rel_tile_height );
             // skip if there was no actual data at that loction
-            if(! tempBuf ){
-                out_tileMap(x,y) = INT_MAX;
+            if( !outBuf ){
+                out_tileMap( x, y ) = INT_MAX;
                 continue;
             }
 
-            if( dupli == 1) {
-                item = &hash_map[computePixelHashSHA1(*tempBuf)];
+            if( dupli == 1 ){
+                item = &hash_map[ computePixelHashSHA1( *outBuf ) ];
                 if( *item ){
-                    out_tileMap(x,y) = *item;
+                    out_tileMap( x, y ) = *item;
                     ++numDupes;
                     continue;
                 }
@@ -401,20 +405,19 @@ main( int argc, char **argv )
                 }
             }
 
-            scale( tempBuf, otSpec );
-            channels( tempBuf, otSpec );
+            outBuf = fix_scale(    std::move( outBuf ), otSpec );
+            outBuf = fix_channels( std::move( outBuf ), otSpec );
 
-            if( options[ SMTOUT ] ) tempSMT->append( tempBuf );
+			//BROKEN
+            //if( options[ SMTOUT ] ) tempSMT->append( outBuf );
             if( options[ IMGOUT ] ){
                 name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".tif";
-                tempBuf->write( name.str() );
+                outBuf->write( name.str() );
                 name.str( std::string() );
             }
             out_tileMap(x,y) = numTiles;
             ++numTiles;
 
-            tempBuf->clear();
-            delete tempBuf;
 			if(! options[ QUIET ] ){
             	progressBar( "[Progress]:",
 					out_tileMap.width * out_tileMap.height - numDupes,

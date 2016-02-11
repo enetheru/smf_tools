@@ -11,68 +11,70 @@
 #include "smf.h"
 #include "tilecache.h"
 
-
-OIIO_NAMESPACE_USING;
-
-ImageBuf *
-TileCache::getOriginal( uint32_t n )
+std::unique_ptr< OpenImageIO::ImageBuf >
+//FIXME remove the 2 once all is said and done
+TileCache::getOriginal( const uint32_t n )
 {
-    ImageBuf *tileBuf = nullptr;
-    ImageInput *image = nullptr;
+    
+	std::unique_ptr< OpenImageIO::ImageBuf > outBuf;
+    if( n >= nTiles ) return outBuf;
+
     SMT *smt = nullptr;
     static SMT *lastSmt = nullptr;
-    if( n >= nTiles ) return nullptr;
 
     auto i = map.begin();
     auto fileName = fileNames.begin();
     while( *i <= n ) { ++i; ++fileName; }
 
+	// already open smt file?
     if( lastSmt && (! lastSmt->fileName.compare( *fileName )) ){
-        tileBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
+		//BROKEN
+        //outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
+    	return std::move( outBuf );
     }
-    else if( (smt = SMT::open( *fileName )) ){
-        // LOG(INFO) << "request: " << n << " - tiles to date: " << *i
-        //     << " + tiles in file: " << smt->nTiles << " = "
-        //     << n - *i + smt->nTiles;
+	// open a new smt file?
+    if( (smt = SMT::open( *fileName )) ){
+		//FIXME shouldnt have a manual delete here, use move scemantics instead
         delete lastSmt;
         lastSmt = smt;
-        tileBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
+		//BROKEN
+        //outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles );
+    	return std::move( outBuf );
     }
-    else if( (image = ImageInput::open( *fileName )) ){
-        tileBuf =  new ImageBuf( *fileName );
-        delete image;
+	// open the image file?
+	outBuf->reset( *fileName );
+	if( outBuf->initialized() ) {
+		return std::move( outBuf );
+	}
 
-        // Load
-        if(! tileBuf->initialized() ) {
-            delete tileBuf;
-            LOG( ERROR ) << "failed to open source for tile: " << n;
-            return nullptr;
-        }
-    }
+	LOG( ERROR ) << "failed to open source for tile: " << n;
+    return std::move( outBuf );
 
-    return tileBuf;
 }
 
-ImageBuf *
-TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec spec )
+std::unique_ptr< OpenImageIO::ImageBuf >
+TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec &spec )
 {
-    CHECK( spec.width ) << "TileCache::getSpec, cannot request zero width";
-    CHECK( spec.height ) << "TileCache::getSpec, cannot request zero height";
+	OIIO_NAMESPACE_USING;
+    CHECK( spec.width     ) << "TileCache::getSpec, cannot request zero width";
+    CHECK( spec.height    ) << "TileCache::getSpec, cannot request zero height";
     CHECK( spec.nchannels ) << "TileCache::getSpec, cannot request zero channels";
 
-    ImageBuf *tempBuf = nullptr;
-    if(! (tempBuf = getOriginal( n )) )return nullptr;
+	std::unique_ptr< OpenImageIO::ImageBuf > outBuf( getOriginal( n ) );
+    if( !outBuf ) return std::move( outBuf );
 
-    channels( tempBuf, spec);
-    convert( tempBuf, spec);
-    scale( tempBuf, spec);
+    outBuf = fix_channels( std::move( outBuf ), spec );
+    outBuf = fix_format(   std::move( outBuf ), spec );
+    outBuf = fix_scale(    std::move( outBuf ), spec );
 
-    return tempBuf;
+    return std::move( outBuf );
 }
 
+//TODO go over this function to see if it can be refactored
 void
-TileCache::addSource( std::string fileName )
+TileCache::addSource( const std::string fileName )
 {
+	OIIO_NAMESPACE_USING;
     ImageInput *image = nullptr;
     ImageSpec spec;
     if( (image = ImageInput::open( fileName )) ){
@@ -108,8 +110,4 @@ TileCache::addSource( std::string fileName )
     LOG(ERROR) << "unrecognised format: " << fileName;
 }
 
-ImageBuf *
-TileCache::operator() ( uint32_t idx )
-{
-    return getOriginal( idx);
-}
+
