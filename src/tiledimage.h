@@ -47,6 +47,9 @@ public:
     uint32_t getHeight();
 
     // Get pixel region
+    std::unique_ptr< OpenImageIO::ImageBuf > getRegion(
+        const OpenImageIO::ROI & );
+    //REMOVE
     OpenImageIO::ImageBuf *getRegion(
             uint32_t x1 = 0, uint32_t y1 = 0,
             uint32_t x2 = 0, uint32_t y2 = 0 );
