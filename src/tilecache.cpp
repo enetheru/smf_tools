@@ -5,7 +5,6 @@
 
 #include "elog/elog.h"
 
-#include "config.h"
 #include "util.h"
 #include "smt.h"
 #include "smf.h"
@@ -15,8 +14,8 @@ std::unique_ptr< OpenImageIO::ImageBuf >
 //FIXME remove the 2 once all is said and done
 TileCache::getOriginal( const uint32_t n )
 {
-    
-	std::unique_ptr< OpenImageIO::ImageBuf > outBuf;
+	std::unique_ptr< OpenImageIO::ImageBuf >
+		outBuf( new OpenImageIO::ImageBuf );
     if( n >= nTiles ) return outBuf;
 
     SMT *smt = nullptr;
@@ -28,8 +27,7 @@ TileCache::getOriginal( const uint32_t n )
 
 	// already open smt file?
     if( lastSmt && (! lastSmt->fileName.compare( *fileName )) ){
-		//BROKEN
-        //outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
+        outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
     	return std::move( outBuf );
     }
 	// open a new smt file?
@@ -37,8 +35,7 @@ TileCache::getOriginal( const uint32_t n )
 		//FIXME shouldnt have a manual delete here, use move scemantics instead
         delete lastSmt;
         lastSmt = smt;
-		//BROKEN
-        //outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles );
+        outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles );
     	return std::move( outBuf );
     }
 	// open the image file?
@@ -61,7 +58,7 @@ TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec &spec )
     CHECK( spec.nchannels ) << "TileCache::getSpec, cannot request zero channels";
 
 	std::unique_ptr< OpenImageIO::ImageBuf > outBuf( getOriginal( n ) );
-    if( !outBuf ) return std::move( outBuf );
+	CHECK( outBuf ) << "nullptr gotten from getOriginal(" << n << ")";
 
     outBuf = fix_channels( std::move( outBuf ), spec );
     outBuf = fix_format(   std::move( outBuf ), spec );
@@ -76,7 +73,6 @@ TileCache::addSource( const std::string fileName )
 {
 	OIIO_NAMESPACE_USING;
     ImageInput *image = nullptr;
-    ImageSpec spec;
     if( (image = ImageInput::open( fileName )) ){
         image->close();
         delete image;

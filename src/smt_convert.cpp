@@ -1,5 +1,4 @@
 #include <fstream>
-#include <string>
 #include <sstream>
 #include <vector>
 #include <iostream>
@@ -18,7 +17,6 @@ using OpenImageIO::TypeDesc;
 #include "smt.h"
 #include "smf.h"
 #include "util.h"
-#include "tilemap.h"
 #include "tilecache.h"
 #include "tiledimage.h"
 
@@ -252,6 +250,7 @@ main( int argc, char **argv )
         DLOG( INFO ) << "adding " << parse.nonOption( i ) << " to tilecache.";
         src_tileCache.addSource( parse.nonOption( i ) );
     }
+	CHECK( src_tileCache.getNTiles() ) << "no tiles in cache";
     LOG( INFO ) << src_tileCache.getNTiles() << " tiles in cache";
 
     // == SOURCE TILE SPEC ==
@@ -304,7 +303,9 @@ main( int argc, char **argv )
         }
     }
     else {
-        DLOG( INFO ) << "tilemap generated ";
+		//TODO allow user to specify generation technique, ie stride,
+		// or aspect ratio.
+        DLOG( INFO ) << "no tilemap specified, generated one instead";
         uint32_t squareSize = std::ceil( std::sqrt( src_filter.size() ) );
         src_tileMap.setSize( squareSize, squareSize );
         src_tileMap.consecutive();
@@ -325,6 +326,7 @@ main( int argc, char **argv )
         out_img_width = src_tiledImage.getWidth();
         out_img_height = src_tiledImage.getHeight();
     }
+	LOG( INFO ) << "ImageSize = " << out_img_width << "x" << out_img_height;
 
     // == TILESIZE ==
 	// TODO if smt is specified then default to 32x32
@@ -375,7 +377,8 @@ main( int argc, char **argv )
     // == OUTPUT THE IMAGES ==
     int numTiles = 0;
     int numDupes = 0;
-	OpenImageIO::ROI roi;
+	OpenImageIO::ROI roi = OpenImageIO::ROI::All();
+	std::unique_ptr< OpenImageIO::ImageBuf > outBuf;
     for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
         for( uint32_t x = 0; x < out_tileMap.width; ++x ){
             DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";
@@ -384,14 +387,8 @@ main( int argc, char **argv )
 			roi.xend   = x * rel_tile_width + rel_tile_width;
 			roi.ybegin = y * rel_tile_height;
 			roi.yend   = y * rel_tile_height + rel_tile_height;
-			std::unique_ptr< OpenImageIO::ImageBuf >
-				outBuf( src_tiledImage.getRegion( roi ) );
-
-            // skip if there was no actual data at that loction
-            if( !outBuf ){
-                out_tileMap( x, y ) = INT_MAX;
-                continue;
-            }
+			outBuf = src_tiledImage.getRegion( roi );
+			outBuf->write( "smt_convert_getRegion.tif", "tif" );
 
             if( dupli == 1 ){
                 item = &hash_map[ computePixelHashSHA1( *outBuf ) ];
@@ -408,13 +405,13 @@ main( int argc, char **argv )
             outBuf = fix_scale(    std::move( outBuf ), otSpec );
             outBuf = fix_channels( std::move( outBuf ), otSpec );
 
-			//BROKEN
-            //if( options[ SMTOUT ] ) tempSMT->append( outBuf );
-            if( options[ IMGOUT ] ){
+            //if( options[ SMTOUT ] ) tempSMT->append( *outBuf );
+            //if( options[ IMGOUT ] ){
                 name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".tif";
                 outBuf->write( name.str() );
                 name.str( std::string() );
-            }
+				tempSMT->append( *outBuf );
+            //}
             out_tileMap(x,y) = numTiles;
             ++numTiles;
 

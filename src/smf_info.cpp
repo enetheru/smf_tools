@@ -52,8 +52,8 @@ int main( int argc, char **argv )
     SMF *smf;
     int retVal = 0;
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
-        smf = nullptr;
-        if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
+        smf = SMF::open( parse.nonOption( i );
+        if(! smf ){
             LOG( ERROR ) << "cannot open smf file";
             retVal = 1;
         }

@@ -45,15 +45,24 @@ public:
     uint32_t getWidth();
     uint32_t getHeight();
 
-    // Get pixel region
+    /// Get pixel region
+	/*  TODO
+	 *
+	 */
     std::unique_ptr< OpenImageIO::ImageBuf > getRegion(
         	const OpenImageIO::ROI & );
 
-    // Get image Region, relative coords.
+    /// Get image Region, relative coords.
+	/*  TODO
+	 *
+	 */
 	std::unique_ptr< OpenImageIO::ImageBuf > getUVRegion(
 			const uint32_t xbegin, const uint32_t xend,
 			const uint32_t ybegin, const uint32_t yend );
 
-	//get raw tile image
+	/// get raw tile image
+	/*  TODO
+	 *
+	 */
 	std::unique_ptr< OpenImageIO::ImageBuf > getTile( const uint32_t idx );
 };

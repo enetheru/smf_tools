@@ -25,7 +25,6 @@
    
 #include <squish.h>
 #include "colourset.h"
-#include "maths.h"
 #include "rangefit.h"
 #include "clusterfit.h"
 #include "colourblock.h"

@@ -1,5 +1,4 @@
 #include <fstream>
-#include <string>
 
 #include <OpenImageIO/imagebuf.h>
 
@@ -9,7 +8,6 @@
 #include "option_args.h"
 #include "smf.h"
 #include "util.h"
-#include "tilemap.h"
 
 enum optionsIndex
 {

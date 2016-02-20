@@ -15,8 +15,6 @@
  * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
  */
 #define MINIMAP_SIZE 699048
-#define SMF_HEADER_NONE 0
-#define SMF_HEADER_GRASS 1
 
 #define SMF_HEADER      0x00000001 //!<
 #define SMF_EXTRAHEADER 0x00000002 //!<
@@ -289,8 +287,6 @@ public:
     void writeMini    ( OpenImageIO::ImageBuf *buf = nullptr );
     //TODO Doxygen documentation
     void writeMetal   ( OpenImageIO::ImageBuf *buf = nullptr );
-    //TODO Doxygen documentation
-    void writeFeaturesHeader();
     //TODO Doxygen documentation
     void writeFeatures();
     // Extra

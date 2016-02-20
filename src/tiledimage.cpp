@@ -6,8 +6,6 @@
 #include "elog/elog.h"
 
 #include "tiledimage.h"
-#include "tilemap.h"
-#include "tilecache.h"
 
 // CONSTRUCTORS
 // ============
@@ -104,25 +102,21 @@ TiledImage::getRegion(
     const OpenImageIO::ROI &roi )
 {
     OIIO_NAMESPACE_USING;
-
-    //BROKEN
-    //CHECK( roi.xbegin < int( getWidth()  ) ) << "xbegin is out of range";
-    //CHECK( roi.ybegin < int( getHeight() ) ) << "ybegin is out of range";
-    //if( (roi.xend == 0) || (roi.xend > int( getWidth()  )) ) roi.xend = getWidth();
-    //if( (roi.yend == 0) || (roi.yend > int( getHeight() )) ) roi.yend = getHeight();
     DLOG( INFO ) << "source window "
         << "(" << roi.xbegin << ", " << roi.ybegin << ")"
       << "->(" << roi.xend   << ", " << roi.yend   << ")";
 
-    ImageSpec outSpec( roi.width(), roi.height(), tSpec.nchannels, tSpec.format );
+    ImageSpec outSpec( roi.width(), roi.height(), 4, TypeDesc::UINT8 );
+
     std::unique_ptr< OpenImageIO::ImageBuf >
 			outBuf( new OpenImageIO::ImageBuf( outSpec ) );
+	outBuf->write( "outbuf_create.tif", "tif" );
 
     //current point of interest
     uint32_t ix = roi.xbegin;
     uint32_t iy = roi.ybegin;
     static uint32_t index_p = INT_MAX;
-    OpenImageIO::ROI cw; // copy window
+    OpenImageIO::ROI cw{0,0,0,0,0,1,0,4}; // copy window
     while( true ){
          DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
@@ -151,17 +145,19 @@ TiledImage::getRegion(
         //determine the top left of the paste window
         uint32_t dx = ix - roi.xbegin;
         uint32_t dy = iy - roi.ybegin;
-        DLOG( INFO ) << "Paste Window: " << dx << "x" << dy;
+        DLOG( INFO ) << "Paste position: " << dx << "x" << dy;
 
         //Optimisation: exact copy of previous tile test
         uint32_t index = tileMap(mx, my);
         if( index != index_p ){
             currentTile = tileCache.getSpec( index, tSpec );
+			currentTile->write("currentTile", "tif");
             index_p = index;
         }
         if( currentTile ){
             //copy pixel data from source tile to dest
             ImageBufAlgo::paste( *outBuf, dx, dy, 0, 0, *currentTile, cw );
+			outBuf->write( "outBuf_paste", "tif");
         }
 
         //determine the next point of interest

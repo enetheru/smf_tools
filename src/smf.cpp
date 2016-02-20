@@ -7,7 +7,6 @@
 
 #include "elog/elog.h"
 
-#include "config.h"
 #include "smf.h"
 #include "smt.h"
 #include "util.h"

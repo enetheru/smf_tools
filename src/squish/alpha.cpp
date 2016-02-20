@@ -120,7 +120,7 @@ static int FitCodes( u8 const* rgba, int mask, u8 const* codes, u8* indices )
 		for( int j = 0; j < 8; ++j )
 		{
 			// get the squared error from this code
-			int dist = ( int )value - ( int )codes[j];
+			int dist = value - ( int )codes[j];
 			dist *= dist;
 			
 			// compare with the best so far

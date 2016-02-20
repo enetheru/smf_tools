@@ -18,8 +18,7 @@ public:
     void addSource( const std::string );
 
     // data access
-    uint32_t getNTiles ( ){ return nTiles; };
-    uint32_t getNFiles ( ){ return fileNames.size(); };
+    uint32_t getNTiles ( ){ return nTiles; };;
 
 	/// get the original tile from the cache
 	/*  TODO

@@ -5,48 +5,8 @@
 #include <OpenImageIO/imagebuf.h>
 
 // Borrowing from OpenGL for texture compression formats for implementation
-#define GL_UNSIGNED_BYTE                  0x1401
 #define GL_UNSIGNED_SHORT                 0x1403
-
-#define GL_R3_G3_B2				0x2A10
-#define GL_RGB4					0x804F
-#define GL_RGB5					0x8050
-#define GL_RGB8					0x8051
-#define GL_RGB10				0x8052
-#define GL_RGB12				0x8053
-#define GL_RGB16				0x8054
-#define GL_RGBA2				0x8055
-#define GL_RGBA4				0x8056
-#define GL_RGB5_A1				0x8057
 #define GL_RGBA8				0x8058
-#define GL_RGB10_A2				0x8059
-#define GL_RGBA12				0x805A
-#define GL_RGBA16				0x805B
-
-#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT   0x83F0
-#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT  0x83F1
-#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT  0x83F2
-#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT  0x83F3
-
-#define GL_COMPRESSED_RGB8_ETC2           0x9274
-#define GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 0x9276
-#define GL_COMPRESSED_RGBA8_ETC2_EAC      0x9278
-
-#define GL_COMPRESSED_RGBA_ASTC_4x4_KHR   0x93B0
-#define GL_COMPRESSED_RGBA_ASTC_5x4_KHR   0x93B1
-#define GL_COMPRESSED_RGBA_ASTC_5x5_KHR   0x93B2
-#define GL_COMPRESSED_RGBA_ASTC_6x5_KHR   0x93B3
-#define GL_COMPRESSED_RGBA_ASTC_6x6_KHR   0x93B4
-#define GL_COMPRESSED_RGBA_ASTC_8x5_KHR   0x93B5
-#define GL_COMPRESSED_RGBA_ASTC_8x6_KHR   0x93B6
-#define GL_COMPRESSED_RGBA_ASTC_8x8_KHR   0x93B7
-#define GL_COMPRESSED_RGBA_ASTC_10x5_KHR  0x93B8
-#define GL_COMPRESSED_RGBA_ASTC_10x6_KHR  0x93B9
-#define GL_COMPRESSED_RGBA_ASTC_10x8_KHR  0x93BA
-#define GL_COMPRESSED_RGBA_ASTC_10x10_KHR 0x93BB
-#define GL_COMPRESSED_RGBA_ASTC_12x10_KHR 0x93BC
-#define GL_COMPRESSED_RGBA_ASTC_12x12_KHR 0x93BD
-
 
 class SMT {
 public:
@@ -74,10 +34,10 @@ private:
     //! load data from fileName
     void load();
     
-    void appendDXT1( OpenImageIO::ImageBuf * );
-    void appendRGBA8( OpenImageIO::ImageBuf * );
-    void appendUSHORT( OpenImageIO::ImageBuf * );
-    OpenImageIO::ImageBuf *getTileDXT1( uint32_t );
+    void appendDXT1(   const OpenImageIO::ImageBuf & );
+    void appendRGBA8(  const OpenImageIO::ImageBuf & );
+    void appendUSHORT( const OpenImageIO::ImageBuf & );
+	std::unique_ptr< OpenImageIO::ImageBuf> getTileDXT1( const uint32_t );
     OpenImageIO::ImageBuf *getTileRGBA8( uint32_t );
     OpenImageIO::ImageBuf *getTileUSHORT( uint32_t );
 
@@ -117,6 +77,6 @@ public:
     void setType    ( uint32_t t ); // 1=DXT1
     void setFileName( std::string name );
 
-    OpenImageIO::ImageBuf *getTile( uint32_t );
-    void append( OpenImageIO::ImageBuf * );
+	std::unique_ptr< OpenImageIO::ImageBuf > getTile( const uint32_t );
+    void append( const OpenImageIO::ImageBuf & );
 };

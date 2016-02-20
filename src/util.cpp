@@ -1,5 +1,4 @@
 #include <chrono>
-#include <cstdint>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -32,7 +31,7 @@ std::vector< uint32_t >
 expandString( const char *s )
 {
     std::vector< uint32_t > result;
-    int start;
+    int start = 0;
     bool sequence = false, fail = false;
     const char *begin;
 
@@ -83,7 +82,7 @@ fix_channels(
     int map[] = { 0, 1, 2, 3 };
     static const float fill[] = { 0, 0, 0, 1.0 };
 
-    CHECK( !inBuf ) << "nullptr passed to fix_channels()";
+    CHECK( inBuf ) << "nullptr passed to fix_channels()";
 
     // return a copy of the original if its the correct size.
     if( inBuf->spec().nchannels == spec.nchannels ) return std::move( inBuf );
@@ -128,13 +127,12 @@ fix_scale(
 {
     OIIO_NAMESPACE_USING;
 
-    CHECK( !inBuf ) << "nullptr passed to fix_scale()";
+    CHECK( inBuf ) << "nullptr passed to fix_scale()";
 
     // return the inBuf if no change is required.
     if( (inBuf->spec().width  == spec.width )
-     && (inBuf->spec().height == spec.height) ){
-        std::move( inBuf );
-    }
+     && (inBuf->spec().height == spec.height) )
+        	return std::move( inBuf );
 
     // Otherwise scale
     ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, inBuf->spec().nchannels );
@@ -191,7 +189,7 @@ fix_format(
     const OpenImageIO::ImageSpec &spec )
 {
     // quick out
-    CHECK( !inBuf ) << "nullptr passed to fix_format()";
+    CHECK( inBuf ) << "nullptr passed to fix_format()";
     if( inBuf->spec().format == spec.format ) return std::move( inBuf );
 
     std::unique_ptr< OpenImageIO::ImageBuf >
