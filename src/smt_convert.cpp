@@ -32,7 +32,8 @@ enum optionsIndex
     SMTOUT,
     IMGOUT,
     DUPLI,
-    TYPE
+    TYPE,
+    PROGRESS
 };
 //FIXME what happened to specifying the span of input tiles?
 
@@ -84,6 +85,9 @@ const option::Descriptor usage[] = {
 
     { TYPE, 0, "", "type", Arg::Required, "\t--type=[DXT1,RGBA8,USHORT]"
         "\tdefault=DXT1, what format to put into the smt"},
+
+    { PROGRESS, 0, "p", "progress", Arg::None, "  -p  \t--progress"
+        "\tDisplay progress indicator" },
 
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -410,7 +414,7 @@ main( int argc, char **argv )
             out_tileMap(x,y) = numTiles;
             ++numTiles;
 
-            if(! options[ QUIET ] ){
+            if( options[ PROGRESS ] ){
                 progressBar( "[Progress]:",
                     out_tileMap.width * out_tileMap.height - numDupes,
                     numTiles );
