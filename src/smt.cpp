@@ -102,13 +102,10 @@ SMT::setTileSize( uint32_t r )
 void
 SMT::calcTileBytes()
 {
-    //FIXME based on my experiments just modifying the values of an ImageSpec
-    // doesnt work as expected, a full recreation needs to happen
+    // reset variables
     _tileBytes = 0;
-
     int mip = header.tileSize;
-    _tileSpec.height = tileSize;
-    _tileSpec.width = tileSize;
+
     /*!
      * Calculate the size of the raw format of dxt1 with 4 mip levels
      * DXT1 consists of 64 bits per 4x4 block of pixels.
@@ -116,24 +113,21 @@ SMT::calcTileBytes()
      * 512  + 128  + 32 + 8 = 680
      */
     if( header.tileType == 1 ){
-        _tileSpec.nchannels = 4;
-        _tileSpec.set_format( TypeDesc::UINT8 );
+        _tileSpec = ImageSpec( tileSize, tileSize, 4, TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip)/2;
             mip /= 2;
         }
     }
     else if( header.tileType == GL_RGBA8 ){
-        _tileSpec.nchannels = 1;
-        _tileSpec.set_format( TypeDesc::UINT8 );
+        _tileSpec = ImageSpec( tileSize, tileSize, 4, TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip);
             mip /= 2;
         }
     }
     else if( header.tileType == GL_UNSIGNED_SHORT ){
-        _tileSpec.nchannels = 1;
-        _tileSpec.set_format( TypeDesc::UINT16 );
+        _tileSpec = ImageSpec( tileSize, tileSize, 1, TypeDesc::UINT16 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip) * 2;
             mip /= 2;

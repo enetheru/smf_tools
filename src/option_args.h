@@ -63,7 +63,6 @@ struct Arg: public option::Arg
 
     static option::ArgStatus Image( const option::Option& option, bool msg)
     {
-        // FIXME test for image file.
         OpenImageIO::ImageInput *image = OpenImageIO::ImageInput::open( option.arg );
         if(! image ){
             LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
