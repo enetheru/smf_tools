@@ -198,7 +198,6 @@ SMT::append( const OpenImageIO::ImageBuf &sourceBuf )
     if( tileType == GL_UNSIGNED_SHORT ) appendUSHORT( sourceBuf );
 }
 
-//FIXME a customised version of this function will probably be a little faster
 void
 SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
 {
@@ -224,23 +223,6 @@ SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
         ss << "SMT.appendDXT1.mip" << i << ".tif";
         DLOG( INFO ) << "writing mip to file: " << ss.str();
         tempBuf->write( ss.str(), "tif" );
-        ss.str( std::string() );
-        ss << "buffer Storage: ";
-        switch( tempBuf->storage() ){
-        case ImageBuf::IBStorage::UNINITIALIZED:
-            ss << " unitialized\n";
-            break;
-        case ImageBuf::IBStorage::LOCALBUFFER:
-            ss << " localbuffer\n";
-            break;
-        case ImageBuf::IBStorage::APPBUFFER:
-            ss << " appbuffer\n";
-            break;
-        case ImageBuf::IBStorage::IMAGECACHE:
-            ss << " imagecache\n";
-            break;
-        }
-        DLOG( INFO ) << ss.str();
 #endif
         spec = tempBuf->specmod();
         DLOG( INFO ) << "mip: " << i << ", size: " << spec.width << "x" << spec.height << "x" << spec.nchannels;
@@ -259,7 +241,7 @@ SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
         CHECK( tempBuf->localpixels() ) << "pixel data unavailable";
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
             spec.width, spec.height, blocks,
-            squish::kDxt1 );
+            squish::kDxt1 | squish::kColourRangeFit );
         DLOG( INFO ) << "\n" << image_to_hex( (const uint8_t *)tempBuf->localpixels(), spec.width, spec.height );
         DLOG( INFO ) << "\n" << image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 );
 
