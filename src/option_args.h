@@ -1,6 +1,7 @@
 #include <fstream>
 #include <cstring>
 
+#include <OpenImageIO/imageio.h>
 #include <optionparser.h>
 #include <elog.h>
 
@@ -57,23 +58,20 @@ struct Arg: public option::Arg
             LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
         }
         return option::ARG_ILLEGAL;
-        
+
     }
 
-	static option::ArgStatus Image( const option::Option& option, bool msg)
+    static option::ArgStatus Image( const option::Option& option, bool msg)
     {
-		// FIXME test for image file.
-        std::fstream tempFile( option.arg, std::ios::in );
-        if( tempFile.good() ){
-            tempFile.close();
+        // FIXME test for image file.
+        OpenImageIO::ImageInput *image = OpenImageIO::ImageInput::open( option.arg );
+        if(! image ){
+            LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
+            return option::ARG_ILLEGAL;
+        } else {
+            image->close();
+            OpenImageIO::ImageInput::destroy( image );
             return option::ARG_OK;
         }
-        tempFile.close();
-
-        if (msg) {
-            LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
-        }
-        return option::ARG_ILLEGAL;
-        
     }
 };
