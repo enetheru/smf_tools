@@ -10,8 +10,7 @@
 using OpenImageIO::ImageBufAlgo::computePixelHashSHA1;
 using OpenImageIO::TypeDesc;
 
-#include "elog/elog.h"
-#include "optionparser/optionparser.h"
+#include <elog.h>
 
 #include "option_args.h"
 #include "smt.h"
@@ -159,11 +158,11 @@ main( int argc, char **argv )
         fail = true;
     }
 
-	if( options[ SMTOUT ] ){
+    if( options[ SMTOUT ] ){
 
-	}
+    }
 
-	//TODO if smt is specified as output format, default tilesize to 32x32
+    //TODO if smt is specified as output format, default tilesize to 32x32
 
     // * Output Format
     if(  options[ TYPE ] ){
@@ -188,8 +187,8 @@ main( int argc, char **argv )
 
     // * Tile Size
     if( options[ TILESIZE ] ){
-		std::tie( otSpec.width, otSpec.height )
-				= valxval( options[ TILESIZE ].arg );
+        std::tie( otSpec.width, otSpec.height )
+                = valxval( options[ TILESIZE ].arg );
         if( (oType == 1)
             && ((otSpec.width % 4) || (otSpec.height % 4))
           ){
@@ -197,18 +196,18 @@ main( int argc, char **argv )
             fail = true;
         }
     }
-	else if(! options[ IMGOUT ] ){
-		otSpec.width = 32;
-		otSpec.height = 32;
-	}
+    else if(! options[ IMGOUT ] ){
+        otSpec.width = 32;
+        otSpec.height = 32;
+    }
 
-	//FIXME since this tool is build primarily for springrts, then if --smt is
-	//specified and no --imagesize round the image size based on input to the
-	//closest multiple of 1024 > 0
+    //FIXME since this tool is build primarily for springrts, then if --smt is
+    //specified and no --imagesize round the image size based on input to the
+    //closest multiple of 1024 > 0
     // * Image Size
     if( options[ IMAGESIZE ] ){
-		std::tie( out_img_width, out_img_height )
-				= valxval( options[ IMAGESIZE ].arg );
+        std::tie( out_img_width, out_img_height )
+                = valxval( options[ IMAGESIZE ].arg );
         if( (oType == 1)
             && ((out_img_width % 4) || (out_img_height % 4))
           ){
@@ -250,18 +249,19 @@ main( int argc, char **argv )
         DLOG( INFO ) << "adding " << parse.nonOption( i ) << " to tilecache.";
         src_tileCache.addSource( parse.nonOption( i ) );
     }
-	CHECK( src_tileCache.getNTiles() ) << "no tiles in cache";
-    LOG( INFO ) << src_tileCache.getNTiles() << " tiles in cache";
+    CHECK( src_tileCache.nTiles ) << "no tiles in cache";
+    LOG( INFO ) << src_tileCache.nTiles << " tiles in cache";
 
     // == SOURCE TILE SPEC ==
-	{
-		std::unique_ptr< OpenImageIO::ImageBuf > tempBuf( src_tileCache( 0 ) );
-		sSpec.width = tempBuf->spec().width;
-		sSpec.height = tempBuf->spec().height;
-		sSpec.nchannels = otSpec.nchannels;
-		sSpec.set_format( otSpec.format );
-		LOG( INFO ) << "Source Tile Size: " << sSpec.width << "x" << sSpec.height;
-	}
+    {
+        std::unique_ptr< OpenImageIO::ImageBuf >
+                tempBuf(src_tileCache.getTile(0) );
+        sSpec.width = tempBuf->spec().width;
+        sSpec.height = tempBuf->spec().height;
+        sSpec.nchannels = otSpec.nchannels;
+        sSpec.set_format( otSpec.format );
+        LOG( INFO ) << "Source Tile Size: " << sSpec.width << "x" << sSpec.height;
+    }
 
     // == FILTER ==
     if( options[ FILTER ] ){
@@ -273,7 +273,7 @@ main( int argc, char **argv )
     }
     else {
         DLOG( INFO ) << "no filter specified, using all tiles";
-        src_filter.resize( src_tileCache.getNTiles() );
+        src_filter.resize( src_tileCache.nTiles );
         for( unsigned i = 0; i < src_filter.size(); ++i ) src_filter[ i ] = i;
     }
 
@@ -303,8 +303,8 @@ main( int argc, char **argv )
         }
     }
     else {
-		//TODO allow user to specify generation technique, ie stride,
-		// or aspect ratio.
+        //TODO allow user to specify generation technique, ie stride,
+        // or aspect ratio.
         DLOG( INFO ) << "no tilemap specified, generated one instead";
         uint32_t squareSize = std::ceil( std::sqrt( src_filter.size() ) );
         src_tileMap.setSize( squareSize, squareSize );
@@ -326,10 +326,10 @@ main( int argc, char **argv )
         out_img_width = src_tiledImage.getWidth();
         out_img_height = src_tiledImage.getHeight();
     }
-	LOG( INFO ) << "ImageSize = " << out_img_width << "x" << out_img_height;
+    LOG( INFO ) << "ImageSize = " << out_img_width << "x" << out_img_height;
 
     // == TILESIZE ==
-	// TODO if smt is specified then default to 32x32
+    // TODO if smt is specified then default to 32x32
     if(! options[ TILESIZE ] ){
         if( options[ IMGOUT ] ){
             otSpec.width = out_img_width;
@@ -377,18 +377,17 @@ main( int argc, char **argv )
     // == OUTPUT THE IMAGES ==
     int numTiles = 0;
     int numDupes = 0;
-	OpenImageIO::ROI roi = OpenImageIO::ROI::All();
-	std::unique_ptr< OpenImageIO::ImageBuf > outBuf;
+    OpenImageIO::ROI roi = OpenImageIO::ROI::All();
+    std::unique_ptr< OpenImageIO::ImageBuf > outBuf;
     for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
         for( uint32_t x = 0; x < out_tileMap.width; ++x ){
             DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";
 
-			roi.xbegin = x * rel_tile_width; 
-			roi.xend   = x * rel_tile_width + rel_tile_width;
-			roi.ybegin = y * rel_tile_height;
-			roi.yend   = y * rel_tile_height + rel_tile_height;
-			outBuf = src_tiledImage.getRegion( roi );
-			outBuf->write( "smt_convert_getRegion.tif", "tif" );
+            roi.xbegin = x * rel_tile_width;
+            roi.xend   = x * rel_tile_width + rel_tile_width;
+            roi.ybegin = y * rel_tile_height;
+            roi.yend   = y * rel_tile_height + rel_tile_height;
+            outBuf = src_tiledImage.getRegion( roi );
 
             if( dupli == 1 ){
                 item = &hash_map[ computePixelHashSHA1( *outBuf ) ];
@@ -402,36 +401,32 @@ main( int argc, char **argv )
                 }
             }
 
-            outBuf = fix_scale(    std::move( outBuf ), otSpec );
-            outBuf = fix_channels( std::move( outBuf ), otSpec );
-
-            //if( options[ SMTOUT ] ) tempSMT->append( *outBuf );
-            //if( options[ IMGOUT ] ){
+            if( options[ SMTOUT ] ) tempSMT->append( *outBuf );
+            if( options[ IMGOUT ] ){
                 name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".tif";
                 outBuf->write( name.str() );
                 name.str( std::string() );
-				tempSMT->append( *outBuf );
-            //}
+            }
             out_tileMap(x,y) = numTiles;
             ++numTiles;
 
-			if(! options[ QUIET ] ){
-            	progressBar( "[Progress]:",
-					out_tileMap.width * out_tileMap.height - numDupes,
-					numTiles );
-			}
+            if(! options[ QUIET ] ){
+                progressBar( "[Progress]:",
+                    out_tileMap.width * out_tileMap.height - numDupes,
+                    numTiles );
+            }
         }
     }
     LOG(INFO) << "actual:max = " << numTiles << ":" << out_tileMap.width * out_tileMap.height;
     LOG(INFO) << "number of dupes = " << numDupes;
 
-	// if the tileMap only contains 1 value, then we are only outputting
-	// 	a single image, so skip tileMap csv export
-	if( out_tileMap.size() > 1 ){
-    	std::fstream out_csv( outFileName + ".csv", std::ios::out );
-    	out_csv << out_tileMap.toCSV();
-    	out_csv.close();
-	}
+    // if the tileMap only contains 1 value, then we are only outputting
+    //     a single image, so skip tileMap csv export
+    if( out_tileMap.size() > 1 ){
+        std::fstream out_csv( outFileName + ".csv", std::ios::out );
+        out_csv << out_tileMap.toCSV();
+        out_csv.close();
+    }
 
     delete[] buffer;
     delete[] options;

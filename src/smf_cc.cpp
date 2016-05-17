@@ -2,8 +2,7 @@
 #include <string>
 #include <fstream>
 
-#include "elog/elog.h"
-#include "optionparser/optionparser.h"
+#include <elog.h>
 
 #include "option_args.h"
 #include "smt.h"

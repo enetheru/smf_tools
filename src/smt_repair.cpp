@@ -1,7 +1,6 @@
 #include <fstream>
 
-#include "optionparser/optionparser.h"
-#include "elog/elog.h"
+#include <elog.h>
 
 #include "option_args.h"
 #include "smt.h"

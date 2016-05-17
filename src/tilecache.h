@@ -2,42 +2,35 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include <OpenImageIO/imagebuf.h>
 
 class TileCache
 {
     // member data
-    uint32_t nTiles = 0;
-	// FIXME this twin vector mapping can be turned into a pair or a tuple
+    uint32_t _nTiles = 0;
+    // FIXME this twin vector mapping can be turned into a pair or a tuple
     std::vector< uint32_t > map;
     std::vector< std::string > fileNames;
 
 public:
+    // data accesa
+    const uint32_t &nTiles = _nTiles;
+
     // modifications
     void addSource( const std::string );
 
-    // data access
-    uint32_t getNTiles ( ){ return nTiles; };;
+    /// get a tile from the cache
+    /*
+     *
+     */
+    std::unique_ptr< OpenImageIO::ImageBuf > getTile(const uint32_t n);
 
-	/// get the original tile from the cache
-	/*  TODO
-	 *
-	 */
-	std::unique_ptr< OpenImageIO::ImageBuf > getOriginal( const uint32_t n );
-
-	/// gets the tile but modified to match specifications
-	/*  TODO
-	 *
-	 */
-    std::unique_ptr< OpenImageIO::ImageBuf > getSpec(
-			const uint32_t n, const OpenImageIO::ImageSpec & );
-
-	/// the same as get original but using bracket operator
-	/*  TODO
-	 *
-	 */
-    std::unique_ptr< OpenImageIO::ImageBuf > operator() ( const uint32_t n )
-			{ return getOriginal( n ); }
-
+    TileCache &operator=( const TileCache& rhs ){
+        _nTiles = rhs._nTiles;
+        map = rhs.map;
+        fileNames = rhs.fileNames;
+        return *this;
+    }
 };

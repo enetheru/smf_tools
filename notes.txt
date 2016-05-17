@@ -30,7 +30,7 @@ pretty much always output the csv
 map_width = sqrt( filter.size() ) || tilemap.width.
 map_height = sqrt( filter.size() ) || tilemap.height
 tile_width = smt.tileWidth || tilecache.getOriginal( 0 ).width
-tile_height = smt.tileHeight || tilecache.getOriginal( 0 ).height
+tile_height = smt.tileHeight || tilecache.getTile( 0 ).height
 image_width = map_width * tile_width
 image_height = map_height * tile_height
 ^^ this creates the tiledImage ^^

@@ -1,5 +1,4 @@
-#include "elog/elog.h"
-#include "optionparser/optionparser.h"
+#include <elog.h>
 
 #include "option_args.h"
 #include "smf.h"
@@ -8,7 +7,7 @@ enum optionsIndex
 {
     UNKNOWN,
     HELP,
-	QUIET
+    QUIET
 };
 
 const option::Descriptor usage[] = {
@@ -36,10 +35,11 @@ int main( int argc, char **argv )
     if( options[ HELP ] || parse.nonOptionsCount() == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        exit( 1 );
+        if( options[ HELP ] ) exit( 0 );
+        else exit( 1 );
     }
 
-	if( options[ QUIET ] )LOG::SetDefaultLoggerLevel( LOG::CHECK );
+    if( options[ QUIET ] )LOG::SetDefaultLoggerLevel( LOG::CHECK );
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
@@ -52,7 +52,7 @@ int main( int argc, char **argv )
     SMF *smf;
     int retVal = 0;
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
-        smf = SMF::open( parse.nonOption( i );
+        smf = SMF::open( parse.nonOption( i ) );
         if(! smf ){
             LOG( ERROR ) << "cannot open smf file";
             retVal = 1;

@@ -1,8 +1,8 @@
 #include <fstream>
 #include <cstring>
 
-#include "optionparser/optionparser.h"
-#include "elog/elog.h"
+#include <optionparser.h>
+#include <elog.h>
 
 
 // Argument tests //

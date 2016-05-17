@@ -4,8 +4,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <squish.h>
-
-#include "elog/elog.h"
+#include <elog.h>
 
 #include "smf.h"
 #include "smt.h"
@@ -219,20 +218,20 @@ SMF::info()
          << "\n\tMinHeight:      "   << _header.floor
          << "\n\tMaxHeight:      "   << _header.ceiling
 
-         << "\n\n\tHeightPtr:   "   << int_to_hex( _header.heightPtr ) << " "
+         << "\n\n\tHeightPtr:   "   << to_hex(_header.heightPtr) << " "
             << _header.width+1 << "x"
             << _header.length+1 << ":" << 1 << " UINT16"
-         << "\n\tTypePtr:     "     << int_to_hex( _header.typePtr ) << " "
+         << "\n\tTypePtr:     "     << to_hex(_header.typePtr) << " "
             << _header.width << "x" << _header.length << ":" << 1 << " UINT8"
-         << "\n\tTilesPtr:    "     << int_to_hex( _header.tilesPtr )
-         << "\n\tMapPtr:      "     << int_to_hex( _mapPtr ) << " "
+         << "\n\tTilesPtr:    "     << to_hex(_header.tilesPtr)
+         << "\n\tMapPtr:      "     << to_hex(_mapPtr) << " "
             << _header.width * 8 / _header.tileSize << "x"
             << _header.length * 8 / _header.tileSize << ":" << 1 << " UINT32"
-         << "\n\tMiniPtr:     "     << int_to_hex( _header.miniPtr )
+         << "\n\tMiniPtr:     "     << to_hex(_header.miniPtr)
             << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
-         << "\n\tMetalPtr:    "     << int_to_hex( _header.metalPtr )
+         << "\n\tMetalPtr:    "     << to_hex(_header.metalPtr)
          << " " << _header.width << "x" << _header.length << ":" << 1 << "  UINT8"
-         << "\n\tFeaturesPtr: "     << int_to_hex( _header.featuresPtr )
+         << "\n\tFeaturesPtr: "     << to_hex(_header.featuresPtr)
          << "\n  HeaderExtns: "   << _header.nHeaderExtns
         ;
 
@@ -247,7 +246,7 @@ SMF::info()
             info << "\n    Grass"
                  << "\n\tsize: " << i->bytes
                  << "\n\ttype: " << i->type
-                 << "\n\tptr:  " << int_to_hex( ((HeaderExtn_Grass *)i)->ptr );
+                 << "\n\tptr:  " << to_hex(((HeaderExtn_Grass *) i)->ptr);
         }
         else {
             info << "\n    Unknown"

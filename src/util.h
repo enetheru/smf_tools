@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <iomanip>
+#include <elog.h>
 
 #include <OpenImageIO/imagebuf.h>
 
@@ -25,7 +26,7 @@ std::vector< uint32_t > expandString( const char *s );
 /*  Takes an integer and outputs its hex value as a string with leading '0x'
  */
 template< typename T >
-std::string int_to_hex( T i )
+std::string to_hex(T i)
 {
   std::stringstream stream;
   stream << "0x"
@@ -55,27 +56,6 @@ std::unique_ptr< OpenImageIO::ImageBuf > fix_scale(
 void scale( OpenImageIO::ImageBuf *&sourceBuf,
         OpenImageIO::ImageSpec spec );
 
-/// Converts buffer data to format specified in spec
-/*  the internal data mostly needs to be in RGBA8 format, but sometimes it
- *  needs to be in USHORT for heightmap etc.. so this forces the issue.
- */
-std::unique_ptr< OpenImageIO::ImageBuf > fix_format(
-    std::unique_ptr< OpenImageIO::ImageBuf> &&,
-    const OpenImageIO::ImageSpec & );
-
-void convert( OpenImageIO::ImageBuf *&sourceBuf,
-        OpenImageIO::ImageSpec spec );
-
-//FIXME actually check what channel ordering is supposed to be
-/// switch channel ordering to BGRA
-/*  extended description
- *
- */
-std::unique_ptr< OpenImageIO::ImageBuf > fix_format(
-    std::unique_ptr< OpenImageIO::ImageBuf> && );
-
-void swizzle( OpenImageIO::ImageBuf *&sourceBuf );
-
 /// output a progress indicator
 void progressBar( std::string message, float goal, float progress );
 
@@ -83,7 +63,7 @@ void progressBar( std::string message, float goal, float progress );
 /*
  *
  */
-//FIXME rename this function
+//FIXME rename this and move to own source file
 class FileMap{
     struct Block{
         uint32_t begin;
@@ -103,10 +83,18 @@ class FileMap{
              || (temp.end >= i.begin && temp.end <= i.end)
              || (temp.begin <= i.begin && temp.end >= i.end) ){
                 LOG( ERROR ) << "'" << temp.name << "'"
-					<< " clashes with existing block " << "'" << i.name << "'";
+                    << " clashes with existing block " << "'" << i.name << "'";
             }
         }
         list.push_back( temp );
     }
 
 };
+
+// Convert an image to ascii so we can get direct feedback from the app
+/* FIXME does this need to use some sort of enumerator for  the type? probably
+ * infact homogenising the image types used in the lib is probably a good idea.
+ *
+ */
+std::string
+image_to_hex( const uint8_t *data, int width, int height, int type = 0 );

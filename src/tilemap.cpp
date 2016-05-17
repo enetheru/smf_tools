@@ -3,8 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <stdexcept>
-
-#include "elog/elog.h"
+#include <elog.h>
 
 #include "tilemap.h"
 

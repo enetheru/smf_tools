@@ -3,9 +3,13 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
-#include "elog/elog.h"
+#include <elog.h>
 
+#include "smf_tools.h"
 #include "tiledimage.h"
+#include "util.h"
+
+OIIO_NAMESPACE_USING;
 
 // CONSTRUCTORS
 // ============
@@ -42,7 +46,7 @@ TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 }
 
 void
-TiledImage::setTSpec( OpenImageIO::ImageSpec spec )
+TiledImage::setTSpec( ImageSpec spec )
 {
     _tSpec = spec;
 }
@@ -52,9 +56,7 @@ TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 {
     CHECK( inWidth > 0 ) << "width(" << inWidth << ") must be greater than zero";
     CHECK( inHeight > 0 ) << "height(" << inHeight << ") must be greater than zero";
-
-    _tSpec.width = inWidth;
-    _tSpec.height = inHeight;
+    _tSpec = ImageSpec( inWidth, inHeight, _tSpec.nchannels, _tSpec.format );
 }
 
 void
@@ -74,7 +76,7 @@ TiledImage::mapFromCSV( std::string fileName )
 void
 TiledImage::squareFromCache( )
 {
-    int tileCount = tileCache.getNTiles();
+    int tileCount = tileCache.nTiles;
     CHECK( tileCount ) << "tileCache has no tiles";
 
     int square = sqrt(tileCount);
@@ -97,26 +99,24 @@ TiledImage::getHeight()
     return tileMap.height * (tSpec.height - overlap) + overlap;
 }
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< ImageBuf >
 TiledImage::getRegion(
-    const OpenImageIO::ROI &roi )
+    const ROI &roi )
 {
-    OIIO_NAMESPACE_USING;
     DLOG( INFO ) << "source window "
         << "(" << roi.xbegin << ", " << roi.ybegin << ")"
       << "->(" << roi.xend   << ", " << roi.yend   << ")";
 
     ImageSpec outSpec( roi.width(), roi.height(), 4, TypeDesc::UINT8 );
 
-    std::unique_ptr< OpenImageIO::ImageBuf >
-			outBuf( new OpenImageIO::ImageBuf( outSpec ) );
-	outBuf->write( "outbuf_create.tif", "tif" );
+    std::unique_ptr< ImageBuf > outBuf( new ImageBuf( outSpec ) );
+    //outBuf->write( "TiledImage_getRegion_outBuf.tif", "tif" );
 
     //current point of interest
     uint32_t ix = roi.xbegin;
     uint32_t iy = roi.ybegin;
     static uint32_t index_p = INT_MAX;
-    OpenImageIO::ROI cw{0,0,0,0,0,1,0,4}; // copy window
+    ROI cw{0,0,0,0,0,1,0,4}; // copy window
     while( true ){
          DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
 
@@ -150,14 +150,24 @@ TiledImage::getRegion(
         //Optimisation: exact copy of previous tile test
         uint32_t index = tileMap(mx, my);
         if( index != index_p ){
-            currentTile = tileCache.getSpec( index, tSpec );
-			currentTile->write("currentTile", "tif");
+            // create blank tile if index is out of range
+            if( index >= tileCache.nTiles ){
+                currentTile.reset( new OpenImageIO::ImageBuf( tSpec ) );
+            } else {
+                currentTile = tileCache.getTile(index);
+                // possibility exists that the tile cache will give us a tile that
+                // has dimensions other than expected. so lets check and scale.
+                currentTile = fix_scale( std::move( currentTile ), tSpec );
+                // its possible that the tile retrieved has different channels
+                // than the tiledImage spec
+                currentTile = fix_channels( std::move( currentTile ), tSpec );
+            }
             index_p = index;
         }
         if( currentTile ){
             //copy pixel data from source tile to dest
             ImageBufAlgo::paste( *outBuf, dx, dy, 0, 0, *currentTile, cw );
-			outBuf->write( "outBuf_paste", "tif");
+            //outBuf->write( "TiledImage_getRegion_outBuf_paste.tif", "tif");
         }
 
         //determine the next point of interest
@@ -171,21 +181,26 @@ TiledImage::getRegion(
             }
         }
     }
+#ifdef DEBUG_IMG
+    outBuf->write( "TiledImage.getRegion.tif", "tif" );
+#endif
     return std::move( outBuf );
 }
 
-
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< ImageBuf >
 TiledImage::getUVRegion(
-		const uint32_t xbegin, const uint32_t xend,
-		const uint32_t ybegin, const uint32_t yend )
+        const uint32_t xbegin, const uint32_t xend,
+        const uint32_t ybegin, const uint32_t yend )
 {
-	OpenImageIO::ROI roi(xbegin, xend, ybegin, yend );
-	return getRegion( roi );
+    ROI roi(xbegin, xend, ybegin, yend );
+    return getRegion( roi );
 }
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< ImageBuf >
 TiledImage::getTile( const uint32_t idx )
 {
-    return tileCache.getSpec( idx, tSpec );
+    auto retval = tileCache.getTile( idx );
+    retval = fix_channels( std::move( currentTile ), tSpec );
+    retval = fix_scale( std::move( currentTile ), tSpec );
+    return retval;
 }

@@ -4,9 +4,9 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <squish.h>
+#include <elog.h>
 
-#include "elog/elog.h"
-
+#include "smf_tools.h"
 #include "smt.h"
 #include "util.h"
 
@@ -102,6 +102,8 @@ SMT::setTileSize( uint32_t r )
 void
 SMT::calcTileBytes()
 {
+    //FIXME based on my experiments just modifying the values of an ImageSpec
+    // doesnt work as expected, a full recreation needs to happen
     _tileBytes = 0;
 
     int mip = header.tileSize;
@@ -195,7 +197,7 @@ SMT::info( )
 void
 SMT::append( const OpenImageIO::ImageBuf &sourceBuf )
 {
-	sourceBuf.write( "append_input", "tif" );
+    //sourceBuf.write( "SMT_append_sourcebuf.tif", "tif" );
 
     if( tileType == 1                 ) appendDXT1(   sourceBuf );
     if( tileType == GL_RGBA8           ) appendRGBA8( sourceBuf );
@@ -206,42 +208,76 @@ SMT::append( const OpenImageIO::ImageBuf &sourceBuf )
 void
 SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
 {
-	sourceBuf.write( "appendDXI1_input.tif", "tif" );
-	std::unique_ptr< OpenImageIO::ImageBuf >
-			tempBuf( new ImageBuf( sourceBuf ) );
-	tempBuf->write( "copyof_appendDXT1_input.tif", "tif" );
+    // make a copy of the input buffer for processing
+    std::unique_ptr< OpenImageIO::ImageBuf >
+            tempBuf( new ImageBuf( sourceBuf ) );
 
+    // imagespec will let us work through the image contents
     ImageSpec spec;
+    // block_size tells us how much memory to allocate per DXT compress cycle
     int blocks_size = 0;
-	//squish::u8 *blocks = nullptr;
-	squish::u8 blocks[1024 * 1024 * 4];
+    // blocks is the resulting memory area for DXT1 compresed files
+    squish::u8 *blocks = nullptr;
 
+    // open our filestream and get ready to start writing dxt images to it
     fstream file(fileName, ios::binary | ios::in | ios::out);
     file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
+
+    // loop through the mipmaps
     for( int i = 0; i < 4; ++i ){
+#ifdef DEBUG_IMG
+        std::stringstream ss;
+        ss << "SMT.appendDXT1.mip" << i << ".tif";
+        DLOG( INFO ) << "writing mip to file: " << ss.str();
+        tempBuf->write( ss.str(), "tif" );
+        ss.str( std::string() );
+        ss << "buffer Storage: ";
+        switch( tempBuf->storage() ){
+        case ImageBuf::IBStorage::UNINITIALIZED:
+            ss << " unitialized\n";
+            break;
+        case ImageBuf::IBStorage::LOCALBUFFER:
+            ss << " localbuffer\n";
+            break;
+        case ImageBuf::IBStorage::APPBUFFER:
+            ss << " appbuffer\n";
+            break;
+        case ImageBuf::IBStorage::IMAGECACHE:
+            ss << " imagecache\n";
+            break;
+        }
+        DLOG( INFO ) << ss.str();
+#endif
         spec = tempBuf->specmod();
+        DLOG( INFO ) << "mip: " << i << ", size: " << spec.width << "x" << spec.height << "x" << spec.nchannels;
 
         blocks_size = squish::GetStorageRequirements(
             spec.width, spec.height, squish::kDxt1 );
-		LOG( INFO ) << "dxt1 requires " << blocks_size << " bytes";
-		//if( blocks == nullptr ) blocks = new squish::u8[ blocks_size ];
+        DLOG( INFO ) << "dxt1 requires " << blocks_size << " bytes";
+
+        // allocate memory the first time, will be re-used in subsequent runs.
+        if( blocks == nullptr ) blocks = new squish::u8[ blocks_size ];
+
         // TODO contemplate giving control of compression options to users
         // kColourRangeFit = faster|poor quality
         // kColourMetricPerceptual = default|default
         // kColourIterativeClusterFit = slow|high quality
+        CHECK( tempBuf->localpixels() ) << "pixel data unavailable";
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
-             32, 32, blocks,
-            squish::kDxt1 | squish::kColourRangeFit );
+            spec.width, spec.height, blocks,
+            squish::kDxt1 );
+        DLOG( INFO ) << "\n" << image_to_hex( (const uint8_t *)tempBuf->localpixels(), spec.width, spec.height );
+        DLOG( INFO ) << "\n" << image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 );
 
         // Write data to smf
+        DLOG( INFO ) << "writing " << blocks_size << " to " << fileName;
         file.write( (char*)blocks, blocks_size );
 
-        spec.width = spec.width >> 1;
-        spec.height = spec.height >> 1;
+        spec = ImageSpec(spec.width >> 1, spec.height >> 1, spec.nchannels, spec.format );
         tempBuf = fix_scale( std::move( tempBuf ), spec );
     }
 
-	//if( blocks != nullptr ) delete blocks;
+    if( blocks != nullptr ) delete blocks;
     ++header.nTiles;
 
     file.seekp( 20 );
@@ -254,8 +290,8 @@ SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
 void
 SMT::appendRGBA8( const OpenImageIO::ImageBuf &sourceBuf )
 {
-	std::unique_ptr< OpenImageIO::ImageBuf >
-			tempBuf( new OpenImageIO::ImageBuf( sourceBuf ) );
+    std::unique_ptr< OpenImageIO::ImageBuf >
+            tempBuf( new OpenImageIO::ImageBuf( sourceBuf ) );
 
     ImageSpec spec;
     fstream file(fileName, ios::binary | ios::in | ios::out);
@@ -292,37 +328,38 @@ SMT::getTile( uint32_t n )
     if( tileType == 1                 ) return getTileDXT1( n );
 //    if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
 //    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
-	std::unique_ptr< OpenImageIO::ImageBuf > temp;
-    return temp; 
+    std::unique_ptr< OpenImageIO::ImageBuf > temp;
+    return temp;
 }
 
 std::unique_ptr< OpenImageIO::ImageBuf >
 SMT::getTileDXT1( const uint32_t n )
 {
-	CHECK( n >= header.nTiles ) << "tile index is out of range";
+    CHECK( n >= 0 && n < header.nTiles ) << "tile index:" << n
+        << " is out of range 0-" << header.nTiles;
 
-	std::unique_ptr< char > raw_dxt1a( new char[ tileBytes ] );
+    std::unique_ptr< char > raw_dxt1a( new char[ tileBytes ] );
 
     ifstream file( fileName );
     CHECK( file.good() ) << "Failed to open file for reading" ;
 
-	file.seekg( sizeof(SMT::Header) + tileBytes * n );
-	file.read( (char *)raw_dxt1a.get(), tileBytes );
+    file.seekg( sizeof(SMT::Header) + tileBytes * n );
+    file.read( (char *)raw_dxt1a.get(), tileBytes );
     file.close();
 
-	std::unique_ptr< char >
-			rgba8888( new char[ header.tileSize * header.tileSize * 4 ] );
+    std::unique_ptr< char >
+            rgba8888( new char[ header.tileSize * header.tileSize * 4 ] );
 
-	squish::DecompressImage( (squish::u8 *)( rgba8888.get() ),
-			header.tileSize, header.tileSize, raw_dxt1a.get(), squish::kDxt1 );
+    squish::DecompressImage( (squish::u8 *)( rgba8888.get() ),
+            header.tileSize, header.tileSize, raw_dxt1a.get(), squish::kDxt1 );
 
-	std::unique_ptr< OpenImageIO::ImageBuf >
-		tempBuf( new ImageBuf( fileName + "_" + to_string( n ),
-				tileSpec, rgba8888.get() ) );
+    std::unique_ptr< OpenImageIO::ImageBuf >
+        tempBuf( new ImageBuf( fileName + "_" + to_string( n ),
+                tileSpec, rgba8888.get() ) );
 
-	std::unique_ptr< OpenImageIO::ImageBuf >
-			outBuf( new OpenImageIO::ImageBuf );
-	outBuf->copy( *tempBuf );
+    std::unique_ptr< OpenImageIO::ImageBuf >
+            outBuf( new OpenImageIO::ImageBuf );
+    outBuf->copy( *tempBuf );
 
     return outBuf;
 }

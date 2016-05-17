@@ -1,9 +1,12 @@
 #include <string>
-
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
+#include <elog.h>
 
-#include "elog/elog.h"
+#include "smf_tools.h"
+#ifdef IMG_DEBUG
+#include <sstream>
+#endif
 
 #include "util.h"
 #include "smt.h"
@@ -12,72 +15,61 @@
 
 std::unique_ptr< OpenImageIO::ImageBuf >
 //FIXME remove the 2 once all is said and done
-TileCache::getOriginal( const uint32_t n )
+TileCache::getTile(const uint32_t n)
 {
-	std::unique_ptr< OpenImageIO::ImageBuf >
-		outBuf( new OpenImageIO::ImageBuf );
-    if( n >= nTiles ) return outBuf;
+    std::unique_ptr< OpenImageIO::ImageBuf >
+        outBuf( new OpenImageIO::ImageBuf );
+
+    // returning an unitialized imagebuf is not a good idea
+    CHECK( n < nTiles ) << "getTile( " << n << ") request out of range 0-" << nTiles ;
 
     SMT *smt = nullptr;
     static SMT *lastSmt = nullptr;
 
+    // FIXME, what the fuck does this do?
     auto i = map.begin();
     auto fileName = fileNames.begin();
-    while( *i <= n ) { ++i; ++fileName; }
+    while( *i <= n ){
+        ++i;
+        ++fileName;
+    }
 
-	// already open smt file?
+    // already open smt file?
     if( lastSmt && (! lastSmt->fileName.compare( *fileName )) ){
         outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
-    	return std::move( outBuf );
     }
-	// open a new smt file?
-    if( (smt = SMT::open( *fileName )) ){
-		//FIXME shouldnt have a manual delete here, use move scemantics instead
+    // open a new smt file?
+    else if  ( (smt = SMT::open( *fileName )) ){
+        //FIXME shouldnt have a manual delete here, use move scemantics instead
         delete lastSmt;
         lastSmt = smt;
         outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles );
-    	return std::move( outBuf );
     }
-	// open the image file?
-	outBuf->reset( *fileName );
-	if( outBuf->initialized() ) {
-		return std::move( outBuf );
-	}
+    // open the image file?
+    else {
+        outBuf->reset( *fileName );
+    }
+    CHECK( outBuf->initialized() ) << "failed to open source for tile: " << n;
 
-	LOG( ERROR ) << "failed to open source for tile: " << n;
-    return std::move( outBuf );
+#ifdef DEBUG_IMG
+    DLOG( INFO ) << "Exporting Image";
+    outBuf->write( "TileCache.getTile.tif" , "tif" );
+#endif
 
-}
-
-std::unique_ptr< OpenImageIO::ImageBuf >
-TileCache::getSpec( uint32_t n, const OpenImageIO::ImageSpec &spec )
-{
-	OIIO_NAMESPACE_USING;
-    CHECK( spec.width     ) << "TileCache::getSpec, cannot request zero width";
-    CHECK( spec.height    ) << "TileCache::getSpec, cannot request zero height";
-    CHECK( spec.nchannels ) << "TileCache::getSpec, cannot request zero channels";
-
-	std::unique_ptr< OpenImageIO::ImageBuf > outBuf( getOriginal( n ) );
-	CHECK( outBuf ) << "nullptr gotten from getOriginal(" << n << ")";
-
-    outBuf = fix_channels( std::move( outBuf ), spec );
-    outBuf = fix_format(   std::move( outBuf ), spec );
-    outBuf = fix_scale(    std::move( outBuf ), spec );
-
-    return std::move( outBuf );
+    return outBuf;
 }
 
 //TODO go over this function to see if it can be refactored
 void
 TileCache::addSource( const std::string fileName )
 {
-	OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING;
     ImageInput *image = nullptr;
     if( (image = ImageInput::open( fileName )) ){
         image->close();
         delete image;
 
-        nTiles++;
+        _nTiles++;
         map.push_back( nTiles );
         fileNames.push_back( fileName );
         return;
@@ -86,7 +78,7 @@ TileCache::addSource( const std::string fileName )
     SMT *smt = nullptr;
     if( (smt = SMT::open( fileName )) ){
         if(! smt->nTiles ) return;
-        nTiles += smt->nTiles;
+        _nTiles += smt->nTiles;
         map.push_back( nTiles );
         fileNames.push_back( fileName );
 

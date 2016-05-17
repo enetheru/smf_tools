@@ -11,8 +11,9 @@
 class TiledImage
 {
     // == data members ==
-	std::unique_ptr< OpenImageIO::ImageBuf > currentTile; //!<
-    OpenImageIO::ImageSpec _tSpec = OpenImageIO::ImageSpec( 32, 32, 4, OpenImageIO::TypeDesc::UINT8 );
+    std::unique_ptr< OpenImageIO::ImageBuf > currentTile; //!<
+    OpenImageIO::ImageSpec _tSpec =
+            OpenImageIO::ImageSpec( 32, 32, 4, OpenImageIO::TypeDesc::UINT8 );
     uint32_t _overlap = 0; //!< used for when tiles share border pixels
 
 public:
@@ -20,7 +21,7 @@ public:
     TileCache tileCache; //!< tile cache
 
     // == constructors ==
-	TiledImage( ) { }
+    TiledImage( ) { }
     TiledImage( uint32_t inWidth, uint32_t inHeight,
         uint32_t inTileWidth = 32, uint32_t inTileHeight = 32 );
 
@@ -46,23 +47,23 @@ public:
     uint32_t getHeight();
 
     /// Get pixel region
-	/*  TODO
-	 *
-	 */
+    /*  TODO
+     *
+     */
     std::unique_ptr< OpenImageIO::ImageBuf > getRegion(
-        	const OpenImageIO::ROI & );
+            const OpenImageIO::ROI & );
 
     /// Get image Region, relative coords.
-	/*  TODO
-	 *
-	 */
-	std::unique_ptr< OpenImageIO::ImageBuf > getUVRegion(
-			const uint32_t xbegin, const uint32_t xend,
-			const uint32_t ybegin, const uint32_t yend );
+    /*  TODO
+     *
+     */
+    std::unique_ptr< OpenImageIO::ImageBuf > getUVRegion(
+            const uint32_t xbegin, const uint32_t xend,
+            const uint32_t ybegin, const uint32_t yend );
 
-	/// get raw tile image
-	/*  TODO
-	 *
-	 */
-	std::unique_ptr< OpenImageIO::ImageBuf > getTile( const uint32_t idx );
+    /// get raw tile image
+    /*  TODO
+     *
+     */
+    std::unique_ptr< OpenImageIO::ImageBuf > getTile( const uint32_t idx );
 };

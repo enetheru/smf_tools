@@ -8,14 +8,14 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
-#include "elog/elog.h"
+#include <elog.h>
 
 #include "util.h"
 
 std::pair< uint32_t, uint32_t >
 valxval( const std::string input )
 {
-	std::pair< uint32_t, uint32_t> result;
+    std::pair< uint32_t, uint32_t> result;
 
     auto d = input.find_first_of( 'x', 0 );
 
@@ -24,7 +24,7 @@ valxval( const std::string input )
 
     if( d == input.size() - 1 ) result.second = 0;
     else result.second = std::stoi( input.substr( d + 1, std::string::npos) );
-	return result;
+    return result;
 }
 
 std::vector< uint32_t >
@@ -93,10 +93,9 @@ fix_channels(
     // Otherwise update channels to spec channels
     std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf );
     ImageBufAlgo::channels( *outBuf, *inBuf, spec.nchannels, map, fill );
-    return std::move( outBuf );
+    return outBuf;
 }
 
-//REMOVE
 void
 channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
 {
@@ -126,17 +125,20 @@ fix_scale(
     const OpenImageIO::ImageSpec &spec )
 {
     OIIO_NAMESPACE_USING;
+    using std::unique_ptr;
 
     CHECK( inBuf ) << "nullptr passed to fix_scale()";
 
     // return the inBuf if no change is required.
     if( (inBuf->spec().width  == spec.width )
-     && (inBuf->spec().height == spec.height) )
-        	return std::move( inBuf );
+     && (inBuf->spec().height == spec.height) ){
+        DLOG( INFO ) << "no scale required";
+            return std::move( inBuf );
+    }
 
     // Otherwise scale
     ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, inBuf->spec().nchannels );
-    std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf );
+    unique_ptr< ImageBuf > outBuf( new ImageBuf );
 
     // BUG with workaround
     // resample is faster but creates black outlines when scaling up, so only
@@ -148,7 +150,8 @@ fix_scale(
     else {
         ImageBufAlgo::resize( *outBuf, *inBuf, "", false, roi );
     }
-    return std::move( outBuf );
+
+    return outBuf;
 }
 
 //REMOVE
@@ -177,54 +180,6 @@ scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     else {
         ImageBufAlgo::resize( *tempBuf, *sourceBuf, "", false, roi );
     }
-
-    sourceBuf->clear();
-    delete sourceBuf;
-    sourceBuf = tempBuf;
-}
-
-std::unique_ptr< OpenImageIO::ImageBuf >
-fix_format(
-    std::unique_ptr< OpenImageIO::ImageBuf> && inBuf,
-    const OpenImageIO::ImageSpec &spec )
-{
-    // quick out
-    CHECK( inBuf ) << "nullptr passed to fix_format()";
-    if( inBuf->spec().format == spec.format ) return std::move( inBuf );
-
-    std::unique_ptr< OpenImageIO::ImageBuf >
-            outBuf( new OpenImageIO::ImageBuf );
-    outBuf->copy( *inBuf );
-    outBuf->read( 0, 0, true, spec.format );
-    return std::move( outBuf );
-}
-
-//REMOVE
-// in what circumstances is this really needed?
-void convert( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
-{
-    OIIO_NAMESPACE_USING;
-
-    ImageBuf *tempBuf = new ImageBuf( spec );
-    tempBuf->copy_pixels( *sourceBuf );
-    tempBuf->read(0,0,true, spec.format);
-    delete sourceBuf;
-    sourceBuf = tempBuf;
-}
-
-void
-swizzle( OpenImageIO::ImageBuf *&sourceBuf )
-{
-    OIIO_NAMESPACE_USING;
-
-    int map[] = { 2, 1, 0, 3 };
-    float fill[] = { 0, 0, 0, 1.0 };
-
-    CHECK( sourceBuf ) << "nullptr passed to swizzle()";
-
-    if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
-    ImageBuf *tempBuf = new ImageBuf;
-    ImageBufAlgo::channels( *tempBuf, *sourceBuf, 4, map, fill );
 
     sourceBuf->clear();
     delete sourceBuf;
@@ -297,4 +252,53 @@ progressBar( std::string header, float goal, float current )
     if( ratio < 1.0f ) text << "\033[F"; // if were not done, move the cursor back up.
 
     std::cout << text.str() << std::endl;
+}
+
+std::string
+image_to_hex( const uint8_t *data, int width, int height, int type ){
+    // type 0 = UINT8
+    // type 1 = DXT1
+    // for now lets just do the red channel
+    std::stringstream ss;
+    if( type == 0 ){//RGBA8
+        for( int j = 0; j < height; ++j ){
+            for( int i = 0; i < width; ++i ){
+                ss << std::hex << std::setfill( '0' ) << std::setw( 2 )
+                        << +(uint8_t)data[ (j * width + i) * 4 ];
+            }
+            ss << "\n";
+        }
+    }
+    if( type == 1 ){ //DXT1
+        //in DXT1 each 4x4 block of pixels are represented by 64 bits
+        //i'm really only concerned if the data exist rather than how to
+        //represent it in characters.
+        //i want to put the dxt1 blocks over 2 lines like:
+        //ABCD ABCD ABCD ABCD
+        //DEFG DEFG DEFG DEFG
+        //
+        //ABCD etc.
+        //DEFG etc.
+        //so we have to 2nd half of the bytes until a second iteration through the material
+
+        //we treat each 4x4 block as a separate element
+        width = width / 4;
+        height = height / 4;
+
+        for( int j = 0; j < height; ++j ){// rows
+            for( int q = 0; q < 4; ++q ){ // sub rows
+                for( int i = 0; i < width; ++i ){ // columns
+                    int datapos = (j * width + i) * 8 + q*2; // every 64 bits
+                    ss << std::hex << std::setfill( '0' ) << std::setw( 2 )
+                       << +(uint8_t)data[ datapos ]
+                       << std::hex << std::setfill( '0' ) << std::setw( 2 )
+                       << +(uint8_t)data[ datapos + 1 ] << "  ";
+                }
+                ss << '\n';
+            }
+            ss << '\n';
+        }
+
+    }
+    return ss.str();
 }

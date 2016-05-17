@@ -1,5 +1,4 @@
-#include "elog/elog.h"
-#include "optionparser/optionparser.h"
+#include <elog.h>
 
 #include "option_args.h"
 #include "smt.h"
@@ -8,7 +7,7 @@ enum optionsIndex
 {
     UNKNOWN,
     HELP,
-	QUIET
+    QUIET
 };
 
 const option::Descriptor usage[] = {
@@ -17,7 +16,7 @@ const option::Descriptor usage[] = {
         "  eg. 'smtinfo myfile.smt'\n"},
     { HELP, 0, "h", "help", Arg::None,
         "  -h,  \t--help  \tPrint usage and exit." },
-	{ QUIET, 0, "q", "quiet", Arg::None,
+    { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress output, except warnings and errors" },
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -39,7 +38,7 @@ int main( int argc, char **argv )
         exit( 1 );
     }
 
-	if( options[ QUIET ] )LOG::SetDefaultLoggerLevel( LOG::CHECK );
+    if( options[ QUIET ] )LOG::SetDefaultLoggerLevel( LOG::CHECK );
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
