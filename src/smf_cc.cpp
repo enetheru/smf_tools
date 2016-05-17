@@ -116,7 +116,7 @@ main( int argc, char **argv )
         fail = true;
     }
 
-	// -h --help
+    // -h --help
     if( options[ HELP ] || argc == 0 ){
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
@@ -128,7 +128,7 @@ main( int argc, char **argv )
     if( options[ VERBOSE ] )
         LOG::SetDefaultLoggerLevel( LOG::INFO );
 
-	// -q --quiet
+    // -q --quiet
     if( options[ QUIET ] )
         LOG::SetDefaultLoggerLevel( LOG::CHECK );
 
@@ -138,19 +138,19 @@ main( int argc, char **argv )
 
     // -f --force
     if( options[ FORCE ] ){
-		force = true;
-	}
+        force = true;
+    }
 
     // --mapsize
     if( options[ MAPSIZE ] ){
-		std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
-		if( mapWidth % 2 || mapLength % 2 ){
-			LOG( ERROR ) << "map sizes must be multiples of two";
-			fail = true;
-		}
-	}
+        std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
+        if( mapWidth % 2 || mapLength % 2 ){
+            LOG( ERROR ) << "map sizes must be multiples of two";
+            fail = true;
+        }
+    }
     if( (! mapWidth || ! mapLength) && (! options[ TILEMAP ]) ){
-		//FIXME dont error here, check first if a tilefile is specified.
+        //FIXME dont error here, check first if a tilefile is specified.
         LOG( ERROR ) << "--mapsize not specified";
         fail = true;
     }
@@ -161,8 +161,8 @@ main( int argc, char **argv )
     // --tilesize
     // take the tilesize from the first smt added
     if( parse.nonOptionsCount() ){
-		CHECK( SMT::test( parse.nonOption( 0 ) ) )
-				<< " additional arguments are not smt files";
+        CHECK( SMT::test( parse.nonOption( 0 ) ) )
+                << " additional arguments are not smt files";
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->tileSize;
         delete smt;
@@ -187,7 +187,7 @@ main( int argc, char **argv )
         mapCeiling = atof( options[ CEILING ].arg );
     }
 
-	// --tilemap
+    // --tilemap
     SMF *smfTemp = nullptr;
     TileMap *tileMap = nullptr;
     if( options[ TILEMAP ] ){
@@ -201,23 +201,23 @@ main( int argc, char **argv )
         }
     }
 
-	// Fix up map height and length to match tile source, and smt files.
-	if( tileMap != nullptr ){
-		int diffuseWidth = tileSize * tileMap->width;
-		int diffuseHeight = tileSize * tileMap->height;
-		if( diffuseWidth % 1024 || diffuseHeight % 1024){
-			LOG( ERROR ) << "(tileMap * tileSize) % 1024 != 0,"
-				"supplied arguments do not construct a valid map";
-			fail = true;
-		}
-		mapWidth = diffuseWidth / 512;
-		mapLength = diffuseHeight / 512;
-		LOG( INFO ) << "Checking input dimensions"
-			<< "\n\ttileMap:  " << tileMap->width << "x" << tileMap->height
-			<< "\n\ttileSize: " << tileSize << "x" << tileSize
-			<< "\n\tdiffuse=  " << diffuseWidth << "x" << diffuseHeight
-			<< "\n\tmapSize=  " << mapWidth << "x" << mapLength;
-	}
+    // Fix up map height and length to match tile source, and smt files.
+    if( tileMap != nullptr ){
+        int diffuseWidth = tileSize * tileMap->width;
+        int diffuseHeight = tileSize * tileMap->height;
+        if( diffuseWidth % 1024 || diffuseHeight % 1024){
+            LOG( ERROR ) << "(tileMap * tileSize) % 1024 != 0,"
+                "supplied arguments do not construct a valid map";
+            fail = true;
+        }
+        mapWidth = diffuseWidth / 512;
+        mapLength = diffuseHeight / 512;
+        LOG( INFO ) << "Checking input dimensions"
+            << "\n\ttileMap:  " << tileMap->width << "x" << tileMap->height
+            << "\n\ttileSize: " << tileSize << "x" << tileSize
+            << "\n\tdiffuse=  " << diffuseWidth << "x" << diffuseHeight
+            << "\n\tmapSize=  " << mapWidth << "x" << mapLength;
+    }
 
     //TODO collect feature information from the command line.
 
@@ -298,7 +298,7 @@ main( int argc, char **argv )
     // map smt's
     smf->writeTileHeader();
 
-	// tilemap
+    // tilemap
     smf->writeMap( tileMap );
 
     // minimap
