@@ -53,3 +53,8 @@ some keywords i use when writing source code
 //FIXME
 //BUG
 //TODO
+
+// TODO Comb through the command line options for each application for consistency
+// TODO consider renaming all occurrances of --imagesize to --scalesize to denote the output scaling factor.
+//TODO consider renaming all occurrances of --tilesize to --splitsize to denote splitting factor, except in this case when the path of simply translating tiles from one medium to another causes problems.
+// TODO create generic smt_convert [TEST] that can be looped over to produce logical viarants of results. 

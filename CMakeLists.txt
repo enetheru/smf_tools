@@ -10,11 +10,7 @@ if( NOT CMAKE_BUILD_TYPE )
 endif()
 message( "Build Type: " ${CMAKE_BUILD_TYPE} )
 
-if( NOT DEFINED BUILD_DOCS )
-    set( BUILD_DOCS true CACHE BOOL
-        "Whether or not to build the documentation"
-        FORCE )
-endif()
+option( BUILD_DOCS "Whether or not to build the documentation" OFF ) 
 message( "Build Documentation: " ${BUILD_DOCS} )
 
 OPTION( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
@@ -41,8 +37,9 @@ if (NOT LIBSQUISH_FOUND)
     add_subdirectory(ext/squish)
     set(LIBSQUISH_LIBRARIES "squish")
     include_directories(ext/squish)
+else()
+    include_directories( ${LIBSQUISH_INCLUDE_DIR} )
 endif()
-#FIXME look externally for include files if needed
 set( LIBS ${LIBS} ${LIBSQUISH_LIBRARIES} )
 
 # we dont want to use external googletest
