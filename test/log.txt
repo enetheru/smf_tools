@@ -1,0 +1,1877 @@
+TEST: smf_create [40G  [32m 0:00.05 [0m
+TEST: smf_extract [40G  [32m 0:00.29 [0m
+TEST: smf_info [40G  [32m 0:00.00 [0m
+TEST: smt_create_multiple_sources [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -vf --smt --imagesize 1024x1024 --tilesize 64x64 ../data/data.smt ../data/image_1.png
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt.cpp(60): Resetting output.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/image_1.png to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4019 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 1024x1024
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 1024x1024
+	Tile Size: 64x64
+	tileMap Size: 16x16
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 2x2
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 128x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt.cpp(60): Resetting output.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(128, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt.cpp(225): dxt1 requires 2048 bytes
+
+
+TEST: smt_create_split_1024x [40G  [32m Command terminated by signal 11
+0:00.46 [0m
+TEST: smt_create_split_image [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -vf --smt --tilesize 32x32 --imagesize 1024x1024 ../data/image_1.png
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt.cpp(60): Resetting output.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/image_1.png to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 1 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 1024x1024
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 1024x1024
+	Tile size: 1024x1024
+	TileMap size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 1024x1024
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 1024x1024
+	Tile Size: 32x32
+	tileMap Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt.cpp(225): dxt1 requires 512 bytes
+
+
+TEST: smt_extract_collate [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --img ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 2048x2048
+	Tile Size: 2048x2048
+	tileMap Size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(2048, 2048)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (256, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 256x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (288, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 288x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (320, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 320x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (352, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 352x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (384, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 384x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (416, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 416x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (448, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 448x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (480, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 480x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (512, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 512x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (544, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 544x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (576, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 576x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (608, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 608x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (640, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 640x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (672, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 672x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (704, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 704x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (736, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 736x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (768, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 768x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (800, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 800x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (832, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 832x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (864, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 864x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (896, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 896x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (928, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 928x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (960, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 960x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (992, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 992x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1024, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1024x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1056, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1056x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1088, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1088x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1120, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1120x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1152, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1152x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1184, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1184x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1216, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1216x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1248, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1248x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1280, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1280x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1312, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1312x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1344, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1344x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1376, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1376x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1408, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1408x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1440, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1440x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1472, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1472x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1504, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1504x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1536, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1536x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1568, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1568x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1600, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1600x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1632, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1632x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1664, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1664x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1696, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1696x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1728, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1728x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1760, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1760x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1792, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1792x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1824, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1824x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1856, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1856x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1888, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1888x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1920, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1920x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1952, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1952x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1984, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1984x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (2016, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 2016x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (256, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 256x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (288, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 288x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (320, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 320x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (352, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 352x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (384, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 384x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (416, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 416x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (448, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 448x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (480, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 480x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (512, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 512x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (544, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 544x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (576, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 576x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (608, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 608x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (640, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 640x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (672, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 672x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (704, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 704x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (736, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 736x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (768, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 768x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (800, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 800x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (832, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 832x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (864, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 864x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (896, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 896x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (928, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 928x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (960, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 960x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (992, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 992x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1024, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1024x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1056, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1056x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1088, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1088x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1120, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1120x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1152, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1152x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1184, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1184x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1216, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1216x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1248, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1248x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1280, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1280x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1312, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1312x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1344, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1344x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1376, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1376x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1408, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1408x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1440, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1440x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1472, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1472x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1504, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1504x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1536, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1536x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1568, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1568x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1600, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1600x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1632, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1632x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1664, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1664x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1696, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1696x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1728, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1728x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1760, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1760x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1792, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1792x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1824, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1824x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1856, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1856x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1888, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1888x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1920, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1920x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1952, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1952x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1984, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1984x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (2016, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 2016x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (256, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 256x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (288, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 288x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (320, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 320x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (352, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 352x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (384, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 384x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (416, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 416x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (448, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 448x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (480, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 480x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (512, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 512x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (544, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 544x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (576, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 576x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (608, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 608x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (640, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 640x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (672, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 672x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (704, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 704x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (736, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 736x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (768, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 768x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (800, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 800x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (832, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 832x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (864, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 864x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (896, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 896x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (928, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 928x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (960, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 960x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (992, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 992x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1024, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1024x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1056, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1056x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1088, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1088x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1120, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1120x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1152, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1152x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1184, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1184x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1216, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1216x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1248, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1248x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1280, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1280x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1312, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1312x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1344, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1344x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1376, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1376x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1408, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1408x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1440, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1440x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1472, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1472x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1504, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1504x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1536, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1536x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1568, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1568x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1600, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1600x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1632, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1632x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1664, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1664x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1696, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1696x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1728, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1728x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1760, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1760x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1792, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1792x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1824, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1824x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1856, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1856x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1888, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1888x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1920, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1920x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1952, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1952x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1984, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1984x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (2016, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 2016x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (256, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 256x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (288, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 288x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (320, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 320x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (352, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 352x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (384, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 384x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (416, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 416x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (448, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 448x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (480, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 480x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (512, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 512x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (544, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 544x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (576, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 576x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (608, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 608x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (640, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 640x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (672, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 672x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (704, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 704x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (736, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 736x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (768, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 768x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (800, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 800x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (832, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 832x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (864, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 864x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (896, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 896x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (928, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 928x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (960, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 960x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (992, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 992x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1024, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1024x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1056, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1056x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1088, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1088x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1120, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1120x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1152, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1152x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1184, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1184x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1216, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1216x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1248, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1248x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1280, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1280x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1312, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1312x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1344, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1344x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1376, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1376x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1408, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1408x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1440, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1440x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1472, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1472x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1504, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1504x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1536, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1536x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1568, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1568x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1600, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1600x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1632, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1632x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1664, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1664x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (1696, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 1696x96
+
+
+TEST: smt_extract_collate_scale [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --imagesize 512x512 --img ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 512x512
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 512x512
+	Tile Size: 512x512
+	tileMap Size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 4x4
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(2048, 2048)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+
+
+TEST: smt_extract_collate_scale_split [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --imagesize 1024x1024 --tilesize 128x128 --img ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 1024x1024
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 1024x1024
+	Tile Size: 128x128
+	tileMap Size: 8x8
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 2x2
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 256x256
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(256, 256)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (160, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 160x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (192, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 192x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (224, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 224x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 192)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x192
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 192)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x192
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 192)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x192
+
+
+TEST: smt_extract_collate_split [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --tilesize 128x128 --img ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 2048x2048
+	Tile Size: 128x128
+	tileMap Size: 16x16
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 128x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(128, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x96
+
+
+TEST: smt_extract_reconstruct [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --img --tilemap ../data/data.smf ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(284): tilemap derived from smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(88): Opening ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(107): Reading ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: eof(884540-2148368186)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(277): Updating ImageSpec's
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: header(0-79)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: height(703252-835349)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: type(835350-851733)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mini(4188-703235)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: metal(851734-868117)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: grass(92-4187)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: extraheader(80-83)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mapHeader(868126-868133)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: tileFileList(868134-868155)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: map(868156-884539)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: featuresHeader(868118-868125)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 2048x2048
+	Tile Size: 2048x2048
+	tileMap Size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(2048, 2048)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (128, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 128x0
+
+
+TEST: smt_extract_reconstruct_csv [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --img --tilemap ../data/tilemap.csv ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(295): tilemap derived from csv
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 2048x2048
+	Tile Size: 2048x2048
+	tileMap Size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(2048, 2048)
+
+
+TEST: smt_extract_reconstruct_scale [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --imagesize 512x512 --img --tilemap ../data/data.smf ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(284): tilemap derived from smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(88): Opening ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(107): Reading ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: eof(884540-2148368186)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(277): Updating ImageSpec's
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: header(0-79)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: height(703252-835349)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: type(835350-851733)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mini(4188-703235)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: metal(851734-868117)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: grass(92-4187)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: extraheader(80-83)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mapHeader(868126-868133)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: tileFileList(868134-868155)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: map(868156-884539)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: featuresHeader(868118-868125)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 512x512
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 512x512
+	Tile Size: 512x512
+	tileMap Size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 4x4
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(2048, 2048)
+
+
+TEST: smt_extract_reconstruct_scale_split [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --img --imagesize 8192x1024 --tilesize 128x128 --tilemap ../data/data.smf ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(284): tilemap derived from smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(88): Opening ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(107): Reading ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: eof(884540-2148368186)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(277): Updating ImageSpec's
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: header(0-79)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: height(703252-835349)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: type(835350-851733)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mini(4188-703235)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: metal(851734-868117)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: grass(92-4187)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: extraheader(80-83)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mapHeader(868126-868133)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: tileFileList(868134-868155)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: map(868156-884539)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: featuresHeader(868118-868125)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 8192x1024
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 8192x1024
+	Tile Size: 128x128
+	tileMap Size: 64x8
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 0.25x2
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 32x256
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(32, 256)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 160)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x160
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 192)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x192
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 224)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x224
+
+
+TEST: smt_extract_reconstruct_split [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --tilesize 128x128 --img --tilemap ../data/data.smf ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(284): tilemap derived from smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(88): Opening ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(107): Reading ../data/data.smf
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: eof(884540-2148368186)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smf.cpp(277): Updating ImageSpec's
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: header(0-79)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: height(703252-835349)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: type(835350-851733)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mini(4188-703235)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: metal(851734-868117)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: grass(92-4187)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: extraheader(80-83)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: mapHeader(868126-868133)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: tileFileList(868134-868155)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: map(868156-884539)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/util.h(99): adding: featuresHeader(868118-868125)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 2048x2048
+	Tile Size: 128x128
+	tileMap Size: 16x16
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 128x128
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(128, 128)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x0
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (64, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (96, 64)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 96x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x96
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (32, 96)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 32x96
+
+
+TEST: smt_extract_tiles [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -v --img --tilesize 32x32 ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 2048x2048
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 2048x2048
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 2048x2048
+	Tile Size: 32x32
+	tileMap Size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(121): Point of interest (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(138): copy window (0, 0)->(32, 32)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(143): copy window size 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(148): Paste position: 0x0
+
+
+TEST: smt_huge [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert --img --imagesize 16384x16384 --tilemap ../data/data.smf ../data/data.smt
+
+
+TEST: smt_info [40G  [32m 0:00.00 [0m
+TEST: smt_landscape [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert --img --imagesize 1024x512 --tilesize 128x128 --tilemap ../data/data.smf ../data/data.smt
+
+
+TEST: smt_overlap [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert -vf --img --type=RGBA8 --overlap 8 ../data/data.smt
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(249): adding ../data/data.smt to tilecache.
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(253): 4018 tiles in cache
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(262): Source Tile Size: 32x32
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(274): no filter specified, using all tiles
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(307): no tilemap specified, generated one instead
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(318): 
+    Source Tiled Image:
+	Full size: 1544x1544
+	Tile size: 32x32
+	TileMap size: 64x64
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(328): ImageSize = 1544x1544
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(355): 
+    Output Sizes: 
+	Full Size: 1544x1544
+	Tile Size: 1544x1544
+	tileMap Size: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(363): Scale Ratio: 1x1
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(367): Pre-scaled tile: 1544x1544
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/smt_convert.cpp(383): Processing split (0, 0)
+[INFO] /home/enetheru/git/enetheru/smf_tools/src/tiledimage.cpp(105): source window (0, 0)->(1544, 1544)
+
+
+TEST: smt_portrait [40G    [31m FAIL [0m
+
+Log of failed entry:
+COMMAND = smt_convert --img --imagesize 512x1024 --tilesize 128x128 --tilemap ../data/data.smf ../data/data.smt
+
+
+Completed :)

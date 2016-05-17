@@ -17,7 +17,7 @@ if( NOT DEFINED BUILD_DOCS )
 endif()
 message( "Build Documentation: " ${BUILD_DOCS} )
 
-set( DEBUG_IMG OFF CACHE BOOL "Output debug images, warning there are lots of them :)" )
+OPTION( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
 # Compiler
 # --------
@@ -37,18 +37,32 @@ find_package(Boost REQUIRED COMPONENTS system)
 set( LIBS ${LIBS} ${Boost_LIBRARIES} )
 
 find_package(libSquish)
-
 if (NOT LIBSQUISH_FOUND)
-	add_subdirectory(src/squish)
-	set(LIBSQUISH_LIBRARIES "squish")
-	include_directories(src/squish)
+    add_subdirectory(ext/squish)
+    set(LIBSQUISH_LIBRARIES "squish")
+    include_directories(ext/squish)
 endif()
-
+#FIXME look externally for include files if needed
 set( LIBS ${LIBS} ${LIBSQUISH_LIBRARIES} )
+
+# we dont want to use external googletest
+add_definitions( -DGTEST_USE_OWN_TR1_TUPLE=0 )
+add_subdirectory( ext/googletest )
+set( GTEST_LIBS "gtest" "gtest_main" )
+
+# header onlylibs
+include_directories( ext/elog )
+include_directories( ext/optionsparser )
 
 # sub directories
 # ===============
 add_subdirectory( src )
+
+# Testing
+# =======
+enable_testing()
+add_subdirectory( ctest )
+add_subdirectory( gtest )
 
 # CPack
 # =====
