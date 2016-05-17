@@ -405,6 +405,11 @@ main( int argc, char **argv )
                 }
             }
 
+            // scale according to otSpec, which is conditionally defined by
+            // --tilesize or --imagesize depending on whether one image is
+            // being exported or whether to split up into chunks.
+            outBuf = fix_scale( std::move( outBuf ), otSpec );
+
             if( options[ SMTOUT ] ) tempSMT->append( *outBuf );
             if( options[ IMGOUT ] ){
                 name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".tif";
