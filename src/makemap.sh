@@ -1,0 +1,535 @@
+#!/bin/bash
+# this script is intended to wrap the cli smf tools to make creating maps easier.
+# the idea is that given the most simple situation, creating a map should be easy
+
+# Set needed variables in case of bash shell conflicts
+##bc#e###ij########s#u##x##ABC#EFGHIJKLM#OPQRSTUVWX#Z
+#TODO add version with -V
+#TODO e can specify environment settings like atmospphere and lighting?
+HELPSHORT="makemap - smf_tools helper script that generates a working map
+usage: makemap [options]
+  eg.   makemap -vpf -n MyMap -d diffuse.jpg -h height.tif -o ./"
+HELP=$HELPSHORT"
+
+  -h            this help message
+  -v            verbose output
+  -p            progress bar
+  -q            dont ask questions
+  -o <path>     output directory name
+  -k            dont overwrite files (k for keep)
+
+  -n <string>   name of the map
+  -N <string>   long name
+  -D <string>   description
+  -w <integer>  map width in spring map units
+  -l <integer>  map length in spring map units
+  -y <float>    map depth
+  -Y <float>    map height
+
+  -m <image>    minimap image
+  -d <image>    diffuse texture image
+  -a <image>    height image (a for altitude)
+
+  -g <image>    grass distribution image
+  -f <file>     features file
+
+  -t <image>    type map image
+  -r <image>    metal distribution image (r for resources)
+
+  -z <string>   map water level (z for ground zero)
+"
+# Options
+# =======
+# form of option goes is
+# OPTION=( "value" "default" "regex" "help" "question" )
+# where:
+#   default = the default value, can be ""
+#   regex = the appropriate evaluator for valid input
+#   help = three line help indicating what the option is about
+#   question = in menu mode what to ask the user to be polite
+
+VERBOSE=( "n" "^[yn]$" \
+    "help" \
+    "question" )
+PROGRESS=( "n" "^[yn]$" \
+    "help" \
+    "question" )
+QUIET=( "n" "^[yn]$" \
+    "help" \
+    "question" )
+OUTPUT_PATH=(      "./" "^[yn]$" "help" "question" )
+OUTPUT_OVERWRITE=( "n"  "^[yn]$" "help" "question" )
+
+MAP_NAME=(         ""   '^[a-zA-Z0-9_]+$' \
+    "help" \
+    "question" )
+MAP_LONGNAME=(     ""   '^.+$' \
+    "help" \
+    "question" )
+MAP_DESCRIPTION=(  ""   '^.+$' \
+    "help" \
+    "question" )
+MAP_WIDTH=( "" "^[0-9]+$" \
+"line 1. mapwidth help information
+line 2.
+line 3. " \
+    "mapwidth question?" )
+MAP_LENGTH=( "" "regex" "help" "question" )
+MAP_DEPTH=( "" "regex" "help" "question" )
+MAP_HEIGHT=( "" "regex" "help" "question" )
+
+MAP_DIFFUSEIMAGE=( "" "regex" "help" "question" )
+MAP_MINIIMAGE=( "" "regex" "help" "question" )
+MAP_HEIGHTIMAGE=( "" "regex" "help" "question" )
+
+MAP_GRASSIMAGE=( "" "regex" "help" "question" )
+MAP_FEATURES=( "" "regex" "help" "question" )
+
+MAP_TYPEIMAGE=( "" "regex" "help" "question" )
+MAP_METALIMAGE=( "" "regex" "help" "question" )
+
+MAP_WATERLEVEL=( "" "regex" "help" "question" )
+
+
+#TODO generate manpage
+#TODO how to set the water level, by pixel or by percent etc
+#     one option is that setting the y-Y values is used for total size, and the
+#     z value either in pixel, or percent pushes the yY values to the appropriate position
+#TODO howto specify the types of terrain and how they relate to the finished archive
+#TODO howto specify features and how they related to the finished archive
+#TODO option to smooth samples in a heightmap, one method that might work is
+#     ito double the resolution of the image interpolating the values, then
+#     scale back down preserving the sharp features.
+#TODO guess approriate height values based in input height image.
+#TODO how do I go about specifying lighting options on the command line, let
+#     along half the other shit inside a spring map.
+
+# NOTE using getopts, an alternative might be to use docopts, but i am loath to
+#      add a dependency
+# NOTE the bash builtin getopts is different than getopt which aparrantly can
+#      do long opts. might be worth having a look
+
+if ( ! getopts "hvpqkonwlyYmdazgftr" opt)
+then
+    echo "$HELPSHORT"
+fi
+while getopts "hvpqko:n:N:D:w:l:y:Y:m:d:a:z:g:f:t:r:" opt; do
+    case $opt in
+        h) echo "$HELP"; exit;;
+        v) VERBOSE=$OPTARG;;
+        p) PROGRESS=$OPTARG;;
+        q) QUIET=$OPTARG;;
+        k) OUTPUT_OVERWRITE=$OPTARG;;
+        o) OUTPUT_PATH=$OPTARG;;
+        n) MAP_NAME=$OPTARG;;
+        N) MAP_LONGNAME=$OPTARG;;
+        D) MAP_DESCRIPTION=$OPTARG;;
+        w) MAP_WIDTH=$OPTARG;;
+        l) MAP_LENGTH=$OPTARG;;
+        y) MAP_DEPTH=$OPTARG;;
+        Y) MAP_HEIGHT=$OPTARG;;
+        m) MAP_MINIIMAGE=$OPTARG;;
+        d) MAP_DIFFUSEIMAGE=$OPTARG;;
+        a) MAP_HEIGHTIMAGE=$OPTARG;;
+        g) MAP_GRASSIMAGE=$OPTARG;;
+        f) MAP_FEATURES=$OPTARG;;
+        t) MAP_TYPEIMAGE=$OPTARG;;
+        r) MAP_METALIMAGE=$OPTARG;;
+        z) MAP_WATERLEVEL=$OPTARG;;
+    esac
+done
+
+OptionAsk()
+{
+    # messed up shit to get array indirect referencing working
+    temp=$1'[@]'
+    OPTION=( "${!temp}" )
+
+    echo -e "${OPTION[2]}"
+    echo -e "${OPTION[3]}"
+    read -re -p "${OPTION[1]}: " $1
+
+    #regex match testing
+    if [[ ! "${!1}" =~ ${OPTION[1]} ]]
+    then
+        echo you entered: \"${!1}\" unfortunately that does not match the regex \
+            pattern listed, please try again.
+        OptionAsk $1
+    fi
+#TODO Validate input, this could be nested function calls with the validation
+# on a different layer ie OptionAskImage
+}
+
+
+OptionsReview()
+{
+    echo \
+"Confirm Options:
+================
+
+General options:
+  v:verbose       : $VERBOSE
+  p:progress      : $PROGRESS
+  q:quiet         : $QUIET
+  o:output path   : $OUTPUT_PATH
+  k:dont overwrite: $OUTPUT_OVERWRITE
+
+Map Properties:
+  n:name          : $MAP_NAME
+  N:pretty name   : $MAP_LONGNAME
+  D:description   : $MAP_DESCRIPTION
+  w:width         : $MAP_WIDTH
+  l:length        : $MAP_LENGTH
+  y:depth         : $MAP_DEPTH
+  Y:height        : $MAP_HEIGHT
+
+  m:mini image    : $MAP_MINIIMAGE
+  d:diffuse image : $MAP_DIFFUSEIMAGE
+  a:height image  : $MAP_HEIGHTIMAGE
+
+  g:grass image   : $MAP_GRASSIMAGE
+  f:features file : $MAP_FEATURES
+
+  t:type image    : $MAP_TYPEIMAGE
+  r:metal image   : $MAP_METALIMAGE
+
+Pre-Processing Functions
+  z:water level
+
+  Q: Nooooo, get me out of here!!!
+choose option, or press enter to confirm:"
+    read RETVAL
+    if [[ ! $RETVAL ]]
+    then
+        RETVAL=C
+    fi
+}
+
+ValidateOptions()
+{
+    #test each option for validity and provide an error message if it aint so.
+    if [[ ! $MAP_LONGNAME ]]
+    then
+        MAP_LONGNAME=$MAP_NAME
+    fi
+
+
+}
+
+# Review Options
+# ==============
+UNHAPPY=1
+while [[ $UNHAPPY -eq 1 ]]
+do
+    clear
+    OptionsReview
+    case $RETVAL in
+        v) OptionAsk VERBOSE;;
+        p) OptionAsk PROGRESS;;
+        q) OptionAsk QUIET;;
+        k) OptionAsk OUTPUT_OVERWRITE;;
+        o) OptionAsk OUTPUT_PATH;;
+        n) OptionAsk MAP_NAME;;
+        N) OptionAsk MAP_LONGNAME;;
+        D) OptionAsk MAP_DESCRIPTION;;
+        w) OptionAsk MAP_WIDTH;;
+        l) OptionAsk MAP_LENGTH;;
+        y) OptionAsk MAP_DEPTH;;
+        Y) OptionAsk MAP_HEIGHT;;
+        m) OptionAsk MAP_MINIIMAGE;;
+        d) OptionAsk MAP_DIFFUSEIMAGE;;
+        a) OptionAsk MAP_HEIGHTIMAGE;;
+        g) OptionAsk MAP_GRASSIMAGE;;
+        f) OptionAsk MAP_FEATURES;;
+        t) OptionAsk MAP_TYPEIMAGE;;
+        r) OptionAsk MAP_METALIMAGE;;
+        z) OptionAsk MAP_WATERLEVEL;;
+        Q) exit;;
+        C) UNHAPPY=0;;
+    esac
+
+    ValidateOptions
+done
+
+# create folder structure
+echo Creating Directory Structure
+BASE_PATH=${OUTPUT_PATH}/${MAP_NAME}.sdd
+mkdir -p $BASE_PATH/{maps,LuaGaia/Gadgets}
+
+# Feature Placer
+# ==============
+echo creating boilerplate files for featureplacer
+
+# LuaGaia/main.lua
+#TODO dont clobber if already exists
+echo 'if AllowUnsafeChanges then AllowUnsafeChanges("USE AT YOUR OWN PERIL") end
+VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)' > $BASE_PATH/LuaGaia/main.lua
+
+# LuaGaia/draw.lua
+#TODO dont clobber if already exists
+echo 'VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)' > $BASE_PATH/LuaGaia/draw.lua
+
+# LuaGaia/Gadgets/featureplacer.lua
+#TODO dont clobber if already exists
+echo 'function gadget:GetInfo()
+    return {
+        name      = "feature placer",
+        desc      = "Spawns Features and Units",
+        author    = "Gnome, Smoth",
+        date      = "August 2008",
+        license   = "PD",
+        layer     = 0,
+        enabled   = true  --  loaded by default?
+    }
+end
+
+if (not gadgetHandler:IsSyncedCode()) then
+  return false
+end
+
+if (Spring.GetGameFrame() >= 1) then
+  return false
+end
+
+local SetUnitNeutral        = Spring.SetUnitNeutral
+local SetUnitBlocking       = Spring.SetUnitBlocking
+local SetUnitRotation       = Spring.SetUnitRotation
+local SetUnitAlwaysVisible  = Spring.SetUnitAlwaysVisible
+local CreateUnit            = Spring.CreateUnit
+local CreateFeature         = Spring.CreateFeature
+
+local features = VFS.Include("features.lua")
+local objects = features.objects
+local buildings = features.buildings
+local units     = features.units
+
+
+local gaiaID = Spring.GetGaiaTeamID()
+
+for i,fDef in pairs(objects) do
+    local flagID = CreateFeature(fDef.name, fDef.x, Spring.GetGroundHeight(fDef.x,fDef.z)+5, fDef.z, fDef.rot)
+end
+
+local los_status = {los=true, prevLos=true, contRadar=true, radar=true}
+
+for i,uDef in pairs(units) do
+    local flagID = CreateUnit(uDef.name, uDef.x, 0, uDef.z, 0, gaiaID)
+    SetUnitRotation(flagID, 0, -uDef.rot * math.pi / 32768, 0)
+    SetUnitNeutral(flagID,true)
+    Spring.SetUnitLosState(flagID,0,los_status)
+    SetUnitAlwaysVisible(flagID,true)
+    SetUnitBlocking(flagID,true)
+end
+
+for i,bDef in pairs(buildings) do
+    local flagID = CreateUnit(bDef.name, bDef.x, 0, bDef.z, bDef.rot, gaiaID)
+    SetUnitNeutral(flagID,true)
+    Spring.SetUnitLosState(flagID,0,los_status)
+    SetUnitAlwaysVisible(flagID,true)
+    SetUnitBlocking(flagID,true)
+end
+
+return false --unload' > $BASE_PATH/LuaGaia/Gadgets/featureplacer.lua
+
+# TODO generate this file from source material rather than an empty one
+# features.lua
+#TODO dont clobber if already exists
+echo 'local lists = {
+    units = {
+        --{ name = 'template', x = 512, z = 512, rot = "0" },
+    },
+    buildings = {
+        --{ name = 'template', x = 512, z = 512, rot = "0" },
+    },
+    objects = {
+        --{ name = 'template', x = 512, z = 512, rot = "0" },
+    },
+}
+return lists' > $BASE_PATH/features.lua
+
+# Map Info
+# ========
+# mapinfo.lua
+#TODO dont clobber if already exists
+echo "--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- mapinfo.lua
+--
+
+local mapinfo = {
+    name        = '$MAP_LONGNAME',
+    shortname   = '$MAP_NAME',
+    description = '$MAP_DESCRIPTION',
+    author      = '$USER',
+    version     = '$VERSION',
+    modtype     = 3, --// 1=primary, 0=hidden, 3=map
+    depend      = {'Map Helper v1'},
+    replace     = {},
+
+    maphardness     = 100,
+    notDeformable   = false,
+    gravity         = 130,
+    tidalStrength   = 0,
+    maxMetal        = 0.02,
+    extractorRadius = 500.0,
+    voidWater       = true,
+    autoShowMetal   = true,
+
+
+    smf = {
+        minheight = $MAP_DEPTH,
+        maxheight = $MAP_HEIGHT,
+    },
+
+    splats = {
+        texScales = {0.02, 0.02, 0.02, 0.02},
+        texMults  = {1.0, 1.0, 1.0, 1.0},
+    },
+
+    atmosphere = {
+        minWind      = 5.0,
+        maxWind      = 25.0,
+
+        fogStart     = 0.1,
+        fogEnd       = 1.0,
+        fogColor     = {0.7, 0.7, 0.8},
+
+        sunColor     = {1.0, 1.0, 1.0},
+        skyColor     = {0.1, 0.15, 0.7},
+        skyDir       = {0.0, 0.0, -1.0},
+
+        cloudDensity = 0.5,
+        cloudColor   = {1.0, 1.0, 1.0},
+    },
+
+    grass = {
+        bladeWaveScale = 1.0,
+        bladeWidth  = 0.32,
+        bladeHeight = 4.0,
+        bladeAngle  = 1.57,
+        bladeColor  = {0.59, 0.81, 0.57}, --// does nothing when 'grassBladeTex' is set
+    },
+
+    lighting = {
+        --// dynsun
+        sunStartAngle = 0.0,
+        sunOrbitTime  = 1440.0,
+        sunDir        = {0.0, 1.0, 2.0, 1e9},
+
+        --// unit & ground lighting
+        groundAmbientColor  = {0.5, 0.5, 0.5},
+        groundDiffuseColor  = {0.5, 0.5, 0.5},
+        groundSpecularColor = {0.1, 0.1, 0.1},
+        groundShadowDensity = 0.8,
+        unitAmbientColor    = {0.4, 0.4, 0.4},
+        unitDiffuseColor    = {0.7, 0.7, 0.7},
+        unitSpecularColor   = {0.7, 0.7, 0.7},
+        unitShadowDensity   = 0.8,
+
+        specularExponent    = 100.0,
+    },
+
+    water = {
+        damage =  0.0,
+
+        repeatX = 0.0,
+        repeatY = 0.0,
+
+        absorb    = {0.0, 0.0, 0.0},
+        baseColor = {0.0, 0.0, 0.0},
+        minColor  = {0.0, 0.0, 0.0},
+
+        ambientFactor  = 1.0,
+        diffuseFactor  = 1.0,
+        specularFactor = 1.0,
+        specularPower  = 20.0,
+
+        planeColor = {0.0, 0.4, 0.0},
+
+        surfaceColor  = {0.75, 0.8, 0.85},
+        surfaceAlpha  = 0.55,
+        diffuseColor  = {1.0, 1.0, 1.0},
+        specularColor = {0.5, 0.5, 0.5},
+
+        fresnelMin   = 0.2,
+        fresnelMax   = 0.8,
+        fresnelPower = 4.0,
+
+        reflectionDistortion = 1.0,
+
+        blurBase      = 2.0,
+        blurExponent = 1.5,
+
+        perlinStartFreq  =  8.0,
+        perlinLacunarity = 3.0,
+        perlinAmplitude  =  0.9,
+        windSpeed = 1.0, --// does nothing yet
+
+        shoreWaves = true,
+        forceRendering = false,
+    },
+
+    teams = {
+        [0] = {startPos = {x = 128, z = 128}},
+        [1] = {startPos = {x = 1024-128, z = 1024-128}},
+    },
+
+    terrainTypes = {
+        [0] = {
+            name = 'Default',
+            hardness = 1.0,
+            receiveTracks = true,
+            moveSpeeds = {
+                tank  = 1.0,
+                kbot  = 1.0,
+                hover = 1.0,
+                ship  = 1.0,
+            },
+        },
+    },
+}
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Helper
+
+local function lowerkeys(ta)
+    local fix = {}
+    for i,v in pairs(ta) do
+        if (type(i) == 'string') then
+            if (i ~= i:lower()) then
+                fix[#fix+1] = i
+            end
+        end
+        if (type(v) == 'table') then
+            lowerkeys(v)
+        end
+    end
+
+    for i=1,#fix do
+        local idx = fix[i]
+        ta[idx:lower()] = ta[idx]
+        ta[idx] = nil
+    end
+end
+
+lowerkeys(mapinfo)
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+return mapinfo" > $BASE_PATH/mapinfo.lua
+
+#TODO compile using smf_create and smt_create
+
+
+#TODO for lighting give presets like sunset, sunrise, midday, dusk, night etc..
+#TODO automatically detect sizes of things based on image dimensions
+#TODO display the completed makemap command to the user now that any mistakes have been corrected
+#TODO run appropriate smf_cc and smt_convert functions and place the outputs into the approriat places
+
+#Future maybe
+# optionally create mapinfo/* files depending on options. but i think i might remove them in this version
+# give presets for weather effects, like light rain, heavy rain, snow, windy etc.
+# TODO use some form of toolkit to allow file selection using GUI
+# NOTE yad is a good option to use for dialog based formsw
