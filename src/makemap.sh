@@ -5,7 +5,12 @@
 # Set needed variables in case of bash shell conflicts
 ##bc#e###ij########s#u##x##ABC#EFGHIJKLM#OPQRSTUVWX#Z
 #TODO add version with -V
+#TODO add option to start game after compilation complete wit -G
+#TODO add option to link compiled game directory into spring map folder with -L
+#TODO add option to compress into archive with -Z maybe make -L switch to
+#     moving archive to folder
 #TODO e can specify environment settings like atmospphere and lighting?
+
 HELPSHORT="makemap - smf_tools helper script that generates a working map
 usage: makemap [options]
   eg.   makemap -vpf -n MyMap -d diffuse.jpg -h height.tif -o ./"
@@ -16,7 +21,7 @@ HELP=$HELPSHORT"
   -p            progress bar
   -q            dont ask questions
   -o <path>     output directory name
-  -k            dont overwrite files (k for keep)
+  -k            overwrite files (k for keep)
 
   -n <string>   name of the map
   -N <string>   long name
@@ -45,50 +50,77 @@ HELP=$HELPSHORT"
 # where:
 #   default = the default value, can be ""
 #   regex = the appropriate evaluator for valid input
-#   help = three line help indicating what the option is about
+#   help = maximum of three line help indicating what the option is about
 #   question = in menu mode what to ask the user to be polite
 
+REGEX_FLOAT="^[+-]?[0-9]*\.?[0-9]+$"
+
 VERBOSE=( "n" "^[yn]$" \
-    "help" \
-    "question" )
+"v:verbose - specifying this options increases the output presented to the
+command line" \
+"would you like to get more detailed output?" )
 PROGRESS=( "n" "^[yn]$" \
-    "help" \
-    "question" )
+"p:progress - progress bars will be displayed for long operations when possible" \
+"would you like to see progress bars?" )
 QUIET=( "n" "^[yn]$" \
-    "help" \
-    "question" )
-OUTPUT_PATH=(      "./" "^[yn]$" "help" "question" )
-OUTPUT_OVERWRITE=( "n"  "^[yn]$" "help" "question" )
+"q:quiet - supressed the output including error messages." \
+"would you like to silence the output?" )
+OUTPUT_PATH=( "." "^.*$" \
+"o:output path - the directory in which to place output files." \
+"please enter the path where you would like files to be saved." )
+OUTPUT_OVERWRITE=( "n"  "^[yn]$" \
+"f:overwrite files - whether or not pre-existing files should be overwritten" \
+"would you like to clobber pre-existing files?" )
 
-MAP_NAME=(         ""   '^[a-zA-Z0-9_]+$' \
-    "help" \
-    "question" )
-MAP_LONGNAME=(     ""   '^.+$' \
-    "help" \
-    "question" )
-MAP_DESCRIPTION=(  ""   '^.+$' \
-    "help" \
-    "question" )
-MAP_WIDTH=( "" "^[0-9]+$" \
-"line 1. mapwidth help information
-line 2.
-line 3. " \
-    "mapwidth question?" )
-MAP_LENGTH=( "" "regex" "help" "question" )
-MAP_DEPTH=( "" "regex" "help" "question" )
-MAP_HEIGHT=( "" "regex" "help" "question" )
+MAP_NAME=( "" '^[a-zA-Z0-9_]+$' \
+"n:name - the short name of the map used to save files" \
+"please name the map." )
+MAP_LONGNAME=( "" '^.+$' \
+"N:display name - The name used in game" \
+"please provide a display name" )
+MAP_DESCRIPTION=( "" '^.+$' \
+"D:description - a short description of the map" \
+"Please describe the map" )
+MAP_BREADTH=( "" "^[0-9]+$" \
+"w:map width - defined in spring map units, 1:512 pixel ratio" \
+"mapwidth question?" )
+MAP_LENGTH=( "" "^[0-9]+$" \
+"help" \
+"map length" )
+MAP_FLOOR=( "" "$REGEX_FLOAT" \
+"help" \
+"map floor" )
+MAP_CEILING=( "" "$REGEX_FLOAT" \
+"help" \
+"map ceiling" )
 
-MAP_DIFFUSEIMAGE=( "" "regex" "help" "question" )
-MAP_MINIIMAGE=( "" "regex" "help" "question" )
-MAP_HEIGHTIMAGE=( "" "regex" "help" "question" )
+MAP_DIFFUSEIMAGE=( "" "^.*$" \
+"help" \
+"diffuse image" )
+MAP_MINIIMAGE=( "" "^.*$" \
+"help" \
+"mini image" )
+MAP_HEIGHTIMAGE=( "" "^.*$" \
+"help" \
+"heigtimage" )
 
-MAP_GRASSIMAGE=( "" "regex" "help" "question" )
-MAP_FEATURES=( "" "regex" "help" "question" )
+MAP_GRASSIMAGE=( "" "^.*$" \
+"help" \
+"grassimage" )
+MAP_FEATURES=( "" "^.*$" \
+"help" \
+"features" )
 
-MAP_TYPEIMAGE=( "" "regex" "help" "question" )
-MAP_METALIMAGE=( "" "regex" "help" "question" )
+MAP_TYPEIMAGE=( "" "^.*$" \
+"help" \
+"typeimage" )
+MAP_METALIMAGE=( "" "^.*$" \
+"help" \
+"metalimage" )
 
-MAP_WATERLEVEL=( "" "regex" "help" "question" )
+MAP_WATERLEVEL=( "" "^.*$" \
+"help" \
+"waterlevel" )
 
 
 #TODO generate manpage
@@ -116,18 +148,18 @@ fi
 while getopts "hvpqko:n:N:D:w:l:y:Y:m:d:a:z:g:f:t:r:" opt; do
     case $opt in
         h) echo "$HELP"; exit;;
-        v) VERBOSE=$OPTARG;;
-        p) PROGRESS=$OPTARG;;
-        q) QUIET=$OPTARG;;
-        k) OUTPUT_OVERWRITE=$OPTARG;;
+        v) VERBOSE='y';;
+        p) PROGRESS='y';;
+        q) QUIET='y';;
+        k) OUTPUT_OVERWRITE='y';;
         o) OUTPUT_PATH=$OPTARG;;
         n) MAP_NAME=$OPTARG;;
         N) MAP_LONGNAME=$OPTARG;;
         D) MAP_DESCRIPTION=$OPTARG;;
-        w) MAP_WIDTH=$OPTARG;;
+        w) MAP_BREADTH=$OPTARG;;
         l) MAP_LENGTH=$OPTARG;;
-        y) MAP_DEPTH=$OPTARG;;
-        Y) MAP_HEIGHT=$OPTARG;;
+        y) MAP_FLOOR=$OPTARG;;
+        Y) MAP_CEILING=$OPTARG;;
         m) MAP_MINIIMAGE=$OPTARG;;
         d) MAP_DIFFUSEIMAGE=$OPTARG;;
         a) MAP_HEIGHTIMAGE=$OPTARG;;
@@ -168,30 +200,30 @@ OptionsReview()
 ================
 
 General options:
-  v:verbose       : $VERBOSE
-  p:progress      : $PROGRESS
-  q:quiet         : $QUIET
-  o:output path   : $OUTPUT_PATH
-  k:dont overwrite: $OUTPUT_OVERWRITE
+  v:verbose               : $VERBOSE
+  p:progress              : $PROGRESS
+  q:quiet                 : $QUIET
+  o:output path           : $OUTPUT_PATH
+  k:overwrite             : $OUTPUT_OVERWRITE
 
 Map Properties:
-  n:name          : $MAP_NAME
-  N:pretty name   : $MAP_LONGNAME
-  D:description   : $MAP_DESCRIPTION
-  w:width         : $MAP_WIDTH
-  l:length        : $MAP_LENGTH
-  y:depth         : $MAP_DEPTH
-  Y:height        : $MAP_HEIGHT
+  n:name          required: $MAP_NAME
+  N:pretty name           : $MAP_LONGNAME
+  D:description           : $MAP_DESCRIPTION
+  w:width         required: $MAP_BREADTH
+  l:length        required: $MAP_LENGTH
+  y:depth                 : $MAP_FLOOR
+  Y:height                : $MAP_CEILING
 
-  m:mini image    : $MAP_MINIIMAGE
-  d:diffuse image : $MAP_DIFFUSEIMAGE
-  a:height image  : $MAP_HEIGHTIMAGE
+  m:mini image            : $MAP_MINIIMAGE
+  d:diffuse image required: $MAP_DIFFUSEIMAGE
+  a:height image          : $MAP_HEIGHTIMAGE
 
-  g:grass image   : $MAP_GRASSIMAGE
-  f:features file : $MAP_FEATURES
+  g:grass image           : $MAP_GRASSIMAGE
+  f:features file         : $MAP_FEATURES
 
-  t:type image    : $MAP_TYPEIMAGE
-  r:metal image   : $MAP_METALIMAGE
+  t:type image            : $MAP_TYPEIMAGE
+  r:metal image           : $MAP_METALIMAGE
 
 Pre-Processing Functions
   z:water level
@@ -213,6 +245,10 @@ ValidateOptions()
         MAP_LONGNAME=$MAP_NAME
     fi
 
+    if [[ ! $MAP_BREADTH ]]; then OptionAsk MAP_BREADTH; fi
+    if [[ ! $MAP_LENGTH ]]; then OptionAsk MAP_LENGTH; fi
+    if [[ ! $MAP_FLOOR ]]; then OptionAsk MAP_FLOOR; fi
+    if [[ ! $MAP_CEILING ]]; then OptionAsk MAP_CEILING; fi
 
 }
 
@@ -232,10 +268,10 @@ do
         n) OptionAsk MAP_NAME;;
         N) OptionAsk MAP_LONGNAME;;
         D) OptionAsk MAP_DESCRIPTION;;
-        w) OptionAsk MAP_WIDTH;;
+        w) OptionAsk MAP_BREADTH;;
         l) OptionAsk MAP_LENGTH;;
-        y) OptionAsk MAP_DEPTH;;
-        Y) OptionAsk MAP_HEIGHT;;
+        y) OptionAsk MAP_FLOOR;;
+        Y) OptionAsk MAP_CEILING;;
         m) OptionAsk MAP_MINIIMAGE;;
         d) OptionAsk MAP_DIFFUSEIMAGE;;
         a) OptionAsk MAP_HEIGHTIMAGE;;
@@ -256,14 +292,16 @@ echo Creating Directory Structure
 BASE_PATH=${OUTPUT_PATH}/${MAP_NAME}.sdd
 mkdir -p $BASE_PATH/{maps,LuaGaia/Gadgets}
 
-# Feature Placer
-# ==============
-echo creating boilerplate files for featureplacer
+# populate Feature Placer files
+# -----------------------------
+echo -e '\n[makemap]Creating boilerplate files for featureplacer'
 
 # LuaGaia/main.lua
-#TODO dont clobber if already exists
-echo 'if AllowUnsafeChanges then AllowUnsafeChanges("USE AT YOUR OWN PERIL") end
-VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)' > $BASE_PATH/LuaGaia/main.lua
+#TODO dont clobber if already existsa
+FILENAME=$BASE_PATH/LuaGaia/main.lua
+FILECONTENT='if AllowUnsafeChanges then AllowUnsafeChanges("USE AT YOUR OWN PERIL") end
+VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)'
+if [[ -e $FILENAME && $OUTPUT_OVERWRITE == 'y' ]]; then echo $FILECONTENT > $FILENAME; fi
 
 # LuaGaia/draw.lua
 #TODO dont clobber if already exists
@@ -377,8 +415,8 @@ local mapinfo = {
 
 
     smf = {
-        minheight = $MAP_DEPTH,
-        maxheight = $MAP_HEIGHT,
+        minheight = $MAP_FLOOR,
+        maxheight = $MAP_CEILING,
     },
 
     splats = {
@@ -520,8 +558,73 @@ lowerkeys(mapinfo)
 
 return mapinfo" > $BASE_PATH/mapinfo.lua
 
-#TODO compile using smf_create and smt_create
+# Run the smt_convert command to create tile file from images
+# -----------------------------------------------------------
+echo -e '\n[makemap]Generating the smt file'
+COMMAND='smt_convert'
+if [[ $VERBOSE == 'y' ]]; then COMMAND+=' -v'; fi
+if [[ $PROGRESS == 'y' ]]; then COMMAND+=' -p'; fi
+if [[ $QUIET == 'y' ]]; then COMMAND+=' -q'; fi
+if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+=' -f'; fi
+COMMAND+=" --imagesize $((512 * $MAP_BREADTH))x$((512 * $MAP_LENGTH))"
+COMMAND+=' --smt --tilesize 32x32 --type DXT1'
+COMMAND+=" -o $BASE_PATH/maps/${MAP_NAME}.smt"
+COMMAND+=" $MAP_DIFFUSEIMAGE"
+echo $COMMAND
+$COMMAND
 
+# run the smf_cc command to create the smf file
+# ---------------------------------------------
+echo -e '\n[makemap]Generating the smf file'
+COMMAND='smf_cc'
+if [[ $VERBOSE == 'y' ]]; then COMMAND+=' -v'; fi
+#if [[ $PROGRESS == 'y' ]]; then COMMAND+=' -p'; fi # maybe add a progress indicator to smf_cc?
+if [[ $QUIET == 'y' ]]; then COMMAND+=' -q'; fi
+if [[ $OUTPUT_OVERWRITE -eq 'y' ]]; then COMMAND+=' -f'; fi
+COMMAND+=" --mapsize ${MAP_BREADTH}x${MAP_LENGTH}"
+COMMAND+=' --tilesize 32'
+COMMAND+=" -y $MAP_FLOOR"
+COMMAND+=" -Y $MAP_CEILING"
+COMMAND+=" --tilemap $BASE_PATH/maps/$MAP_NAME.smt.csv"
+if [[ $MAP_HEIGHTIMAGE ]]; then COMMAND+=" --height $MAP_HEIGHTIMAGE"; fi
+if [[ $MAP_TYPEIMAGE ]]; then COMMAND+=" --type $MAP_TYPEIMAGE"; fi
+if [[ $MAP_MINIIMAGE ]]; then COMMAND+=" --mini $MAP_MINIIMAGE"; fi
+if [[ $MAP_METALIMAGE ]]; then COMMAND+=" --metal $MAP_METALIMAGE"; fi
+if [[ $MAP_GRASSIMAGE ]]; then COMMAND+=" --grass $MAP_GRASSIMAGE"; fi
+COMMAND+=" -o $BASE_PATH/maps/${MAP_NAME}.smf"
+COMMAND+=" $BASE_PATH/maps/$MAP_NAME.smt"
+echo "[makemap]$COMMAND"
+$COMMAND
+
+# delete superflous tilefile
+rm $BASE_PATH/maps/${MAP_NAME}.smt.csv
+
+# Link the generated game folder into the spring settings folder
+# --------------------------------------------------------------
+LINKFOLDER=y
+if [[ $LINKFOLDER == 'y' ]]
+then
+    echo -e '\n[makemap]Linking generated map archive into spring config folders'
+    COMMAND='ln -s'
+    if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+='f'; fi
+    #TODO get spring maps folder from spring configuration file
+    COMMAND+=" `pwd`/${MAP_NAME}.sdd /home/$USER/.config/spring/maps"
+    echo "[makemap]$COMMAND"
+    $COMMAND
+fi
+
+# Run the Game to test the map
+# ----------------------------
+if [[ $GAMEON == 'y' ]]; then spring -m $MAP_NAME -g 'Empty Mod'; fi
+
+# Remaining Items on my thought list
+# ----------------------------------
+#TODO change double qotes " to single quotes ' if variable substitution is not nexessary
+#TODO delete beans.smt.csv
+#TODO validate input mapsize to be multiples of two, and update the help text to specify it.
+#TODO validate input images
+#TODO create a link to the users spring config/maps directory for testing
+#TODO option to run the game using the map immediately after creation to test that it works as expected.
 
 #TODO for lighting give presets like sunset, sunrise, midday, dusk, night etc..
 #TODO automatically detect sizes of things based on image dimensions
