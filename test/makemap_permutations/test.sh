@@ -59,7 +59,7 @@ do
     if [[ $RESULT -gt 1 ]]
         then
             echo $COMMAND >> failure.txt
-            read -e -p "press enter to continue" CONTINUE
+            read -r -s -t 10 -p "press enter to continue" CONTINUE
         fi
     echo -e '----------------------------\n'
     RecursiveTest ${#OPTIONS[@]} 0

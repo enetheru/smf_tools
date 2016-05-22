@@ -532,7 +532,7 @@ local mapinfo = {
     name        = '$MAP_LONGNAME',
     shortname   = '$MAP_NAME',
     description = '$MAP_DESCRIPTION',
-    author      = '$USER',
+    author      = '${USER:-`whoami`}',
     version     = '$VERSION',
     modtype     = 3, --// 1=primary, 0=hidden, 3=map
     depend      = {'Map Helper v1'},
@@ -549,8 +549,8 @@ local mapinfo = {
 
 
     smf = {
-        minheight = $MAP_FLOOR,
-        maxheight = $MAP_CEILING,
+        minheight = ${MAP_FLOOR:-0},
+        maxheight = ${MAP_CEILING:-0},
     },
 
     splats = {
@@ -853,7 +853,7 @@ numusers=1;
 startpostype=3;
 }
 " > script.txt
-    spring script.txt
+    spring script.txt | grep $MAP_NAME
     RETVAL=$?
     rm script.txt
 fi
