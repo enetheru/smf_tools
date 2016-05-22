@@ -3,7 +3,6 @@ OPTIONS=( \
     'p' \
     'o testoutput' \
     'Z' \
-    'L' \
     'N "Test Map"' \
     'D "This is a escription"' \
     'y 128' \
@@ -19,7 +18,7 @@ OPTIONS=( \
 )
 #COMMAND="smt_convert -v --smt --tilesize 32x32 --imagesize 1024x1024 ../data/image_1.png"
 
-DATA=( 0 "" "" )
+DATA=( 0 0 )
 RecursiveTest()
 {
     if [[ $2 -ge $1 ]]; then return 255; fi
@@ -39,8 +38,12 @@ RecursiveTest()
 
 while [[ $TRUE -ne 255 ]]; 
 do
-
-    COMMAND='makemap -vGf -n testmap -w 2 -l 2 -d ../data/image_1.png'
+    NAME='map'
+    for ((j=0;j<${#DATA[@]};++j));
+    do
+        NAME+=${DATA[$j]}
+    done
+    COMMAND="makemap -vGf -n "${NAME}" -w 4 -l 4 -d ../data/image_1.png"
     for ((i=0;i<${#DATA[@]};++i));
     do
         if [[ ${DATA[$i]} -eq 1 ]];
@@ -56,7 +59,7 @@ do
     if [[ $RESULT -gt 1 ]]
         then
             echo $COMMAND >> failure.txt
-            sleep 10
+            read -e -p "press enter to continue" CONTINUE
         fi
     echo -e '----------------------------\n'
     RecursiveTest ${#OPTIONS[@]} 0

@@ -445,7 +445,8 @@ SMF::addTileFile( string fileName )
 
     ++_headerTiles.nFiles;
     _headerTiles.nTiles += smt->nTiles;
-    _smtList.push_back( std::make_pair( smt->nTiles, fileName ) );
+    _smtList.push_back( std::make_pair( smt->nTiles,
+            fileName.substr( fileName.find_last_of( "/\\" ) + 1 ) ) );
 
     delete smt;
 }

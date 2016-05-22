@@ -218,6 +218,22 @@ while getopts "hvpiGqo:fZLn:N:D:w:l:y:Y:m:d:a:g:F:t:r:z:" opt; do
     esac
 done
 
+echoq()
+{
+    if [[ $QUIET == 'n' ]];
+    then
+        echo -e "[makemap]$@"
+    fi
+}
+
+echov()
+{
+    if [[ $VERBOSE == 'y' ]]
+    then
+        echoq $@
+    fi
+}
+
 OptionAsk()
 {
     # messed up shit to get array indirect referencing working
@@ -274,18 +290,8 @@ Map Properties:
   F:features file         : $MAP_FEATURES
 
   t:type image            : $MAP_TYPEIMAGE
-  r:metal image           : $MAP_METALIMAGE
+  r:metal image           : $MAP_METALIMAGE"
 
-Pre-Processing Functions
-  z:water level
-
-  Q: Nooooo, get me out of here!!!
-choose option, or press enter to confirm:"
-    read RETVAL
-    if [[ ! $RETVAL ]]
-    then
-        RETVAL=C
-    fi
 }
 
 ValidateOptions()
@@ -297,8 +303,9 @@ ValidateOptions()
         MAP_LONGNAME=$MAP_NAME
     fi
 
-    if [[ ! $MAP_BREADTH ]]; then
+    if [[ ! $MAP_BREADTH && $MAP_BREADTH -ge 2 ]]; then
         if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_BREADTH; fi
+        echov "w:map width=$MAP_BREADTH invalid"
         RETVAL=1
     fi
     if [[ ! $MAP_LENGTH ]]; then
@@ -306,44 +313,49 @@ ValidateOptions()
        RETVAL=1
     fi
     if [[ ! $MAP_FLOOR ]]; then
-       if [[ $INTERACTIVE == 'y' ]]; then  OptionAsk MAP_FLOOR; fi
-       RETVAL=1
+        MAP_FLOOR=0;
+#       if [[ $INTERACTIVE == 'y' ]]; then  OptionAsk MAP_FLOOR; fi
+#       RETVAL=1
     fi
     if [[ ! $MAP_CEILING ]]; then
-       if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_CEILING; fi
-       RETVAL=1
+        MAP_CEILING=0
+#       if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_CEILING; fi
+#       RETVAL=1
     fi
     if [[ ! $MAP_DIFFUSEIMAGE ]]; then
        if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_DIFFUSEIMAGE; fi
        RETVAL=1
     fi
 
+    if [[ $GAMEON == 'y' ]]; then OUTPUT_LINK='y';fi
+
     OUTPUT_PATH=`readlink -m $OUTPUT_PATH`
     return $RETVAL
 }
 
-echoq()
-{
-    if [[ $QUIET == 'n' ]];
-    then
-        echo -e "[makemap]$@"
-    fi
-}
 
-echov()
-{
-    if [[ $VERBOSE == 'y' ]]
-    then
-        echoq $@
-    fi
-}
+echov 'Initial Validation Check'
+ValidateOptions
 
 # Review Options
 # ==============
-while [[ $INTERACTIVE == 'y' ]]
+echov 'Interactive loop' $INTERACTIVE
+while [[ "$INTERACTIVE" == 'y' ]]
 do
     clear
     OptionsReview
+    echo \
+"Pre-Processing Functions
+  z:water level
+
+  Q: Nooooo, get me out of here!!!
+choose option, or press enter to confirm:"
+    read RETVAL
+    if [[ ! $RETVAL ]]
+    then
+        RETVAL=C
+    fi
+
     case $RETVAL in
         q) OptionAsk QUIET;;
         v) OptionAsk VERBOSE;;
@@ -378,7 +390,12 @@ done
 
 # last minute validation to prevent bad options going to command lines
 ValidateOptions
-if [[ $? -ne 0 ]]; then exit 1; fi
+if [[ $? -ne 0 ]]; then
+    echoq "option validation checks failed"
+    exit 1
+fi
+
+if [[ $QUIET == 'n' ]]; then OptionsReview;fi
 
 # create folder structure
 # -----------------------
@@ -397,16 +414,18 @@ echoq 'Creating boilerplate files for featureplacer'
 
 boilerplate()
 {
+    #$1 = filename
+    #$2 = filecontent
     if [[ $OUTPUT_OVERWRITE == 'y' || ! -e "$1" ]]
     then
         echo "$2" > "$1"
         if [[ $? -ne 0 ]]
         then
-            echoq "failed to create $FILENAME"
+            echoq "failed to create $1"
             exit 2
         fi
     else
-        echoq "$FILENAME exists, skippping" 
+        echoq "$1 exists, skippping"
     fi
 }
 
@@ -415,12 +434,12 @@ boilerplate()
 FILENAME=$BASE_PATH/LuaGaia/main.lua
 FILECONTENT='if AllowUnsafeChanges then AllowUnsafeChanges("USE AT YOUR OWN PERIL") end
 VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)'
-boilerplate $FILENAME $FILECONTENT
+boilerplate "$FILENAME" "$FILECONTENT"
 
 # LuaGaia/draw.lua
 FILENAME=$BASE_PATH/LuaGaia/draw.lua
 FILECONTENT='VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)'
-boilerplate $FILENAME $FILECONTENT
+boilerplate "$FILENAME" "$FILECONTENT"
 
 # LuaGaia/Gadgets/featureplacer.lua
 FILENAME=$BASE_PATH/LuaGaia/Gadgets/featureplacer.lua
@@ -483,7 +502,7 @@ for i,bDef in pairs(buildings) do
 end
 
 return false --unload'
-boilerplate $FILENAME $FILECONTENT
+boilerplate "$FILENAME" "$FILECONTENT"
 
 # TODO generate this file from source material rather than an empty one
 # features.lua
@@ -500,11 +519,13 @@ FILECONTENT='local lists = {
     },
 }
 return lists'
-boilerplate $FILENAME $FILECONTENT
+boilerplate "$FILENAME" "$FILECONTENT"
 
 # Map Info
 # ========
 # mapinfo.lua
+#FIXME homogenise depth/height/floor/ceiling/breadth/length variable and docuemntataion names
+# as much as you dont like it use the spring game words, so go through the spring source
 FILENAME=$BASE_PATH/mapinfo.lua
 FILECONTENT="--------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -674,7 +695,7 @@ lowerkeys(mapinfo)
 --------------------------------------------------------------------------------
 
 return mapinfo"
-boilerplate $FILENAME $FILECONTENT
+boilerplate "$FILENAME" "$FILECONTENT"
 
 # Run the smt_convert command to create tile file from images
 # -----------------------------------------------------------
@@ -763,38 +784,94 @@ fi
 # Link the generated game folder into the spring settings folder
 # --------------------------------------------------------------
 #FIXME get the spring map folder directly from the spring settings
-if [[ $LINKFOLDER == 'y' ]]
+if [[ $OUTPUT_LINK == 'y' ]]
 then
     echoq 'Linking generated map archive into spring config folders'
     COMMAND='ln -s'
     if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+='f'; fi
     #TODO get spring maps folder from spring configuration file
-    COMMAND+=" `pwd`/${MAP_NAME}.sdd /home/$USER/.config/spring/maps"
-    if [[ $QUIET -ne 'y' ]]; then
-        echo "[makemap]$COMMAND"
-    fi
+    COMMAND+=" $OUTPUT_PATH/${MAP_NAME}.sdd /home/$USER/.config/spring/maps"
+    echoq "$COMMAND"
     $COMMAND
     if [[ $? -ne 0 ]]; then exit 2; fi
 fi
 
 # Run the Game to test the map
 # ----------------------------
-if [[ $GAMEON == 'y' ]]; then spring -m $MAP_NAME -g 'Empty Mod'; fi
-if [[ $? -ne 0 ]]; then exit 2; fi
+#TODO clean up this script to be minimal
+if [[ $GAMEON == 'y' ]]; then
+    echo \
+"[game]
+{
+[allyteam0]
+{
+numallies=0;
+}
+[mapoptions]
+{
+}
+[modoptions]
+{
+disablemapdamage=0;
+fixedallies=0;
+ghostedbuildings=1;
+limitdgun=0;
+maxspeed=3;
+maxunits=500;
+minspeed=0.3;
+relayhoststartpostype=3;
+}
+[player0]
+{
+countrycode=;
+isfromdemo=0;
+name=Player;
+rank=0;
+spectator=0;
+team=0;
+}
+[restrict]
+{
+}
+[team0]
+{
+allyteam=0;
+handicap=0;
+rgbcolor=1 1 0;
+side=TANKS;
+startposx=128;
+startposz=128;
+teamleader=0;
+}
+gametype=Empty Mod;
+hostip=;
+hostport=8452;
+ishost=1;
+maphash=1766029540;
+mapname=$MAP_NAME;
+modhash=1226406912;
+myplayername=Player;
+numplayers=1;
+numrestrictions=0;
+numusers=1;
+startpostype=3;
+}
+" > script.txt
+    spring script.txt
+    RETVAL=$?
+    rm script.txt
+fi
+# spring always crashes on my system with a core dump :|
+if [[ $RETVAL -eq 255 ]]; then exit 2; fi
 
 # Remaining Items on my thought list
 # ----------------------------------
-#TODO change double qotes " to single quotes ' if variable substitution is not nexessary
-#TODO delete beans.smt.csv
+#TODO systematically change double qotes " to single quotes ' if variable substitution is not nexessary
 #TODO validate input mapsize to be multiples of two, and update the help text to specify it.
 #TODO validate input images
-#TODO create a link to the users spring config/maps directory for testing
-#TODO option to run the game using the map immediately after creation to test that it works as expected.
 
 #TODO for lighting give presets like sunset, sunrise, midday, dusk, night etc..
 #TODO automatically detect sizes of things based on image dimensions
-#TODO display the completed makemap command to the user now that any mistakes have been corrected
-#TODO run appropriate smf_cc and smt_convert functions and place the outputs into the approriat places
 
 #Future maybe
 # optionally create mapinfo/* files depending on options. but i think i might remove them in this version
