@@ -9,7 +9,7 @@ do
         BEAN=( !(test.sh) )
         if [[ ${#BEAN[@]} > 1 ]]
         then
-            rm !(test.sh)
+            rm -r !(test.sh)
         fi
         cd ../
     fi
