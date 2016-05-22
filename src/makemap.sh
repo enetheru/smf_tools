@@ -1,21 +1,23 @@
 #!/bin/bash
 # this script is intended to wrap the cli smf tools to make creating maps easier.
 # the idea is that given the most simple situation, creating a map should be easy
+# return values
+# 0 = successful
+# 1 = input commands invalid
+# 2 = failure to do something
 
 # Set needed variables in case of bash shell conflicts
 #TODO add version with -V
-#TODO add option to start game after compilation complete wit -G
-#TODO add option to link compiled game directory into spring map folder with -L
 #TODO add option to compress into archive with -Z maybe make -L switch to
 #     moving archive to folder
 #TODO e can specify environment settings like atmospphere and lighting?
-#TODO use -f for force again, since k doesnt make sense, maybe F for features
+#TODO check all recent development and update script to be as modern as possible
+# * lua overrides for maps
 
-# NOTE: have to think about things that can go wrong, work out a strategy to work on identifying and fixing the technical debt accumulated over the 2 days i have been hacking this together, separating the Ideas from the TODO items
+# NOTE: have to think about things that can go wrong, work out a strategy to
+# work on identifying and fixing the technical debt accumulated over the 2 days
+# i have been hacking this together, separating the Ideas from the TODO items
 # Line by line
-# Run the script in a loop that tests all possible combintion of options
-# to make the test faster, omit the main commands
-# when testing the main commands, run on the fastest possible allowances.
 
 ##bc#e####jk#######s#u##x##ABC#E#GHIJKLM#OPQRSTUVWX##
 HELPSHORT="makemap - smf_tools helper script that generates a working map
@@ -55,10 +57,6 @@ Script Operation:
 
   -z <string>   map water level (z for ground zero)
 "
-#TODO, have something in here which describes the command return output
-#0 = successful
-#1 = input commands invalid
-#2 = failure to do something
 
 # Options
 # =======

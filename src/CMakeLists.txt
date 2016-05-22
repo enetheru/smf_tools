@@ -37,4 +37,5 @@ INSTALL(PROGRAMS
     ${CMAKE_CURRENT_BINARY_DIR}/smt_convert
     ${CMAKE_CURRENT_BINARY_DIR}/smt_info
     ${CMAKE_CURRENT_BINARY_DIR}/smt_repair
+    ${CMAKE_CURRENT_SOURCE_DIR}/makemap.sh
            DESTINATION bin)
