@@ -72,7 +72,7 @@ Script Operation:
 
 REGEX_FLOAT='^[+-]?[0-9]*\.?[0-9]+$'
 REGEX_YN='^[yn]?$'
-REGEX_PATH='^[^\0]+$'
+REGEX_PATH='^.+$'
 
 VERBOSE=( 'n' "$REGEX_YN" \
 'v:verbose - specifying this options increases the output presented to the
@@ -259,8 +259,8 @@ please try again."
 
 OptionsReview()
 {
-    echo \
-"Confirm Options:
+    echo -e \
+"\nOptions Review:
 ================
 
 General options:
@@ -303,33 +303,22 @@ ValidateOptions()
         MAP_LONGNAME=$MAP_NAME
     fi
 
-    if [[ ! $MAP_BREADTH && $MAP_BREADTH -ge 2 ]]; then
-        if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_BREADTH; fi
-        echov "w:map width=$MAP_BREADTH invalid"
+    if [[ ! $MAP_BREADTH || $MAP_BREADTH -lt 4 ]]; then
+        echoq "w:map width='$MAP_BREADTH' invalid"
         RETVAL=1
     fi
     if [[ ! $MAP_LENGTH ]]; then
-       if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_LENGTH; fi
-       RETVAL=1
-    fi
-    if [[ ! $MAP_FLOOR ]]; then
-        MAP_FLOOR=0;
-#       if [[ $INTERACTIVE == 'y' ]]; then  OptionAsk MAP_FLOOR; fi
-#       RETVAL=1
-    fi
-    if [[ ! $MAP_CEILING ]]; then
-        MAP_CEILING=0
-#       if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_CEILING; fi
-#       RETVAL=1
+        echoq "l:map length='$MAP_LENGTH' invalid"
+        RETVAL=1
     fi
     if [[ ! $MAP_DIFFUSEIMAGE ]]; then
-       if [[ $INTERACTIVE == 'y' ]]; then OptionAsk MAP_DIFFUSEIMAGE; fi
-       RETVAL=1
+        echoq "d:diffuse image='$MAP_DIFFUSEIMAGE' invalid"
+        RETVAL=1
     fi
 
     if [[ $GAMEON == 'y' ]]; then OUTPUT_LINK='y';fi
 
-    OUTPUT_PATH=`readlink -m $OUTPUT_PATH`
+    OUTPUT_PATH=`readlink -m "$OUTPUT_PATH"`
     return $RETVAL
 }
 
@@ -343,9 +332,15 @@ echov 'Interactive loop' $INTERACTIVE
 while [[ "$INTERACTIVE" == 'y' ]]
 do
     clear
+    ValidateOptions
+    VALID=$?
+    if [[ $VALID -eq 1 ]]; then
+        echo "Some requirements have not been satisfied";
+    fi
+
     OptionsReview
-    echo \
-"Pre-Processing Functions
+    echo -e \
+"\nPre-Processing Functions
   z:water level
 
   Q: Nooooo, get me out of here!!!
@@ -384,8 +379,9 @@ choose option, or press enter to confirm:"
         C) INTERACTIVE='n';;
     esac
 
-    ValidateOptions
-    if [[ $? -eq 1 ]]; then INTERACTIVE=y; fi
+    if [[ $VALID -eq 1 ]]; then
+        INTERACTIVE=y;
+    fi
 done
 
 # last minute validation to prevent bad options going to command lines
@@ -395,13 +391,15 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
+#TODO ouput makemap cmdline now that all options are validated
+
 if [[ $QUIET == 'n' ]]; then OptionsReview;fi
 
 # create folder structure
 # -----------------------
 echoq 'creating Directory Structure'
-BASE_PATH=${OUTPUT_PATH}/${MAP_NAME}.sdd
-mkdir -p $BASE_PATH/{maps,LuaGaia/Gadgets}
+BASE_PATH="${OUTPUT_PATH}/${MAP_NAME}.sdd"
+mkdir -p "$BASE_PATH"/{maps,LuaGaia/Gadgets}
 if [[ $? -ne 0 ]]
 then
     echoq "Failed to create $BASE_PATH"
@@ -431,18 +429,18 @@ boilerplate()
 
 # LuaGaia/main.lua
 #TODO dont clobber if already existsa
-FILENAME=$BASE_PATH/LuaGaia/main.lua
+FILENAME="$BASE_PATH/LuaGaia/main.lua"
 FILECONTENT='if AllowUnsafeChanges then AllowUnsafeChanges("USE AT YOUR OWN PERIL") end
 VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)'
 boilerplate "$FILENAME" "$FILECONTENT"
 
 # LuaGaia/draw.lua
-FILENAME=$BASE_PATH/LuaGaia/draw.lua
+FILENAME="$BASE_PATH/LuaGaia/draw.lua"
 FILECONTENT='VFS.Include("LuaGadgets/gadgets.lua",nil, VFS.BASE)'
 boilerplate "$FILENAME" "$FILECONTENT"
 
 # LuaGaia/Gadgets/featureplacer.lua
-FILENAME=$BASE_PATH/LuaGaia/Gadgets/featureplacer.lua
+FILENAME="$BASE_PATH/LuaGaia/Gadgets/featureplacer.lua"
 FILECONTENT='function gadget:GetInfo()
     return {
         name      = "feature placer",
@@ -506,7 +504,7 @@ boilerplate "$FILENAME" "$FILECONTENT"
 
 # TODO generate this file from source material rather than an empty one
 # features.lua
-FILENAME=$BASE_PATH/features.lua
+FILENAME="$BASE_PATH/features.lua"
 FILECONTENT='local lists = {
     units = {
         --{ name = 'template', x = 512, z = 512, rot = "0" },
@@ -526,7 +524,7 @@ boilerplate "$FILENAME" "$FILECONTENT"
 # mapinfo.lua
 #FIXME homogenise depth/height/floor/ceiling/breadth/length variable and docuemntataion names
 # as much as you dont like it use the spring game words, so go through the spring source
-FILENAME=$BASE_PATH/mapinfo.lua
+FILENAME="$BASE_PATH/mapinfo.lua"
 FILECONTENT="--------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- mapinfo.lua
@@ -708,11 +706,11 @@ if [[ $QUIET == 'y' ]]; then COMMAND+=' -q'; fi
 if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+=' -f'; fi
 COMMAND+=" --imagesize $((512 * $MAP_BREADTH))x$((512 * $MAP_LENGTH))"
 COMMAND+=' --smt --tilesize 32x32 --type DXT1'
-COMMAND+=" -o $BASE_PATH/maps/${MAP_NAME}.smt"
+COMMAND+=" -o \"$BASE_PATH/maps/${MAP_NAME}.smt\""
 COMMAND+=" $MAP_DIFFUSEIMAGE"
 
 echoq "$COMMAND"
-$COMMAND
+eval "$COMMAND"
 if [[ $? -ne 0 ]]; then exit 2; fi
 
 # run the smf_cc command to create the smf file
@@ -727,22 +725,22 @@ COMMAND+=" --mapsize ${MAP_BREADTH}x${MAP_LENGTH}"
 COMMAND+=' --tilesize 32'
 if [[ $MAP_FLOOR ]]; then COMMAND+=" -y $MAP_FLOOR";fi
 if [[ $MAP_CEILING ]]; then COMMAND+=" -Y $MAP_CEILING";fi
-COMMAND+=" --tilemap $BASE_PATH/maps/$MAP_NAME.smt.csv"
+COMMAND+=" --tilemap \"$BASE_PATH/maps/$MAP_NAME.smt.csv\""
 if [[ $MAP_HEIGHTIMAGE ]]; then COMMAND+=" --height $MAP_HEIGHTIMAGE"; fi
 if [[ $MAP_TYPEIMAGE ]]; then COMMAND+=" --type $MAP_TYPEIMAGE"; fi
 if [[ $MAP_MINIIMAGE ]]; then COMMAND+=" --mini $MAP_MINIIMAGE"; fi
 if [[ $MAP_METALIMAGE ]]; then COMMAND+=" --metal $MAP_METALIMAGE"; fi
 if [[ $MAP_GRASSIMAGE ]]; then COMMAND+=" --grass $MAP_GRASSIMAGE"; fi
-COMMAND+=" -o $BASE_PATH/maps/${MAP_NAME}.smf"
-COMMAND+=" $BASE_PATH/maps/$MAP_NAME.smt"
+COMMAND+=" -o \"$BASE_PATH/maps/${MAP_NAME}.smf\""
+COMMAND+=" \"$BASE_PATH/maps/$MAP_NAME.smt\""
 
 echoq "$COMMAND"
-$COMMAND
+eval "${COMMAND}"
 if [[ $? -ne 0 ]]; then exit 2; fi
 
 # delete superflous tilefile
 # --------------------------
-rm $BASE_PATH/maps/${MAP_NAME}.smt.csv
+rm "$BASE_PATH/maps/${MAP_NAME}.smt.csv"
 if [[ $? -ne 0 ]]; then exit 2; fi
 
 # zip up the files into a 7z map archive
@@ -769,14 +767,14 @@ then
         COMMAND+=" $FILENAME *"
 
         echoq $COMMAND
-        cd $BASE_PATH
-        $COMMAND
+        cd "$BASE_PATH"
+        eval "$COMMAND"
         if [[ $? -gt 1 ]]
         then
             echoq 'failure to compress archive' $FILENAME
             exit 2; fi
-        mv $FILENAME $OUTPUT_PATH/
-        cd $CURRENT_DIR
+        mv "$FILENAME" "$OUTPUT_PATH/"
+        cd "$CURRENT_DIR"
 
     fi
 fi
@@ -790,9 +788,9 @@ then
     COMMAND='ln -s'
     if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+='f'; fi
     #TODO get spring maps folder from spring configuration file
-    COMMAND+=" $OUTPUT_PATH/${MAP_NAME}.sdd /home/$USER/.config/spring/maps"
+    COMMAND+=" \"$OUTPUT_PATH/${MAP_NAME}.sdd\" \"/home/$USER/.config/spring/maps\""
     echoq "$COMMAND"
-    $COMMAND
+    eval "$COMMAND"
     if [[ $? -ne 0 ]]; then exit 2; fi
 fi
 
