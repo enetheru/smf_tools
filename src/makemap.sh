@@ -487,18 +487,18 @@ boilerplate "$FILENAME" "$FILECONTENT"
 # TODO generate this file from source material rather than an empty one
 # features.lua
 FILENAME="$BASE_PATH/features.lua"
-FILECONTENT='local lists = {
+FILECONTENT="local lists = {
     units = {
-        --{ name = 'template', x = 512, z = 512, rot = "0" },
+        --{ name = 'template', x = 512, z = 512, rot = '0' },
     },
     buildings = {
-        --{ name = 'template', x = 512, z = 512, rot = "0" },
+        --{ name = 'template', x = 512, z = 512, rot = '0' },
     },
     objects = {
-        --{ name = 'template', x = 512, z = 512, rot = "0" },
+        --{ name = 'template', x = 512, z = 512, rot = '0' },
     },
 }
-return lists'
+return lists"
 boilerplate "$FILENAME" "$FILECONTENT"
 
 # Map Info
@@ -643,36 +643,6 @@ local mapinfo = {
         },
     },
 }
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
--- Helper
-
-local function lowerkeys(ta)
-    local fix = {}
-    for i,v in pairs(ta) do
-        if (type(i) == 'string') then
-            if (i ~= i:lower()) then
-                fix[#fix+1] = i
-            end
-        end
-        if (type(v) == 'table') then
-            lowerkeys(v)
-        end
-    end
-
-    for i=1,#fix do
-        local idx = fix[i]
-        ta[idx:lower()] = ta[idx]
-        ta[idx] = nil
-    end
-end
-
-lowerkeys(mapinfo)
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
 return mapinfo"
 boilerplate "$FILENAME" "$FILECONTENT"
 
