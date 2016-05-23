@@ -47,14 +47,45 @@ out_tile_height = --tilesize.height
 out_map_width = out_image_width / out_tile_width
 out_map_height = out_image_height / out_tile_height
 
+TERMINOLOGY
+===========
+when thinking about a map from the perspective:
+* That its a 'room'
+  4 walls,floor,ceiling.
+  length(z), breadth(x), depth(y) (floor(min y), ceiling(max y))
+* source images
+  width(x), height(z), depth(y)
 
-some keywords i use when writing source code
-//REMOVE
-//FIXME
-//BUG
-//TODO
 
-// TODO Comb through the command line options for each application for consistency
-// TODO consider renaming all occurrances of --imagesize to --scalesize to denote the output scaling factor.
-//TODO consider renaming all occurrances of --tilesize to --splitsize to denote splitting factor, except in this case when the path of simply translating tiles from one medium to another causes problems.
-// TODO create generic smt_convert [TEST] that can be looped over to produce logical viarants of results. 
+SOURCE KEYWORDS
+===============
+* REMOVE
+* FIXME
+* BUG
+* TODO
+* TEMP
+
+RANDOM TODO ITEMS
+=================
+* Comb through the command line options for each application for consistency
+* consider renaming all occurrances of --imagesize to --scalesize to denote the
+  output scaling factor.
+* consider renaming all occurrances of --tilesize to --splitsize to denote
+  splitting factor, except in this case when the path of simply translating
+  tiles from one medium to another causes problems.
+* create generic smt_convert [TEST] that can be looped over to produace logical
+  viarants of results. 
+* thought was to crop an area from an existing map, would be based on minimum
+  size, ie metalmap dimensions or something.
+
+Proving Worth
+=============
+what sort of things can I do to differentiate myself from the mapconv crowd?
+* tile based terrain using tiled, so resurrect westlands and show a timelapse
+  of creating a map using tiled and {smf,smt}_tools
+* recompress existing map, show archive size differences
+* recompress existing map, change size
+what sort of actions does a typical mapper take that I can show that I can do
+* quick and dirty video tutorial for making maps for spring.
+ - show interspersed regular footage with voiceover + timelapse with no breaks,
+   and a timer on the footage.
