@@ -1,4 +1,5 @@
 #!/bin/bash
+
 OPTIONS=( \
     'o testoutput' \
     'Z' \
@@ -13,7 +14,6 @@ OPTIONS=( \
     'r ../data/height.tif' \
  \ #    'z 0'
 )
-#COMMAND="smt_convert -v --smt --tilesize 32x32 --imagesize 1024x1024 ../data/image_1.png"
 
 DATA=( 0 0 )
 RecursiveTest()
@@ -33,6 +33,7 @@ RecursiveTest()
     return 0
 }
 
+# == Test  ==
 while [[ $TRUE -ne 255 ]]; 
 do
     NAME='map'
@@ -75,10 +76,5 @@ do
     TRUE=$?
 done
 
-# == Test Action ==
-#echo COMMAND = $COMMAND
-#eval $TIMER $VALGRIND $COMMAND
-
-# == Post test actions ==
-#nothing
+if [[ -e failure.txt ]]; then exit 1;fi
 exit $?
