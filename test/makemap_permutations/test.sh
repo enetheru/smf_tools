@@ -1,10 +1,7 @@
 #!/bin/bash
 OPTIONS=( \
-    'p' \
     'o testoutput' \
     'Z' \
-    'N "Test Map"' \
-    'D "This is a escription"' \
     'y 128' \
     'Y 128' \
     'm ../data/image_1.png' \
@@ -50,18 +47,30 @@ do
         then
             COMMAND+=" -${OPTIONS[$i]}"
         fi
-    done
-    echo "[TEST]${DATA[@]}"
-    echo -e "[TEST]$COMMAND\n"
-    $COMMAND
-    RESULT=$?
-    echo -e '[TEST] Result=' $RESULT
-    if [[ $RESULT -gt 1 ]]
+        if [[ $i -eq 0 && ${DATA[$1]} -eq 1 ]]
         then
-            echo $COMMAND >> failure.txt
-            read -r -s -t 10 -p "press enter to continue" CONTINUE
+            OUTPUT_PATH='testoutput/'
+        else
+            OUTPUT_PATH=''
         fi
-    echo -e '----------------------------\n'
+    done
+    echo "testing for: ${OUTPUT_PATH}${NAME}.sdd"
+    if [[ -e "${OUTPUT_PATH}${NAME}.sdd" ]];
+    then
+       echo "[TEST]skipping $NAME"
+    else  
+        echo "[TEST]${DATA[@]}"
+        echo -e "[TEST]$COMMAND\n"
+        eval "$COMMAND"
+        RESULT=$?
+        echo -e '[TEST] Result=' $RESULT
+        if [[ $RESULT -gt 1 ]]
+            then
+                echo $COMMAND >> failure.txt
+                read -r -s -t 10 -p "press enter to continue" CONTINUE
+            fi
+        echo -e '----------------------------\n'
+    fi
     RecursiveTest ${#OPTIONS[@]} 0
     TRUE=$?
 done

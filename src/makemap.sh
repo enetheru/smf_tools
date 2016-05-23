@@ -12,6 +12,7 @@
 #     moving archive to folder
 #TODO e can specify environment settings like atmospphere and lighting?
 #TODO check all recent development and update script to be as modern as possible
+#TODO work through all warnings provided by spring engine and resolve them
 # * lua overrides for maps
 
 # NOTE: have to think about things that can go wrong, work out a strategy to
@@ -105,12 +106,6 @@ OUTPUT_LINK=( 'n' "$REGEX_YN" \
 MAP_NAME=( '' '^[a-zA-Z0-9_]+$' \
 'n:name - the short name of the map used to save files' \
 'please enter a name for the map.' )
-MAP_LONGNAME=( '' '^.+$' \
-'N:display name - ' \ #FIME, find out what the display name is used for
-'please provide a display name.' )
-MAP_DESCRIPTION=( '' '^.+$' \ #FIME, find out what the display name is used for
-'D:description - a short description of the map' \
-'please describe the map.' )
 MAP_BREADTH=( '' '^[0-9]+$' \
 'w:map breadth - defined in spring map units, 1:512 spring:pixel ratio' \
 'Please enter the breadth.' )
@@ -194,25 +189,23 @@ while getopts "hvpiGqo:fZLn:N:D:w:l:y:Y:m:d:a:g:F:t:r:z:" opt; do
         i) INTERACTIVE='y';;
         G) GAMEON='y';OUTPUT_LINK='y';;
         q) QUIET='y';;
-        o) OUTPUT_PATH=$OPTARG;;
+        o) OUTPUT_PATH="$OPTARG";;
         f) OUTPUT_OVERWRITE='y';;
         Z) OUTPUT_COMPRESS='y';;
         L) OUTPUT_LINK='y';;
         n) MAP_NAME=$OPTARG;;
-        N) MAP_LONGNAME=$OPTARG;;
-        D) MAP_DESCRIPTION=$OPTARG;;
         w) MAP_BREADTH=$OPTARG;;
         l) MAP_LENGTH=$OPTARG;;
         y) MAP_FLOOR=$OPTARG;;
         Y) MAP_CEILING=$OPTARG;;
-        m) MAP_MINIIMAGE=$OPTARG;;
-        d) MAP_DIFFUSEIMAGE=$OPTARG;;
-        a) MAP_HEIGHTIMAGE=$OPTARG;;
-        g) MAP_GRASSIMAGE=$OPTARG;;
-        F) MAP_FEATURES=$OPTARG;;
-        t) MAP_TYPEIMAGE=$OPTARG;;
-        r) MAP_METALIMAGE=$OPTARG;;
-        z) MAP_WATERLEVEL=$OPTARG;;
+        m) MAP_MINIIMAGE="$OPTARG";;
+        d) MAP_DIFFUSEIMAGE="$OPTARG";;
+        a) MAP_HEIGHTIMAGE="$OPTARG";;
+        g) MAP_GRASSIMAGE="$OPTARG";;
+        F) MAP_FEATURES="$OPTARG";;
+        t) MAP_TYPEIMAGE="$OPTARG";;
+        r) MAP_METALIMAGE="$OPTARG";;
+        z) MAP_WATERLEVEL="$OPTARG";;
     esac
 done
 
@@ -273,8 +266,6 @@ General options:
 
 Map Properties:
   n:name          required: $MAP_NAME
-  N:pretty name           : $MAP_LONGNAME
-  D:description           : $MAP_DESCRIPTION
   w:width         required: $MAP_BREADTH
   l:length        required: $MAP_LENGTH
   y:depth                 : $MAP_FLOOR
@@ -296,11 +287,6 @@ ValidateOptions()
 {
     RETVAL=0
     #test each option for validity and provide an error message if it aint so.
-    if [[ ! $MAP_LONGNAME ]]
-    then
-        MAP_LONGNAME=$MAP_NAME
-    fi
-
     if [[ ! $MAP_BREADTH || $MAP_BREADTH -lt 4 ]]; then
         echoq "w:map width='$MAP_BREADTH' invalid"
         RETVAL=1
@@ -359,8 +345,6 @@ choose option, or press enter to confirm:"
         L) OptionAsk OUTPUT_LINK;;
         G) OptionAsk GAMEON;;
         n) OptionAsk MAP_NAME;;
-        N) OptionAsk MAP_LONGNAME;;
-        D) OptionAsk MAP_DESCRIPTION;;
         w) OptionAsk MAP_BREADTH;;
         l) OptionAsk MAP_LENGTH;;
         y) OptionAsk MAP_FLOOR;;
@@ -529,15 +513,14 @@ FILECONTENT="-------------------------------------------------------------------
 --
 
 local mapinfo = {
-    name        = '$MAP_LONGNAME',
-    shortname   = '$MAP_NAME',
-    description = '$MAP_DESCRIPTION',
+    name        = '$MAP_NAME',
     author      = '${USER:-`whoami`}',
     version     = '$VERSION',
     modtype     = 3, --// 1=primary, 0=hidden, 3=map
     depend      = {'Map Helper v1'},
     replace     = {},
 
+    mapfile         = 'maps/${MAP_NAME}.smf',
     maphardness     = 100,
     notDeformable   = false,
     gravity         = 130,
@@ -853,7 +836,7 @@ numusers=1;
 startpostype=3;
 }
 " > script.txt
-    spring script.txt | grep $MAP_NAME
+    spring script.txt
     RETVAL=$?
     rm script.txt
 fi
