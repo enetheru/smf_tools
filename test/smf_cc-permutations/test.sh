@@ -2,17 +2,17 @@
 
 OPTIONS=( \
     'o testoutput' \
-    'c' \
+    'Z' \
     'y 128' \
     'Y 128' \
     'm ../data/image_1.png' \
-    'D ../data/image_1.png' \
-    'H ../data/height.tif' \
-    'G ../data/height.tif' \
+    'd ../data/image_1.png' \
+    'a ../data/height.tif' \
+    'g ../data/height.tif' \
  \ #    'F beans' \
-    'T ../data/height.tif' \
-    'R ../data/height.tif' \
- \ #    'w 0'
+    't ../data/height.tif' \
+    'r ../data/height.tif' \
+ \ #    'z 0'
 )
 
 DATA=( 0 0 )
@@ -41,7 +41,7 @@ do
     do
         NAME+=${DATA[$j]}
     done
-    COMMAND="makemap -vgO -n "${NAME}" -x 4 -z 4 -D ../data/image_1.png"
+    COMMAND="makemap -vGf -n "${NAME}" -w 4 -l 4 -d ../data/image_1.png"
     for ((i=0;i<${#DATA[@]};++i));
     do
         if [[ ${DATA[$i]} -eq 1 ]];

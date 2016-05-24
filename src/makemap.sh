@@ -20,43 +20,40 @@
 # i have been hacking this together, separating the Ideas from the TODO items
 # Line by line
 
-##bc#e####jk#######s#u##x##ABC#E#GHIJKLM#OPQRSTUVWX##
 HELPSHORT="makemap - smf_tools helper script that generates a working map
 usage: makemap [options]
-  eg.   makemap -vpf -n MyMap -d diffuse.jpg -h height.tif -o ./"
+  eg.   makemap -vpf -n MyMap -D diffuse.jpg -H height.tif"
 HELP=$HELPSHORT"
 
 Script Operation:
   -h            this help message
   -q            supress output including errors
   -v            verbose output
-  -p            progress bara
-  -i            interactive mode
-  -f            overwrite files (k for keep)
-  -o <path>     output directory name
-  -Z            7zip the archive
-  -L            link map directory or archive into spring settings/maps folder
-  -G            test game afterwards, assumes -L
+  -p            progress bar
+  -I            interactive mode
 
+  -o <dir>      output directory path
   -n <string>   name of the map
-  -N <string>   long name
-  -D <string>   description
-  -w <integer>  map width in spring map units
-  -l <integer>  map length in spring map units
-  -y <float>    map depth
-  -Y <float>    map height
+  -O            overwrite files
+  -c            compress the files into a 7zip archive
+  -l            link map directory or archive into spring settings/maps folder
+  -#            generate a sha256 hash for verifying download integrity
+
+  -x <integer>  map width in spring map units
+  -z <integer>  map length in spring map units
+  -y <float>    map floor
+  -Y <float>    map ceiling
 
   -m <image>    minimap image
-  -d <image>    diffuse texture image
-  -a <image>    height image (a for altitude)
+  -D <image>    diffuse texture image
+  -H <image>    height image
+  -R <image>    resource(metal) distribution image
+  -T <image>    type map image
+  -G <image>    grass distribution image
+  -F <csv>      features file
 
-  -g <image>    grass distribution image
-  -F <file>     features file
-
-  -t <image>    type map image
-  -r <image>    metal distribution image (r for resources)
-
-  -z <string>   map water level (z for ground zero)
+  -w <string>   map water level
+  -g            test game afterwards, assumes -l
 "
 
 # Options
@@ -73,6 +70,9 @@ REGEX_FLOAT='^[+-]?[0-9]*\.?[0-9]+$'
 REGEX_YN='^[yn]?$'
 REGEX_PATH='^.+$'
 
+QUIET=( 'n' "$REGEX_YN" \
+"q:quiet - supressed the output including error messages." \
+"would you like to silence the output?" )
 VERBOSE=( 'n' "$REGEX_YN" \
 'v:verbose - specifying this options increases the output presented to the
 command line' \
@@ -83,76 +83,86 @@ PROGRESS=( 'n' "$REGEX_YN" \
 INTERACTIVE=( 'n' "$REGEX_YN" \
 'I:interactive - This mode allows you to correct any mistakes, or select
 options using a menu' '' )
-GAMEON=( 'n' "$REGEX_YN" \
-'G:test with game - Test the newly constructed map in the engine
-this will assume -L.'
-'would you like to test the map in the engine?' )
-QUIET=( 'n' "$REGEX_YN" \
-"q:quiet - supressed the output including error messages." \
-"would you like to silence the output?" )
+
 OUTPUT_PATH=( '.' "$REGEX_PATH" \
 'o:output path - the directory in which to place output files.' \
 'please enter the path where you would like files to be saved.' )
-OUTPUT_OVERWRITE=( 'n'  "$REGEX_YN" \
-'f:overwrite files - whether or not pre-existing files should be overwritten' \
-'would you like to clobber pre-existing files?' )
-OUTPUT_COMPRESS=( 'n' "$REGEX_YN" \
-'Z:7zip map - will 7zip the archive in the correct format for distribution'
-'would you like to 7zip the map?' )
-OUTPUT_LINK=( 'n' "$REGEX_YN" \
-'L:link archive - link the newly constructed map archive to the spring maps folder.' \
-'would you like to link the map archive/folder to the spring maps folder?' )
-
-MAP_NAME=( '' '^[a-zA-Z0-9_]+$' \
+OUTPUT_NAME=( '' '^[a-zA-Z0-9_]+$' \
 'n:name - the short name of the map used to save files' \
 'please enter a name for the map.' )
-MAP_BREADTH=( '' '^[0-9]+$' \
-'w:map breadth - defined in spring map units, 1:512 spring:pixel ratio' \
+OUTPUT_OVERWRITE=( 'n'  "$REGEX_YN" \
+'O:overwrite files - whether or not pre-existing files should be overwritten' \
+'would you like to clobber pre-existing files?' )
+OUTPUT_COMPRESS=( 'n' "$REGEX_YN" \
+'c:compress - will 7zip the archive in the correct format for distribution'
+'would you like to 7zip the map?' )
+OUTPUT_LINK=( 'n' "$REGEX_YN" \
+'l:link - link the newly constructed map archive to the spring maps folder.' \
+'would you like to link the map archive/folder to the spring maps folder?' )
+OUTPUT_HASH=( 'n' "$REGEX_YN" \
+'#:hash archive - create a sha256 hash of the map so people can verify the
+                 download integrity'\
+'would you like to create a sha256 hash of the map archive?' )
+
+MAP_WIDTH=( '' '^[0-9]+$' \
+'x:map width - the width of the map in spring map units
+              requires a multiple of two and no smaller than four' \
 'Please enter the breadth.' )
 MAP_LENGTH=( '' '^[0-9]+$' \
-'l:map length - defined in spring map units, 1:512 spring:pixel ratio" \' \
+'z:map length - the lenght of the map in spring map units
+               requires a multiple of two and no smaller than four' \
 'please enter the length' )
 MAP_FLOOR=( '' "$REGEX_FLOAT" \
-'y:map floor - the lowest point in the map, defines the value of black pixels
-in the height image, 0 is water, negative numbers are underwater, positive
-numbers are above water. also have a 1:1 ratio with pixels from the diffuse.' \
+'y:map floor - the lowest point in the map, sets the lower limit of vertical
+               displacement for the ground mesh. 0 is water, negative numbers
+               are underwater, positive numbers are above water.
+               has a relationship of 512:1 with spring map units.' \
 'please enter the floor.' )
 MAP_CEILING=( '' "$REGEX_FLOAT" \
-'Y:map ceiling - the highest point in the map, defines the value of white pixels
-in the height image, 0 is water, negative numbers are underwater, positive
-numbers are above water. also have a 1:1 ratio with pixels from the diffuse.' \
+'Y:map ceiling - the highest point in the map, sets the upper limit of vertical
+                displacement for the ground mesh. 0 is water, negative numbers
+                are underwater, positive numbers are above water.
+                has a relationship of 512:1 with spring map units.' \
 'please enter the ceiling' )
 
-MAP_DIFFUSEIMAGE=( '' "$REGEX_PATH" \
-'d:diffuse image - defines the primary colour of the ground surface, has a
-1:512 ratio spring map unit:pixels, anything not meeting this will be scaled' \
-'please enter the path of the diffuse image, autocomplete via readline is enabled' )
 MAP_MINIIMAGE=( '' "$REGEX_PATH" \
-'m:minimap image - a 1024x1024 rgba image used to display a minimap in game.
-images not conforming to this spec will be scaled.' \
-'please enter the path of the minimap, autocommplete via readline is enabled' )
+'m:minimap image - used to display a minimap in game.
+                  will be scaled to match format : 1024x1024x4:UINT8' \
+'please enter the path of the minimap image, autocommplete via readline is enabled' )
+MAP_DIFFUSEIMAGE=( '' "$REGEX_PATH" \
+'D:diffuse image - defines the primary colour of the ground surface. \
+                  will be scaled to match format : (x*512)x(z*512)x4:UINT8'
+'please enter the path of the diffuse image, autocomplete via readline is enabled' )
 MAP_HEIGHTIMAGE=( '' "$REGEX_PATH" \
-'h:height image - a ratio of 1:8 rgba image used to display a minimap in game.
-images not conforming to this spec will be scaled.' \
+'H:height image - used to displace the terrain within the limits of floor and ceiling.
+                 will be scaled to match format : (x*64+1)x(z*64+1)x1:UINT16' \
 'please enter the path of the height, autocommplete via readline is enabled' )
-
+MAP_RESOURCEIMAGE=( '' "$REGEX_PATH" \
+'R:resource image - builtin resourcing scheme derived from classic TA.
+                   will be scaled to match format : (x*32)x(z*32)x1:UINT8' \
+'please enter the path of the resource image, autocommplete via readline is enabled' )
+MAP_TYPEIMAGE=( '' "$REGEX_PATH" \
+'T:type image - values used as a mask over the terrain to define terrain types
+               will be scaled to match format : (x*32)x(z*32)x1:UINT8' \
+'please enter the path of the type image, autocommplete via readline is enabled' )
 MAP_GRASSIMAGE=( '' "$REGEX_PATH" \
-'help' \
+'G:grass image - used as a mask and colour values for grass rendering
+                will be scaled to match format : (x*16)x(z*16)x1:UINT8' \
 'please enter the path of the grass image, autocommplete via readline is enabled' )
 MAP_FEATURES=( '' "$REGEX_PATH" \
-'help' \
+'F:features csv - rocks, trees buildings, corpses etc.
+                 the csv format : NAME,X,Y,Z,R,S\\n' \
 'please enter the path of the features definition, autocomplete via readline enabled' )
 
-MAP_TYPEIMAGE=( '' "$REGEX_PATH" \
-'help' \
-'please enter the path of the type map, autocommplete via readline is enabled' )
-MAP_METALIMAGE=( '' "$REGEX_PATH" \
-'help' \
-'please enter the path of the metal map, autocommplete via readline is enabled' )
-
-MAP_WATERLEVEL=( '' "$REGEX_PATH" \
-'help' \
-'waterlevel' )
+MAP_WATERLEVEL=( '' "^[0-9][0-9]%|[0-9]+$" \
+'w:waterlevel - shift the y and Y values so that the water level corresponds
+               to a specific pixel value of the height image.
+               eg. 0% to 100% or 0 through 65535.' \
+'please enter the value you want to make the waterlevel.' )
+GAMEON=( 'n' "$REGEX_YN" \
+'g:test with game - Test the newly constructed map in the engine.
+                   this will assume -l.'
+'would you like to test the map in the engine?' )
 
 # FIXME peform guesswork here, ie use image width/height to populate size values
 # TODO use heightmap values to populate yY values
@@ -177,35 +187,36 @@ MAP_WATERLEVEL=( '' "$REGEX_PATH" \
 # NOTE the bash builtin getopts is different than getopt which aparrantly can
 #      do long opts. might be worth having a look
 
-if ( ! getopts "hvpiGqofZLnNDwlyYmdagFtrz" opt)
+if ( ! getopts "hqvpIonOcl#xzyYmDHRTGFwg" opt)
 then
     echo "$HELPSHORT"
 fi
-while getopts "hvpiGqo:fZLn:N:D:w:l:y:Y:m:d:a:g:F:t:r:z:" opt; do
+while getopts "hqvpIo:n:Ocl#x:z:y:Y:m:D:H:R:T:G:F:wg" opt; do
     case $opt in
         h) echo "$HELP"; exit;;
+        q) QUIET='y';;
         v) VERBOSE='y';;
         p) PROGRESS='y';;
-        i) INTERACTIVE='y';;
-        G) GAMEON='y';OUTPUT_LINK='y';;
-        q) QUIET='y';;
+        I) INTERACTIVE='y';;
         o) OUTPUT_PATH="$OPTARG";;
-        f) OUTPUT_OVERWRITE='y';;
-        Z) OUTPUT_COMPRESS='y';;
-        L) OUTPUT_LINK='y';;
-        n) MAP_NAME=$OPTARG;;
-        w) MAP_BREADTH=$OPTARG;;
-        l) MAP_LENGTH=$OPTARG;;
+        n) OUTPUT_NAME=$OPTARG;;
+        O) OUTPUT_OVERWRITE='y';;
+        c) OUTPUT_COMPRESS='y';;
+        l) OUTPUT_LINK='y';;
+       \#) OUTPUT_HASH='y';;
+        x) MAP_WIDTH=$OPTARG;;
+        z) MAP_LENGTH=$OPTARG;;
         y) MAP_FLOOR=$OPTARG;;
         Y) MAP_CEILING=$OPTARG;;
         m) MAP_MINIIMAGE="$OPTARG";;
-        d) MAP_DIFFUSEIMAGE="$OPTARG";;
-        a) MAP_HEIGHTIMAGE="$OPTARG";;
-        g) MAP_GRASSIMAGE="$OPTARG";;
+        D) MAP_DIFFUSEIMAGE="$OPTARG";;
+        H) MAP_HEIGHTIMAGE="$OPTARG";;
+        R) MAP_RESOURCEIMAGE="$OPTARG";;
+        T) MAP_TYPEIMAGE="$OPTARG";;
+        G) MAP_GRASSIMAGE="$OPTARG";;
         F) MAP_FEATURES="$OPTARG";;
-        t) MAP_TYPEIMAGE="$OPTARG";;
-        r) MAP_METALIMAGE="$OPTARG";;
-        z) MAP_WATERLEVEL="$OPTARG";;
+        w) MAP_WATERLEVEL="$OPTARG";;
+        g) GAMEON='y';OUTPUT_LINK='y';;
     esac
 done
 
@@ -253,50 +264,48 @@ OptionsReview()
     echo -e \
 "\nOptions Review:
 ================
-
-General options:
   q:quiet                 : $QUIET
   v:verbose               : $VERBOSE
   p:progress              : $PROGRESS
-  f:overwrite             : $OUTPUT_OVERWRITE
-  o:output path           : $OUTPUT_PATH
-  Z:compress              : $OUTPUT_COMPRESS
-  L:link to maps folder   : $OUTPUT_LINK
-  G:test map              : $GAMEON
 
-Map Properties:
-  n:name          required: $MAP_NAME
-  w:width         required: $MAP_BREADTH
-  l:length        required: $MAP_LENGTH
+  o:output path           : $OUTPUT_PATH
+  n:name          required: $OUTPUT_NAME
+  O:overwrite             : $OUTPUT_OVERWRITE
+  c:compress              : $OUTPUT_COMPRESS
+  l:link to maps folder   : $OUTPUT_LINK
+  #:compute sha256 hash   : $OUTPUT_HASH
+
+  x:width         required: $MAP_WIDTH
+  z:length        required: $MAP_LENGTH
   y:depth                 : $MAP_FLOOR
   Y:height                : $MAP_CEILING
 
   m:mini image            : $MAP_MINIIMAGE
-  d:diffuse image required: $MAP_DIFFUSEIMAGE
-  a:height image          : $MAP_HEIGHTIMAGE
-
-  g:grass image           : $MAP_GRASSIMAGE
+  D:diffuse image required: $MAP_DIFFUSEIMAGE
+  H:height image          : $MAP_HEIGHTIMAGE
+  R:resource image        : $MAP_RESOURCEIMAGE
+  T:type image            : $MAP_TYPEIMAGE
+  G:grass image           : $MAP_GRASSIMAGE
   F:features file         : $MAP_FEATURES
 
-  t:type image            : $MAP_TYPEIMAGE
-  r:metal image           : $MAP_METALIMAGE"
-
+  G:test map              : $GAMEON
+"
 }
 
 ValidateOptions()
 {
     RETVAL=0
     #test each option for validity and provide an error message if it aint so.
-    if [[ ! $MAP_BREADTH || $MAP_BREADTH -lt 4 ]]; then
-        echoq "w:map width='$MAP_BREADTH' invalid"
+    if [[ ! $MAP_WIDTH || $MAP_WIDTH -lt 4 ]]; then
+        echoq "x:map width='$MAP_WIDTH' invalid"
         RETVAL=1
     fi
     if [[ ! $MAP_LENGTH ]]; then
-        echoq "l:map length='$MAP_LENGTH' invalid"
+        echoq "z:map length='$MAP_LENGTH' invalid"
         RETVAL=1
     fi
     if [[ ! $MAP_DIFFUSEIMAGE ]]; then
-        echoq "d:diffuse image='$MAP_DIFFUSEIMAGE' invalid"
+        echoq "D:diffuse image='$MAP_DIFFUSEIMAGE' invalid"
         RETVAL=1
     fi
 
@@ -325,7 +334,7 @@ do
     OptionsReview
     echo -e \
 "\nPre-Processing Functions
-  z:water level
+  w:water level
 
   Q: Nooooo, get me out of here!!!
 choose option, or press enter to confirm:"
@@ -339,24 +348,24 @@ choose option, or press enter to confirm:"
         q) OptionAsk QUIET;;
         v) OptionAsk VERBOSE;;
         p) OptionAsk PROGRESS;;
-        f) OptionAsk OUTPUT_OVERWRITE;;
         o) OptionAsk OUTPUT_PATH;;
-        Z) OptionAsk OUTPUT_COMPRESS;;
-        L) OptionAsk OUTPUT_LINK;;
-        G) OptionAsk GAMEON;;
-        n) OptionAsk MAP_NAME;;
-        w) OptionAsk MAP_BREADTH;;
-        l) OptionAsk MAP_LENGTH;;
+        n) OptionAsk OUTPUT_NAME;;
+        O) OptionAsk OUTPUT_OVERWRITE;;
+        c) OptionAsk OUTPUT_COMPRESS;;
+        l) OptionAsk OUTPUT_LINK;;
+        x) OptionAsk MAP_WIDTH;;
+        z) OptionAsk MAP_LENGTH;;
         y) OptionAsk MAP_FLOOR;;
         Y) OptionAsk MAP_CEILING;;
         m) OptionAsk MAP_MINIIMAGE;;
-        d) OptionAsk MAP_DIFFUSEIMAGE;;
-        a) OptionAsk MAP_HEIGHTIMAGE;;
-        g) OptionAsk MAP_GRASSIMAGE;;
+        D) OptionAsk MAP_DIFFUSEIMAGE;;
+        H) OptionAsk MAP_HEIGHTIMAGE;;
+        R) OptionAsk MAP_RESOURCEIMAGE;;
+        T) OptionAsk MAP_TYPEIMAGE;;
+        G) OptionAsk MAP_GRASSIMAGE;;
         F) OptionAsk MAP_FEATURES;;
-        t) OptionAsk MAP_TYPEIMAGE;;
-        r) OptionAsk MAP_METALIMAGE;;
-        z) OptionAsk MAP_WATERLEVEL;;
+        w) OptionAsk MAP_WATERLEVEL;;
+        g) OptionAsk GAMEON;;
         Q) exit;;
         C) INTERACTIVE='n';;
     esac
@@ -380,7 +389,7 @@ if [[ $QUIET == 'n' ]]; then OptionsReview;fi
 # create folder structure
 # -----------------------
 echoq 'creating Directory Structure'
-BASE_PATH="${OUTPUT_PATH}/${MAP_NAME}.sdd"
+BASE_PATH="${OUTPUT_PATH}/${OUTPUT_NAME}.sdd"
 mkdir -p "$BASE_PATH"/{maps,LuaGaia/Gadgets}
 if [[ $? -ne 0 ]]
 then
@@ -513,14 +522,14 @@ FILECONTENT="-------------------------------------------------------------------
 --
 
 local mapinfo = {
-    name        = '$MAP_NAME',
+    name        = '$OUTPUT_NAME',
     author      = '${USER:-`whoami`}',
     version     = '$VERSION',
     modtype     = 3, --// 1=primary, 0=hidden, 3=map
     depend      = {'Map Helper v1'},
     replace     = {},
 
-    mapfile         = 'maps/${MAP_NAME}.smf',
+    mapfile         = 'maps/${OUTPUT_NAME}.smf',
     maphardness     = 100,
     notDeformable   = false,
     gravity         = 130,
@@ -655,9 +664,9 @@ if [[ $VERBOSE == 'y' ]]; then COMMAND+=' -v'; fi
 if [[ $PROGRESS == 'y' ]]; then COMMAND+=' -p'; fi
 if [[ $QUIET == 'y' ]]; then COMMAND+=' -q'; fi
 if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+=' -f'; fi
-COMMAND+=" --imagesize $((512 * $MAP_BREADTH))x$((512 * $MAP_LENGTH))"
+COMMAND+=" --imagesize $((512 * $MAP_WIDTH))x$((512 * $MAP_LENGTH))"
 COMMAND+=' --smt --tilesize 32x32 --type DXT1'
-COMMAND+=" -o \"$BASE_PATH/maps/${MAP_NAME}.smt\""
+COMMAND+=" -o \"$BASE_PATH/maps/${OUTPUT_NAME}.smt\""
 COMMAND+=" $MAP_DIFFUSEIMAGE"
 
 echoq "$COMMAND"
@@ -672,18 +681,18 @@ if [[ $VERBOSE == 'y' ]]; then COMMAND+=' -v'; fi
 #if [[ $PROGRESS == 'y' ]]; then COMMAND+=' -p'; fi # maybe add a progress indicator to smf_cc?
 if [[ $QUIET == 'y' ]]; then COMMAND+=' -q'; fi
 if [[ $OUTPUT_OVERWRITE -eq 'y' ]]; then COMMAND+=' -f'; fi
-COMMAND+=" --mapsize ${MAP_BREADTH}x${MAP_LENGTH}"
+COMMAND+=" --mapsize ${MAP_WIDTH}x${MAP_LENGTH}"
 COMMAND+=' --tilesize 32'
 if [[ $MAP_FLOOR ]]; then COMMAND+=" -y $MAP_FLOOR";fi
 if [[ $MAP_CEILING ]]; then COMMAND+=" -Y $MAP_CEILING";fi
-COMMAND+=" --tilemap \"$BASE_PATH/maps/$MAP_NAME.smt.csv\""
+COMMAND+=" --tilemap \"$BASE_PATH/maps/$OUTPUT_NAME.smt.csv\""
 if [[ $MAP_HEIGHTIMAGE ]]; then COMMAND+=" --height $MAP_HEIGHTIMAGE"; fi
 if [[ $MAP_TYPEIMAGE ]]; then COMMAND+=" --type $MAP_TYPEIMAGE"; fi
 if [[ $MAP_MINIIMAGE ]]; then COMMAND+=" --mini $MAP_MINIIMAGE"; fi
-if [[ $MAP_METALIMAGE ]]; then COMMAND+=" --metal $MAP_METALIMAGE"; fi
+if [[ $MAP_RESOURCEIMAGE ]]; then COMMAND+=" --metal $MAP_RESOURCEIMAGE"; fi
 if [[ $MAP_GRASSIMAGE ]]; then COMMAND+=" --grass $MAP_GRASSIMAGE"; fi
-COMMAND+=" -o \"$BASE_PATH/maps/${MAP_NAME}.smf\""
-COMMAND+=" \"$BASE_PATH/maps/$MAP_NAME.smt\""
+COMMAND+=" -o \"$BASE_PATH/maps/${OUTPUT_NAME}.smf\""
+COMMAND+=" \"$BASE_PATH/maps/$OUTPUT_NAME.smt\""
 
 echoq "$COMMAND"
 eval "${COMMAND}"
@@ -691,7 +700,7 @@ if [[ $? -ne 0 ]]; then exit 2; fi
 
 # delete superflous tilefile
 # --------------------------
-rm "$BASE_PATH/maps/${MAP_NAME}.smt.csv"
+rm "$BASE_PATH/maps/${OUTPUT_NAME}.smt.csv"
 if [[ $? -ne 0 ]]; then exit 2; fi
 
 # zip up the files into a 7z map archive
@@ -700,7 +709,7 @@ if [[ $? -ne 0 ]]; then exit 2; fi
 if [[ $OUTPUT_COMPRESS == 'y' ]]
 then
     echoq 'Compressing contents into 7z map archive'
-    FILENAME="${MAP_NAME}.sd7"
+    FILENAME="${OUTPUT_NAME}.sd7"
     FILEPATH="$OUTPUT_PATH/$FILENAME"
     if [[ -e "$FILEPATH" && $OUTPUT_OVERWRITE == 'y' ]]
     then rm "$FILEPATH"; fi
@@ -739,7 +748,7 @@ then
     COMMAND='ln -s'
     if [[ $OUTPUT_OVERWRITE == 'y' ]]; then COMMAND+='f'; fi
     #TODO get spring maps folder from spring configuration file
-    COMMAND+=" \"$OUTPUT_PATH/${MAP_NAME}.sdd\" \"/home/$USER/.config/spring/maps\""
+    COMMAND+=" \"$OUTPUT_PATH/${OUTPUT_NAME}.sdd\" \"/home/$USER/.config/spring/maps\""
     echoq "$COMMAND"
     eval "$COMMAND"
     if [[ $? -ne 0 ]]; then exit 2; fi
@@ -797,7 +806,7 @@ hostip=;
 hostport=8452;
 ishost=1;
 maphash=1766029540;
-mapname=$MAP_NAME;
+mapname=$OUTPUT_NAME;
 modhash=1226406912;
 myplayername=Player;
 numplayers=1;

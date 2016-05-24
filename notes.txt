@@ -68,15 +68,25 @@ SOURCE KEYWORDS
 RANDOM TODO ITEMS
 =================
 * Comb through the command line options for each application for consistency
+  glaring problems are with smt_repair, and the inconsistent mapwidth/height
+  throughout the source.
 * consider renaming all occurrances of --imagesize to --scalesize to denote the
   output scaling factor.
 * consider renaming all occurrances of --tilesize to --splitsize to denote
   splitting factor, except in this case when the path of simply translating
   tiles from one medium to another causes problems.
 * create generic smt_convert [TEST] that can be looped over to produace logical
-  viarants of results. 
+  viarants of results.
+  problems with smt_convert:
+  - f for force and f for filter collide
+  - s for tilesize is unintuitive when --imagesize has no short option
 * thought was to crop an area from an existing map, would be based on minimum
   size, ie metalmap dimensions or something.
+* Work through the smf_ and smt_ tools to figure out the best set of cmd lines
+  to cover all code paths. at each if statement i'm thinking
+* smt_convert detect output format from file extension
+* smt_convert, output image in all formats
+
 
 Proving Worth
 =============
