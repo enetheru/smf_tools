@@ -22,72 +22,89 @@ using OpenImageIO::TypeDesc;
 enum optionsIndex
 {
     UNKNOWN,
-    HELP, VERBOSE, QUIET,
-    OUTPUT, FORCE,
-    TILEMAP,
-    FILTER,
-    TILESIZE,
+    HELP,
+    QUIET,
+    VERBOSE,
+    PROGRESS,
+
+    OUTPUT_PATH,
+    OUTPUT_NAME,
+    OUTPUT_OVERWRITE,
+
     IMAGESIZE,
+    TILESIZE,
+    FORMAT,
+    TILEMAP,
+
+    FILTER,
     OVERLAP,
+    BORDER,
+    DUPLI,
     SMTOUT,
     IMGOUT,
-    DUPLI,
-    TYPE,
-    PROGRESS
 };
 //FIXME what happened to specifying the span of input tiles?
-
+//FIXME now using output path and output name
 const option::Descriptor usage[] = {
     { UNKNOWN, 0, "", "", Arg::None,
         "USAGE: smt_convert [options] <source1> [source2...sourceN]> \n"
         "  eg. 'smt_convert -o myfile.smt tilesource1.smt tilesource2.jpg'\n"
         "\nOPTIONS:"},
 
-    { HELP, 0, "h", "help", Arg::None, "  -h,  \t--help"
-        "\tPrint usage and exit." },
+    { HELP,             0, "h", "help",       Arg::None,
+"  -h,  \t--help\t"
+"Print usage and exit." },
+    { QUIET,            0, "q", "quiet",      Arg::None,
+"  -q  \t--quiet\t"
+"Suppress print output." },
+    { VERBOSE,          0, "v", "verbose",    Arg::None,
+"  -v  \t--verbose\t"
+"Print extra information." },
+    { PROGRESS,         0, "p", "progress",   Arg::None,
+"  -p  \t--progress\t"
+"Display progress indicator" },
 
-    { VERBOSE, 0, "v", "verbose", Arg::None, "  -v  \t--verbose"
-        "\tPrint extra information." },
+    { OUTPUT_PATH,      0, "o", "output",     Arg::Required,
+"  -o  \t--output <dir>\t"
+"Filename to save as, default is output.smt" },
+    { OUTPUT_NAME,      0, "n", "name",       Arg::Required,
+"  -n  \t--name <filename>\t"
+"Filename to save as, default is output.smt" },
+    { OUTPUT_OVERWRITE, 0, "O", "overwrite",  Arg::None,
+"  -O  \t--overwrite\t"
+"Overwrite files with the same output name" },
 
-    { QUIET, 0, "q", "quiet", Arg::None, "  -q  \t--quiet"
-        "\tSuppress print output." },
+    { IMAGESIZE,        0, "i", "imagesize",  Arg::Required,
+"  -i  \t--imagesize=XxY\t"
+"Scale the constructed image to this size before splitting." },
+    { TILESIZE,         0, "t", "tilesize",   Arg::Required,
+"  -t  \t--tilesize=XxY\t"
+"Split the constructed image into tiles of this size." },
+    { FORMAT,           0, "f", "format",     Arg::Required,
+"  -f  \t--format=[DXT1,RGBA8,USHORT]\t"
+"default=DXT1, what format to put into the smt"},
+    { TILEMAP,          0, "M", "tilemap",        Arg::Required,
+"  -M  \t--tilemap=<csv|smf>\t"
+"Reconstruction tilemap." },
 
-    { OUTPUT, 0, "o", "output", Arg::Required, "  -o  \t--output <filename>"
-        "\tFilename to save as, default is output.smt" },
+    { FILTER,           0, "e", "filter",   Arg::Required,
+"  -e  \t--filter=1,2-n\t"
+"Filter input tile sources to only these values, filter syntax is in the form"
+"1,2,3,n and 1-5,n-n and can be mixed, 1-300,350,400-900" },
+    { OVERLAP,          0, "k", "overlap",   Arg::Numeric,
+"  -k  \t--overlap=0\t"
+"consider that pixel values overlap by this amount." },
+    { BORDER,           0, "b", "border",   Arg::Numeric,
+"  -b  \t--border=0\t"
+"consider that each tile has a border of this width" },
+    { DUPLI,            0, "d", "dupli",   Arg::Required,
+"  -d  \t--dupli=[None,Exact,Perceptual]\t"
+"default=Exact, whether to detect and omit duplcates." },
 
-    { FORCE, 0, "f", "force", Arg::None, "  -f  \t--force"
-        "\tOverwrite files with the same output name" },
-
-    { FILTER, 0, "f", "filter", Arg::Required, "  -f  \t--filter=1,2-n"
-        "\tFilter input tile sources to only these values, filter syntax is in"
-        " the form 1,2,3,n and 1-5,n-n and can be mixed, 1-300,350,400-900" },
-
-    { TILEMAP, 0, "t", "tilemap", Arg::Required, "  -t  \t--tilemap=[.csv,.smf]"
-        "\tReconstruction tilemap." },
-
-    { IMAGESIZE, 0, "", "imagesize", Arg::Required, "\t--imagesize=XxY"
-        "\tScale the constructed image to this size before splitting." },
-
-    { TILESIZE, 0, "s", "tilesize", Arg::Required, "  -s  \t--tilesize=XxY"
-        "\tSplit the constructed image into tiles of this size." },
-
-    { OVERLAP, 0, "", "overlap", Arg::Numeric, "\t--overlap=0"
-        "\tconsider that pixel values overlap by this amount." },
-
-    { SMTOUT, 0, "", "smt", Arg::None, "\t--smt"
-        "\tSave tiles to smt file" },
-
-    { IMGOUT, 0, "", "img", Arg::None, "\t--img"
-        "\tSave tiles as images" },
-
-    { DUPLI, 0, "d", "dupli", Arg::Required, "  -d  \t--dupli=[None,Exact,Perceptual]"
-        "\tdefault=Exact, whether to detect and omit duplcates."},
-
-    { TYPE, 0, "", "type", Arg::Required, "\t--type=[DXT1,RGBA8,USHORT]"
-        "\tdefault=DXT1, what format to put into the smt"},
-
-    { PROGRESS, 0, "p", "progress", Arg::None, "  -p  \t--progress"
-        "\tDisplay progress indicator" },
+    { SMTOUT,           0, "", "smt", Arg::None,
+      "\t--smt\t"              "Save tiles to smt file" },
+    { IMGOUT,           0, "", "img", Arg::None,
+      "\t--img\t"              "Save tiles as images" },
 
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -111,9 +128,10 @@ main( int argc, char **argv )
     uint32_t overlap = 0;
 
     // output
-    std::string outFileName = "output.smt";
+    std::string out_fileName = "output.smt";
+    std::string out_fileDir = "./";
     TileMap out_tileMap;
-    uint32_t oType = 1;
+    uint32_t out_format = 1;
     OpenImageIO::ImageSpec otSpec( 32, 32, 4, TypeDesc::UINT8 );
     uint32_t out_img_width = 0, out_img_height = 0;
 
@@ -132,7 +150,7 @@ main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        exit( 1 );
+        options[ HELP ] ? exit( 0 ) : exit( 1 );
     }
 
     // setup logging level
@@ -154,7 +172,7 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    if( options[ FORCE ] )overwrite = true;
+    if( options[ OUTPUT_OVERWRITE ] )overwrite = true;
 
     if( (options[ IMGOUT ] && options[ SMTOUT ])
         || (!options[ IMGOUT ] && !options[ SMTOUT ]) ){
@@ -162,28 +180,22 @@ main( int argc, char **argv )
         fail = true;
     }
 
-    if( options[ SMTOUT ] ){
-
-    }
-
-    //TODO if smt is specified as output format, default tilesize to 32x32
-
     // * Output Format
-    if(  options[ TYPE ] ){
-        if( strcmp( options[ TYPE ].arg, "DXT1" ) == 0 ){
-            oType = 1;
+    if(  options[ FORMAT ] ){
+        if( strcmp( options[ FORMAT ].arg, "DXT1" ) == 0 ){
+            out_format = 1;
             otSpec.nchannels = 4;
             otSpec.set_format( TypeDesc::UINT8 );
         }
 
-        if( strcmp( options[ TYPE ].arg, "RGBA8" ) == 0 ){
-            oType = GL_RGBA8;
+        if( strcmp( options[ FORMAT ].arg, "RGBA8" ) == 0 ){
+            out_format = GL_RGBA8;
             otSpec.nchannels = 4;
             otSpec.set_format( TypeDesc::UINT8 );
         }
 
-        if( strcmp( options[ TYPE ].arg, "USHORT" ) == 0 ){
-            oType = GL_UNSIGNED_SHORT;
+        if( strcmp( options[ FORMAT ].arg, "USHORT" ) == 0 ){
+            out_format = GL_UNSIGNED_SHORT;
             otSpec.nchannels = 1;
             otSpec.set_format( TypeDesc::UINT16 );
         }
@@ -193,7 +205,7 @@ main( int argc, char **argv )
     if( options[ TILESIZE ] ){
         std::tie( otSpec.width, otSpec.height )
                 = valxval( options[ TILESIZE ].arg );
-        if( (oType == 1)
+        if( (out_format == 1)
             && ((otSpec.width % 4) || (otSpec.height % 4))
           ){
             LOG( ERROR ) << "tilesize must be a multiple of 4x4";
@@ -212,7 +224,7 @@ main( int argc, char **argv )
     if( options[ IMAGESIZE ] ){
         std::tie( out_img_width, out_img_height )
                 = valxval( options[ IMAGESIZE ].arg );
-        if( (oType == 1)
+        if( (out_format == 1)
             && ((out_img_width % 4) || (out_img_height % 4))
           ){
             LOG( ERROR ) << "imagesize must be a multiple of 4x4";
@@ -233,14 +245,14 @@ main( int argc, char **argv )
 
     // * Output File
     if( options[ SMTOUT ] ){
-        if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
-        tempSMT = SMT::create( outFileName , overwrite );
+        if( options[ OUTPUT_NAME ] ) out_fileName = options[ OUTPUT_NAME ].arg;
+        tempSMT = SMT::create( out_fileName , overwrite );
         if(! tempSMT ) LOG( FATAL ) << "cannot overwrite existing file";
-        tempSMT->setType( oType );
+        tempSMT->setType( out_format );
     }
 
     if( options[ IMGOUT ] ){
-        if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
+        if( options[ OUTPUT_NAME ] ) out_fileName = options[ OUTPUT_NAME ].arg;
     }
 
     if( fail || parse.error() ){
@@ -432,7 +444,7 @@ main( int argc, char **argv )
     // if the tileMap only contains 1 value, then we are only outputting
     //     a single image, so skip tileMap csv export
     if( out_tileMap.size() > 1 ){
-        std::fstream out_csv( outFileName + ".csv", std::ios::out );
+        std::fstream out_csv( out_fileName + ".csv", std::ios::out );
         out_csv << out_tileMap.toCSV();
         out_csv.close();
     }
