@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 #include <unordered_map>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -132,7 +134,7 @@ main( int argc, char **argv )
     std::string out_fileDir = "./";
     TileMap out_tileMap;
     uint32_t out_format = 1;
-    OpenImageIO::ImageSpec otSpec( 32, 32, 4, TypeDesc::UINT8 );
+    OpenImageIO::ImageSpec out_tileSpec( 32, 32, 4, TypeDesc::UINT8 );
     uint32_t out_img_width = 0, out_img_height = 0;
 
     // relative intermediate size
@@ -176,7 +178,7 @@ main( int argc, char **argv )
 
     if( (options[ IMGOUT ] && options[ SMTOUT ])
         || (!options[ IMGOUT ] && !options[ SMTOUT ]) ){
-        LOG( ERROR ) << "must have only one output format --img or --smt";
+        LOG( ERROR ) << "must have one output format --img or --smt";
         fail = true;
     }
 
@@ -184,37 +186,37 @@ main( int argc, char **argv )
     if(  options[ FORMAT ] ){
         if( strcmp( options[ FORMAT ].arg, "DXT1" ) == 0 ){
             out_format = 1;
-            otSpec.nchannels = 4;
-            otSpec.set_format( TypeDesc::UINT8 );
+            out_tileSpec.nchannels = 4;
+            out_tileSpec.set_format( TypeDesc::UINT8 );
         }
 
         if( strcmp( options[ FORMAT ].arg, "RGBA8" ) == 0 ){
             out_format = GL_RGBA8;
-            otSpec.nchannels = 4;
-            otSpec.set_format( TypeDesc::UINT8 );
+            out_tileSpec.nchannels = 4;
+            out_tileSpec.set_format( TypeDesc::UINT8 );
         }
 
         if( strcmp( options[ FORMAT ].arg, "USHORT" ) == 0 ){
             out_format = GL_UNSIGNED_SHORT;
-            otSpec.nchannels = 1;
-            otSpec.set_format( TypeDesc::UINT16 );
+            out_tileSpec.nchannels = 1;
+            out_tileSpec.set_format( TypeDesc::UINT16 );
         }
     }
 
     // * Tile Size
     if( options[ TILESIZE ] ){
-        std::tie( otSpec.width, otSpec.height )
+        std::tie( out_tileSpec.width, out_tileSpec.height )
                 = valxval( options[ TILESIZE ].arg );
         if( (out_format == 1)
-            && ((otSpec.width % 4) || (otSpec.height % 4))
+         && ((out_tileSpec.width % 4) || (out_tileSpec.height % 4))
           ){
             LOG( ERROR ) << "tilesize must be a multiple of 4x4";
             fail = true;
         }
     }
     else if(! options[ IMGOUT ] ){
-        otSpec.width = 32;
-        otSpec.height = 32;
+        out_tileSpec.width = 32;
+        out_tileSpec.height = 32;
     }
 
     //FIXME since this tool is build primarily for springrts, then if --smt is
@@ -243,17 +245,22 @@ main( int argc, char **argv )
         if( strcmp( options[ DUPLI ].arg, "Perceptual" ) == 0 ) dupli = 2;
     }
 
-    // * Output File
-    if( options[ SMTOUT ] ){
-        if( options[ OUTPUT_NAME ] ) out_fileName = options[ OUTPUT_NAME ].arg;
-        tempSMT = SMT::create( out_fileName , overwrite );
-        if(! tempSMT ) LOG( FATAL ) << "cannot overwrite existing file";
-        tempSMT->setType( out_format );
+    // Output File Path
+    struct stat info;
+    if( options[ OUTPUT_PATH ] ){
+        out_fileDir = options[ OUTPUT_PATH ].arg;
+        if( stat( out_fileDir.c_str(), &info ) != 0 ){
+            LOG( ERROR ) << "cannot access " << out_fileDir;
+            fail = true;
+        }
+        else if( ! (info.st_mode & S_IFDIR) ){
+            LOG( ERROR ) << out_fileDir << " is not a directory";
+            fail = true;
+        }
     }
 
-    if( options[ IMGOUT ] ){
-        if( options[ OUTPUT_NAME ] ) out_fileName = options[ OUTPUT_NAME ].arg;
-    }
+    // Output File Name
+    if( options[ OUTPUT_NAME ] ) out_fileName = options[ OUTPUT_NAME ].arg;
 
     if( fail || parse.error() ){
         LOG( ERROR ) << "Options parsing.";
@@ -274,8 +281,8 @@ main( int argc, char **argv )
                 tempBuf(src_tileCache.getTile(0) );
         sSpec.width = tempBuf->spec().width;
         sSpec.height = tempBuf->spec().height;
-        sSpec.nchannels = otSpec.nchannels;
-        sSpec.set_format( otSpec.format );
+        sSpec.nchannels = out_tileSpec.nchannels;
+        sSpec.set_format( out_tileSpec.format );
         LOG( INFO ) << "Source Tile Size: " << sSpec.width << "x" << sSpec.height;
     }
 
@@ -348,30 +355,30 @@ main( int argc, char **argv )
     // TODO if smt is specified then default to 32x32
     if(! options[ TILESIZE ] ){
         if( options[ IMGOUT ] ){
-            otSpec.width = out_img_width;
-            otSpec.height = out_img_height;
+            out_tileSpec.width = out_img_width;
+            out_tileSpec.height = out_img_height;
         }
         else {
-            otSpec.width = 32;
-            otSpec.height = 32;
+            out_tileSpec.width = 32;
+            out_tileSpec.height = 32;
         }
     }
 
-/*    if( out_img_width % otSpec.width
-            || out_img_height % otSpec.height ){
+/*    if( out_img_width % out_tileSpec.width
+            || out_img_height % out_tileSpec.height ){
         LOG( ERROR ) << "image size must be a multiple of tile size"
             << "\n\timage size: " << out_img_width << "x" << out_img_height
-            << "\n\ttile size: " << otSpec.width << "x" << otSpec.height;
+            << "\n\ttile size: " << out_tileSpec.width << "x" << out_tileSpec.height;
         exit( 1 );
     }*/
 
     // == prepare output Tile Map ==
-    out_tileMap.setSize( out_img_width / otSpec.width,
-                         out_img_height / otSpec.height);
+    out_tileMap.setSize( out_img_width / out_tileSpec.width,
+                         out_img_height / out_tileSpec.height);
 
     LOG( INFO ) << "\n    Output Sizes: "
         << "\n\tFull Size: " << out_img_width << "x" << out_img_height
-        << "\n\tTile Size: " << otSpec.width << "x" << otSpec.height
+        << "\n\tTile Size: " << out_tileSpec.width << "x" << out_tileSpec.height
         << "\n\ttileMap Size: " << out_tileMap.width << "x" << out_tileMap.height;
 
     // work out the relative tile size
@@ -379,11 +386,16 @@ main( int argc, char **argv )
     float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
     DLOG( INFO ) << "Scale Ratio: " << xratio << "x" << yratio;
 
-    rel_tile_width = otSpec.width * xratio;
-    rel_tile_height = otSpec.height * yratio;
+    rel_tile_width = out_tileSpec.width * xratio;
+    rel_tile_height = out_tileSpec.height * yratio;
     DLOG( INFO ) << "Pre-scaled tile: " << rel_tile_width << "x" << rel_tile_height;
 
-    if( options[ SMTOUT ] )tempSMT->setTileSize( otSpec.width );
+    if( options[ SMTOUT ] ){
+        tempSMT = SMT::create( out_fileDir + out_fileName , overwrite );
+        if(! tempSMT ) LOG( FATAL ) << "cannot overwrite existing file";
+        tempSMT->setType( out_format );
+        tempSMT->setTileSize( out_tileSpec.width );
+    }
 
     // tile hashtable for exact duplicate detection
     std::unordered_map<std::string, int> hash_map;
@@ -394,7 +406,7 @@ main( int argc, char **argv )
     int numTiles = 0;
     int numDupes = 0;
     OpenImageIO::ROI roi = OpenImageIO::ROI::All();
-    std::unique_ptr< OpenImageIO::ImageBuf > outBuf;
+    std::unique_ptr< OpenImageIO::ImageBuf > out_buf;
     for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
         for( uint32_t x = 0; x < out_tileMap.width; ++x ){
             DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";
@@ -403,10 +415,10 @@ main( int argc, char **argv )
             roi.xend   = x * rel_tile_width + rel_tile_width;
             roi.ybegin = y * rel_tile_height;
             roi.yend   = y * rel_tile_height + rel_tile_height;
-            outBuf = src_tiledImage.getRegion( roi );
+            out_buf = src_tiledImage.getRegion( roi );
 
             if( dupli == 1 ){
-                item = &hash_map[ computePixelHashSHA1( *outBuf ) ];
+                item = &hash_map[ computePixelHashSHA1( *out_buf ) ];
                 if( *item ){
                     out_tileMap( x, y ) = *item;
                     ++numDupes;
@@ -417,15 +429,15 @@ main( int argc, char **argv )
                 }
             }
 
-            // scale according to otSpec, which is conditionally defined by
+            // scale according to out_tileSpec, which is conditionally defined by
             // --tilesize or --imagesize depending on whether one image is
             // being exported or whether to split up into chunks.
-            outBuf = fix_scale( std::move( outBuf ), otSpec );
+            out_buf = fix_scale( std::move( out_buf ), out_tileSpec );
 
-            if( options[ SMTOUT ] ) tempSMT->append( *outBuf );
+            if( options[ SMTOUT ] ) tempSMT->append( *out_buf );
             if( options[ IMGOUT ] ){
-                name << "tile_" << std::setfill('0') << std::setw(6) << numTiles << ".tif";
-                outBuf->write( name.str() );
+                name << out_fileDir << out_fileName << "." << std::setfill('0') << std::setw(6) << numTiles << ".tif";
+                out_buf->write( name.str() );
                 name.str( std::string() );
             }
             out_tileMap(x,y) = numTiles;
@@ -444,7 +456,7 @@ main( int argc, char **argv )
     // if the tileMap only contains 1 value, then we are only outputting
     //     a single image, so skip tileMap csv export
     if( out_tileMap.size() > 1 ){
-        std::fstream out_csv( out_fileName + ".csv", std::ios::out );
+        std::fstream out_csv( out_fileDir + out_fileName + ".csv", std::ios::out );
         out_csv << out_tileMap.toCSV();
         out_csv.close();
     }
