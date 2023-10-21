@@ -1,12 +1,13 @@
 #include <string>
 #include <fstream>
 
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "option_args.h"
 #include "smt.h"
 #include "smf.h"
 #include "util.h"
+
 
 using namespace std;
 OIIO_NAMESPACE_USING
@@ -111,7 +112,7 @@ main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG( ERROR ) << "Unknown option: " << string( opt->name, opt->namelen );
+        spdlog::error( "Unknown option: {}", string( opt->name, opt->namelen ) );
         fail = true;
     }
 
@@ -123,13 +124,13 @@ main( int argc, char **argv )
     }
 
     // -v --verbose
-    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    spdlog::set_level(spdlog::level::warn);
     if( options[ VERBOSE ] )
-        LOG::SetDefaultLoggerLevel( LOG::INFO );
+        spdlog::set_level(spdlog::level::info);
 
     // -q --quiet
     if( options[ QUIET ] )
-        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+        spdlog::set_level(spdlog::level::off);
 
     // -o --output filename
     if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
@@ -144,13 +145,13 @@ main( int argc, char **argv )
     if( options[ MAPSIZE ] ){
         std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
         if( mapWidth % 2 || mapLength % 2 ){
-            LOG( ERROR ) << "map sizes must be multiples of two";
+            spdlog::error( "map sizes must be multiples of two" );
             fail = true;
         }
     }
     if( (! mapWidth || ! mapLength) && (! options[ TILEMAP ]) ){
         //FIXME dont error here, check first if a tilefile is specified.
-        LOG( ERROR ) << "--mapsize not specified";
+        spdlog::error("--mapsize not specified");
         fail = true;
     }
 
@@ -160,8 +161,9 @@ main( int argc, char **argv )
     // --tilesize
     // take the tilesize from the first smt added
     if( parse.nonOptionsCount() ){
-        CHECK( SMT::test( parse.nonOption( 0 ) ) )
-                << " additional arguments are not smt files";
+        if(! SMT::test( parse.nonOption( 0 ) ) ){
+            spdlog::critical( "additional arguments are not smt files" );
+        }
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->tileSize;
         delete smt;
@@ -172,7 +174,7 @@ main( int argc, char **argv )
         tileSize = atoi( options[ TILESIZE ].arg );
     }
     if( tileSize % 4 ){
-        LOG( ERROR ) << "tile size must be a multiple of 4";
+        spdlog::error("tile size must be a multiple of 4");
         fail = true;
     }
 
@@ -205,17 +207,22 @@ main( int argc, char **argv )
         int diffuseWidth = tileSize * tileMap->width;
         int diffuseHeight = tileSize * tileMap->height;
         if( diffuseWidth % 1024 || diffuseHeight % 1024){
-            LOG( ERROR ) << "(tileMap * tileSize) % 1024 != 0,"
-                "supplied arguments do not construct a valid map";
+            spdlog::error( "(tileMap * tileSize) % 1024 != 0,"
+                "supplied arguments do not construct a valid map" );
             fail = true;
         }
         mapWidth = diffuseWidth / 512;
         mapLength = diffuseHeight / 512;
-        LOG( INFO ) << "Checking input dimensions"
-            << "\n\ttileMap:  " << tileMap->width << "x" << tileMap->height
-            << "\n\ttileSize: " << tileSize << "x" << tileSize
-            << "\n\tdiffuse=  " << diffuseWidth << "x" << diffuseHeight
-            << "\n\tmapSize=  " << mapWidth << "x" << mapLength;
+        spdlog::info(
+R"(Checking input dimensions
+    tileMap:  {}x{}
+    tileSize: {}x{}
+    diffuse=  {}x{}
+    mapSize=  {}x{})",
+        tileMap->width, tileMap->height,
+        tileSize, tileSize,
+        diffuseWidth, diffuseHeight,
+        mapWidth, mapLength );
     }
 
     //TODO collect feature information from the command line.
@@ -227,7 +234,7 @@ main( int argc, char **argv )
 
     // == lets do it! ==
     if(! (smf = SMF::create( outFileName, force )) ){
-        LOG(FATAL) << "Unable to create: " << outFileName;
+        spdlog::critical( "Unable to create: {}", outFileName );
     }
 
     // == Information Collection ==
@@ -326,7 +333,7 @@ main( int argc, char **argv )
         smf->writeGrass( &grassBuf );
     }
 
-    LOG(INFO) << smf->info();
+    spdlog::info( smf->info() );
     smf->good();
 
     delete smf;

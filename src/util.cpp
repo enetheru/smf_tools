@@ -8,7 +8,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "util.h"
 
@@ -53,7 +53,7 @@ expandString( const char *s )
             }
             catch (std::invalid_argument const& ex) {
                 fail = true;
-                LOG( ERROR ) << ex.what() << '\n';
+                spdlog::error( ex.what() );
             }
         } else {
             sequence = false;
@@ -62,14 +62,14 @@ expandString( const char *s )
             }
             catch (std::invalid_argument const& ex) {
                 fail = true;
-                LOG( ERROR ) << ex.what() << '\n';
+                spdlog::error( ex.what() );
             }
         }
     }
     while( *s++ != '\0' );
 
     if( fail ){
-        LOG( WARN ) << "Possible Parse Error while splitting filter string";
+        spdlog::warn( "Possible Parse Error while splitting filter string" );
     }
     return result;
 }
@@ -82,7 +82,10 @@ fix_channels( std::unique_ptr< OIIO::ImageBuf> && inBuf,
     int map[] = { 0, 1, 2, 3 };
     static const float fill[] = { 0, 0, 0, 1.0 };
 
-    CHECK( inBuf ) << "nullptr passed to fix_channels()";
+    if( !inBuf ){
+        spdlog::critical( "nullptr passed to fix_channels()" );
+        exit(1);
+    }
 
     // return a copy of the original if it's the correct size.
     if( inBuf->spec().nchannels == spec.nchannels ) return std::move( inBuf );
@@ -103,7 +106,10 @@ channels( OIIO::ImageBuf *&sourceBuf, const OIIO::ImageSpec& spec )
     int map[] = { 0, 1, 2, 3 };
     float fill[] = { 0, 0, 0, 1.0 };
 
-    CHECK( sourceBuf ) << "nullptr passed to channels()";
+    if( !sourceBuf ) {
+        spdlog::critical("nullptr passed to channels()");
+        exit(1);
+    }
 
     // return a copy of the original if it's the correct size.
     if( sourceBuf->spec().nchannels == spec.nchannels ) return;
@@ -127,13 +133,16 @@ fix_scale(
     OIIO_NAMESPACE_USING
     using std::unique_ptr;
 
-    CHECK( inBuf ) << "nullptr passed to fix_scale()";
+    if( !inBuf ) {
+        spdlog::critical("nullptr passed to fix_scale()" );
+        exit(1);
+    }
 
     // return the inBuf if no change is required.
     if( (inBuf->spec().width  == spec.width )
      && (inBuf->spec().height == spec.height) ){
-        DLOG( INFO ) << "no scale required";
-            return std::move( inBuf );
+        SPDLOG_INFO( "no scale required" );
+        return std::move( inBuf );
     }
 
     // Otherwise scale
@@ -161,7 +170,10 @@ scale( OIIO::ImageBuf *&sourceBuf, const OIIO::ImageSpec& spec )
     OIIO_NAMESPACE_USING
 
     const OIIO::ImageSpec srcSpec = sourceBuf->spec();
-    CHECK( sourceBuf ) << "nullptr passed to scale()";
+    if( !sourceBuf ) {
+        spdlog::critical("nullptr passed to scale()" );
+        exit(1);
+    }
 
     // do nothing if the original is the correct size.
     if( srcSpec.width == spec.width && srcSpec.height == spec.height ){

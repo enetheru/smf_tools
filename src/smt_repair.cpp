@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "option_args.h"
 #include "smt.h"
@@ -56,49 +56,49 @@ main( int argc, char **argv )
     }
 
     // setup logging level.
-    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    spdlog::set_level(spdlog::level::warn);
     if( options[ VERBOSE ] )
-        LOG::SetDefaultLoggerLevel( LOG::INFO );
+        spdlog::set_level(spdlog::level::info);
     if( options[ QUIET ] )
-        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+        spdlog::set_level(spdlog::level::off);
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        spdlog::warn( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
         fail = true;
     }
 
     // non options
     if( parse.nonOptionsCount() == 0 ){
-        LOG( ERROR ) << "no file given";
+        spdlog::error( "no file given" );
         exit( 1 );
     }
     else if( parse.nonOptionsCount() > 1 ){
-        LOG( ERROR ) << "too many arguments";
+        spdlog::error( "too many arguments" );
         exit( 1 );
    }
 
     if( fail || parse.error() ){
-        LOG( ERROR ) << "Options parsing";
+        spdlog::error( "Options parsing" );
         exit( 1 );
     }
 
 // test file properties
     SMT *smt;
     if(! (smt = SMT::open( parse.nonOption( 0 ) )) ){
-        LOG( ERROR ) << "\nunable to open file";
+        spdlog::error( "\nunable to open file" );
         exit ( 1 );
     }
-    LOG( INFO ) << smt->info();
+    spdlog::info( smt->info() );
 
     std::fstream inFile( parse.nonOption( 0 ), std::ios::in );
     inFile.seekg( 0, std::ios::end );
     int inSize = inFile.tellg();
     inFile.close();
 
-    LOG( INFO ) << inSize << " bytes";
+    spdlog::info( "{} bytes", inSize );
     int tiles = (inSize - 32) / smt->tileBytes;
-    LOG( INFO ) << tiles << " tiles";
+    spdlog::info( "{} tiles", tiles);
     inFile.open( parse.nonOption( 0 ), std::ios::out | std::ios::in );
     inFile.seekp(20);
     inFile.write( (char *)&tiles, 4 );

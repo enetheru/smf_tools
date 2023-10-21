@@ -3,7 +3,7 @@
 
 #include <OpenImageIO/imageio.h>
 #include <optionparser.h>
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 
 // Argument tests //
@@ -55,7 +55,7 @@ struct Arg: public option::Arg
         tempFile.close();
 
         if (msg) {
-            LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
+            spdlog::error( "Option '{}' cannot find file: {}" , option.name, option.arg );
         }
         return option::ARG_ILLEGAL;
 
@@ -65,7 +65,7 @@ struct Arg: public option::Arg
     {
         auto image = OIIO::ImageInput::open( option.arg );
         if(! image ){
-            LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
+            spdlog::error( "Option '{}' cannot find file: {}", option.name, option.arg );
             return option::ARG_ILLEGAL;
         } else {
             image->close();

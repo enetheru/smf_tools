@@ -4,7 +4,7 @@
 
 #include <OpenImageIO/imageio.h>
 #include <squish.h>
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "smf.h"
 #include "smt.h"
@@ -16,17 +16,17 @@ using namespace std;
 void
 SMF::good() const
 {
-    if( _dirtyMask & SMF_HEADER          ) LOG( INFO ) << "dirty header";
-    if(_dirtyMask & SMF_EXTRA_HEADER     ) LOG(INFO ) << "dirty headerExtn";
-    if( _dirtyMask & SMF_HEIGHT          ) LOG( INFO ) << "dirty height";
-    if( _dirtyMask & SMF_TYPE            ) LOG( INFO ) << "dirty type";
-    if( _dirtyMask & SMF_MAP_HEADER      ) LOG( INFO ) << "dirty map header";
-    if( _dirtyMask & SMF_MAP             ) LOG( INFO ) << "dirty map";
-    if( _dirtyMask & SMF_MINI            ) LOG( INFO ) << "dirty mini";
-    if( _dirtyMask & SMF_METAL           ) LOG( INFO ) << "dirty metal";
-    if( _dirtyMask & SMF_FEATURES_HEADER ) LOG( INFO ) << "dirty features header";
-    if( _dirtyMask & SMF_FEATURES        ) LOG( INFO ) << "dirty features";
-    if( _dirtyMask & SMF_GRASS           ) LOG( INFO ) << "dirty grass";
+    if( _dirtyMask & SMF_HEADER          ) spdlog::info( "dirty header");
+    if( _dirtyMask & SMF_EXTRA_HEADER    ) spdlog::info( "dirty headerExtn");
+    if( _dirtyMask & SMF_HEIGHT          ) spdlog::info( "dirty height");
+    if( _dirtyMask & SMF_TYPE            ) spdlog::info( "dirty type");
+    if( _dirtyMask & SMF_MAP_HEADER      ) spdlog::info( "dirty map header");
+    if( _dirtyMask & SMF_MAP             ) spdlog::info( "dirty map");
+    if( _dirtyMask & SMF_MINI            ) spdlog::info( "dirty mini");
+    if( _dirtyMask & SMF_METAL           ) spdlog::info( "dirty metal");
+    if( _dirtyMask & SMF_FEATURES_HEADER ) spdlog::info( "dirty features header");
+    if( _dirtyMask & SMF_FEATURES        ) spdlog::info( "dirty features");
+    if( _dirtyMask & SMF_GRASS           ) spdlog::info( "dirty grass");
 
 }
 
@@ -62,12 +62,12 @@ SMF::create( const string& fileName, bool overwrite )
     if( file.good() && !overwrite ) return nullptr;
     file.close();
 
-    DLOG( INFO ) << "Creating " << fileName;
+    SPDLOG_DEBUG( "Creating {}", fileName );
 
     // attempt to create a new file or overwrite existing
     file.open( fileName, ios::binary | ios::out );
     if(! file.good() ){
-        LOG( ERROR ) << "Unable to write to " << fileName;
+        spdlog::error( "Unable to write to {}", fileName );
         return nullptr;
     }
     file.close();
@@ -85,7 +85,7 @@ SMF::open( const string& fileName )
 {
     SMF *smf;
     if( test( fileName ) ){
-        DLOG( INFO ) << "Opening " << fileName;
+        SPDLOG_DEBUG( "Opening {}", fileName );
 
         smf = new SMF;
         smf->_dirtyMask = 0x00000000;
@@ -94,7 +94,7 @@ SMF::open( const string& fileName )
         return smf;
     }
 
-    LOG( ERROR ) << "Cannot open " << fileName;
+    spdlog::error( "Cannot open {}", fileName);
     return nullptr;
 }
 
@@ -102,11 +102,10 @@ void
 SMF::read()
 {
     FileMap map;
-    uint32_t offset = 0;
 
-    DLOG( INFO ) << "Reading " << _fileName;
+    SPDLOG_DEBUG( "Reading ", _fileName);
     ifstream file( _fileName );
-    CHECK( file.good() ) << "Unable to read" << _fileName;
+    if(! file.good() )spdlog::error( "unable to read {}", _fileName );
 
     file.seekg( 0, ios::end );
     // add block after the end of the file to test against.
@@ -127,6 +126,7 @@ SMF::read()
 
 
     // Extra headers Information
+    uint32_t offset;
     SMF::HeaderExtension *headerExtn;
     for(int i = 0; i < _header.nHeaderExtensions; ++i ){
         headerExtn = new SMF::HeaderExtension;
@@ -140,9 +140,8 @@ SMF::read()
             map.addBlock( headerGrass->ptr, _grassSpec.image_bytes(), "grass" );
         }
         else {
-            LOG( WARN ) << "Extra Header(" << i << ")"
-                "has unknown type: " << headerExtn->type;
-            _headerExtensions.push_back(headerExtn );
+            spdlog::warn( "Extra Header({}) has unknown type: {}", i, headerExtn->type);
+            _headerExtensions.push_back( headerExtn );
         }
         map.addBlock( offset, headerExtn->bytes, "extraheader" );
         file.seekg( offset + headerExtn->bytes );
@@ -274,7 +273,7 @@ SMF::info()
 void
 SMF::updateSpecs()
 {
-    DLOG( INFO ) << "Updating ImageSpec's";
+    SPDLOG_DEBUG( "Updating ImageSpec's" );
     // Set _heightSpec.
     _heightSpec.width = _header.width + 1;
     _heightSpec.height = _header.length + 1;
@@ -315,7 +314,7 @@ SMF::updateSpecs()
 void
 SMF::updatePtrs()
 {
-    DLOG(INFO) << "Updating file offset pointers";
+    SPDLOG_DEBUG( "Updating file offset pointers" );
 
     _header.heightPtr = sizeof( SMF::Header );
 
@@ -345,7 +344,7 @@ SMF::updatePtrs()
             eof = headerGrass->ptr + _grassSpec.image_bytes();
         }
         else {
-            LOG( WARN ) << "unknown header extn";
+            spdlog::warn( "unknown header extn" );
         }
     }
 }
@@ -438,8 +437,8 @@ SMF::addTileFile( const string& fileName )
 {
     _dirtyMask |= SMF_MAP;
 
-    SMT *smt = nullptr;
-    CHECK( (smt = SMT::open( fileName )) ) << "Invalid smt file " << fileName;
+    SMT *smt = SMT::open( fileName );
+    if( smt == nullptr ) spdlog::error( "Invalid smt file ", fileName );
 
     ++_headerTiles.nFiles;
     _headerTiles.nTiles += smt->nTiles;
@@ -490,7 +489,7 @@ SMF::addFeatures( const string& fileName )
 {
     // test the file
     fstream file( fileName, ifstream::in );
-    CHECK( file.good() ) << "addFeatures: Cannot open " << fileName;
+    if(! file.good() ) spdlog::error( "addFeatures: Cannot open {}", fileName );
 
     int n = 0;
     string cell;
@@ -514,26 +513,31 @@ SMF::addFeatures( const string& fileName )
                 stof( tokens[ 5 ] ) ); //s
         }
         catch (std::invalid_argument const& ex) {
-            LOG( WARN ) << "addFeatures: " << fileName << ", skipping invalid line at "
-                << n;
-            LOG( ERROR ) << ex.what() << '\n';
+            spdlog::warn( "addFeatures: {}, skipping invalid line at {}", fileName, n );
+            spdlog::error( "{}", ex.what() );
             continue;
         }
 
     }
     file.close();
 
-    DLOG( INFO )
+/*    DLOG( INFO )
         << "addFeatures"
         << "\n\tTypes: " << _headerFeatures.nTypes
-        << "\n\tTypes: " << _headerFeatures.nFeatures;
+        << "\n\tTypes: " << _headerFeatures.nFeatures;*/
+    SPDLOG_ERROR(
+R"(addFeatures"
+"    Types: {}"
+"    Types: {})",
+        _headerFeatures.nTypes,
+        _headerFeatures.nFeatures );
     _dirtyMask |= SMF_FEATURES;
 }
 
 void
 SMF::addFeatureDefaults()
 {
-    LOG(WARN) << "adding default features clears any existing features";
+    spdlog::warn( "adding default features clears any existing features" );
 
     clearFeatures();
 
@@ -560,12 +564,12 @@ SMF::clearFeatures()
 void
 SMF::writeHeader()
 {
-    DLOG( INFO ) << "Writing headers";
+    SPDLOG_DEBUG( "Writing headers" );
 
     _header.id = rand();
 
     fstream file( _fileName, ios::binary | ios::in | ios::out );
-    CHECK( file.good() ) << "Unable to open " << _fileName << " for writing";
+    if( !file.good() )spdlog::error( "Unable to open {} for writing", _fileName );
 
     file.write( (char *)&_header, sizeof(SMF::Header) );
     file.close();
@@ -576,10 +580,13 @@ SMF::writeHeader()
 void
 SMF::writeExtraHeaders()
 {
-    DLOG( INFO ) << "Writing Extra Headers";
+    SPDLOG_DEBUG( "Writing Extra Headers" );
 
     fstream file( _fileName, ios::binary | ios::in | ios::out );
-    CHECK( file.good() ) << "Unable to open " << _fileName << " for writing";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for writing", _fileName );
+        exit(1);
+    }
 
     file.seekp( sizeof( Header ) );
     for( auto i : _headerExtensions ) file.write((char *)i, i->bytes );
@@ -592,7 +599,10 @@ bool
 SMF::writeImage( unsigned int ptr, const ImageSpec& spec, ImageBuf *sourceBuf )
 {
     fstream file( _fileName, ios::binary | ios::in | ios::out );
-    CHECK( file.good() ) << "Unable to open " << _fileName << " for writing";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for writing", _fileName );
+        exit(1);
+    }
     file.seekp( ptr );
 
     if( sourceBuf == nullptr ){
@@ -620,40 +630,43 @@ SMF::writeImage( unsigned int ptr, const ImageSpec& spec, ImageBuf *sourceBuf )
 void
 SMF::writeHeight( ImageBuf *sourceBuf )
 {
-    DLOG( INFO ) << "Writing height";
+    SPDLOG_DEBUG( "Writing height" );
     _dirtyMask &= !SMF_HEIGHT;
 
     if( writeImage( _header.heightPtr, _heightSpec, sourceBuf ) ){
-        LOG( WARN ) << "Wrote blank heightmap";
+        spdlog::warn( "Wrote blank heightmap" );
     }
 }
 
 void
 SMF::writeType( ImageBuf *sourceBuf )
 {
-    DLOG(INFO) << "INFO: Writing type";
+    SPDLOG_DEBUG( "INFO: Writing type" );
     _dirtyMask &= !SMF_TYPE;
 
     if( writeImage( _header.typePtr, _typeSpec, sourceBuf ) ){
-        LOG( WARN ) << "Wrote blank typemap";
+        spdlog::warn( "Wrote blank typemap" );
     }
 }
 
 void
 SMF::writeMini( ImageBuf * sourceBuf )
 {
-    DLOG( INFO ) << "Writing mini";
+    SPDLOG_DEBUG( "Writing mini" );
     _dirtyMask &= !SMF_MINI;
 
     fstream file( _fileName, ios::binary | ios::in | ios::out );
-    CHECK( file.good() ) << "Unable to open " << _fileName << " for writing";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for writing", _fileName );
+        exit(1);
+    }
     file.seekp( _header.miniPtr );
 
     if( sourceBuf == nullptr ){
         char zero[ MINIMAP_SIZE ] = { 0 };
         file.write( zero, sizeof( zero ) );
         file.close();
-        LOG( WARN ) << "Wrote blank minimap";
+        spdlog::warn( "Wrote blank minimap" );
         return;
     }
 
@@ -667,29 +680,29 @@ SMF::writeMini( ImageBuf * sourceBuf )
     int blocks_size = 0;
     squish::u8 *blocks = nullptr;
     for( int i = 0; i < 9; ++i ){
-        DLOG( INFO ) << "mipmap loop: " << i;
+        SPDLOG_DEBUG( "mipmap loop: {}", i );
         spec = tempBuf->specmod();
 
         blocks_size = squish::GetStorageRequirements(
                 spec.width, spec.height, squish::kDxt1 );
 
         if( blocks == nullptr ){
-            DLOG( INFO ) << "allocating space: " << blocks_size;
+            SPDLOG_DEBUG( "allocating space: {}", blocks_size );
             blocks = new squish::u8[ blocks_size ];
         }
 
-        DLOG( INFO ) << "compressing to dxt1";
+        SPDLOG_DEBUG( "compressing to dxt1" );
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
                 spec.width, spec.height, blocks, squish::kDxt1 );
 
         // Write data to smf
-        DLOG( INFO ) << "writing dxt1 mip to file";
+        SPDLOG_DEBUG( "writing dxt1 mip to file" );
         file.write( (char*)blocks, blocks_size );
 
         spec.width = spec.width >> 1;
         spec.height = spec.height >> 1;
 
-        DLOG( INFO ) << "Scaling to: " << spec.width << "x" << spec.height;
+        SPDLOG_DEBUG( "Scaling to: {}x{}", spec.width, spec.height );
         scale( tempBuf, spec );
     }
     delete blocks;
@@ -702,7 +715,7 @@ SMF::writeMini( ImageBuf * sourceBuf )
 void
 SMF::writeTileHeader()
 {
-    DLOG( INFO ) << "Writing tile reference information";
+    SPDLOG_DEBUG( "Writing tile reference information" );
     _dirtyMask &= !SMF_MAP_HEADER;
 
     fstream file( _fileName, ios::binary | ios::in | ios::out );
@@ -723,12 +736,12 @@ SMF::writeTileHeader()
 void
 SMF::writeMap( TileMap *tileMap )
 {
-    DLOG( INFO ) << "Writing map";
+    SPDLOG_DEBUG( "Writing map" );
     _dirtyMask &= !SMF_MAP;
 
     if( tileMap == nullptr ){
         writeImage( _mapPtr, _mapSpec, nullptr );
-        LOG( WARN ) << "Wrote blank map";
+        spdlog::warn( "Wrote blank map" );
         return;
     }
 
@@ -743,22 +756,25 @@ SMF::writeMap( TileMap *tileMap )
 void
 SMF::writeMetal( ImageBuf *sourceBuf )
 {
-    DLOG( INFO ) << "Writing metal";
+    SPDLOG_DEBUG( "Writing metal" );
     _dirtyMask &= !SMF_METAL;
 
     if( writeImage( _header.metalPtr, _metalSpec, sourceBuf ) )
-        LOG( WARN ) << "Wrote blank metalmap";
+        spdlog::warn( "Wrote blank metalmap" );
 }
 
 /// write the feature header information to the smf
 void
 SMF::writeFeatures()
 {
-    DLOG( INFO ) << "Writing features";
+    SPDLOG_DEBUG( "Writing features" );
     _dirtyMask &= !SMF_FEATURES_HEADER;
 
     fstream file( _fileName, ios::binary | ios::in | ios::out );
-    CHECK( file.good() ) << "cannot open " << _fileName << "for writing";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for writing", _fileName );
+        exit(1);
+    }
     file.seekp( _header.featuresPtr );
 
     // set the current state
@@ -789,10 +805,10 @@ SMF::writeGrass( ImageBuf *sourceBuf )
     //if it doesn't exist, do nothing.
     if( headerGrass == nullptr ) return;
 
-    DLOG( INFO ) << "Writing Grass\n";
+    SPDLOG_DEBUG( "Writing Grass" );
 
     if( writeImage( headerGrass->ptr, _grassSpec, sourceBuf ) ){
-        LOG( WARN ) << "wrote blank grass map";
+        spdlog::warn( "wrote blank grass map" );
     }
 
     _dirtyMask &= !SMF_GRASS;
@@ -803,7 +819,10 @@ ImageBuf *
 SMF::getImage( unsigned int ptr, const ImageSpec& spec)
 {
     ifstream file( _fileName );
-    CHECK( file.good() ) << " Failed to open" << _fileName << "for reading";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for reading", _fileName );
+        exit(1);
+    }
 
     auto *imageBuf = new ImageBuf( spec );
 
@@ -831,7 +850,10 @@ SMF::getMap( )
 {
     auto *tileMap = new TileMap( _mapSpec.width, _mapSpec.height );
     std::fstream file( _fileName, std::ios::binary | std::ios::in );
-    CHECK( file.good() ) << " Failed to open" << _fileName << "for reading";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for reading", _fileName );
+        exit(1);
+    }
     file.seekg( _mapPtr );
     for( int y = 0; y < _mapSpec.height; ++y )
     for( int x = 0; x < _mapSpec.width; ++x ){
@@ -846,7 +868,10 @@ ImageBuf *SMF::getMini(){
     unsigned char temp[ MINIMAP_SIZE ];
 
     ifstream file( _fileName );
-    CHECK( file.good() ) << " Failed to open" << _fileName << "for reading";
+    if(! file.good() ){
+        spdlog::error( "Unable to open {} for reading", _fileName );
+        exit(1);
+    }
 
     file.seekg( _header.miniPtr );
     file.read( (char *)temp, MINIMAP_SIZE );

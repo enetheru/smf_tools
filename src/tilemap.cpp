@@ -2,7 +2,8 @@
 #include <sstream>
 #include <vector>
 #include <stdexcept>
-#include <elog.h>
+
+#include <spdlog/spdlog.h>
 
 #include "tilemap.h"
 
@@ -51,7 +52,10 @@ TileMap::fromCSV( const std::string& fileName )
     std::stringstream line;
     std::vector< std::string > tokens;
     std::fstream file( fileName, std::ios::in );
-    CHECK( file.good() ) << "cannot open " << fileName;
+    if(! file.good() ){
+        spdlog::error( "unable to open {}", fileName );
+        exit(1);
+    }
 
     // get dimensions
     if( std::getline( file, cell ) ) ++height;
@@ -82,7 +86,7 @@ TileMap::fromCSV( const std::string& fileName )
             }
             catch (std::invalid_argument const& ex) {
                 _map[x + width * y] = 0;
-                LOG( ERROR ) << ex.what() << '\n';
+                spdlog::error( ex.what() );
             }
             ++x;
         }
@@ -108,8 +112,10 @@ TileMap::toCSV( )
 void
 TileMap::setSize(uint32_t _width, uint32_t _height )
 {
-    CHECK(_width > 0 ) << "Width must be > 0";
-    CHECK(_height > 0 ) << "Height must be ";
+    if( _width > 0  || _height > 0 ){
+        spdlog::error( "WidthxHeight must be > 1" );
+        exit(1);
+    }
 
     this->width = _width; this->height = _height;
     _map.resize(_width * _height );
@@ -129,15 +135,20 @@ TileMap::consecutive( )
 uint32_t &
 TileMap::operator() ( uint32_t x, uint32_t y )
 {
-    CHECK( x < width ) << x << " > " << width;
-    CHECK( y < height ) << y << " > " << height;
+    if( x < width || y < height ){
+        spdlog::critical( "x:{} < width:{} || y:{} < height:{}");
+        exit(1);
+    }
     return _map[ x + width * y ];
 }
 
 uint32_t &
 TileMap::operator() ( uint32_t idx )
 {
-    CHECK( idx >= _map.size() ) << idx << " out of range";
+    if( idx >= _map.size() ){
+        spdlog::critical( "index({}) is out of range", idx );
+        exit(1);
+    }
     return _map[idx];
 }
 

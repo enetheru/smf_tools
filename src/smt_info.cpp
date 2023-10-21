@@ -1,4 +1,4 @@
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "option_args.h"
 #include "smt.h"
@@ -38,26 +38,28 @@ int main( int argc, char **argv )
         exit( 1 );
     }
 
-    if( options[ QUIET ] )LOG::SetDefaultLoggerLevel( LOG::CHECK );
+    if( options[ QUIET ] ) spdlog::set_level(spdlog::level::off);
+
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        spdlog::warn( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
     }
 
     // non options
     for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG( WARN ) << "Unknown Option: " << parse.nonOption( i );
+        spdlog::warn( "Unknown Option: {}", parse.nonOption( i ) );
     }
 
     if( parse.error() ) exit( 1 );
 
     SMT *smt;
     if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
-        LOG(FATAL) << "cannot open smt file";
+        spdlog::critical( "cannot open smt file" );
+        exit(1);
     }
 
-    LOG(INFO) << "\n" << smt->info();
+    spdlog::info( smt->info() );
 
     return 0;
 }

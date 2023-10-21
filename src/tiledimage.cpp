@@ -1,7 +1,7 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include <utility>
 
@@ -27,21 +27,21 @@ TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
 void
 TiledImage::setTileMap( const TileMap& inTileMap )
 {
-    CHECK( inTileMap.width ) << "tilemap has no width";
-    CHECK( inTileMap.height ) << "tilemap has no height";
-
+    if( !(inTileMap.width && inTileMap.height) ){
+        spdlog::critical( "tilemap width or heght is invalid: {}x{}", inTileMap.width, inTileMap.height );
+        exit(1);
+    }
     tileMap = inTileMap;
 }
 
 void
 TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
-    CHECK( inWidth >= (uint32_t)tSpec.width )
-        << "width must be >= tile width (" << tSpec.width << ")";
-
-    CHECK( inHeight >= (uint32_t)tSpec.height )
-        << "height must be >= tile height (" << tSpec.height << ")";
-
+    if( inWidth >= tSpec.width || inHeight >= tSpec.height ){
+        spdlog::critical( "in:{}x{} must be >= tile: {}x{}",
+                          inWidth, inHeight, tSpec.width, tSpec.height );
+        exit(1);
+    }
     tileMap.setSize( inWidth / tSpec.width, inHeight / tSpec.height );
 }
 
@@ -54,8 +54,11 @@ TiledImage::setTSpec( ImageSpec spec )
 void
 TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 {
-    CHECK( inWidth > 0 ) << "width(" << inWidth << ") must be greater than zero";
-    CHECK( inHeight > 0 ) << "height(" << inHeight << ") must be greater than zero";
+    if( inWidth > 0 || inHeight > 0 ){
+        spdlog::critical( "in:{}x{} must be > tile: 0x0",
+                          inWidth, inHeight, tSpec.width, tSpec.height );
+        exit(1);
+    }
     _tSpec = ImageSpec( inWidth, inHeight, _tSpec.nchannels, _tSpec.format );
 }
 
@@ -77,7 +80,10 @@ void
 TiledImage::squareFromCache( )
 {
     int tileCount = tileCache.nTiles;
-    CHECK( tileCount ) << "tileCache has no tiles";
+    if( !tileCount ){
+        spdlog::critical("tileCache has no tiles");
+        exit(1);
+    }
 
     int square = sqrt(tileCount);
     tileMap.setSize( square, square );
@@ -103,9 +109,7 @@ std::unique_ptr< ImageBuf >
 TiledImage::getRegion(
     const ROI &roi )
 {
-    DLOG( INFO ) << "source window "
-        << "(" << roi.xbegin << ", " << roi.ybegin << ")"
-      << "->(" << roi.xend   << ", " << roi.yend   << ")";
+    spdlog::info( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
 
     ImageSpec outSpec( roi.width(), roi.height(), 4, TypeDesc::UINT8 );
 
@@ -118,7 +122,7 @@ TiledImage::getRegion(
     static uint32_t index_p = INT_MAX;
     ROI cw{0,0,0,0,0,1,0,4}; // copy window
     while( true ){
-         DLOG( INFO ) << "Point of interest (" << ix << ", " << iy << ")";
+         spdlog::info( "Point of interest ({}, {})", ix, iy );
 
         //determine the tile under the point of interest
         uint32_t mx = ix / (tSpec.width - overlap);
@@ -135,17 +139,15 @@ TiledImage::getRegion(
         if( roi.yend / (tSpec.height - overlap) > my ) cw.yend = tSpec.height;
         else cw.yend = roi.yend - my * (tSpec.height - overlap);
 
-         DLOG( INFO ) << "copy window "
-             << "(" << cw.xbegin << ", " << cw.ybegin << ")"
-            <<"->(" << cw.xend   << ", " << cw.yend   << ")";
+        spdlog::info( "copy window ({}, {})->({}}, {}})", cw.xbegin, cw.ybegin, cw.xend, cw.yend );
 
         //determine the dimensions of the copy window
-        DLOG( INFO ) << "copy window size " << cw.width() << "x" << cw.height();
+        spdlog::info( "copy window size {}x{}", cw.width(), cw.height() );
 
         //determine the top left of the paste window
         uint32_t dx = ix - roi.xbegin;
         uint32_t dy = iy - roi.ybegin;
-        DLOG( INFO ) << "Paste position: " << dx << "x" << dy;
+        spdlog::info( "Paste position: {}x{}", dx, dy );
 
         //Optimisation: exact copy of previous tile test
         uint32_t index = tileMap(mx, my);

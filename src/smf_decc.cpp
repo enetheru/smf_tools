@@ -2,7 +2,7 @@
 
 #include <OpenImageIO/imagebuf.h>
 
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "option_args.h"
 #include "smf.h"
@@ -48,38 +48,38 @@ main( int argc, char **argv )
     }
 
     // setup logging level.
-    LOG::SetDefaultLoggerLevel( LOG::WARN );
+    spdlog::set_level(spdlog::level::warn);
     if( options[ VERBOSE ] )
-        LOG::SetDefaultLoggerLevel( LOG::INFO );
+        spdlog::set_level(spdlog::level::info);
     if( options[ QUIET ] )
-        LOG::SetDefaultLoggerLevel( LOG::CHECK );
+        spdlog::set_level(spdlog::level::off);
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        DLOG( WARN ) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        spdlog::warn( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
         fail = true;
     }
 
     // non options
     if( parse.nonOptionsCount() == 0 ){
-        LOG( WARN ) << "Missing input filename";
+        spdlog::warn( "Missing input filename" );
         fail = true;
     }
 
     for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG( WARN ) << "Superfluous Argument: " << parse.nonOption( i );
+        spdlog::warn( "Superfluous Argument: {}", parse.nonOption( i ) );
         fail = true;
     }
 
     if( fail || parse.error() ){
-        LOG( ERROR ) << "Options parsing";
+        spdlog::error( "Options parsing" );
         exit( 1 );
     }
     // end of options parsing
 
     SMF *smf;
     if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
-        LOG( ERROR ) << "cannot open " << parse.nonOption(0);
+        spdlog::error( "cannot open {}", parse.nonOption(0) );
         exit( 1 );
     }
 
@@ -87,47 +87,47 @@ main( int argc, char **argv )
     OIIO::ImageBuf *buf; //FIXME is buf really needed here?
     TileMap *tileMap;
 
-    LOG( INFO ) << "Extracting Header Info";
+    spdlog::info( "Extracting Header Info" );
     file.open( "out_Header_Info.txt", std::ios::out );
     file << smf->info();
     file.close();
 
-    LOG( INFO ) << "Extracting height image";
+    spdlog::info( "Extracting height image" );
     buf = smf->getHeight();
     buf->write( "out_height.tif", OIIO::TypeUnknown, "tif" );
 
 
-    LOG( INFO ) << "Extracting type image";
+    spdlog::info( "Extracting type image" );
     buf = smf->getType();
     buf->write("out_type.tif", OIIO::TypeUnknown, "tif");
 
-    LOG( INFO ) << "Extracting map image";
+    spdlog::info( "Extracting map image" );
     tileMap = smf->getMap();
     file.open("out_tilemap.csv", std::ios::out );
     file << tileMap->toCSV();
     file.close();
 
-    LOG( INFO ) << "Extracting mini image";
+    spdlog::info( "Extracting mini image" );
     buf = smf->getMini();
     buf->write("out_mini.tif", OIIO::TypeUnknown, "tif");
 
-    LOG( INFO ) << "Extracting metal image";
+    spdlog::info( "Extracting metal image" );
     buf = smf->getMetal();
     buf->write("out_metal.tif", OIIO::TypeUnknown, "tif");
 
-    LOG( INFO ) << "Extracting featureList";
+    spdlog::info( "Extracting featureList" );
     file.open( "out_featuretypes.txt", std::ios::out );
     file << smf->getFeatureTypes();
     file.close();
 
-    LOG( INFO ) << "Extracting features";
+    spdlog::info( "Extracting features" );
     file.open( "out_features.csv", std::ios::out );
     file << smf->getFeatures();
     file.close();
 
     buf = smf->getGrass();
     if( buf ){
-        LOG( INFO ) << "Extracting grass image";
+        spdlog::info( "Extracting grass image" );
         buf->write("out_grass.tif", OIIO::TypeUnknown, "tif");
     }
     return 0;

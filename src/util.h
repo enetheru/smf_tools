@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <iomanip>
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include <OpenImageIO/imagebuf.h>
 
@@ -77,14 +77,13 @@ class FileMap{
     public:
     void addBlock( uint32_t begin, uint32_t size, const std::string& name = "")
     {
-        DLOG( INFO ) << "adding: " << name << "(" << begin << "-" << begin + size-1 << ")";
+        SPDLOG_DEBUG( "adding: {}({})({}-{})", name, begin, begin + size-1);
         Block temp{ begin, begin + size-1, name };
         for( const auto& i : list ){
             if( (temp.begin >= i.begin && temp.begin <= i.end)
              || (temp.end >= i.begin && temp.end <= i.end)
              || (temp.begin <= i.begin && temp.end >= i.end) ){
-                LOG( ERROR ) << "'" << temp.name << "'"
-                    << " clashes with existing block " << "'" << i.name << "'";
+                spdlog::error( "'{}' clashes with existing block '{}'", temp.name, i.name );
             }
         }
         list.push_back( temp );

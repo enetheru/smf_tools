@@ -19,7 +19,7 @@ OPTION( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
 # Compiler
 # --------
-set( CMAKE_CXX_FLAGS "-Wall -std=c++17" )
+set( CMAKE_CXX_FLAGS "-Wall -std=c++20" )
 
 # CMake
 # -----
@@ -34,6 +34,8 @@ find_package( OpenEXR REQUIRED )
 find_package( libjpeg-turbo REQUIRED )
 find_package( ZLIB REQUIRED )
 find_package( TIFF REQUIRED HINTS C:/src/libTIFF/cmake-build-debug/lib/cmake/tiff/)
+find_package( fmt REQUIRED HINTS C:/src/fmt/cmake-build-debug/lib/cmake/fmt)
+find_package( spdlog REQUIRED HINTS C:/src/spdlog/cmake-build-debug/lib/cmake/spdlog )
 
 add_subdirectory( ext/squish )
 

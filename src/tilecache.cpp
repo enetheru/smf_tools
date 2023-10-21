@@ -1,6 +1,6 @@
 #include <string>
 #include <OpenImageIO/imagebuf.h>
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "smf_tools.h"
 #ifdef IMG_DEBUG
@@ -19,7 +19,10 @@ TileCache::getTile(const uint32_t n)
         outBuf( new OIIO::ImageBuf );
 
     // returning an initialized imagebuf is not a good idea
-    CHECK( n < nTiles ) << "getTile( " << n << ") request out of range 0-" << nTiles ;
+    if( n >= nTiles ){
+        spdlog::critical( "getTile({}) request out of range 0-{}", n, nTiles );
+        exit(1);
+    }
 
     SMT *smt;
     static SMT *lastSmt = nullptr;
@@ -47,7 +50,10 @@ TileCache::getTile(const uint32_t n)
     else {
         outBuf->reset( *fileName );
     }
-    CHECK( outBuf->initialized() ) << "failed to open source for tile: " << n;
+    if( !outBuf->initialized() ) {
+        spdlog::error("failed to open source for tile: ", n);
+        exit(1);
+    }
 
 #ifdef DEBUG_IMG
     DLOG( INFO ) << "Exporting Image";
@@ -92,7 +98,7 @@ TileCache::addSource( const std::string& fileName )
         return;
     }
 
-    LOG(ERROR) << "unrecognised format: " << fileName;
+    spdlog::error( "unrecognised format: ", fileName );
 }
 
 

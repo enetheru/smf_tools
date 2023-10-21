@@ -3,7 +3,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <squish.h>
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "smf_tools.h"
 #include "smt.h"
@@ -57,12 +57,12 @@ SMT::open( const string& fileName )
 void
 SMT::reset( )
 {
-    LOG(INFO) << "Resetting " << fileName;
+    spdlog::info("Resetting {}", fileName );
     // Clears content of SMT file and re-writes the header.
     fstream file( fileName, ios::binary | ios::out );
 
     if(! file.good() ){
-        LOG(ERROR) << "Unable to write to " << fileName;
+        spdlog::error( "Unable to write to {}", fileName );
         return;
     }
 
@@ -133,7 +133,8 @@ SMT::calcTileBytes()
         }
     }
     else {
-        LOG( FATAL ) << "Invalid tiletype: " << tileType;
+        spdlog::critical("Invalid tiletype: {}", tileType );
+        exit(1);
     }
 }
 
@@ -141,7 +142,10 @@ void
 SMT::load( )
 {
     ifstream inFile(fileName, ifstream::in);
-    CHECK( inFile.good() ) << "Failed to load: " << fileName;
+    if( inFile.good() ){
+        spdlog::critical( "Failed to load: {}", fileName );
+        exit(1);
+    }
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     calcTileBytes();
 
@@ -159,13 +163,15 @@ SMT::load( )
 
 
     if( header.nTiles != guessTiles || actualBytes != guessBytes ) {
-        LOG( WARN ) << "Possible Data Issue"
-            << "\n\t(" << fileName << ").header.nTiles:\033[40G" << header.nTiles
-            << "\n\tFile data bytes:\033[40G" << actualBytes
-            << "\n\tBytes per tile:\033[40G" << tileBytes
-            << "\n\tGuess Tiles:\033[40G" << guessTiles
-            << "\n\tGuess Bytes:\033[40G" << guessBytes
-            << "\n\tModulus remainder:\033[40G" << remainderBytes;
+        spdlog::warn(
+                R"(Possible Data Issue
+    ({}).header.nTiles:\033[40G{}
+    File data bytes:\033[40G{}
+    Bytes per tile:\033[40G{}
+    Guess Tiles:\033[40G{}
+    Guess Bytes:\033[40G{}
+    Modulus remainder:\033[40G)",
+                fileName, header.nTiles, actualBytes, tileBytes, guessTiles, guessBytes,  remainderBytes );
     }
 }
 
@@ -220,15 +226,15 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
 #ifdef DEBUG_IMG
         std::stringstream ss;
         ss << "SMT.appendDXT1.mip" << i << ".tif";
-        DLOG( INFO ) << "writing mip to file: " << ss.str();
+        spdlog::info( "writing mip to file: " << ss.str();
         tempBuf->write( ss.str(), "tif" );
 #endif
         spec = tempBuf->specmod();
-        DLOG( INFO ) << "mip: " << i << ", size: " << spec.width << "x" << spec.height << "x" << spec.nchannels;
+        spdlog::info( "mip: {}, size: {}x{}x{}" , i, spec.width, spec.height, spec.nchannels );
 
         blocks_size = squish::GetStorageRequirements(
             spec.width, spec.height, squish::kDxt1 );
-        DLOG( INFO ) << "dxt1 requires " << blocks_size << " bytes";
+        spdlog::info( "dxt1 requires {} bytes", blocks_size );
 
         // allocate memory the first time, will be re-used in subsequent runs.
         if( blocks == nullptr ) blocks = new squish::u8[ blocks_size ];
@@ -237,15 +243,18 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
         // kColourRangeFit = faster|poor quality
         // kColourMetricPerceptual = default|default
         // kColourIterativeClusterFit = slow|high quality
-        CHECK( tempBuf->localpixels() ) << "pixel data unavailable";
+        if( !tempBuf->localpixels() ){
+            spdlog::critical( "pixel data unavailable" );
+            exit(1);
+        }
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
             spec.width, spec.height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-        DLOG( INFO ) << "\n" << image_to_hex( (const uint8_t *)tempBuf->localpixels(), spec.width, spec.height );
-        DLOG( INFO ) << "\n" << image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 );
+        spdlog::info( "\n{}", image_to_hex( (const uint8_t *)tempBuf->localpixels(), spec.width, spec.height ) );
+        spdlog::info( "\n()", image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 ) );
 
         // Write data to smf
-        DLOG( INFO ) << "writing " << blocks_size << " to " << fileName;
+        spdlog::info( "writing {} to {}", blocks_size, fileName );
         file.write( (char*)blocks, blocks_size );
 
         spec = ImageSpec(spec.width >> 1, spec.height >> 1, spec.nchannels, spec.format );
@@ -307,13 +316,18 @@ SMT::getTile( uint32_t n )
 std::unique_ptr< OIIO::ImageBuf >
 SMT::getTileDXT1( const uint32_t n )
 {
-    CHECK( n >= 0 && n < header.nTiles ) << "tile index:" << n
-        << " is out of range 0-" << header.nTiles;
+    if( !(n >= 0 && n < header.nTiles )) {
+        spdlog::critical("tile index:{} is out of range 0-{}", n, header.nTiles );
+        exit(1);
+    }
 
     std::unique_ptr< char > raw_dxt1a( new char[ tileBytes ] );
 
     ifstream file( fileName );
-    CHECK( file.good() ) << "Failed to open file for reading" ;
+    if(! file.good() ){
+        spdlog::critical( "Failed to open file:'{}' for reading", fileName );
+        exit(1);
+    }
 
     file.seekg( sizeof(SMT::Header) + tileBytes * n );
     file.read( (char *)raw_dxt1a.get(), tileBytes );

@@ -1,4 +1,4 @@
-#include <elog.h>
+#include <spdlog/spdlog.h>
 
 #include "option_args.h"
 #include "smf.h"
@@ -39,11 +39,11 @@ int main( int argc, char **argv )
         else exit( 1 );
     }
 
-    if( options[ QUIET ] )LOG::SetDefaultLoggerLevel( LOG::CHECK );
+    if( options[ QUIET ] )spdlog::set_level(spdlog::level::off);
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        LOG( ERROR ) << "Unknown option: " << std::string( opt->name,opt->namelen );
+        spdlog::error( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
     }
 
     if( parse.error() ) exit( 1 );
@@ -54,11 +54,11 @@ int main( int argc, char **argv )
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf = SMF::open( parse.nonOption( i ) );
         if(! smf ){
-            LOG( ERROR ) << "cannot open smf file";
+            spdlog::error( "cannot open smf file" );
             retVal = 1;
         }
         else {
-            LOG(INFO) << "\n" << smf->info();
+            spdlog::info( smf->info() );
             smf->good();
             delete smf;
         }
