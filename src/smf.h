@@ -89,8 +89,8 @@ class SMF {
         HeaderExtn_Grass( ) : HeaderExtn( 12, 1 ){ };
     };
 
-    OpenImageIO::ImageSpec _heightSpec;
-    OpenImageIO::ImageSpec _typeSpec;
+    OIIO::ImageSpec _heightSpec;
+    OIIO::ImageSpec _typeSpec;
 
     /*! Tile Section Header.
      *
@@ -111,10 +111,10 @@ class SMF {
     std::vector< std::pair< uint32_t, std::string > > _smtList;
 
     uint32_t _mapPtr;         ///< pointer to beginning of the tilemap
-    OpenImageIO::ImageSpec _mapSpec;
+    OIIO::ImageSpec _mapSpec;
 
-    OpenImageIO::ImageSpec _miniSpec;
-    OpenImageIO::ImageSpec _metalSpec;
+    OIIO::ImageSpec _miniSpec;
+    OIIO::ImageSpec _metalSpec;
 
     /*! Features Section Header.
      *
@@ -143,12 +143,12 @@ class SMF {
     };
     std::vector< SMF::Feature > _features;
 
-    OpenImageIO::ImageSpec _grassSpec;
+    OIIO::ImageSpec _grassSpec;
 
     // == Internal Utility Functions ==
-    OpenImageIO::ImageBuf *getImage( uint32_t ptr, OpenImageIO::ImageSpec spec );
-    bool writeImage( uint32_t ptr, OpenImageIO::ImageSpec spec,
-            OpenImageIO::ImageBuf *sourceBuf = nullptr );
+    OIIO::ImageBuf *getImage( uint32_t ptr, OIIO::ImageSpec spec );
+    bool writeImage( uint32_t ptr, OIIO::ImageSpec spec,
+                     OIIO::ImageBuf *sourceBuf = nullptr );
 
 public:
     //TODO Doxygen documentation
@@ -276,41 +276,41 @@ public:
     //TODO Doxygen documentation
     void writeExtraHeaders();
     //TODO Doxygen documentation
-    void writeHeight  ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeHeight  ( OIIO::ImageBuf *buf = nullptr );
     //TODO Doxygen documentation
-    void writeType    ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeType    ( OIIO::ImageBuf *buf = nullptr );
     //TODO Doxygen documentation
     void writeTileHeader( );
     //TODO Doxygen documentation
     void writeMap     ( TileMap *tileMap = nullptr );
     //TODO Doxygen documentation
-    void writeMini    ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeMini    ( OIIO::ImageBuf *buf = nullptr );
     //TODO Doxygen documentation
-    void writeMetal   ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeMetal   ( OIIO::ImageBuf *buf = nullptr );
     //TODO Doxygen documentation
     void writeFeatures();
     // Extra
     //TODO Doxygen documentation
-    void writeGrass   ( OpenImageIO::ImageBuf *buf = nullptr );
+    void writeGrass   ( OIIO::ImageBuf *buf = nullptr );
 
     //TODO Doxygen documentation
-    OpenImageIO::ImageBuf *getHeight();
+    OIIO::ImageBuf *getHeight();
     //TODO Doxygen documentation
-    OpenImageIO::ImageBuf *getType();
+    OIIO::ImageBuf *getType();
     //TODO Doxygen documentation
     std::vector< std::pair< uint32_t, std::string > >
             getSMTList(){ return _smtList; };
     //TODO Doxygen documentation
     TileMap *getMap();
     //TODO Doxygen documentation
-    OpenImageIO::ImageBuf *getMini();
+    OIIO::ImageBuf *getMini();
     //TODO Doxygen documentation
-    OpenImageIO::ImageBuf *getMetal();
+    OIIO::ImageBuf *getMetal();
     //TODO Doxygen documentation
     std::string getFeatureTypes();
     //TODO Doxygen documentation
     std::string getFeatures();
     //TODO Doxygen documentation
-    OpenImageIO::ImageBuf *getGrass();
+    OIIO::ImageBuf *getGrass();
 
 };

@@ -9,8 +9,8 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
-using OpenImageIO::ImageBufAlgo::computePixelHashSHA1;
-using OpenImageIO::TypeDesc;
+using OIIO::ImageBufAlgo::computePixelHashSHA1;
+using OIIO::TypeDesc;
 
 #include <elog.h>
 
@@ -126,7 +126,7 @@ main( int argc, char **argv )
     TileMap src_tileMap;
     TiledImage src_tiledImage;
     std::vector<uint32_t> src_filter;
-    OpenImageIO::ImageSpec sSpec;
+    OIIO::ImageSpec sSpec;
     uint32_t overlap = 0;
 
     // output
@@ -134,7 +134,7 @@ main( int argc, char **argv )
     std::string out_fileDir = "./";
     TileMap out_tileMap;
     uint32_t out_format = 1;
-    OpenImageIO::ImageSpec out_tileSpec( 32, 32, 4, TypeDesc::UINT8 );
+    OIIO::ImageSpec out_tileSpec( 32, 32, 4, TypeDesc::UINT8 );
     uint32_t out_img_width = 0, out_img_height = 0;
 
     // relative intermediate size
@@ -277,7 +277,7 @@ main( int argc, char **argv )
 
     // == SOURCE TILE SPEC ==
     {
-        std::unique_ptr< OpenImageIO::ImageBuf >
+        std::unique_ptr< OIIO::ImageBuf >
                 tempBuf(src_tileCache.getTile(0) );
         sSpec.width = tempBuf->spec().width;
         sSpec.height = tempBuf->spec().height;
@@ -405,8 +405,8 @@ main( int argc, char **argv )
     // == OUTPUT THE IMAGES ==
     int numTiles = 0;
     int numDupes = 0;
-    OpenImageIO::ROI roi = OpenImageIO::ROI::All();
-    std::unique_ptr< OpenImageIO::ImageBuf > out_buf;
+    OIIO::ROI roi = OIIO::ROI::All();
+    std::unique_ptr< OIIO::ImageBuf > out_buf;
     for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
         for( uint32_t x = 0; x < out_tileMap.width; ++x ){
             DLOG( INFO ) << "Processing split (" << x << ", " << y << ")";

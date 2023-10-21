@@ -25,7 +25,7 @@ public:
     /*
      *
      */
-    std::unique_ptr< OpenImageIO::ImageBuf > getTile(const uint32_t n);
+    std::unique_ptr< OIIO::ImageBuf > getTile(const uint32_t n);
 
     TileCache &operator=( const TileCache& rhs ){
         _nTiles = rhs._nTiles;

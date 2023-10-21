@@ -40,21 +40,21 @@ std::string to_hex(T i)
  *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
  *  If sourceBuf is nullptr then a blank image is returned.
  */
-std::unique_ptr< OpenImageIO::ImageBuf > fix_channels(
-    std::unique_ptr< OpenImageIO::ImageBuf> &&,
-    const OpenImageIO::ImageSpec & );
+std::unique_ptr< OIIO::ImageBuf > fix_channels(
+    std::unique_ptr< OIIO::ImageBuf> &&,
+    const OIIO::ImageSpec & );
 
-void channels( OpenImageIO::ImageBuf *&sourceBuf,
-        OpenImageIO::ImageSpec spec );
+void channels( OIIO::ImageBuf *&sourceBuf,
+               OIIO::ImageSpec spec );
 
 /// Scales an ImageBuf according to a given ImageSpec
 /* in place scale */
-std::unique_ptr< OpenImageIO::ImageBuf > fix_scale(
-    std::unique_ptr< OpenImageIO::ImageBuf> &&,
-    const OpenImageIO::ImageSpec & );
+std::unique_ptr< OIIO::ImageBuf > fix_scale(
+    std::unique_ptr< OIIO::ImageBuf> &&,
+    const OIIO::ImageSpec & );
 
-void scale( OpenImageIO::ImageBuf *&sourceBuf,
-        OpenImageIO::ImageSpec spec );
+void scale( OIIO::ImageBuf *&sourceBuf,
+            OIIO::ImageSpec spec );
 
 /// output a progress indicator
 void progressBar( std::string message, float goal, float progress );

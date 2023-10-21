@@ -29,17 +29,17 @@ private:
 
     void calcTileBytes();
     uint32_t _tileBytes = 680; 
-    OpenImageIO::ImageSpec _tileSpec;
+    OIIO::ImageSpec _tileSpec;
 
     //! load data from fileName
     void load();
     
-    void appendDXT1(   const OpenImageIO::ImageBuf & );
-    void appendRGBA8(  const OpenImageIO::ImageBuf & );
-    void appendUSHORT( const OpenImageIO::ImageBuf & );
-	std::unique_ptr< OpenImageIO::ImageBuf> getTileDXT1( const uint32_t );
-    OpenImageIO::ImageBuf *getTileRGBA8( uint32_t );
-    OpenImageIO::ImageBuf *getTileUSHORT( uint32_t );
+    void appendDXT1(   const OIIO::ImageBuf & );
+    void appendRGBA8(  const OIIO::ImageBuf & );
+    void appendUSHORT( const OIIO::ImageBuf & );
+	std::unique_ptr< OIIO::ImageBuf> getTileDXT1( const uint32_t );
+    OIIO::ImageBuf *getTileRGBA8( uint32_t );
+    OIIO::ImageBuf *getTileUSHORT( uint32_t );
 
 public:
 
@@ -49,7 +49,7 @@ public:
     const uint32_t &tileType = header.tileType;
     const uint32_t &tileSize = header.tileSize;
     const uint32_t &tileBytes = _tileBytes;
-    const OpenImageIO::ImageSpec &tileSpec = _tileSpec;
+    const OIIO::ImageSpec &tileSpec = _tileSpec;
     
 
     SMT( ){ };
@@ -77,6 +77,6 @@ public:
     void setType    ( uint32_t t ); // 1=DXT1
     void setFileName( std::string name );
 
-	std::unique_ptr< OpenImageIO::ImageBuf > getTile( const uint32_t );
-    void append( const OpenImageIO::ImageBuf & );
+	std::unique_ptr< OIIO::ImageBuf > getTile( const uint32_t );
+    void append( const OIIO::ImageBuf & );
 };

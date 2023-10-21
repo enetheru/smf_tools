@@ -1,6 +1,8 @@
-cmake_minimum_required( VERSION 2.6 )
+cmake_minimum_required( VERSION 3.24.0 )
 
 project(mapconv)
+
+option( CMAKE_VERBOSE_MAKEFILE "")
 
 # Configuration
 # =============
@@ -17,7 +19,7 @@ OPTION( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
 # Compiler
 # --------
-set( CMAKE_CXX_FLAGS "-Wall -std=c++11" )
+set( CMAKE_CXX_FLAGS "-Wall -std=c++17" )
 
 # CMake
 # -----
@@ -25,31 +27,20 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Dependencies
 # ============
-find_package(OpenImageIO REQUIRED)
-include_directories(${OpenImageIO_INCLUDE_DIRS})
-set( LIBS ${LIBS} ${OPENIMAGEIO_LIBRARY} )
+find_package( CMath REQUIRED )
+find_package( OpenImageIO REQUIRED )
+find_package( Boost REQUIRED COMPONENTS thread filesystem )
+find_package( OpenEXR REQUIRED )
+find_package( libjpeg-turbo REQUIRED )
+find_package( ZLIB REQUIRED )
+find_package( TIFF REQUIRED HINTS C:/src/libTIFF/cmake-build-debug/lib/cmake/tiff/)
 
-find_package(Boost REQUIRED COMPONENTS system)
-set( LIBS ${LIBS} ${Boost_LIBRARIES} )
-
-find_package(libSquish)
-if (NOT LIBSQUISH_FOUND)
-    add_subdirectory(ext/squish)
-    set(LIBSQUISH_LIBRARIES "squish")
-    include_directories(ext/squish)
-else()
-    include_directories( ${LIBSQUISH_INCLUDE_DIR} )
-endif()
-set( LIBS ${LIBS} ${LIBSQUISH_LIBRARIES} )
+add_subdirectory( ext/squish )
 
 # we dont want to use external googletest
-add_definitions( -DGTEST_USE_OWN_TR1_TUPLE=0 )
-add_subdirectory( ext/googletest )
-set( GTEST_LIBS "gtest" "gtest_main" )
-
-# header onlylibs
-include_directories( ext/elog )
-include_directories( ext/optionsparser )
+#add_definitions( -DGTEST_USE_OWN_TR1_TUPLE=0 )
+#add_subdirectory( ext/googletest )
+#set( GTEST_LIBS "gtest" "gtest_main" )
 
 # sub directories
 # ===============
@@ -57,9 +48,9 @@ add_subdirectory( src )
 
 # Testing
 # =======
-enable_testing()
-add_subdirectory( ctest )
-add_subdirectory( gtest )
+#enable_testing()
+#add_subdirectory( ctest )
+#add_subdirectory( gtest )
 
 # CPack
 # =====

@@ -189,7 +189,7 @@ SMT::info( )
 }
 
 void
-SMT::append( const OpenImageIO::ImageBuf &sourceBuf )
+SMT::append( const OIIO::ImageBuf &sourceBuf )
 {
     //sourceBuf.write( "SMT_append_sourcebuf.tif", "tif" );
 
@@ -199,10 +199,10 @@ SMT::append( const OpenImageIO::ImageBuf &sourceBuf )
 }
 
 void
-SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
+SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
 {
     // make a copy of the input buffer for processing
-    std::unique_ptr< OpenImageIO::ImageBuf >
+    std::unique_ptr< OIIO::ImageBuf >
             tempBuf( new ImageBuf( sourceBuf ) );
 
     // imagespec will let us work through the image contents
@@ -264,10 +264,10 @@ SMT::appendDXT1( const OpenImageIO::ImageBuf &sourceBuf )
 }
 
 void
-SMT::appendRGBA8( const OpenImageIO::ImageBuf &sourceBuf )
+SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf )
 {
-    std::unique_ptr< OpenImageIO::ImageBuf >
-            tempBuf( new OpenImageIO::ImageBuf( sourceBuf ) );
+    std::unique_ptr< OIIO::ImageBuf >
+            tempBuf( new OIIO::ImageBuf( sourceBuf ) );
 
     ImageSpec spec;
     fstream file(fileName, ios::binary | ios::in | ios::out);
@@ -293,22 +293,22 @@ SMT::appendRGBA8( const OpenImageIO::ImageBuf &sourceBuf )
 }
 
 void
-SMT::appendUSHORT( const OpenImageIO::ImageBuf &sourceBuf )
+SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf )
 {
     return;
 }
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< OIIO::ImageBuf >
 SMT::getTile( uint32_t n )
 {
     if( tileType == 1                 ) return getTileDXT1( n );
 //    if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
 //    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
-    std::unique_ptr< OpenImageIO::ImageBuf > temp;
+    std::unique_ptr< OIIO::ImageBuf > temp;
     return temp;
 }
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< OIIO::ImageBuf >
 SMT::getTileDXT1( const uint32_t n )
 {
     CHECK( n >= 0 && n < header.nTiles ) << "tile index:" << n
@@ -329,12 +329,12 @@ SMT::getTileDXT1( const uint32_t n )
     squish::DecompressImage( (squish::u8 *)( rgba8888.get() ),
             header.tileSize, header.tileSize, raw_dxt1a.get(), squish::kDxt1 );
 
-    std::unique_ptr< OpenImageIO::ImageBuf >
+    std::unique_ptr< OIIO::ImageBuf >
         tempBuf( new ImageBuf( fileName + "_" + to_string( n ),
                 tileSpec, rgba8888.get() ) );
 
-    std::unique_ptr< OpenImageIO::ImageBuf >
-            outBuf( new OpenImageIO::ImageBuf );
+    std::unique_ptr< OIIO::ImageBuf >
+            outBuf( new OIIO::ImageBuf );
     outBuf->copy( *tempBuf );
 
     return outBuf;

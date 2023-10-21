@@ -63,13 +63,12 @@ struct Arg: public option::Arg
 
     static option::ArgStatus Image( const option::Option& option, bool msg)
     {
-        OpenImageIO::ImageInput *image = OpenImageIO::ImageInput::open( option.arg );
+        auto image = OIIO::ImageInput::open( option.arg );
         if(! image ){
             LOG( ERROR ) << "Option '" << option.name << "' cannot find file: " << option.arg;
             return option::ARG_ILLEGAL;
         } else {
             image->close();
-            OpenImageIO::ImageInput::destroy( image );
             return option::ARG_OK;
         }
     }

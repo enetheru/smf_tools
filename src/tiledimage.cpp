@@ -152,7 +152,7 @@ TiledImage::getRegion(
         if( index != index_p ){
             // create blank tile if index is out of range
             if( index >= tileCache.nTiles ){
-                currentTile.reset( new OpenImageIO::ImageBuf( tSpec ) );
+                currentTile.reset( new OIIO::ImageBuf( tSpec ) );
             } else {
                 currentTile = tileCache.getTile(index);
                 // possibility exists that the tile cache will give us a tile that

@@ -85,7 +85,7 @@ main( int argc, char **argv )
     }
 
     std::fstream file;
-    OpenImageIO::ImageBuf *buf = nullptr; //FIXME is buf really needed here?
+    OIIO::ImageBuf *buf = nullptr; //FIXME is buf really needed here?
     TileMap *tileMap = nullptr;
 
     LOG( INFO ) << "Extracting Header Info";

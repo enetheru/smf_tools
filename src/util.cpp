@@ -72,10 +72,10 @@ expandString( const char *s )
     return result;
 }
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< OIIO::ImageBuf >
 fix_channels(
-    std::unique_ptr< OpenImageIO::ImageBuf> && inBuf,
-    const OpenImageIO::ImageSpec &spec )
+    std::unique_ptr< OIIO::ImageBuf> && inBuf,
+    const OIIO::ImageSpec &spec )
 {
     OIIO_NAMESPACE_USING;
 
@@ -91,13 +91,13 @@ fix_channels(
     if( inBuf->spec().nchannels < 2 ) map[1] = -1;
 
     // Otherwise update channels to spec channels
-    std::unique_ptr< OpenImageIO::ImageBuf > outBuf( new OpenImageIO::ImageBuf );
+    std::unique_ptr< OIIO::ImageBuf > outBuf( new OIIO::ImageBuf );
     ImageBufAlgo::channels( *outBuf, *inBuf, spec.nchannels, map, fill );
     return outBuf;
 }
 
 void
-channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
+channels( OIIO::ImageBuf *&sourceBuf, OIIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
     int map[] = { 0, 1, 2, 3 };
@@ -119,10 +119,10 @@ channels( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
     sourceBuf = tempBuf;
 }
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< OIIO::ImageBuf >
 fix_scale(
-    std::unique_ptr< OpenImageIO::ImageBuf> && inBuf,
-    const OpenImageIO::ImageSpec &spec )
+    std::unique_ptr< OIIO::ImageBuf> && inBuf,
+    const OIIO::ImageSpec &spec )
 {
     OIIO_NAMESPACE_USING;
     using std::unique_ptr;
@@ -156,11 +156,11 @@ fix_scale(
 
 //REMOVE
 void
-scale( OpenImageIO::ImageBuf *&sourceBuf, OpenImageIO::ImageSpec spec )
+scale( OIIO::ImageBuf *&sourceBuf, OIIO::ImageSpec spec )
 {
     OIIO_NAMESPACE_USING;
 
-    const OpenImageIO::ImageSpec srcSpec = sourceBuf->spec();
+    const OIIO::ImageSpec srcSpec = sourceBuf->spec();
     CHECK( sourceBuf ) << "nullptr passed to scale()";
 
     // do nothing if the original if its the correct size.

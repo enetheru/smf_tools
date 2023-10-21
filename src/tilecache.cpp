@@ -13,12 +13,12 @@
 #include "smf.h"
 #include "tilecache.h"
 
-std::unique_ptr< OpenImageIO::ImageBuf >
+std::unique_ptr< OIIO::ImageBuf >
 //FIXME remove the 2 once all is said and done
 TileCache::getTile(const uint32_t n)
 {
-    std::unique_ptr< OpenImageIO::ImageBuf >
-        outBuf( new OpenImageIO::ImageBuf );
+    std::unique_ptr< OIIO::ImageBuf >
+        outBuf( new OIIO::ImageBuf );
 
     // returning an unitialized imagebuf is not a good idea
     CHECK( n < nTiles ) << "getTile( " << n << ") request out of range 0-" << nTiles ;
@@ -64,10 +64,9 @@ void
 TileCache::addSource( const std::string fileName )
 {
     OIIO_NAMESPACE_USING;
-    ImageInput *image = nullptr;
-    if( (image = ImageInput::open( fileName )) ){
+    auto image = ImageInput::open( fileName );
+    if( image ){
         image->close();
-        delete image;
 
         _nTiles++;
         map.push_back( nTiles );
