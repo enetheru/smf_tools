@@ -1,15 +1,15 @@
-#include <cstdint>
-
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 
 #include <elog.h>
 
+#include <utility>
+
 #include "smf_tools.h"
 #include "tiledimage.h"
 #include "util.h"
 
-OIIO_NAMESPACE_USING;
+OIIO_NAMESPACE_USING
 
 // CONSTRUCTORS
 // ============
@@ -25,7 +25,7 @@ TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
 // ============
 
 void
-TiledImage::setTileMap( TileMap inTileMap )
+TiledImage::setTileMap( const TileMap& inTileMap )
 {
     CHECK( inTileMap.width ) << "tilemap has no width";
     CHECK( inTileMap.height ) << "tilemap has no height";
@@ -48,7 +48,7 @@ TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 void
 TiledImage::setTSpec( ImageSpec spec )
 {
-    _tSpec = spec;
+    _tSpec = std::move(spec);
 }
 
 void
@@ -66,7 +66,7 @@ TiledImage::setOverlap( uint32_t overlap )
 }
 
 void
-TiledImage::mapFromCSV( std::string fileName )
+TiledImage::mapFromCSV( const std::string& fileName )
 {
     tileMap.fromCSV( fileName );
 }
@@ -88,13 +88,13 @@ TiledImage::squareFromCache( )
 // ======
 
 uint32_t
-TiledImage::getWidth()
+TiledImage::getWidth() const
 {
     return tileMap.width * (tSpec.width - overlap) + overlap;
 }
 
 uint32_t
-TiledImage::getHeight()
+TiledImage::getHeight() const
 {
     return tileMap.height * (tSpec.height - overlap) + overlap;
 }
@@ -155,10 +155,10 @@ TiledImage::getRegion(
                 currentTile.reset( new OIIO::ImageBuf( tSpec ) );
             } else {
                 currentTile = tileCache.getTile(index);
-                // possibility exists that the tile cache will give us a tile that
-                // has dimensions other than expected. so lets check and scale.
+                // A possibility exists that the tile cache will give us a tile that
+                // has dimensions other than expected. So let's check and scale.
                 currentTile = fix_scale( std::move( currentTile ), tSpec );
-                // its possible that the tile retrieved has different channels
+                // it's possible that the tile retrieved has different channels
                 // than the tiledImage spec
                 currentTile = fix_channels( std::move( currentTile ), tSpec );
             }
@@ -176,7 +176,7 @@ TiledImage::getRegion(
             ix = roi.xbegin;
             iy += cw.height();
             if( int( iy ) >= roi.yend ){
-                //then weve copied all the data and exit;
+                //then we've copied all the data and exit;
                 break;
             }
         }
@@ -184,7 +184,7 @@ TiledImage::getRegion(
 #ifdef DEBUG_IMG
     outBuf->write( "TiledImage.getRegion.tif", "tif" );
 #endif
-    return std::move( outBuf );
+    return outBuf ;
 }
 
 std::unique_ptr< ImageBuf >

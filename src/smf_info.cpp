@@ -18,7 +18,7 @@ const option::Descriptor usage[] = {
         "  -h,  \t--help  \tPrint usage and exit." },
     { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress output, except warnings and errors" },
-    { 0, 0, 0, 0, 0, 0 }
+    { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
 
@@ -28,8 +28,8 @@ int main( int argc, char **argv )
     // ==============
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
-    option::Option* options = new option::Option[ stats.options_max ];
-    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    auto* options = new option::Option[ stats.options_max ];
+    auto* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
     if( options[ HELP ] || parse.nonOptionsCount() == 0 ) {
@@ -48,7 +48,7 @@ int main( int argc, char **argv )
 
     if( parse.error() ) exit( 1 );
 
-    // all non options are treated as smf's options
+    // all non-options are treated as smf's options
     SMF *smf;
     int retVal = 0;
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){

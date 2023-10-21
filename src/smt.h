@@ -5,7 +5,7 @@
 #include <OpenImageIO/imagebuf.h>
 
 // Borrowing from OpenGL for texture compression formats for implementation
-#define GL_UNSIGNED_SHORT                 0x1403
+#define GL_UNSIGNED_SHORT       0x1403
 #define GL_RGBA8				0x8058
 
 class SMT {
@@ -13,7 +13,7 @@ public:
     /*! Header Structure as written on disk.
      */
     struct Header {
-        char magic[16] = "spring tilefile";   //!< "spring tilefile\0"
+        [[maybe_unused]] char magic[16] = "spring tilefile";   //!< "spring tilefile\0"
         uint32_t version = 1;      //!< must be 1 for now
         uint32_t nTiles = 0;       //!< total number of tiles in this file
         uint32_t tileSize = 32;    //!< x and y dimension of tiles, must remain 32 for now.
@@ -37,7 +37,7 @@ private:
     void appendDXT1(   const OIIO::ImageBuf & );
     void appendRGBA8(  const OIIO::ImageBuf & );
     void appendUSHORT( const OIIO::ImageBuf & );
-	std::unique_ptr< OIIO::ImageBuf> getTileDXT1( const uint32_t );
+	std::unique_ptr< OIIO::ImageBuf> getTileDXT1( uint32_t );
     OIIO::ImageBuf *getTileRGBA8( uint32_t );
     OIIO::ImageBuf *getTileUSHORT( uint32_t );
 
@@ -52,7 +52,7 @@ public:
     const OIIO::ImageSpec &tileSpec = _tileSpec;
     
 
-    SMT( ){ };
+    SMT( )= default;
 
     /*! File type test.
      *
@@ -60,15 +60,15 @@ public:
      * @return true if file is an spring tile file. and false if anything
      * else
      */
-    static bool test  ( std::string fileName );
+    static bool test  ( const std::string& fileName );
 
     /*! Create a new SMT file
      *
      * @param fileName The name of the file to write to disk.
      * @param overwrite if true; clobbers existing file data.
      */
-    static SMT *create( std::string fileName, bool overwrite = false );
-    static SMT *open  ( std::string fileName );
+    static SMT *create( const std::string& fileName, bool overwrite = false );
+    static SMT *open  ( const std::string& fileName );
 
     void reset( );
     std::string info();
@@ -77,6 +77,6 @@ public:
     void setType    ( uint32_t t ); // 1=DXT1
     void setFileName( std::string name );
 
-	std::unique_ptr< OIIO::ImageBuf > getTile( const uint32_t );
+	std::unique_ptr< OIIO::ImageBuf > getTile( uint32_t );
     void append( const OIIO::ImageBuf & );
 };

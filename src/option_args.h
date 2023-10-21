@@ -26,7 +26,7 @@ struct Arg: public option::Arg
 
     static option::ArgStatus Required(const option::Option& option, bool msg)
     {
-        if (option.arg != 0)
+        if (option.arg != nullptr)
             return option::ARG_OK;
 
         if (msg) printError("Option '", option, "' requires an argument\n");
@@ -35,8 +35,8 @@ struct Arg: public option::Arg
 
     static option::ArgStatus Numeric(const option::Option& option, bool msg)
     {
-        char* endptr = 0;
-        if (option.arg != 0 && strtof(option.arg, &endptr)){};
+        char* endptr = nullptr;
+        if (option.arg != nullptr && strtof(option.arg, &endptr)){}
         if (endptr != option.arg && *endptr == 0)
             return option::ARG_OK;
 

@@ -6,7 +6,6 @@
 
 #include "option_args.h"
 #include "smf.h"
-#include "util.h"
 
 enum optionsIndex
 {
@@ -26,7 +25,7 @@ const option::Descriptor usage[] = {
         "  -v,  \t--verbose  \tMOAR output." },
     { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress Output." },
-    { 0, 0, 0, 0, 0, 0 }
+    { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
 int
@@ -37,8 +36,8 @@ main( int argc, char **argv )
     bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
-    option::Option* options = new option::Option[ stats.options_max ];
-    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    auto* options = new option::Option[ stats.options_max ];
+    auto* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
     // Help Message
@@ -68,7 +67,7 @@ main( int argc, char **argv )
     }
 
     for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        LOG( WARN ) << "Superflous Argument: " << parse.nonOption( i );
+        LOG( WARN ) << "Superfluous Argument: " << parse.nonOption( i );
         fail = true;
     }
 
@@ -78,15 +77,15 @@ main( int argc, char **argv )
     }
     // end of options parsing
 
-    SMF *smf = nullptr;
+    SMF *smf;
     if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
         LOG( ERROR ) << "cannot open " << parse.nonOption(0);
         exit( 1 );
     }
 
     std::fstream file;
-    OIIO::ImageBuf *buf = nullptr; //FIXME is buf really needed here?
-    TileMap *tileMap = nullptr;
+    OIIO::ImageBuf *buf; //FIXME is buf really needed here?
+    TileMap *tileMap;
 
     LOG( INFO ) << "Extracting Header Info";
     file.open( "out_Header_Info.txt", std::ios::out );
@@ -95,11 +94,12 @@ main( int argc, char **argv )
 
     LOG( INFO ) << "Extracting height image";
     buf = smf->getHeight();
-    buf->write("out_height.tif", "tif" );
+    buf->write( "out_height.tif", OIIO::TypeUnknown, "tif" );
+
 
     LOG( INFO ) << "Extracting type image";
     buf = smf->getType();
-    buf->write("out_type.tif", "tif");
+    buf->write("out_type.tif", OIIO::TypeUnknown, "tif");
 
     LOG( INFO ) << "Extracting map image";
     tileMap = smf->getMap();
@@ -109,11 +109,11 @@ main( int argc, char **argv )
 
     LOG( INFO ) << "Extracting mini image";
     buf = smf->getMini();
-    buf->write("out_mini.tif", "tif");
+    buf->write("out_mini.tif", OIIO::TypeUnknown, "tif");
 
     LOG( INFO ) << "Extracting metal image";
     buf = smf->getMetal();
-    buf->write("out_metal.tif", "tif");
+    buf->write("out_metal.tif", OIIO::TypeUnknown, "tif");
 
     LOG( INFO ) << "Extracting featureList";
     file.open( "out_featuretypes.txt", std::ios::out );
@@ -128,7 +128,7 @@ main( int argc, char **argv )
     buf = smf->getGrass();
     if( buf ){
         LOG( INFO ) << "Extracting grass image";
-        buf->write("out_grass.tif", "tif");
+        buf->write("out_grass.tif", OIIO::TypeUnknown, "tif");
     }
     return 0;
 }

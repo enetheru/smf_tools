@@ -13,7 +13,7 @@
 #include "util.h"
 
 std::pair< uint32_t, uint32_t >
-valxval( const std::string input )
+valxval( const std::string& input )
 {
     std::pair< uint32_t, uint32_t> result;
 
@@ -51,68 +51,68 @@ expandString( const char *s )
             try {
                 start = std::stoi( std::string( begin, s ) );
             }
-            catch( std::invalid_argument ){
+            catch (std::invalid_argument const& ex) {
                 fail = true;
+                LOG( ERROR ) << ex.what() << '\n';
             }
         } else {
             sequence = false;
             try {
                 result.push_back( std::stoi( std::string( begin, s ) ) );
             }
-            catch( std::invalid_argument ){
+            catch (std::invalid_argument const& ex) {
                 fail = true;
+                LOG( ERROR ) << ex.what() << '\n';
             }
         }
     }
     while( *s++ != '\0' );
 
     if( fail ){
-        LOG( WARN ) << "Possible Parse Error while spliting filter string";
+        LOG( WARN ) << "Possible Parse Error while splitting filter string";
     }
     return result;
 }
 
 std::unique_ptr< OIIO::ImageBuf >
-fix_channels(
-    std::unique_ptr< OIIO::ImageBuf> && inBuf,
-    const OIIO::ImageSpec &spec )
-{
-    OIIO_NAMESPACE_USING;
+fix_channels( std::unique_ptr< OIIO::ImageBuf> && inBuf,
+              const OIIO::ImageSpec &spec ) {
+    OIIO_NAMESPACE_USING
 
     int map[] = { 0, 1, 2, 3 };
     static const float fill[] = { 0, 0, 0, 1.0 };
 
     CHECK( inBuf ) << "nullptr passed to fix_channels()";
 
-    // return a copy of the original if its the correct size.
+    // return a copy of the original if it's the correct size.
     if( inBuf->spec().nchannels == spec.nchannels ) return std::move( inBuf );
     if( inBuf->spec().nchannels < 4 ) map[3] = -1;
     if( inBuf->spec().nchannels < 3 ) map[2] = -1;
     if( inBuf->spec().nchannels < 2 ) map[1] = -1;
 
-    // Otherwise update channels to spec channels
+    // otherwise, update channels to spec channels
     std::unique_ptr< OIIO::ImageBuf > outBuf( new OIIO::ImageBuf );
     ImageBufAlgo::channels( *outBuf, *inBuf, spec.nchannels, map, fill );
     return outBuf;
 }
 
 void
-channels( OIIO::ImageBuf *&sourceBuf, OIIO::ImageSpec spec )
+channels( OIIO::ImageBuf *&sourceBuf, const OIIO::ImageSpec& spec )
 {
-    OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING
     int map[] = { 0, 1, 2, 3 };
     float fill[] = { 0, 0, 0, 1.0 };
 
     CHECK( sourceBuf ) << "nullptr passed to channels()";
 
-    // return a copy of the original if its the correct size.
+    // return a copy of the original if it's the correct size.
     if( sourceBuf->spec().nchannels == spec.nchannels ) return;
     if( sourceBuf->spec().nchannels < 4 ) map[3] = -1;
     if( sourceBuf->spec().nchannels < 3 ) map[2] = -1;
     if( sourceBuf->spec().nchannels < 2 ) map[1] = -1;
 
-    // Otherwise update channels to spec channels
-    ImageBuf *tempBuf = new ImageBuf;
+    // otherwise, update channels to spec channels
+    auto *tempBuf = new ImageBuf;
     ImageBufAlgo::channels( *tempBuf, *sourceBuf, spec.nchannels, map, fill );
     sourceBuf->clear();
     delete sourceBuf;
@@ -124,7 +124,7 @@ fix_scale(
     std::unique_ptr< OIIO::ImageBuf> && inBuf,
     const OIIO::ImageSpec &spec )
 {
-    OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING
     using std::unique_ptr;
 
     CHECK( inBuf ) << "nullptr passed to fix_scale()";
@@ -141,7 +141,7 @@ fix_scale(
     unique_ptr< ImageBuf > outBuf( new ImageBuf );
 
     // BUG with workaround
-    // resample is faster but creates black outlines when scaling up, so only
+    // 'resample' is faster but creates black outlines when scaling up, so only
     // use it for scaling down.
     if( (spec.width  < inBuf->spec().width )
      && (spec.height < inBuf->spec().height) ){
@@ -156,23 +156,23 @@ fix_scale(
 
 //REMOVE
 void
-scale( OIIO::ImageBuf *&sourceBuf, OIIO::ImageSpec spec )
+scale( OIIO::ImageBuf *&sourceBuf, const OIIO::ImageSpec& spec )
 {
-    OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING
 
     const OIIO::ImageSpec srcSpec = sourceBuf->spec();
     CHECK( sourceBuf ) << "nullptr passed to scale()";
 
-    // do nothing if the original if its the correct size.
+    // do nothing if the original is the correct size.
     if( srcSpec.width == spec.width && srcSpec.height == spec.height ){
         return;
     }
 
     // Otherwise scale
     ROI roi(0, spec.width, 0, spec.height, 0, 1, 0, srcSpec.nchannels );
-    ImageBuf *tempBuf = new ImageBuf;
+    auto *tempBuf = new ImageBuf;
 
-    // resmple is faster but creates black outlines when scaling up, so only
+    // resample is faster but creates black outlines when scaling up, so only
     // use it for scaling down.
     if( spec.width < srcSpec.width && spec.height < srcSpec.height ){
         ImageBufAlgo::resample( *tempBuf, *sourceBuf, false, roi );
@@ -187,7 +187,7 @@ scale( OIIO::ImageBuf *&sourceBuf, OIIO::ImageSpec spec )
 }
 
 void
-progressBar( std::string header, float goal, float current )
+progressBar( const std::string& header, float goal, float current )
 {
     static uint32_t seconds;
     static uint32_t minutes;
@@ -244,7 +244,7 @@ progressBar( std::string header, float goal, float current )
 
     //construct the bar
     text << "\033[0G\033[2K"; // clear the current line and set the cursor position at the beginning
-    for( uint32_t i = 0; i < columns; ++i) text << "-"; //fill the output with a single dotten line
+    for( uint32_t i = 0; i < columns; ++i) text << "-"; //fill the output with a single dotted line
     text << "\033[G"; // reset the cursor position;
     text << header; // put the header on
     for( uint32_t i = 0; i < ratio * barSize; ++i) text << "#"; // fill in current progress
@@ -258,7 +258,7 @@ std::string
 image_to_hex( const uint8_t *data, int width, int height, int type ){
     // type 0 = UINT8
     // type 1 = DXT1
-    // for now lets just do the red channel
+    // for now let's do the red channel
     std::stringstream ss;
     if( type == 0 ){//RGBA8
         for( int j = 0; j < height; ++j ){
@@ -271,9 +271,9 @@ image_to_hex( const uint8_t *data, int width, int height, int type ){
     }
     if( type == 1 ){ //DXT1
         //in DXT1 each 4x4 block of pixels are represented by 64 bits
-        //i'm really only concerned if the data exist rather than how to
+        //I'm really only concerned if the data exist rather than how to
         //represent it in characters.
-        //i want to put the dxt1 blocks over 2 lines like:
+        //I want to put the dxt1 blocks over 2 lines like:
         //ABCD ABCD ABCD ABCD
         //DEFG DEFG DEFG DEFG
         //

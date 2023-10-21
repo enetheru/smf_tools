@@ -2,7 +2,6 @@
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
 #include <squish.h>
 #include <elog.h>
 
@@ -11,10 +10,10 @@
 #include "util.h"
 
 using namespace std;
-OIIO_NAMESPACE_USING;
+OIIO_NAMESPACE_USING
 
 SMT *
-SMT::create( string fileName, bool overwrite )
+SMT::create( const string& fileName, bool overwrite )
 {
     SMT *smt;
     ifstream file( fileName );
@@ -28,7 +27,7 @@ SMT::create( string fileName, bool overwrite )
 
 
 bool
-SMT::test( string fileName )
+SMT::test( const string& fileName )
 {
     char magic[ 16 ] = "";
     ifstream file( fileName );
@@ -43,7 +42,7 @@ SMT::test( string fileName )
 }
 
 SMT *
-SMT::open( string fileName )
+SMT::open( const string& fileName )
 {
     SMT *smt;
     if( test( fileName ) ){
@@ -147,10 +146,10 @@ SMT::load( )
     calcTileBytes();
 
     // do some simple checking of file size vs reported tile numbers
-    uint32_t actualBytes = 0;
-    uint32_t guessBytes = 0;
-    uint32_t guessTiles = 0;
-    uint32_t remainderBytes = 0;
+    uint32_t actualBytes;
+    uint32_t guessBytes;
+    uint32_t guessTiles;
+    uint32_t remainderBytes;
     inFile.seekg( 0, std::ios::end );
     actualBytes = (uint32_t)inFile.tellg() - 32;
     inFile.close();
@@ -209,7 +208,7 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
     ImageSpec spec;
     // block_size tells us how much memory to allocate per DXT compress cycle
     int blocks_size = 0;
-    // blocks is the resulting memory area for DXT1 compresed files
+    // blocks is the resulting memory area for DXT1 compressed files
     squish::u8 *blocks = nullptr;
 
     // open our filestream and get ready to start writing dxt images to it
@@ -293,10 +292,7 @@ SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf )
 }
 
 void
-SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf )
-{
-    return;
-}
+SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf ){ }
 
 std::unique_ptr< OIIO::ImageBuf >
 SMT::getTile( uint32_t n )

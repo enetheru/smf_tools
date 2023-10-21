@@ -15,17 +15,17 @@ class TileCache
     std::vector< std::string > fileNames;
 
 public:
-    // data accesa
+    // data access
     const uint32_t &nTiles = _nTiles;
 
     // modifications
-    void addSource( const std::string );
+    void addSource( const std::string& );
 
     /// get a tile from the cache
     /*
      *
      */
-    std::unique_ptr< OIIO::ImageBuf > getTile(const uint32_t n);
+    std::unique_ptr< OIIO::ImageBuf > getTile(uint32_t n);
 
     TileCache &operator=( const TileCache& rhs ){
         _nTiles = rhs._nTiles;

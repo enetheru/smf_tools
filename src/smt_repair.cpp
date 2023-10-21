@@ -34,7 +34,7 @@ const option::Descriptor usage[] = {
         "\nEXAMPLES:\n"
         "  smt_cc \n"
     },
-    { 0, 0, 0, 0, 0, 0 }
+    { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
 int
@@ -45,8 +45,8 @@ main( int argc, char **argv )
     bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
-    option::Option* options = new option::Option[ stats.options_max ];
-    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    auto* options = new option::Option[ stats.options_max ];
+    auto* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
     if( options[ HELP ] || argc == 0 ) {
@@ -84,7 +84,7 @@ main( int argc, char **argv )
     }
 
 // test file properties
-    SMT *smt = nullptr;
+    SMT *smt;
     if(! (smt = SMT::open( parse.nonOption( 0 ) )) ){
         LOG( ERROR ) << "\nunable to open file";
         exit ( 1 );

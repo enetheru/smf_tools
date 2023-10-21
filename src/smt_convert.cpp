@@ -3,7 +3,6 @@
 #include <vector>
 #include <iostream>
 #include <unordered_map>
-#include <sys/types.h>
 #include <sys/stat.h>
 
 #include <OpenImageIO/imagebuf.h>
@@ -101,14 +100,14 @@ const option::Descriptor usage[] = {
 "consider that each tile has a border of this width" },
     { DUPLI,            0, "d", "dupli",   Arg::Required,
 "  -d  \t--dupli=[None,Exact,Perceptual]\t"
-"default=Exact, whether to detect and omit duplcates." },
+"default=Exact, whether to detect and omit duplicates." },
 
     { SMTOUT,           0, "", "smt", Arg::None,
       "\t--smt\t"              "Save tiles to smt file" },
     { IMGOUT,           0, "", "img", Arg::None,
       "\t--img\t"              "Save tiles as images" },
 
-    { 0, 0, 0, 0, 0, 0 }
+    { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
 int
@@ -145,8 +144,8 @@ main( int argc, char **argv )
     bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
-    option::Option* options = new option::Option[ stats.options_max ];
-    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    auto* options = new option::Option[ stats.options_max ];
+    auto* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
     if( options[ HELP ] || argc == 0 ) {
@@ -246,7 +245,7 @@ main( int argc, char **argv )
     }
 
     // Output File Path
-    struct stat info;
+    struct stat info{};
     if( options[ OUTPUT_PATH ] ){
         out_fileDir = options[ OUTPUT_PATH ].arg;
         if( stat( out_fileDir.c_str(), &info ) != 0 ){
@@ -289,7 +288,7 @@ main( int argc, char **argv )
     // == FILTER ==
     if( options[ FILTER ] ){
         src_filter = expandString( options[ FILTER ].arg );
-        if( src_filter.size() == 0 ) {
+        if( src_filter.empty() ) {
             LOG( ERROR ) << "failed to interpret filter string";
             exit( 1 );
         }

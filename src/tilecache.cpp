@@ -1,6 +1,5 @@
 #include <string>
 #include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
 #include <elog.h>
 
 #include "smf_tools.h"
@@ -8,7 +7,6 @@
 #include <sstream>
 #endif
 
-#include "util.h"
 #include "smt.h"
 #include "smf.h"
 #include "tilecache.h"
@@ -20,10 +18,10 @@ TileCache::getTile(const uint32_t n)
     std::unique_ptr< OIIO::ImageBuf >
         outBuf( new OIIO::ImageBuf );
 
-    // returning an unitialized imagebuf is not a good idea
+    // returning an initialized imagebuf is not a good idea
     CHECK( n < nTiles ) << "getTile( " << n << ") request out of range 0-" << nTiles ;
 
-    SMT *smt = nullptr;
+    SMT *smt;
     static SMT *lastSmt = nullptr;
 
     // FIXME, what the fuck does this do?
@@ -40,7 +38,7 @@ TileCache::getTile(const uint32_t n)
     }
     // open a new smt file?
     else if  ( (smt = SMT::open( *fileName )) ){
-        //FIXME shouldnt have a manual delete here, use move scemantics instead
+        //FIXME shouldn't have a manual delete here, use move semantics instead
         delete lastSmt;
         lastSmt = smt;
         outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles );
@@ -61,9 +59,9 @@ TileCache::getTile(const uint32_t n)
 
 //TODO go over this function to see if it can be refactored
 void
-TileCache::addSource( const std::string fileName )
+TileCache::addSource( const std::string& fileName )
 {
-    OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING
     auto image = ImageInput::open( fileName );
     if( image ){
         image->close();
@@ -74,7 +72,7 @@ TileCache::addSource( const std::string fileName )
         return;
     }
 
-    SMT *smt = nullptr;
+    SMT *smt;
     if( (smt = SMT::open( fileName )) ){
         if(! smt->nTiles ) return;
         _nTiles += smt->nTiles;
@@ -85,11 +83,11 @@ TileCache::addSource( const std::string fileName )
         return;
     }
 
-    SMF *smf = nullptr;
+    SMF *smf;
     if( (smf = SMF::open( fileName )) ){
         // get the fileNames here
         auto smtList = smf->getSMTList();
-        for( auto i : smtList ) addSource( i.second );
+        for( const auto& [a,b] : smtList ) addSource( b );
         delete smf;
         return;
     }

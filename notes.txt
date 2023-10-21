@@ -22,7 +22,7 @@ or push images with csv
 
 pretty much always output the csv
 
-== SOURCE PAREMETERS ==
+== SOURCE PARAMETERS ==
 === INPUTS ===
 * tiles/smt's
 * tilemap
@@ -35,7 +35,7 @@ image_width = map_width * tile_width
 image_height = map_height * tile_height
 ^^ this creates the tiledImage ^^
 
-DESTINATION PAREMETERS
+DESTINATION PARAMETERS
 === INPUTS ===
 * --tilesize
 * --imagesize
@@ -50,7 +50,7 @@ out_map_height = out_image_height / out_tile_height
 TERMINOLOGY
 ===========
 when thinking about a map from the perspective:
-* That its a 'room'
+* That it's a 'room'
   4 walls,floor,ceiling.
   length(z), breadth(x), depth(y) (floor(min y), ceiling(max y))
 * source images
@@ -70,20 +70,20 @@ RANDOM TODO ITEMS
 * Comb through the command line options for each application for consistency
   glaring problems are with smt_repair, and the inconsistent mapwidth/height
   throughout the source.
-* consider renaming all occurrances of --imagesize to --scalesize to denote the
+* consider renaming all occurrences of --imagesize to --scalesize to denote the
   output scaling factor.
-* consider renaming all occurrances of --tilesize to --splitsize to denote
+* consider renaming all occurrences of --tilesize to --splitsize to denote
   splitting factor, except in this case when the path of simply translating
   tiles from one medium to another causes problems.
-* create generic smt_convert [TEST] that can be looped over to produace logical
-  viarants of results.
+* create generic smt_convert [TEST] that can be looped over to produce logical
+  variants of results.
   problems with smt_convert:
   - f for force and f for filter collide
   - s for tilesize is unintuitive when --imagesize has no short option
 * thought was to crop an area from an existing map, would be based on minimum
-  size, ie metalmap dimensions or something.
+  size, i.e., metalmap dimensions or something.
 * Work through the smf_ and smt_ tools to figure out the best set of cmd lines
-  to cover all code paths. at each if statement i'm thinking
+  to cover all code paths. at each if statement I'm thinking
 * smt_convert detect output format from file extension
 * smt_convert, output image in all formats
 

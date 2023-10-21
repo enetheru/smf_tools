@@ -8,11 +8,11 @@
 
 #include <OpenImageIO/imagebuf.h>
 
-// Evaluates a string into two integers
-/* The function takes a string in the form of IxK, and assignes
- * the values of I,K to x,y.
+/// Evaluates a string into two integers
+/* The function takes a string in the form of IxK, and assigns
+ * the values of I, K to x,y.
  */
-std::pair< uint32_t, uint32_t > valxval( const std::string s );
+std::pair< uint32_t, uint32_t > valxval( const std::string& s );
 
 /// Expand a string sequence of integers to a vector
 /*  The function takes a string in the form of comma ',' separated values.
@@ -35,9 +35,10 @@ std::string to_hex(T i)
   return stream.str();
 }
 
-/// re-orders the channels an imageBuf according to the imagespec
-/*  Returns a copy of the souceBuf with the number of channels in
- *  the ImageSpec spec. if there is no Alpha than a opaque one is created.
+/// re-orders the channels an imageBuf according to the imageSpec
+/*  Returns a copy of the sourceBuf with the number of channels in
+ *  the ImageSpec spec.
+ *  If there is no Alpha then an opaque one is created.
  *  If sourceBuf is nullptr then a blank image is returned.
  */
 std::unique_ptr< OIIO::ImageBuf > fix_channels(
@@ -45,7 +46,7 @@ std::unique_ptr< OIIO::ImageBuf > fix_channels(
     const OIIO::ImageSpec & );
 
 void channels( OIIO::ImageBuf *&sourceBuf,
-               OIIO::ImageSpec spec );
+               const OIIO::ImageSpec& spec );
 
 /// Scales an ImageBuf according to a given ImageSpec
 /* in place scale */
@@ -54,10 +55,10 @@ std::unique_ptr< OIIO::ImageBuf > fix_scale(
     const OIIO::ImageSpec & );
 
 void scale( OIIO::ImageBuf *&sourceBuf,
-            OIIO::ImageSpec spec );
+            const OIIO::ImageSpec& spec );
 
 /// output a progress indicator
-void progressBar( std::string message, float goal, float progress );
+void progressBar( const std::string& message, float goal, float progress );
 
 /// simple map class for checking overlapping regions of memory
 /*
@@ -74,11 +75,11 @@ class FileMap{
     std::vector< Block > list;
 
     public:
-    void addBlock( uint32_t begin, uint32_t size, std::string name = "")
+    void addBlock( uint32_t begin, uint32_t size, const std::string& name = "")
     {
         DLOG( INFO ) << "adding: " << name << "(" << begin << "-" << begin + size-1 << ")";
         Block temp{ begin, begin + size-1, name };
-        for( auto i : list ){
+        for( const auto& i : list ){
             if( (temp.begin >= i.begin && temp.begin <= i.end)
              || (temp.end >= i.begin && temp.end <= i.end)
              || (temp.begin <= i.begin && temp.end >= i.end) ){
@@ -93,7 +94,7 @@ class FileMap{
 
 // Convert an image to ascii so we can get direct feedback from the app
 /* FIXME does this need to use some sort of enumerator for  the type? probably
- * infact homogenising the image types used in the lib is probably a good idea.
+ * in fact homogenising the image types used in the lib is probably a good idea.
  *
  */
 std::string

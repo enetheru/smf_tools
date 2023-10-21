@@ -1,4 +1,3 @@
-#include <cstring>
 #include <string>
 #include <fstream>
 
@@ -10,7 +9,7 @@
 #include "util.h"
 
 using namespace std;
-OIIO_NAMESPACE_USING;
+OIIO_NAMESPACE_USING
 
 enum optionsIndex
 {
@@ -85,7 +84,7 @@ const option::Descriptor usage[] = {
     { GRASS, 0, "", "grass", Arg::File, "\t--grass=grass.tif"
         "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
 
-    {0,0,0,0,0,0}
+    {0,0,nullptr,nullptr,nullptr,nullptr}
 };
 
 int
@@ -106,8 +105,8 @@ main( int argc, char **argv )
     bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
-    option::Option* options = new option::Option[ stats.options_max ];
-    option::Option* buffer = new option::Option[ stats.buffer_max ];
+    auto* options = new option::Option[ stats.options_max ];
+    auto* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
 
     // unknown options
@@ -201,7 +200,7 @@ main( int argc, char **argv )
         }
     }
 
-    // Fix up map height and length to match tile source, and smt files.
+    // Fix up map height and length to match tile source and smt files.
     if( tileMap != nullptr ){
         int diffuseWidth = tileSize * tileMap->width;
         int diffuseHeight = tileSize * tileMap->height;
@@ -237,9 +236,7 @@ main( int argc, char **argv )
     smf->setSize( mapWidth, mapLength );
 
     // * squareWidth
-    // TODO
     // * squareTexels
-    // TODO
 
     // * tileSize
     smf->setTileSize( tileSize );

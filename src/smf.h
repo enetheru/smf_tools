@@ -16,18 +16,18 @@
  */
 #define MINIMAP_SIZE 699048
 
-#define SMF_HEADER      0x00000001 //!<
-#define SMF_EXTRAHEADER 0x00000002 //!<
-#define SMF_HEIGHT      0x00000004 //!<
-#define SMF_TYPE        0x00000008 //!<
-#define SMF_MAP_HEADER  0x00000010
-#define SMF_MAP         0x00000020 //!<
-#define SMF_MINI        0x00000040 //!<
-#define SMF_METAL       0x00000080 //!<
-#define SMF_FEATURES_HEADER    0x00000100 //!<
-#define SMF_FEATURES    0x00000200 //!<
-#define SMF_GRASS       0x00000400 //!<
-#define SMF_ALL         0xFFFFFFFF //!<
+#define SMF_HEADER              0x00000001 //!<
+#define SMF_EXTRA_HEADER        0x00000002 //!<
+#define SMF_HEIGHT              0x00000004 //!<
+#define SMF_TYPE                0x00000008 //!<
+#define SMF_MAP_HEADER          0x00000010 //!<
+#define SMF_MAP                 0x00000020 //!<
+#define SMF_MINI                0x00000040 //!<
+#define SMF_METAL               0x00000080 //!<
+#define SMF_FEATURES_HEADER     0x00000100 //!<
+#define SMF_FEATURES            0x00000200 //!<
+#define SMF_GRASS               0x00000400 //!<
+#define SMF_ALL                 0xFFFFFFFF //!<
 
 // (&= !) turns the flag off
 // (|=  ) turns it on
@@ -43,7 +43,7 @@ class SMF {
     /*! Header struct as it is written on disk
      */
     struct Header {
-        char magic[ 16 ] = "spring map file"; ///< byte:0 \n "spring map file"
+        [[maybe_unused]] char magic[ 16 ] = "spring map file"; ///< byte:0 \n "spring map file"
         int version = 1;      //!< byte:16 \n Must be 1 for now
         int id;               //!< byte:20 \n Prevents name clashes with other maps.
         int width = 128;      //!< byte:24 \n Map width * 64
@@ -61,7 +61,7 @@ class SMF {
         int metalPtr;         //!< byte:68 \n File offset to metalmap `unsigned char[mapx/2 * mapy/2]`
         int featuresPtr;      //!< byte:72 \n File offset to feature data
 
-        int nHeaderExtns = 0;///< byte:76 \n Fumbers of extra headers following this header
+        int nHeaderExtensions = 0;///< byte:76 \n Numbers of extra headers following this header
     };/* byte: 80 */
     Header _header;
 
@@ -70,23 +70,23 @@ class SMF {
      * start of every header Extn must look like this, then comes data specific
      * for header type
      */
-    struct HeaderExtn {
+    struct HeaderExtension {
         int bytes = 0;      //!< size of the header
         int type = 0;       //!< type of the header
-        HeaderExtn( ){ };
-        HeaderExtn( int i, int j ) : bytes( i ), type( j ){ };
+        HeaderExtension( )= default;
+        HeaderExtension( int i, int j ) : bytes( i ), type( j ){ };
     };
-    std::vector< SMF::HeaderExtn * > _headerExtns;
+    std::vector< SMF::HeaderExtension * > _headerExtensions;
 
     /*! grass Header Extn.
      *
      * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
      * that defines ground vegetation.
      */
-    struct HeaderExtn_Grass: public HeaderExtn
+    struct HeaderExtn_Grass: public HeaderExtension
     {
         int ptr = 80; ///< offset to beginning of grass map data.
-        HeaderExtn_Grass( ) : HeaderExtn( 12, 1 ){ };
+        HeaderExtn_Grass( ) : HeaderExtension(12, 1 ){ };
     };
 
     OIIO::ImageSpec _heightSpec;
@@ -98,7 +98,7 @@ class SMF {
      * is an int followed by a zero terminated file name. Each file defines as
      * many tiles the int indicates with the following files starting where the
      * last one ended. So if there is 2 files with 100 tiles each the first
-     * defines 0-99 and the second 100-199. After this followes an
+     * defines 0-99 and the second 100-199. After this follows an
      * int[ mapx * texelPerSquare / tileSize * mapy * texelPerSquare / tileSize ]
      * which is indexes to the defined tiles
      */
@@ -110,7 +110,7 @@ class SMF {
     HeaderTiles _headerTiles;
     std::vector< std::pair< uint32_t, std::string > > _smtList;
 
-    uint32_t _mapPtr;         ///< pointer to beginning of the tilemap
+    uint32_t _mapPtr{};         ///< pointer to beginning of the tilemap
     OIIO::ImageSpec _mapSpec;
 
     OIIO::ImageSpec _miniSpec;
@@ -146,24 +146,18 @@ class SMF {
     OIIO::ImageSpec _grassSpec;
 
     // == Internal Utility Functions ==
-    OIIO::ImageBuf *getImage( uint32_t ptr, OIIO::ImageSpec spec );
-    bool writeImage( uint32_t ptr, OIIO::ImageSpec spec,
+    OIIO::ImageBuf *getImage( uint32_t ptr, const OIIO::ImageSpec& spec );
+    bool writeImage( uint32_t ptr, const OIIO::ImageSpec& spec,
                      OIIO::ImageBuf *sourceBuf = nullptr );
 
 public:
-    //TODO Doxygen documentation
-    SMF( ){ };
-    //TODO Doxygen documentation
+    SMF( )= default;
     ~SMF();
 
-//TODO Doxygen documentation
-    void good();
-    //TODO Doxygen documentation
-    static bool test  ( std::string fileName );
-    //TODO Doxygen documentation
-    static SMF *create( std::string fileName, bool overwrite = false );
-    //TODO Doxygen documentation
-    static SMF *open  ( std::string fileName );
+    void good() const;
+    static bool test  ( const std::string& fileName );
+    static SMF *create( const std::string& fileName, bool overwrite = false );
+    static SMF *open  ( const std::string& fileName );
 
     /*! create info string
      *
@@ -200,7 +194,7 @@ public:
     /*! Set Map Size uses spring map units.
     *
     * @param width map width in spring map sizes
-    * @param length map lenght in spring map sizes
+    * @param length map length in spring map sizes
     */
     void setSize( int width, int length );
 
@@ -244,9 +238,8 @@ public:
      * @param fileName
      * Add the filename to the list of filenames used as the tilemap
      */
-    void addTileFile( std::string fileName );
+    void addTileFile( const std::string& fileName );
 
-    //TODO doxygen documentation
     void clearTileFiles( );
 
     /*! add a single feature
@@ -257,60 +250,38 @@ public:
      * @param r
      * @param s
      */
-    void addFeature( std::string name, float x, float y, float z,
+    void addFeature( const std::string& name, float x, float y, float z,
                      float r, float s );
 
-    //TODO doxygen documentation
     void addFeatureDefaults();
 
-    //TODO doxygen documentation
     void clearFeatures();
 
     /*! add a csv list of features
      * @param fileName
      */
-    void addFeatures( std::string fileName );
+    void addFeatures( const std::string& fileName );
 
-//TODO Doxygen documentation
     void writeHeader( );
-    //TODO Doxygen documentation
     void writeExtraHeaders();
-    //TODO Doxygen documentation
     void writeHeight  ( OIIO::ImageBuf *buf = nullptr );
-    //TODO Doxygen documentation
     void writeType    ( OIIO::ImageBuf *buf = nullptr );
-    //TODO Doxygen documentation
     void writeTileHeader( );
-    //TODO Doxygen documentation
     void writeMap     ( TileMap *tileMap = nullptr );
-    //TODO Doxygen documentation
     void writeMini    ( OIIO::ImageBuf *buf = nullptr );
-    //TODO Doxygen documentation
     void writeMetal   ( OIIO::ImageBuf *buf = nullptr );
-    //TODO Doxygen documentation
     void writeFeatures();
     // Extra
-    //TODO Doxygen documentation
     void writeGrass   ( OIIO::ImageBuf *buf = nullptr );
 
-    //TODO Doxygen documentation
     OIIO::ImageBuf *getHeight();
-    //TODO Doxygen documentation
     OIIO::ImageBuf *getType();
-    //TODO Doxygen documentation
     std::vector< std::pair< uint32_t, std::string > >
             getSMTList(){ return _smtList; };
-    //TODO Doxygen documentation
     TileMap *getMap();
-    //TODO Doxygen documentation
     OIIO::ImageBuf *getMini();
-    //TODO Doxygen documentation
     OIIO::ImageBuf *getMetal();
-    //TODO Doxygen documentation
     std::string getFeatureTypes();
-    //TODO Doxygen documentation
     std::string getFeatures();
-    //TODO Doxygen documentation
     OIIO::ImageBuf *getGrass();
-
 };

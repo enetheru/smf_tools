@@ -1,4 +1,3 @@
-#include <cstdint>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -11,52 +10,42 @@
 // CONSTRUCTORS
 // ============
 
-TileMap::TileMap( )
-{ }
-
 TileMap::TileMap( uint32_t width,  uint32_t height )
-    : _width( width ), _height( height )
+    : width( width ), height( height )
 {
     _map.resize( width * height , 0 );
 }
 
 TileMap *
-TileMap::createCSV( std::string fileName )
+TileMap::createCSV( const std::string& fileName )
 {
     std::fstream file( fileName, std::ios::in );
     if(! file.good() ) return nullptr;
     file.close();
 
-    TileMap *tileMap = new TileMap;
+    auto *tileMap = new TileMap;
     tileMap->fromCSV( fileName );
     return tileMap;
 }
 
 // Copy Constructor
 TileMap::TileMap( const TileMap& rhs)
-:   _width( rhs.width ), _height( rhs.height )
+:   width( rhs.width ), height( rhs.height )
 {
     _map = rhs._map;
 }
-//FIXME is this an appropriate place for move scemantics?
 
 // Assignment operator
 TileMap &
-TileMap::operator=( const TileMap &rhs)
-{
-    _width = rhs.width;
-    _height = rhs.height;
-    _map = rhs._map;
-    return *this;
-}
+TileMap::operator=( const TileMap &rhs) = default;
 
 // IMPORT
 // ======
 void
-TileMap::fromCSV( std::string fileName )
+TileMap::fromCSV( const std::string& fileName )
 {
     // reset
-    _width = _height = 0;
+    width = height = 0;
     // setup
     std::string cell;
     std::stringstream line;
@@ -65,12 +54,12 @@ TileMap::fromCSV( std::string fileName )
     CHECK( file.good() ) << "cannot open " << fileName;
 
     // get dimensions
-    if( std::getline( file, cell ) ) ++_height;
+    if( std::getline( file, cell ) ) ++height;
     else return;
 
     line.str( cell );
-    while( std::getline( line, cell, ',' ) ) ++_width;
-    while( std::getline( file, cell ) ) ++_height;
+    while( std::getline( line, cell, ',' ) ) ++width;
+    while( std::getline( file, cell ) ) ++height;
 
     //reserve space to avoid many memory allocations
     _map.resize( width * height );
@@ -87,12 +76,13 @@ TileMap::fromCSV( std::string fileName )
         while( std::getline( line, cell, ',' ) ) tokens.push_back( cell );
 
         uint32_t x = 0;
-        for( auto i : tokens ){
+        for( const auto& i : tokens ){
             try {
                 _map[x + width * y] = stoi( i );
             }
-            catch( std::invalid_argument ){
+            catch (std::invalid_argument const& ex) {
                 _map[x + width * y] = 0;
+                LOG( ERROR ) << ex.what() << '\n';
             }
             ++x;
         }
@@ -116,13 +106,13 @@ TileMap::toCSV( )
 }
 
 void
-TileMap::setSize( uint32_t width, uint32_t height )
+TileMap::setSize(uint32_t _width, uint32_t _height )
 {
-    CHECK( width > 0 ) << "Width must be > 0";
-    CHECK( height > 0 ) << "Height must be ";
+    CHECK(_width > 0 ) << "Width must be > 0";
+    CHECK(_height > 0 ) << "Height must be ";
 
-    _width = width; _height = height;
-    _map.resize( width * height );
+    this->width = _width; this->height = _height;
+    _map.resize(_width * _height );
 }
 
 // GENERATION
