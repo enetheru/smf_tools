@@ -28,6 +28,11 @@ const option::Descriptor usage[] = {
     { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
+static void shutdown( int code ){
+    OIIO::shutdown();
+    exit( code );
+}
+
 int
 main( int argc, char **argv )
 {
@@ -44,7 +49,7 @@ main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        exit( 0 );
+        shutdown(0);
     }
 
     // setup logging level.
@@ -73,14 +78,14 @@ main( int argc, char **argv )
 
     if( fail || parse.error() ){
         spdlog::error( "Options parsing" );
-        exit( 1 );
+        shutdown( 1 );
     }
     // end of options parsing
 
     SMF *smf;
     if(! ( smf = SMF::open( parse.nonOption(0)) ) ){
         spdlog::error( "cannot open {}", parse.nonOption(0) );
-        exit( 1 );
+        shutdown( 1 );
     }
 
     std::fstream file;
@@ -130,5 +135,6 @@ main( int argc, char **argv )
         spdlog::info( "Extracting grass image" );
         buf->write("out_grass.tif", OIIO::TypeUnknown, "tif");
     }
+    OIIO::shutdown();
     return 0;
 }

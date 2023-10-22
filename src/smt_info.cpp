@@ -21,6 +21,11 @@ const option::Descriptor usage[] = {
     { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
+static void shutdown( int code ){
+    OIIO::shutdown();
+    exit( code );
+}
+
 
 int main( int argc, char **argv )
 {
@@ -35,7 +40,7 @@ int main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        exit( 1 );
+        shutdown( 1 );
     }
 
     if( options[ QUIET ] ) spdlog::set_level(spdlog::level::off);
@@ -51,15 +56,15 @@ int main( int argc, char **argv )
         spdlog::warn( "Unknown Option: {}", parse.nonOption( i ) );
     }
 
-    if( parse.error() ) exit( 1 );
+    if( parse.error() ) shutdown( 1 );
 
     SMT *smt;
     if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
         spdlog::critical( "cannot open smt file" );
-        exit(1);
+        shutdown(1);
     }
 
     spdlog::info( smt->info() );
-
+    OIIO::shutdown();
     return 0;
 }

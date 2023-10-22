@@ -88,6 +88,11 @@ const option::Descriptor usage[] = {
     {0,0,nullptr,nullptr,nullptr,nullptr}
 };
 
+static void shutdown( int code ){
+    OIIO::shutdown();
+    exit( code );
+}
+
 int
 main( int argc, char **argv )
 {
@@ -120,7 +125,7 @@ main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ){
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        exit( 1 );
+        shutdown(1);
     }
 
     // -v --verbose
@@ -229,7 +234,7 @@ R"(Checking input dimensions
 
     // end option parsing
     if( fail || parse.error() ){
-        exit( 1 );
+        shutdown(1);
     }
 
     // == lets do it! ==
@@ -339,5 +344,6 @@ R"(Checking input dimensions
     delete smf;
     delete [] options;
     delete [] buffer;
+    OIIO::shutdown();
     return 0;
 }

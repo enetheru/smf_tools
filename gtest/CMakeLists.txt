@@ -1,6 +1,7 @@
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 
-add_executable( gtests test.cpp )
+add_executable( gtests test.cpp
+        squish.cpp)
 target_link_libraries( gtests
         PRIVATE
                 -static

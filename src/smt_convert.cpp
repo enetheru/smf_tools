@@ -110,6 +110,11 @@ const option::Descriptor usage[] = {
     { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
+static void shutdown( int code ){
+    OIIO::shutdown();
+    exit( code );
+}
+
 int
 main( int argc, char **argv )
 {
@@ -151,7 +156,7 @@ main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        options[ HELP ] ? exit( 0 ) : exit( 1 );
+        options[ HELP ] ? shutdown( 0 ) : shutdown( 1 );
     }
 
     // setup logging level
@@ -263,7 +268,7 @@ main( int argc, char **argv )
 
     if( fail || parse.error() ){
         spdlog::error( "Options parsing." );
-        exit( 1 );
+        shutdown( 1 );
     }
 
     // == TILE CACHE ==
@@ -292,7 +297,7 @@ main( int argc, char **argv )
         src_filter = expandString( options[ FILTER ].arg );
         if( src_filter.empty() ) {
             spdlog::error( "failed to interpret filter string" );
-            exit( 1 );
+            shutdown( 1 );
         }
     }
     else {
@@ -323,7 +328,7 @@ main( int argc, char **argv )
         // check for failure
         if( src_tileMap.width == 0 || src_tileMap.height == 0 ){
             spdlog::error( "unable to open: {}", options[ TILEMAP ].arg );
-            exit( 1 );
+            shutdown( 1 );
         }
     }
     else {
@@ -373,7 +378,7 @@ main( int argc, char **argv )
         spdlog::error( "image size must be a multiple of tile size"
             << "\n\timage size: " << out_img_width << "x" << out_img_height
             << "\n\ttile size: " << out_tileSpec.width << "x" << out_tileSpec.height;
-        exit( 1 );
+        shutdown( 1 );
     }*/
 
     // == prepare output Tile Map ==
@@ -401,7 +406,7 @@ main( int argc, char **argv )
         tempSMT = SMT::create( out_fileDir + out_fileName , overwrite );
         if(! tempSMT ){
             spdlog::critical( "cannot overwrite existing file" );
-            exit(1);
+            shutdown(1);
         }
         tempSMT->setType( out_format );
         tempSMT->setTileSize( out_tileSpec.width );
@@ -473,5 +478,6 @@ main( int argc, char **argv )
 
     delete[] buffer;
     delete[] options;
+    OIIO::shutdown();
     return 0;
 }

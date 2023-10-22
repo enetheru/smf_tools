@@ -37,6 +37,11 @@ const option::Descriptor usage[] = {
     { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
+static void shutdown( int code ){
+    OIIO::shutdown();
+    exit( code );
+}
+
 int
 main( int argc, char **argv )
 {
@@ -52,7 +57,7 @@ main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        exit( 1 );
+        shutdown( 1 );
     }
 
     // setup logging level.
@@ -71,23 +76,23 @@ main( int argc, char **argv )
     // non options
     if( parse.nonOptionsCount() == 0 ){
         spdlog::error( "no file given" );
-        exit( 1 );
+        shutdown( 1 );
     }
     else if( parse.nonOptionsCount() > 1 ){
         spdlog::error( "too many arguments" );
-        exit( 1 );
+        shutdown( 1 );
    }
 
     if( fail || parse.error() ){
         spdlog::error( "Options parsing" );
-        exit( 1 );
+        shutdown( 1 );
     }
 
 // test file properties
     SMT *smt;
     if(! (smt = SMT::open( parse.nonOption( 0 ) )) ){
         spdlog::error( "\nunable to open file" );
-        exit ( 1 );
+        shutdown ( 1 );
     }
     spdlog::info( smt->info() );
 
@@ -109,6 +114,6 @@ main( int argc, char **argv )
 
     delete[] options;
     delete[] buffer;
-
-    exit( 0 );
+    OIIO::shutdown();
+    return 0;
 }

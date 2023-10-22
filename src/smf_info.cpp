@@ -21,6 +21,11 @@ const option::Descriptor usage[] = {
     { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
+static void shutdown( int code ){
+    OIIO::shutdown();
+    exit( code );
+}
+
 
 int main( int argc, char **argv )
 {
@@ -35,8 +40,8 @@ int main( int argc, char **argv )
     if( options[ HELP ] || parse.nonOptionsCount() == 0 ) {
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        if( options[ HELP ] ) exit( 0 );
-        else exit( 1 );
+        if( options[ HELP ] ) shutdown( 0 );
+        else shutdown( 1 );
     }
 
     if( options[ QUIET ] )spdlog::set_level(spdlog::level::off);
@@ -46,7 +51,7 @@ int main( int argc, char **argv )
         spdlog::error( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
     }
 
-    if( parse.error() ) exit( 1 );
+    if( parse.error() ) shutdown( 1 );
 
     // all non-options are treated as smf's options
     SMF *smf;
@@ -66,5 +71,6 @@ int main( int argc, char **argv )
 
     delete [] options;
     delete [] buffer;
+    OIIO::shutdown();
     return retVal;
 }
