@@ -24,23 +24,25 @@ TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
 // MODIFICATION
 // ============
 
+//FIXME, function can error, but does not notify the caller.
 void
 TiledImage::setTileMap( const TileMap& inTileMap )
 {
     if( !(inTileMap.width && inTileMap.height) ){
         spdlog::critical( "tilemap width or heght is invalid: {}x{}", inTileMap.width, inTileMap.height );
-        exit(1);
+        return;
     }
     tileMap = inTileMap;
 }
 
+//FIXME, function can error, but does not notify the caller
 void
 TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
     if( inWidth >= tSpec.width || inHeight >= tSpec.height ){
         spdlog::critical( "in:{}x{} must be >= tile: {}x{}",
                           inWidth, inHeight, tSpec.width, tSpec.height );
-        exit(1);
+        return;
     }
     tileMap.setSize( inWidth / tSpec.width, inHeight / tSpec.height );
 }
@@ -51,13 +53,14 @@ TiledImage::setTSpec( ImageSpec spec )
     _tSpec = std::move(spec);
 }
 
+//FIXME function can error but does not notify the caller.
 void
 TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 {
     if( inWidth > 0 || inHeight > 0 ){
         spdlog::critical( "in:{}x{} must be > tile: 0x0",
                           inWidth, inHeight, tSpec.width, tSpec.height );
-        exit(1);
+        return;
     }
     _tSpec = ImageSpec( inWidth, inHeight, _tSpec.nchannels, _tSpec.format );
 }
@@ -76,13 +79,14 @@ TiledImage::mapFromCSV( const std::string& fileName )
 
 // GENERATION
 // ==========
+//FIXME function can error but does not notify the caller.
 void
 TiledImage::squareFromCache( )
 {
     int tileCount = tileCache.nTiles;
     if( !tileCount ){
         spdlog::critical("tileCache has no tiles");
-        exit(1);
+        return;
     }
 
     int square = sqrt(tileCount);

@@ -75,8 +75,7 @@ expandString( const char *s )
 }
 
 std::unique_ptr< OIIO::ImageBuf >
-fix_channels( std::unique_ptr< OIIO::ImageBuf> && inBuf,
-              const OIIO::ImageSpec &spec ) {
+fix_channels( std::unique_ptr< OIIO::ImageBuf> && inBuf, const OIIO::ImageSpec &spec ) {
     OIIO_NAMESPACE_USING
 
     int map[] = { 0, 1, 2, 3 };
@@ -84,7 +83,8 @@ fix_channels( std::unique_ptr< OIIO::ImageBuf> && inBuf,
 
     if( !inBuf ){
         spdlog::critical( "nullptr passed to fix_channels()" );
-        exit(1);
+        //FIXME I think I should be able to assume that nullptr is not passed in here.
+        return nullptr;
     }
 
     // return a copy of the original if it's the correct size.
@@ -108,7 +108,8 @@ channels( OIIO::ImageBuf *&sourceBuf, const OIIO::ImageSpec& spec )
 
     if( !sourceBuf ) {
         spdlog::critical("nullptr passed to channels()");
-        exit(1);
+        //FIXME I think I should be able to assume that nullptr is not passed in here.
+        return;
     }
 
     // return a copy of the original if it's the correct size.
@@ -135,7 +136,8 @@ fix_scale(
 
     if( !inBuf ) {
         spdlog::critical("nullptr passed to fix_scale()" );
-        exit(1);
+        //FIXME I think I should be able to assume that nullptr is not passed in here.
+        return nullptr;
     }
 
     // return the inBuf if no change is required.
@@ -172,7 +174,8 @@ scale( OIIO::ImageBuf *&sourceBuf, const OIIO::ImageSpec& spec )
     const OIIO::ImageSpec srcSpec = sourceBuf->spec();
     if( !sourceBuf ) {
         spdlog::critical("nullptr passed to scale()" );
-        exit(1);
+        //FIXME I think I should be able to assume that nullptr is not passed in here.
+        return;
     }
 
     // do nothing if the original is the correct size.

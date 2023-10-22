@@ -585,7 +585,7 @@ SMF::writeExtraHeaders()
     fstream file( _fileName, ios::binary | ios::in | ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _fileName );
-        exit(1);
+        return;
     }
 
     file.seekp( sizeof( Header ) );
@@ -595,13 +595,14 @@ SMF::writeExtraHeaders()
     _dirtyMask &= !SMF_EXTRA_HEADER;
 }
 
+//FIXME using true and false for error conditions is a PITA, change it to use something more robust.
 bool
 SMF::writeImage( unsigned int ptr, const ImageSpec& spec, ImageBuf *sourceBuf )
 {
     fstream file( _fileName, ios::binary | ios::in | ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _fileName );
-        exit(1);
+        return true;
     }
     file.seekp( ptr );
 
@@ -649,6 +650,7 @@ SMF::writeType( ImageBuf *sourceBuf )
     }
 }
 
+//FIXME, the fact that this function can fail, but not notify it caller is annoying.
 void
 SMF::writeMini( ImageBuf * sourceBuf )
 {
@@ -658,7 +660,7 @@ SMF::writeMini( ImageBuf * sourceBuf )
     fstream file( _fileName, ios::binary | ios::in | ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _fileName );
-        exit(1);
+        return;
     }
     file.seekp( _header.miniPtr );
 
@@ -764,6 +766,7 @@ SMF::writeMetal( ImageBuf *sourceBuf )
 }
 
 /// write the feature header information to the smf
+// FIXME, this function can fail but it does not notify its caller
 void
 SMF::writeFeatures()
 {
@@ -773,7 +776,7 @@ SMF::writeFeatures()
     fstream file( _fileName, ios::binary | ios::in | ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _fileName );
-        exit(1);
+        return;
     }
     file.seekp( _header.featuresPtr );
 
@@ -814,14 +817,14 @@ SMF::writeGrass( ImageBuf *sourceBuf )
     _dirtyMask &= !SMF_GRASS;
 }
 
-
+//FIXME returning nullptr on fail is crap.
 ImageBuf *
 SMF::getImage( unsigned int ptr, const ImageSpec& spec)
 {
     ifstream file( _fileName );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for reading", _fileName );
-        exit(1);
+        return nullptr;
     }
 
     auto *imageBuf = new ImageBuf( spec );
@@ -852,7 +855,8 @@ SMF::getMap( )
     std::fstream file( _fileName, std::ios::binary | std::ios::in );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for reading", _fileName );
-        exit(1);
+        //FIXME returning nullptr is crap
+        return nullptr;
     }
     file.seekg( _mapPtr );
     for( int y = 0; y < _mapSpec.height; ++y )
@@ -870,7 +874,8 @@ ImageBuf *SMF::getMini(){
     ifstream file( _fileName );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for reading", _fileName );
-        exit(1);
+        //FIXME returning nullptr on return is crap.
+        return nullptr;
     }
 
     file.seekg( _header.miniPtr );

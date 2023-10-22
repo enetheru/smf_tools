@@ -12,7 +12,7 @@
 #include "tilecache.h"
 
 std::unique_ptr< OIIO::ImageBuf >
-//FIXME remove the 2 once all is said and done
+//FIXME review this function for memory leaks
 TileCache::getTile(const uint32_t n)
 {
     std::unique_ptr< OIIO::ImageBuf >
@@ -21,7 +21,7 @@ TileCache::getTile(const uint32_t n)
     // returning an initialized imagebuf is not a good idea
     if( n >= nTiles ){
         spdlog::critical( "getTile({}) request out of range 0-{}", n, nTiles );
-        exit(1);
+        return nullptr;
     }
 
     SMT *smt;
@@ -52,7 +52,7 @@ TileCache::getTile(const uint32_t n)
     }
     if( !outBuf->initialized() ) {
         spdlog::error("failed to open source for tile: ", n);
-        exit(1);
+        return nullptr;
     }
 
 #ifdef DEBUG_IMG

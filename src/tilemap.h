@@ -4,8 +4,7 @@
 #include <vector>
 #include <string>
 
-class TileMap
-{
+class TileMap {
     std::vector< uint32_t > _map;
 public:
     // data members

@@ -42,6 +42,7 @@ TileMap::operator=( const TileMap &rhs) = default;
 
 // IMPORT
 // ======
+//FIXME, function can error but does not notify caller.
 void
 TileMap::fromCSV( const std::string& fileName )
 {
@@ -54,7 +55,7 @@ TileMap::fromCSV( const std::string& fileName )
     std::fstream file( fileName, std::ios::in );
     if(! file.good() ){
         spdlog::error( "unable to open {}", fileName );
-        exit(1);
+        return;
     }
 
     // get dimensions
@@ -109,12 +110,13 @@ TileMap::toCSV( )
     return ss.str();
 }
 
+//FIXME, function can error but does not notify the caller.
 void
 TileMap::setSize(uint32_t _width, uint32_t _height )
 {
     if( _width > 0  || _height > 0 ){
         spdlog::error( "WidthxHeight must be > 1" );
-        exit(1);
+        return;
     }
 
     this->width = _width; this->height = _height;
@@ -132,12 +134,14 @@ TileMap::consecutive( )
 
 // ACCESS
 // ======
+//FIXME using uint32_t_max as an error code is not cool. re-think this whole business.
 uint32_t &
 TileMap::operator() ( uint32_t x, uint32_t y )
 {
-    if( x < width || y < height ){
-        spdlog::critical( "x:{} < width:{} || y:{} < height:{}");
-        exit(1);
+    static uint32_t error = UINT32_MAX;
+    if( x > width || y > height ){
+        spdlog::critical( "out of range error: x:{} > width:{} || y:{} > height:{}", x, width, y, height);
+        return error;
     }
     return _map[ x + width * y ];
 }
@@ -145,9 +149,10 @@ TileMap::operator() ( uint32_t x, uint32_t y )
 uint32_t &
 TileMap::operator() ( uint32_t idx )
 {
+    static uint32_t error = UINT32_MAX;
     if( idx >= _map.size() ){
         spdlog::critical( "index({}) is out of range", idx );
-        exit(1);
+        return error;
     }
     return _map[idx];
 }

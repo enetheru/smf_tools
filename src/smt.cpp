@@ -133,7 +133,8 @@ SMT::calcTileBytes()
     }
     else {
         spdlog::critical("Invalid tiletype: {}", tileType );
-        exit(1);
+        //FIXME, the function can error but it does not notify the caller.
+        return;
     }
 }
 
@@ -143,7 +144,8 @@ SMT::load( )
     ifstream inFile(fileName, ifstream::in);
     if( inFile.good() ){
         spdlog::critical( "Failed to load: {}", fileName );
-        exit(1);
+        //FIXME the function can error but it does not notify the caller
+        return;
     }
     inFile.read( (char *)&header, sizeof(SMT::Header) );
     calcTileBytes();
@@ -244,7 +246,8 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
         // kColourIterativeClusterFit = slow|high quality
         if( !tempBuf->localpixels() ){
             spdlog::critical( "pixel data unavailable" );
-            exit(1);
+            //FIXME the function can error but it does not notify the caller
+            return;
         }
         squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
             spec.width, spec.height, blocks,
@@ -317,7 +320,7 @@ SMT::getTileDXT1( const uint32_t n )
 {
     if( !(n >= 0 && n < header.nTiles )) {
         spdlog::critical("tile index:{} is out of range 0-{}", n, header.nTiles );
-        exit(1);
+        return nullptr;
     }
 
     std::unique_ptr< char > raw_dxt1a( new char[ tileBytes ] );
@@ -325,7 +328,7 @@ SMT::getTileDXT1( const uint32_t n )
     ifstream file( fileName );
     if(! file.good() ){
         spdlog::critical( "Failed to open file:'{}' for reading", fileName );
-        exit(1);
+        return nullptr;
     }
 
     file.seekg( sizeof(SMT::Header) + tileBytes * n );
