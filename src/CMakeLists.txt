@@ -13,15 +13,13 @@ target_include_directories( smf_tools
         PRIVATE
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_SOURCE_DIR}/ext/elog
-            ${CMAKE_SOURCE_DIR}/ext/squish
 )
 target_link_libraries( smf_tools
         PRIVATE
             OpenEXR::OpenEXR
             Boost::filesystem
             Boost::thread
-            squish
+            libsquish::Squish
             ZLIB::ZLIB
             libjpeg-turbo::turbojpeg-static
         PUBLIC

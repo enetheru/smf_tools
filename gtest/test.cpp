@@ -1,9 +1,9 @@
 #include "../src/util.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include <squish.h>
+#include <squish/squish.h>
 #include <fstream>
 
 TEST( utils, valxval ){
@@ -34,7 +34,7 @@ TEST( utils, to_hex ){
 // fix_channels
 // ============
 TEST( utils, fix_channels ){
-    OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING
 
     // Create input buffer with one channel.
     ImageSpec inputSpec( 32, 32, 1, TypeDesc::UINT8 );
@@ -53,7 +53,7 @@ TEST( utils, fix_channels ){
 
 // fix_scale
 TEST( utils, fix_scale ){
-    OIIO_NAMESPACE_USING;
+    OIIO_NAMESPACE_USING
 
     // Create input buffer with one channel.
     ImageSpec inputSpec( 32, 32, 1, TypeDesc::UINT8 );
@@ -126,15 +126,15 @@ TEST( squish, DXT1CompressImage_raw_random )
 TEST( squish, DXT1CompressImage_ImageBuf_zero )
 {
     // fake image 256x256xRGBA8
-    OpenImageIO::ImageSpec spec( 16, 16, 4, OpenImageIO::TypeDesc::UINT8 );
-    OpenImageIO::ImageBuf buf( spec );
+    OIIO::ImageSpec spec( 16, 16, 4, OIIO::TypeDesc::UINT8 );
+    OIIO::ImageBuf buf( spec );
 
     int blocks_size = squish::GetStorageRequirements(
                     spec.width, spec.height, squish::kDxt1 );
 
     squish::u8 *blocks = new squish::u8[ blocks_size ];
 
-    OpenImageIO::ImageBufAlgo::zero( buf );
+    OIIO::ImageBufAlgo::zero( buf );
     std::cout << "\n" << image_to_hex( (uint8_t *)buf.localpixels(), spec.width, spec.height );
 
     squish::CompressImage( (squish::u8 *)buf.localpixels(),
@@ -146,8 +146,8 @@ TEST( squish, DXT1CompressImage_ImageBuf_zero )
 TEST( squish, DXT1CompressImage_ImageBuf_gradient )
 {
     // fake image 256x256xRGBA8
-    OpenImageIO::ImageSpec spec( 16, 16, 4, OpenImageIO::TypeDesc::UINT8 );
-    OpenImageIO::ImageBuf buf( spec );
+    OIIO::ImageSpec spec( 16, 16, 4, OIIO::TypeDesc::UINT8 );
+    OIIO::ImageBuf buf( spec );
 
     int blocks_size = squish::GetStorageRequirements(
                     spec.width, spec.height, squish::kDxt1 );
@@ -158,7 +158,7 @@ TEST( squish, DXT1CompressImage_ImageBuf_gradient )
     float G[4] = { 0, 1, 0, 1 };
     float B[4] = { 0, 0, 1, 1 };
     float A[4] = { 0, 0, 0, 1 };
-    OpenImageIO::ImageBufAlgo::fill( buf, R, B, G, A );
+    OIIO::ImageBufAlgo::fill( buf, R, B, G, A );
     std::cout << "\n" << image_to_hex( (uint8_t *)buf.localpixels(), spec.width, spec.height );
 
 

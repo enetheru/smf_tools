@@ -3,7 +3,7 @@
 #include <utility>
 
 #include <OpenImageIO/imageio.h>
-#include <squish.h>
+#include <squish/squish.h>
 #include <spdlog/spdlog.h>
 
 #include "smf.h"
