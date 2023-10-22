@@ -5,7 +5,6 @@
 #include <squish/squish.h>
 #include <spdlog/spdlog.h>
 
-#include "smf_tools.h"
 #include "smt.h"
 #include "util.h"
 
