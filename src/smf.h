@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include <OpenImageIO/imagebuf.h>
 
@@ -37,7 +38,8 @@
  *
  */
 class SMF {
-    std::string _fileName;
+    std::filesystem::path _filePath;
+    uint32_t _fileSize{};
     uint32_t _dirtyMask = 0xFFFFFFFF;
 
     /*! Header struct as it is written on disk
@@ -155,9 +157,9 @@ public:
     ~SMF();
 
     void good() const;
-    static bool test  ( const std::string& fileName );
-    static SMF *create( const std::string& fileName, bool overwrite = false );
-    static SMF *open  ( const std::string& fileName );
+    static bool test  ( const std::filesystem::path& filePath );
+    static SMF *create( std::filesystem::path filePath, bool overwrite = false );
+    static SMF *open  ( std::filesystem::path filePath );
 
     /*! create info string
      *
@@ -185,11 +187,8 @@ public:
      */
     void read( );
 
-    /*! Set the filename.
-     *
-     * @param fileName The name of the file to save the data to.
-     */
-    void setFileName( std::string fileName );
+    /*! Set the filename. */
+    void setFilePath( std::filesystem::path filePath );
 
     /*! Set Map Size uses spring map units.
     *
@@ -227,29 +226,12 @@ public:
      */
     void setDepth( float floor, float ceiling );
 
-    /*! enable grass map
-     *
-     * @param enable true = grass, false = no grass.
-     */
     void enableGrass( bool enable = false );
 
-    /*! addTileFile
-     *
-     * @param fileName
-     * Add the filename to the list of filenames used as the tilemap
-     */
-    void addTileFile( const std::string& fileName );
+    void addTileFile( std::filesystem::path filePath );
 
     void clearTileFiles( );
 
-    /*! add a single feature
-     * @param name
-     * @param x
-     * @param y
-     * @param z
-     * @param r
-     * @param s
-     */
     void addFeature( const std::string& name, float x, float y, float z,
                      float r, float s );
 
@@ -257,10 +239,8 @@ public:
 
     void clearFeatures();
 
-    /*! add a csv list of features
-     * @param fileName
-     */
-    void addFeatures( const std::string& fileName );
+    /// add a csv list of features
+    void addFeatures( std::filesystem::path filePath );
 
     void writeHeader( );
     void writeExtraHeaders();

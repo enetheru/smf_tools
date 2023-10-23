@@ -20,7 +20,7 @@ option( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
 # Compiler
 # --------
-set( CMAKE_CXX_FLAGS "-Wall -std=c++20" )
+set( CMAKE_CXX_FLAGS "-Wall -std=c++20 -fstack-usage" )
 
 # CMake
 # -----
