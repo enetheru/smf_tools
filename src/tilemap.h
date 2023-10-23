@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <filesystem>
 
 class TileMap {
     std::vector< uint32_t > _map;
@@ -15,13 +16,13 @@ public:
     TileMap( ) = default;
     TileMap( uint32_t width, uint32_t height );
 
-    static TileMap *createCSV( const std::string& fileName );
+    static TileMap *createCSV( std::filesystem::path filePath );
 
     TileMap( const TileMap &rhs);
     TileMap &operator=( const TileMap &rhs);
 
     //import
-    void fromCSV( const std::string& fileName );
+    void fromCSV( std::filesystem::path filePath );
 
     //export
     std::string toCSV();

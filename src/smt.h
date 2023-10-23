@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 
 #include <OpenImageIO/imagebuf.h>
 
@@ -14,18 +15,18 @@ public:
      */
     struct Header {
         [[maybe_unused]] char magic[16] = "spring tilefile";   //!< "spring tilefile\0"
-        uint32_t version = 1;      //!< must be 1 for now
-        uint32_t nTiles = 0;       //!< total number of tiles in this file
-        uint32_t tileSize = 32;    //!< x and y dimension of tiles, must remain 32 for now.
-        uint32_t tileType = 1;     //!< must be 1=dxt1 for now
+        uint32_t version = 1;                                  //!< must be 1 for now
+        uint32_t nTiles = 0;                                   //!< total number of tiles in this file
+        uint32_t tileSize = 32;                                //!< x and y dimension of tiles, must remain 32 for now.
+        uint32_t tileType = 1;                                 //!< must be 1,  1=dxt1
     };
 
 private:
     //! File Header
     Header header;
 
-    //! Input Files
-    std::string _fileName = "output.smt";
+    //! Input File
+
 
     void calcTileBytes();
     uint32_t _tileBytes = 680; 
@@ -42,8 +43,8 @@ private:
     OIIO::ImageBuf *getTileUSHORT( uint32_t );
 
 public:
-
-    const std::string &fileName = _fileName;
+    //FIXME Remove all these references.
+    std::filesystem::path filePath = "output.smt";
     const uint32_t &nTiles = header.nTiles;
     
     const uint32_t &tileType = header.tileType;
@@ -60,22 +61,22 @@ public:
      * @return true if file is an spring tile file. and false if anything
      * else
      */
-    static bool test  ( const std::string& fileName );
+    static bool test  ( const std::filesystem::path& filePath );
 
     /*! Create a new SMT file
      *
      * @param fileName The name of the file to write to disk.
      * @param overwrite if true; clobbers existing file data.
      */
-    static SMT *create( const std::string& fileName, bool overwrite = false );
-    static SMT *open  ( const std::string& fileName );
+    static SMT *create( const std::filesystem::path& filePath, bool overwrite = false );
+    static SMT *open  ( const std::filesystem::path& filePath );
 
     void reset( );
     std::string info();
 
     void setTileSize( uint32_t r );
     void setType    ( uint32_t t ); // 1=DXT1
-    void setFileName( std::string name );
+    void setFilePath( std::filesystem::path _filePath );
 
 	std::unique_ptr< OIIO::ImageBuf > getTile( uint32_t );
     void append( const OIIO::ImageBuf & );

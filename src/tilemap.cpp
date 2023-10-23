@@ -18,14 +18,14 @@ TileMap::TileMap( uint32_t width,  uint32_t height )
 }
 
 TileMap *
-TileMap::createCSV( const std::string& fileName )
+TileMap::createCSV( std::filesystem::path filePath )
 {
-    std::fstream file( fileName, std::ios::in );
+    std::fstream file( filePath, std::ios::in );
     if(! file.good() ) return nullptr;
     file.close();
 
     auto *tileMap = new TileMap;
-    tileMap->fromCSV( fileName );
+    tileMap->fromCSV( filePath );
     return tileMap;
 }
 
@@ -44,7 +44,7 @@ TileMap::operator=( const TileMap &rhs) = default;
 // ======
 //FIXME, function can error but does not notify caller.
 void
-TileMap::fromCSV( const std::string& fileName )
+TileMap::fromCSV( std::filesystem::path filePath )
 {
     // reset
     width = height = 0;
@@ -52,9 +52,9 @@ TileMap::fromCSV( const std::string& fileName )
     std::string cell;
     std::stringstream line;
     std::vector< std::string > tokens;
-    std::fstream file( fileName, std::ios::in );
+    std::fstream file( filePath, std::ios::in );
     if(! file.good() ){
-        spdlog::error( "unable to open {}", fileName );
+        spdlog::error( "unable to open {}", filePath.string() );
         return;
     }
 

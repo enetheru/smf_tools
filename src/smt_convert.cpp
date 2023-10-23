@@ -3,7 +3,6 @@
 #include <vector>
 #include <iostream>
 #include <unordered_map>
-#include <sys/stat.h>
 
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -29,7 +28,6 @@ enum optionsIndex
     PROGRESS,
 
     OUTPUT_PATH,
-    OUTPUT_NAME,
     OUTPUT_OVERWRITE,
 
     IMAGESIZE,
@@ -67,9 +65,6 @@ const option::Descriptor usage[] = {
 
     { OUTPUT_PATH,      0, "o", "output",     Arg::Required,
 "  -o  \t--output <dir>\t"
-"Filename to save as, default is output.smt" },
-    { OUTPUT_NAME,      0, "n", "name",       Arg::Required,
-"  -n  \t--name <filename>\t"
 "Filename to save as, default is output.smt" },
     { OUTPUT_OVERWRITE, 0, "O", "overwrite",  Arg::None,
 "  -O  \t--overwrite\t"
@@ -134,8 +129,7 @@ main( int argc, char **argv )
     uint32_t overlap = 0;
 
     // output
-    std::string out_fileName = "output.smt";
-    std::string out_fileDir = "./";
+    std::filesystem::path outFilePath = "output.smt";
     TileMap out_tileMap;
     uint32_t out_format = 1;
     OIIO::ImageSpec out_tileSpec( 32, 32, 4, TypeDesc::UINT8 );
@@ -250,21 +244,10 @@ main( int argc, char **argv )
     }
 
     // Output File Path
-    struct stat info{};
     if( options[ OUTPUT_PATH ] ){
-        out_fileDir = options[ OUTPUT_PATH ].arg;
-        if( stat( out_fileDir.c_str(), &info ) != 0 ){
-            spdlog::error( "cannot access {}", out_fileDir );
-            fail = true;
-        }
-        else if( ! (info.st_mode & S_IFDIR) ){
-            spdlog::error( "{} is not a directory", out_fileDir );
-            fail = true;
-        }
+        outFilePath = options[ OUTPUT_PATH ].arg;
+        //FIXME removed checking, perhaps its not needed here.
     }
-
-    // Output File Name
-    if( options[ OUTPUT_NAME ] ) out_fileName = options[ OUTPUT_NAME ].arg;
 
     if( fail || parse.error() ){
         spdlog::error( "Options parsing." );
@@ -403,7 +386,7 @@ main( int argc, char **argv )
     SPDLOG_INFO( "Pre-scaled tile: {}x{}", rel_tile_width, rel_tile_height );
 
     if( options[ SMTOUT ] ){
-        tempSMT = SMT::create( out_fileDir + out_fileName , overwrite );
+        tempSMT = SMT::create(outFilePath , overwrite );
         if(! tempSMT ){
             spdlog::critical( "cannot overwrite existing file" );
             shutdown(1);
@@ -451,7 +434,7 @@ main( int argc, char **argv )
 
             if( options[ SMTOUT ] ) tempSMT->append( *out_buf );
             if( options[ IMGOUT ] ){
-                name << out_fileDir << out_fileName << "." << std::setfill('0') << std::setw(6) << numTiles << ".tif";
+                name << outFilePath << "." << std::setfill('0') << std::setw(6) << numTiles << ".tif";
                 out_buf->write( name.str() );
                 name.str( std::string() );
             }
@@ -471,7 +454,7 @@ main( int argc, char **argv )
     // if the tileMap only contains 1 value, then we are only outputting
     //     a single image, so skip tileMap csv export
     if( out_tileMap.size() > 1 ){
-        std::fstream out_csv( out_fileDir + out_fileName + ".csv", std::ios::out );
+        std::fstream out_csv(outFilePath.string() + ".csv", std::ios::out );
         out_csv << out_tileMap.toCSV();
         out_csv.close();
     }

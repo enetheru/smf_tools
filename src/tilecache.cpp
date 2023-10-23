@@ -36,7 +36,7 @@ TileCache::getTile(const uint32_t n)
     }
 
     // already open smt file?
-    if( lastSmt && (! lastSmt->fileName.compare( *fileName )) ){
+    if( lastSmt && (! lastSmt->filePath.compare( *fileName )) ){
         outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
     }
     // open a new smt file?
@@ -48,7 +48,7 @@ TileCache::getTile(const uint32_t n)
     }
     // open the image file?
     else {
-        outBuf->reset( *fileName );
+        outBuf->reset( fileName->string() );
     }
     if( !outBuf->initialized() ) {
         spdlog::error("failed to open source for tile: ", n);
@@ -65,32 +65,30 @@ TileCache::getTile(const uint32_t n)
 
 //TODO go over this function to see if it can be refactored
 void
-TileCache::addSource( const std::string& fileName )
-{
-    OIIO_NAMESPACE_USING
-    auto image = ImageInput::open( fileName );
+TileCache::addSource( std::filesystem::path filePath ) {
+    auto image = OIIO::ImageInput::open( filePath );
     if( image ){
         image->close();
 
         _nTiles++;
         map.push_back( nTiles );
-        fileNames.push_back( fileName );
+        fileNames.push_back( filePath.filename() );
         return;
     }
 
-    SMT *smt;
-    if( (smt = SMT::open( fileName )) ){
+    SMT *smt = SMT::open( filePath );
+    if( smt ){
         if(! smt->nTiles ) return;
         _nTiles += smt->nTiles;
         map.push_back( nTiles );
-        fileNames.push_back( fileName );
+        fileNames.push_back( filePath.filename() );
 
         delete smt;
         return;
     }
 
-    SMF *smf;
-    if( (smf = SMF::open( fileName )) ){
+    SMF *smf = SMF::open( filePath );
+    if( smf ){
         // get the fileNames here
         auto smtList = smf->getSMTList();
         for( const auto& [a,b] : smtList ) addSource( b );
@@ -98,7 +96,7 @@ TileCache::addSource( const std::string& fileName )
         return;
     }
 
-    spdlog::error( "unrecognised format: ", fileName );
+    spdlog::error( "unrecognised format: ", filePath.string() );
 }
 
 

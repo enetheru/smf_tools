@@ -66,23 +66,20 @@ TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
 }
 
 void
-TiledImage::setOverlap( uint32_t overlap )
-{
+TiledImage::setOverlap( uint32_t overlap ) {
     _overlap = overlap;
 }
 
 void
-TiledImage::mapFromCSV( const std::string& fileName )
-{
-    tileMap.fromCSV( fileName );
+TiledImage::mapFromCSV( std::filesystem::path filePath ) {
+    tileMap.fromCSV( filePath );
 }
 
 // GENERATION
 // ==========
 //FIXME function can error but does not notify the caller.
 void
-TiledImage::squareFromCache( )
-{
+TiledImage::squareFromCache( ) {
     int tileCount = tileCache.nTiles;
     if( !tileCount ){
         spdlog::critical("tileCache has no tiles");
@@ -98,21 +95,17 @@ TiledImage::squareFromCache( )
 // ======
 
 uint32_t
-TiledImage::getWidth() const
-{
+TiledImage::getWidth() const {
     return tileMap.width * (tSpec.width - overlap) + overlap;
 }
 
 uint32_t
-TiledImage::getHeight() const
-{
+TiledImage::getHeight() const {
     return tileMap.height * (tSpec.height - overlap) + overlap;
 }
 
 std::unique_ptr< ImageBuf >
-TiledImage::getRegion(
-    const ROI &roi )
-{
+TiledImage::getRegion( const ROI &roi ) {
     spdlog::info( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
 
     ImageSpec outSpec( roi.width(), roi.height(), 4, TypeDesc::UINT8 );

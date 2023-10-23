@@ -4,21 +4,20 @@
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
+#include <filesystem>
 
 #include "tilemap.h"
 #include "tilecache.h"
 
-class TiledImage
-{
+class TiledImage {
     // == data members ==
-    std::unique_ptr< OIIO::ImageBuf > currentTile; //!<
-    OIIO::ImageSpec _tSpec =
-            OIIO::ImageSpec( 32, 32, 4, OIIO::TypeDesc::UINT8 );
+    std::unique_ptr< OIIO::ImageBuf > currentTile;
+    OIIO::ImageSpec _tSpec = OIIO::ImageSpec( 32, 32, 4, OIIO::TypeDesc::UINT8 );
     uint32_t _overlap = 0; //!< used for when tiles share border pixels
 
 public:
-    TileMap tileMap; //!< tile map
-    TileCache tileCache; //!< tile cache
+    TileMap tileMap;
+    TileCache tileCache;
 
     // == constructors ==
     TiledImage( ) = default;
@@ -32,7 +31,7 @@ public:
     void setTileMap( const TileMap& tileMap );
     void setOverlap( uint32_t overlap );
 
-    void mapFromCSV( const std::string& );
+    void mapFromCSV( std::filesystem::path filePath );
 
     /// == Generation ==
     void squareFromCache();
@@ -46,8 +45,7 @@ public:
     uint32_t getWidth() const;
     uint32_t getHeight() const;
 
-    std::unique_ptr< OIIO::ImageBuf > getRegion(
-            const OIIO::ROI & );
+    std::unique_ptr< OIIO::ImageBuf > getRegion( const OIIO::ROI & );
 
     std::unique_ptr< OIIO::ImageBuf > getUVRegion(
             uint32_t xbegin, uint32_t xend,

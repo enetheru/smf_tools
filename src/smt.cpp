@@ -1,4 +1,5 @@
 #include <fstream>
+#include <utility>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
@@ -12,24 +13,22 @@ using namespace std;
 OIIO_NAMESPACE_USING
 
 SMT *
-SMT::create( const string& fileName, bool overwrite )
-{
+SMT::create( const std::filesystem::path& filePath, bool overwrite ) {
     SMT *smt;
-    ifstream file( fileName );
+    ifstream file( filePath );
     if( file.good() && !overwrite ) return nullptr;
 
     smt = new SMT;
-    smt->_fileName = fileName;
+    smt->filePath = filePath;
     smt->reset();
     return smt;
 }
 
 
 bool
-SMT::test( const string& fileName )
-{
+SMT::test( const std::filesystem::path& filePath ) {
     char magic[ 16 ] = "";
-    ifstream file( fileName );
+    ifstream file( filePath );
     if( file.good() ){
         file.read( (char *)magic, 16 );
         if(! strcmp( magic, "spring tilefile" ) ){
@@ -41,12 +40,11 @@ SMT::test( const string& fileName )
 }
 
 SMT *
-SMT::open( const string& fileName )
-{
+SMT::open( const std::filesystem::path& filePath ) {
     SMT *smt;
-    if( test( fileName ) ){
+    if( test( filePath ) ){
         smt = new SMT;
-        smt->_fileName = fileName;
+        smt->filePath = filePath;
         smt->load();
         return smt;
     }
@@ -54,14 +52,13 @@ SMT::open( const string& fileName )
 }
 
 void
-SMT::reset( )
-{
-    spdlog::info("Resetting {}", fileName );
+SMT::reset( ) {
+    spdlog::info("Resetting {}", filePath.string() );
     // Clears content of SMT file and re-writes the header.
-    fstream file( fileName, ios::binary | ios::out );
+    fstream file( filePath, ios::binary | ios::out );
 
     if(! file.good() ){
-        spdlog::error( "Unable to write to {}", fileName );
+        spdlog::error("Unable to write to {}", filePath.string() );
         return;
     }
 
@@ -76,30 +73,26 @@ SMT::reset( )
 }
 
 void
-SMT::setFileName( std::string name)
-{
-    _fileName = name;
+SMT::setFilePath( std::filesystem::path _filePath ) {
+    filePath = std::move(_filePath);
 }
 
 void
-SMT::setType( uint32_t t )
-{
+SMT::setType( uint32_t t ) {
     if( header.tileType == t)return;
     header.tileType = t;
     reset();
 }
 
 void
-SMT::setTileSize( uint32_t r )
-{
+SMT::setTileSize( uint32_t r ) {
     if( header.tileSize == r )return;
     header.tileSize = r;
     reset();
 }
 
 void
-SMT::calcTileBytes()
-{
+SMT::calcTileBytes() {
     // reset variables
     _tileBytes = 0;
     int mip = header.tileSize;
@@ -139,11 +132,10 @@ SMT::calcTileBytes()
 }
 
 void
-SMT::load( )
-{
-    ifstream inFile(fileName, ifstream::in);
+SMT::load( ) {
+    ifstream inFile(filePath, ifstream::in);
     if( inFile.good() ){
-        spdlog::critical( "Failed to load: {}", fileName );
+        spdlog::critical( "Failed to load: {}", filePath.string() );
         //FIXME the function can error but it does not notify the caller
         return;
     }
@@ -172,15 +164,14 @@ SMT::load( )
     Guess Tiles:\033[40G{}
     Guess Bytes:\033[40G{}
     Modulus remainder:\033[40G)",
-                fileName, header.nTiles, actualBytes, tileBytes, guessTiles, guessBytes,  remainderBytes );
+                filePath.string(), header.nTiles, actualBytes, tileBytes, guessTiles, guessBytes,  remainderBytes );
     }
 }
 
 std::string
-SMT::info( )
-{
+SMT::info( ) {
     stringstream ss;
-    ss <<  "\tFilename: " << fileName << endl
+    ss <<  "\tFilename: " << filePath << endl
         << "\tVersion: " << header.version << endl
         << "\tTiles: " << header.nTiles << endl
         << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
@@ -195,8 +186,7 @@ SMT::info( )
 }
 
 void
-SMT::append( const OIIO::ImageBuf &sourceBuf )
-{
+SMT::append( const OIIO::ImageBuf &sourceBuf ) {
     //sourceBuf.write( "SMT_append_sourcebuf.tif", "tif" );
 
     if( tileType == 1                 ) appendDXT1(   sourceBuf );
@@ -205,8 +195,7 @@ SMT::append( const OIIO::ImageBuf &sourceBuf )
 }
 
 void
-SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
-{
+SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
     // make a copy of the input buffer for processing
     std::unique_ptr< OIIO::ImageBuf >
             tempBuf( new ImageBuf( sourceBuf ) );
@@ -219,7 +208,7 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
     squish::u8 *blocks = nullptr;
 
     // open our filestream and get ready to start writing dxt images to it
-    fstream file(fileName, ios::binary | ios::in | ios::out);
+    fstream file(filePath, ios::binary | ios::in | ios::out);
     file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
 
     // loop through the mipmaps
@@ -256,7 +245,7 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
         spdlog::info( "\n()", image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 ) );
 
         // Write data to smf
-        spdlog::info( "writing {} to {}", blocks_size, fileName );
+        spdlog::info( "writing {} to {}", blocks_size, filePath.string() );
         file.write( (char*)blocks, blocks_size );
 
         spec = ImageSpec(spec.width >> 1, spec.height >> 1, spec.nchannels, spec.format );
@@ -274,13 +263,12 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf )
 }
 
 void
-SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf )
-{
+SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf ) {
     std::unique_ptr< OIIO::ImageBuf >
             tempBuf( new OIIO::ImageBuf( sourceBuf ) );
 
     ImageSpec spec;
-    fstream file(fileName, ios::binary | ios::in | ios::out);
+    fstream file(filePath, ios::binary | ios::in | ios::out);
     file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
     for( int i = 0; i < 4; ++i ){
         spec = tempBuf->specmod();
@@ -306,8 +294,7 @@ void
 SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf ){ }
 
 std::unique_ptr< OIIO::ImageBuf >
-SMT::getTile( uint32_t n )
-{
+SMT::getTile( uint32_t n ) {
     if( tileType == 1                 ) return getTileDXT1( n );
 //    if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
 //    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
@@ -316,8 +303,7 @@ SMT::getTile( uint32_t n )
 }
 
 std::unique_ptr< OIIO::ImageBuf >
-SMT::getTileDXT1( const uint32_t n )
-{
+SMT::getTileDXT1( const uint32_t n ) {
     if( !(n >= 0 && n < header.nTiles )) {
         spdlog::critical("tile index:{} is out of range 0-{}", n, header.nTiles );
         return nullptr;
@@ -325,9 +311,9 @@ SMT::getTileDXT1( const uint32_t n )
 
     std::unique_ptr< char > raw_dxt1a( new char[ tileBytes ] );
 
-    ifstream file( fileName );
+    ifstream file( filePath );
     if(! file.good() ){
-        spdlog::critical( "Failed to open file:'{}' for reading", fileName );
+        spdlog::critical( "Failed to open file:'{}' for reading", filePath.string() );
         return nullptr;
     }
 
@@ -342,7 +328,7 @@ SMT::getTileDXT1( const uint32_t n )
             header.tileSize, header.tileSize, raw_dxt1a.get(), squish::kDxt1 );
 
     std::unique_ptr< OIIO::ImageBuf >
-        tempBuf( new ImageBuf( fileName + "_" + to_string( n ),
+        tempBuf( new ImageBuf( filePath.string() + "_" + to_string( n ),
                 tileSpec, rgba8888.get() ) );
 
     std::unique_ptr< OIIO::ImageBuf >
@@ -353,8 +339,7 @@ SMT::getTileDXT1( const uint32_t n )
 }
 
 ImageBuf *
-SMT::getTileRGBA8( uint32_t n )
-{
+SMT::getTileRGBA8( uint32_t n ) {
     ImageBuf *tempBuf = nullptr;
     if( n >= header.nTiles ){
         tempBuf = new ImageBuf( tileSpec );
@@ -364,7 +349,7 @@ SMT::getTileRGBA8( uint32_t n )
     char *pixelData = nullptr;
     ImageBuf *outBuf = nullptr;
 
-    ifstream file( fileName );
+    ifstream file( filePath );
     if( file.good() ){
         pixelData = new char[ tileSpec.image_bytes() ];
         outBuf = new ImageBuf;
@@ -372,7 +357,7 @@ SMT::getTileRGBA8( uint32_t n )
         file.seekg( sizeof(SMT::Header) + tileBytes * n );
         file.read( pixelData, tileSpec.image_bytes() );
 
-        tempBuf = new ImageBuf( fileName + "_" + to_string(n), tileSpec, pixelData);
+        tempBuf = new ImageBuf( filePath.string() + "_" + to_string(n), tileSpec, pixelData);
 
         outBuf->copy(*tempBuf);
 
@@ -385,7 +370,6 @@ SMT::getTileRGBA8( uint32_t n )
 }
 
 ImageBuf *
-SMT::getTileUSHORT( uint32_t n )
-{
+SMT::getTileUSHORT( uint32_t n ) {
     return nullptr;
 }

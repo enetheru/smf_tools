@@ -12,19 +12,16 @@ class TileCache
     uint32_t _nTiles = 0;
     // FIXME this twin vector mapping can be turned into a pair or a tuple
     std::vector< uint32_t > map;
-    std::vector< std::string > fileNames;
+    std::vector< std::filesystem::path > fileNames;
 
 public:
     // data access
     const uint32_t &nTiles = _nTiles;
 
     // modifications
-    void addSource( const std::string& );
+    void addSource( std::filesystem::path filePath );
 
     /// get a tile from the cache
-    /*
-     *
-     */
     std::unique_ptr< OIIO::ImageBuf > getTile(uint32_t n);
 
     TileCache &operator=( const TileCache& rhs ){

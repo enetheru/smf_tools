@@ -101,7 +101,7 @@ main( int argc, char **argv )
     SMT *smt = nullptr;
     bool force = false;
     uint32_t mapWidth = 0, mapLength = 0;
-    string outFileName;
+    std::filesystem::path outFilePath;
     fstream tempFile;
     uint32_t tileSize = 32;
     float mapFloor = 0.01f, mapCeiling = 1.0f;
@@ -138,8 +138,8 @@ main( int argc, char **argv )
         spdlog::set_level(spdlog::level::off);
 
     // -o --output filename
-    if( options[ OUTPUT ] ) outFileName = options[ OUTPUT ].arg;
-    else outFileName = "output.smf";
+    if( options[ OUTPUT ] ) outFilePath = options[ OUTPUT ].arg;
+    else outFilePath = "output.smf";
 
     // -f --force
     if( options[ FORCE ] ){
@@ -238,8 +238,8 @@ R"(Checking input dimensions
     }
 
     // == lets do it! ==
-    if(! (smf = SMF::create( outFileName, force )) ){
-        spdlog::critical( "Unable to create: {}", outFileName );
+    if(! (smf = SMF::create( outFilePath, force )) ){
+        spdlog::critical( "Unable to create: {}", outFilePath.string() );
     }
 
     // == Information Collection ==
