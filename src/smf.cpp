@@ -1,6 +1,5 @@
 #include <fstream>
 #include <sstream>
-#include <utility>
 #include <filesystem>
 
 #include <OpenImageIO/imageio.h>
@@ -353,11 +352,12 @@ SMF::updatePtrs()
     }
 }
 
+/*FIXME commented out because it isnt used.
 void
 SMF::setFilePath( std::filesystem::path filePath ) {
     _filePath = std::move( filePath );
     _dirtyMask |= SMF_ALL;
-}
+}*/
 
 void
 SMF::setSize( int width, int length ) {
@@ -365,16 +365,6 @@ SMF::setSize( int width, int length ) {
     _header.width = width * 64;
     _header.length = length * 64;
     _dirtyMask |= SMF_ALL;
-}
-
-void
-SMF::setSquareWidth( int size )
-{
-}
-
-void
-SMF::setSquareTexels( int size )
-{
 }
 
 void
@@ -453,13 +443,14 @@ SMF::addTileFile( std::filesystem::path filePath )
     delete smt;
 }
 
+/* FIXME commented out because it isnt used.
 void
 SMF::clearTileFiles()
 {
     _smtList.clear();
     _headerTiles.nFiles = 0;
     _headerTiles.nTiles = 0;
-}
+}*/
 
 void
 SMF::addFeature( const string& name, float x, float y, float z, float r, float s )
@@ -539,6 +530,7 @@ R"(addFeatures"
     _dirtyMask |= SMF_FEATURES;
 }
 
+/* FIXME commented out because it isnt used.
 void
 SMF::addFeatureDefaults()
 {
@@ -552,8 +544,9 @@ SMF::addFeatureDefaults()
     _featureTypes.emplace_back("GeoVent");
     _headerFeatures.nTypes = _featureTypes.size();
     _dirtyMask |= SMF_FEATURES;
-}
+}*/
 
+/* FIXME commented out because it isnt used.
 void
 SMF::clearFeatures()
 {
@@ -564,7 +557,7 @@ SMF::clearFeatures()
     _headerFeatures.nTypes = 0;
 
     _dirtyMask |= SMF_FEATURES;
-}
+}*/
 
 void
 SMF::writeHeader()

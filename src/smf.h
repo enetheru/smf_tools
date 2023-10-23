@@ -39,7 +39,6 @@
  */
 class SMF {
     std::filesystem::path _filePath;
-    uint32_t _fileSize{};
     uint32_t _dirtyMask = 0xFFFFFFFF;
 
     /*! Header struct as it is written on disk
@@ -188,7 +187,7 @@ public:
     void read( );
 
     /*! Set the filename. */
-    void setFilePath( std::filesystem::path filePath );
+    //FIXME UNUSED void setFilePath( std::filesystem::path filePath );
 
     /*! Set Map Size uses spring map units.
     *
@@ -202,13 +201,13 @@ public:
      * This is legacy from old ground drawer code. no longer used.
      * @param size Size of the mesh squares
      */
-    void setSquareWidth( int size );
+    //TODO UNUSED void setSquareWidth( int size );
 
     /*! set the density of the images per square
      *
      * @param size density of pixels per square
      */
-    void setSquareTexels( int size );
+    //TODO UNUSED void setSquareTexels( int size );
 
     /*! setTileSize
      *
@@ -230,14 +229,14 @@ public:
 
     void addTileFile( std::filesystem::path filePath );
 
-    void clearTileFiles( );
+    //TODO UNUSED void clearTileFiles( );
 
     void addFeature( const std::string& name, float x, float y, float z,
                      float r, float s );
 
-    void addFeatureDefaults();
+    //TODO void addFeatureDefaults();
 
-    void clearFeatures();
+    //TODO UNUSED void clearFeatures();
 
     /// add a csv list of features
     void addFeatures( std::filesystem::path filePath );

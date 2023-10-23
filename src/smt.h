@@ -30,17 +30,17 @@ private:
 
     void calcTileBytes();
     uint32_t _tileBytes = 680; 
-    OIIO::ImageSpec _tileSpec;
+    OIIO::ImageSpec tileSpec;
 
     //! load data from fileName
     void load();
     
     void appendDXT1(   const OIIO::ImageBuf & );
-    void appendRGBA8(  const OIIO::ImageBuf & );
-    void appendUSHORT( const OIIO::ImageBuf & );
+    //FIXME UNUSED void appendRGBA8(  const OIIO::ImageBuf & );
+    //FIXME UNUSED void appendUSHORT( const OIIO::ImageBuf & );
 	std::unique_ptr< OIIO::ImageBuf> getTileDXT1( uint32_t );
-    OIIO::ImageBuf *getTileRGBA8( uint32_t );
-    OIIO::ImageBuf *getTileUSHORT( uint32_t );
+    //FIXME UNUSED OIIO::ImageBuf *getTileRGBA8( uint32_t );
+    //FIXME UNUSED OIIO::ImageBuf *getTileUSHORT( uint32_t );
 
 public:
     //FIXME Remove all these references.
@@ -50,8 +50,6 @@ public:
     const uint32_t &tileType = header.tileType;
     const uint32_t &tileSize = header.tileSize;
     const uint32_t &tileBytes = _tileBytes;
-    const OIIO::ImageSpec &tileSpec = _tileSpec;
-    
 
     SMT( )= default;
 
@@ -76,7 +74,7 @@ public:
 
     void setTileSize( uint32_t r );
     void setType    ( uint32_t t ); // 1=DXT1
-    void setFilePath( std::filesystem::path _filePath );
+    //FIXME UNUSED void setFilePath( std::filesystem::path _filePath );
 
 	std::unique_ptr< OIIO::ImageBuf > getTile( uint32_t );
     void append( const OIIO::ImageBuf & );

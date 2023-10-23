@@ -72,10 +72,11 @@ SMT::reset( ) {
     file.close();
 }
 
+/* FIXME UNUSED
 void
 SMT::setFilePath( std::filesystem::path _filePath ) {
     filePath = std::move(_filePath);
-}
+}*/
 
 void
 SMT::setType( uint32_t t ) {
@@ -104,12 +105,13 @@ SMT::calcTileBytes() {
      * 512  + 128  + 32 + 8 = 680
      */
     if( header.tileType == 1 ){
-        _tileSpec = ImageSpec( tileSize, tileSize, 4, TypeDesc::UINT8 );
+        tileSpec = ImageSpec( tileSize, tileSize, 4, TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
             _tileBytes += (mip * mip)/2;
             mip /= 2;
         }
     }
+    /* FIXME UNUSED
     else if( header.tileType == GL_RGBA8 ){
         _tileSpec = ImageSpec( tileSize, tileSize, 4, TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
@@ -123,7 +125,7 @@ SMT::calcTileBytes() {
             _tileBytes += (mip * mip) * 2;
             mip /= 2;
         }
-    }
+    }*/
     else {
         spdlog::critical("Invalid tiletype: {}", tileType );
         //FIXME, the function can error but it does not notify the caller.
@@ -190,8 +192,8 @@ SMT::append( const OIIO::ImageBuf &sourceBuf ) {
     //sourceBuf.write( "SMT_append_sourcebuf.tif", "tif" );
 
     if( tileType == 1                 ) appendDXT1(   sourceBuf );
-    if( tileType == GL_RGBA8           ) appendRGBA8( sourceBuf );
-    if( tileType == GL_UNSIGNED_SHORT ) appendUSHORT( sourceBuf );
+    //FIXME UNUSED if( tileType == GL_RGBA8           ) appendRGBA8( sourceBuf );
+    //FIXME UNUSED if( tileType == GL_UNSIGNED_SHORT ) appendUSHORT( sourceBuf );
 }
 
 void
@@ -262,6 +264,7 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
     file.close();
 }
 
+/* FIXME UNUSED
 void
 SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf ) {
     std::unique_ptr< OIIO::ImageBuf >
@@ -288,10 +291,11 @@ SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf ) {
 
     file.flush();
     file.close();
-}
+}*/
 
+/* FIXME UNUSED
 void
-SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf ){ }
+SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf ){ }*/
 
 std::unique_ptr< OIIO::ImageBuf >
 SMT::getTile( uint32_t n ) {
@@ -304,7 +308,7 @@ SMT::getTile( uint32_t n ) {
 
 std::unique_ptr< OIIO::ImageBuf >
 SMT::getTileDXT1( const uint32_t n ) {
-    if( !(n >= 0 && n < header.nTiles )) {
+    if(n >= header.nTiles) {
         spdlog::critical("tile index:{} is out of range 0-{}", n, header.nTiles );
         return nullptr;
     }
@@ -338,6 +342,7 @@ SMT::getTileDXT1( const uint32_t n ) {
     return outBuf;
 }
 
+/* FIXME UNUSED
 ImageBuf *
 SMT::getTileRGBA8( uint32_t n ) {
     ImageBuf *tempBuf = nullptr;
@@ -367,9 +372,10 @@ SMT::getTileRGBA8( uint32_t n ) {
     file.close();
 
     return outBuf;
-}
+}*/
 
+/* FIXME UNUSED
 ImageBuf *
 SMT::getTileUSHORT( uint32_t n ) {
     return nullptr;
-}
+}*/
