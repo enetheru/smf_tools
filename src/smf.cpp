@@ -10,9 +10,6 @@
 #include "smt.h"
 #include "util.h"
 
-OIIO_NAMESPACE_USING
-using namespace std;
-
 void
 SMF::good() const
 {
@@ -40,7 +37,7 @@ bool
 SMF::test( const std::filesystem::path& filePath )
 {
     char magic[ 16 ] = "";
-    ifstream file( filePath.c_str() );
+    std::ifstream file( filePath.c_str() );
     if( file.good() ){
         file.read( magic, 16 );
         if(! strcmp( magic, "spring map file" ) ){
@@ -55,17 +52,17 @@ SMF *
 SMF::create( std::filesystem::path filePath, bool overwrite )
 {
     SMF *smf;
-    fstream file;
+    std::fstream file;
 
     // check for existing file and whether to overwrite
-    file.open( filePath, ios::in );
+    file.open( filePath, std::ios::in );
     if( file.good() && !overwrite ) return nullptr;
     file.close();
 
     SPDLOG_DEBUG( "Creating {}", filePath );
 
     // attempt to create a new file or overwrite existing
-    file.open( filePath, ios::binary | ios::out );
+    file.open( filePath, std::ios::binary | std::ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to write to: {}", filePath.string() );
         return nullptr;
@@ -103,10 +100,10 @@ SMF::read()
     FileMap map;
 
     SPDLOG_DEBUG( "Reading ", filePath );
-    ifstream file( _filePath );
+    std::ifstream file( _filePath );
     if(! file.good() )spdlog::error( "unable to read: {}", _filePath.string() );
 
-    file.seekg( 0, ios::end );
+    file.seekg( 0, std::ios::end );
     // add block after the end of the file to test against.
     map.addBlock( file.tellg(), INT_MAX, "eof" );
 
@@ -199,10 +196,10 @@ SMF::read()
 }
 
 //TODO format as json
-string
+std::string
 SMF::info()
 {
-    stringstream info;
+    std::stringstream info;
     info << "[File Information]"
          << "\n\tFile Name: " << _filePath
          << "\n\tFile Size: " << to_hex( file_size(_filePath ) )
@@ -262,7 +259,7 @@ SMF::info()
          << "\n\tTile Files:  " << _smtList.size()
          << "\n\tTotal tiles: " << _headerTiles.nTiles;
     for( const auto& [a,b] : _smtList ){
-        info << "\n\t    " << b << ":" << b <<  endl;
+        info << "\n\t    " << b << ":" << b <<  std::endl;
     }
 
     // Features Information
@@ -281,37 +278,37 @@ SMF::updateSpecs()
     _heightSpec.width = _header.width + 1;
     _heightSpec.height = _header.length + 1;
     _heightSpec.nchannels = 1;
-    _heightSpec.set_format( TypeDesc::UINT16 );
+    _heightSpec.set_format( OIIO::TypeDesc::UINT16 );
 
     // set _typeSpec
     _typeSpec.width = _header.width / 2;
     _typeSpec.height = _header.length / 2;
     _typeSpec.nchannels = 1;
-    _typeSpec.set_format( TypeDesc::UINT8 );
+    _typeSpec.set_format( OIIO::TypeDesc::UINT8 );
 
     // set map spec
     _mapSpec.width = _header.width * 8 / _header.tileSize;
     _mapSpec.height = _header.length * 8 / _header.tileSize;
     _mapSpec.nchannels = 1;
-    _mapSpec.set_format( TypeDesc::UINT );
+    _mapSpec.set_format( OIIO::TypeDesc::UINT );
 
     // set _miniSpec
     _miniSpec.width = 1024;
     _miniSpec.height = 1024;
     _miniSpec.nchannels = 4;
-    _miniSpec.set_format( TypeDesc::UINT8 );
+    _miniSpec.set_format( OIIO::TypeDesc::UINT8 );
 
     // set _metalSpec
     _metalSpec.width = _header.width / 2;
     _metalSpec.height = _header.length / 2;
     _metalSpec.nchannels = 1;
-    _metalSpec.set_format( TypeDesc::UINT8 );
+    _metalSpec.set_format( OIIO::TypeDesc::UINT8 );
 
     // set _grassSpec
     _grassSpec.width = _header.width / 4;
     _grassSpec.height = _header.length / 4;
     _grassSpec.nchannels = 1;
-    _grassSpec.set_format( TypeDesc::UINT8 );
+    _grassSpec.set_format( OIIO::TypeDesc::UINT8 );
 }
 
 void
@@ -453,7 +450,7 @@ SMF::clearTileFiles()
 }*/
 
 void
-SMF::addFeature( const string& name, float x, float y, float z, float r, float s )
+SMF::addFeature( const std::string& name, float x, float y, float z, float r, float s )
 {
     SMF::Feature feature{};
     feature.x = x; feature.y = y; feature.z = z;
@@ -484,13 +481,13 @@ void
 SMF::addFeatures( std::filesystem::path filePath )
 {
     // test the file
-    fstream file( filePath, ifstream::in );
+    std::fstream file( filePath, std::ifstream::in );
     if(! file.good() ) spdlog::error( "addFeatures: Cannot open {}", filePath.string() );
 
     int n = 0;
-    string cell;
-    stringstream line;
-    vector<string> tokens;
+    std::string cell;
+    std::stringstream line;
+    std::vector<std::string> tokens;
     while( getline( file, cell ) ){
         ++n;
         line.str( cell );
@@ -566,7 +563,7 @@ SMF::writeHeader()
 
     _header.id = rand();
 
-    fstream file( _filePath, ios::binary | ios::in | ios::out );
+    std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if( !file.good() )spdlog::error( "Unable to open {} for writing", _filePath.string() );
 
     file.write( (char *)&_header, sizeof(SMF::Header) );
@@ -580,7 +577,7 @@ SMF::writeExtraHeaders()
 {
     SPDLOG_DEBUG( "Writing Extra Headers" );
 
-    fstream file( _filePath, ios::binary | ios::in | ios::out );
+    std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _filePath.string() );
         return;
@@ -595,9 +592,9 @@ SMF::writeExtraHeaders()
 
 //FIXME using true and false for error conditions is a PITA, change it to use something more robust.
 bool
-SMF::writeImage( unsigned int ptr, const ImageSpec& spec, ImageBuf *sourceBuf )
+SMF::writeImage( unsigned int ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf *sourceBuf )
 {
-    fstream file( _filePath, ios::binary | ios::in | ios::out );
+    std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _filePath.string() );
         return true;
@@ -612,7 +609,7 @@ SMF::writeImage( unsigned int ptr, const ImageSpec& spec, ImageBuf *sourceBuf )
     }
 
     sourceBuf->read( 0, 0, true, spec.format );
-    auto *tempBuf = new ImageBuf;
+    auto *tempBuf = new OIIO::ImageBuf;
     tempBuf->copy( *sourceBuf );
     channels( tempBuf, spec );
     scale( tempBuf, spec );
@@ -627,7 +624,7 @@ SMF::writeImage( unsigned int ptr, const ImageSpec& spec, ImageBuf *sourceBuf )
 }
 
 void
-SMF::writeHeight( ImageBuf *sourceBuf )
+SMF::writeHeight( OIIO::ImageBuf *sourceBuf )
 {
     SPDLOG_DEBUG( "Writing height" );
     _dirtyMask &= !SMF_HEIGHT;
@@ -638,7 +635,7 @@ SMF::writeHeight( ImageBuf *sourceBuf )
 }
 
 void
-SMF::writeType( ImageBuf *sourceBuf )
+SMF::writeType( OIIO::ImageBuf *sourceBuf )
 {
     SPDLOG_DEBUG( "INFO: Writing type" );
     _dirtyMask &= !SMF_TYPE;
@@ -650,12 +647,12 @@ SMF::writeType( ImageBuf *sourceBuf )
 
 //FIXME, the fact that this function can fail, but not notify it caller is annoying.
 void
-SMF::writeMini( ImageBuf * sourceBuf )
+SMF::writeMini( OIIO::ImageBuf * sourceBuf )
 {
     SPDLOG_DEBUG( "Writing mini" );
     _dirtyMask &= !SMF_MINI;
 
-    fstream file( _filePath, ios::binary | ios::in | ios::out );
+    std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _filePath.string() );
         return;
@@ -671,12 +668,12 @@ SMF::writeMini( ImageBuf * sourceBuf )
     }
 
     sourceBuf->read( 0, 0, true, _miniSpec.format );
-    auto *tempBuf = new ImageBuf;
+    auto *tempBuf = new OIIO::ImageBuf;
     tempBuf->copy( *sourceBuf );
     channels( tempBuf, _miniSpec );
     scale( tempBuf, _miniSpec );
 
-    ImageSpec spec;
+    OIIO::ImageSpec spec;
     int blocks_size = 0;
     squish::u8 *blocks = nullptr;
     for( int i = 0; i < 9; ++i ){
@@ -718,7 +715,7 @@ SMF::writeTileHeader()
     SPDLOG_DEBUG( "Writing tile reference information" );
     _dirtyMask &= !SMF_MAP_HEADER;
 
-    fstream file( _filePath, ios::binary | ios::in | ios::out );
+    std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     file.seekp( _header.tilesPtr );
 
     // Tiles Header
@@ -754,7 +751,7 @@ SMF::writeMap( TileMap *tileMap )
 
 /// write the metal image to the smf
 void
-SMF::writeMetal( ImageBuf *sourceBuf )
+SMF::writeMetal( OIIO::ImageBuf *sourceBuf )
 {
     SPDLOG_DEBUG( "Writing metal" );
     _dirtyMask &= !SMF_METAL;
@@ -771,7 +768,7 @@ SMF::writeFeatures()
     SPDLOG_DEBUG( "Writing features" );
     _dirtyMask &= !SMF_FEATURES_HEADER;
 
-    fstream file( _filePath, ios::binary | ios::in | ios::out );
+    std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for writing", _filePath.string() );
         return;
@@ -791,7 +788,7 @@ SMF::writeFeatures()
 
 // Write the grass image to the smf
 void
-SMF::writeGrass( ImageBuf *sourceBuf )
+SMF::writeGrass( OIIO::ImageBuf *sourceBuf )
 {
     HeaderExtn_Grass *headerGrass = nullptr;
 
@@ -816,16 +813,16 @@ SMF::writeGrass( ImageBuf *sourceBuf )
 }
 
 //FIXME returning nullptr on fail is crap.
-ImageBuf *
-SMF::getImage( unsigned int ptr, const ImageSpec& spec)
+OIIO::ImageBuf *
+SMF::getImage( unsigned int ptr, const OIIO::ImageSpec& spec)
 {
-    ifstream file( _filePath );
+    std::ifstream file( _filePath );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for reading", _filePath.string() );
         return nullptr;
     }
 
-    auto *imageBuf = new ImageBuf( spec );
+    auto *imageBuf = new OIIO::ImageBuf( spec );
 
     file.seekg( ptr );
     file.read( (char *)imageBuf->localpixels(), spec.image_bytes() );
@@ -834,13 +831,13 @@ SMF::getImage( unsigned int ptr, const ImageSpec& spec)
     return imageBuf;
 }
 
-ImageBuf *
+OIIO::ImageBuf *
 SMF::getHeight( )
 {
     return getImage( _header.heightPtr, _heightSpec );
 }
 
-ImageBuf *
+OIIO::ImageBuf *
 SMF::getType( )
 {
     return getImage( _header.typePtr, _typeSpec );
@@ -864,11 +861,11 @@ SMF::getMap( )
     return tileMap;
 }
 
-ImageBuf *SMF::getMini(){
+OIIO::ImageBuf *SMF::getMini(){
     //TODO consider using openimageio dds reader to get minimap
     std::array< char, MINIMAP_SIZE > temp{};
 
-    ifstream file( _filePath );
+    std::ifstream file( _filePath );
     if(! file.good() ){
         spdlog::error( "Unable to open {} for reading", _filePath.string() );
         //FIXME returning nullptr on return is crap. make return type a unique ptr and it will make more sense.
@@ -879,13 +876,13 @@ ImageBuf *SMF::getMini(){
     file.read( temp.data(), MINIMAP_SIZE );
     file.close();
 
-    auto imageBuf = new ImageBuf( _miniSpec );
+    auto imageBuf = new OIIO::ImageBuf( _miniSpec );
     squish::DecompressImage( (squish::u8 *)imageBuf->localpixels(), 1024, 1024, temp.data(), squish::kDxt1);
 
     return imageBuf;
 }
 
-ImageBuf *
+OIIO::ImageBuf *
 SMF::getMetal( )
 {
     return getImage( _header.metalPtr, _metalSpec );
@@ -899,10 +896,10 @@ SMF::getFeatureTypes( )
     return list.str();
 }
 
-string
+std::string
 SMF::getFeatures( )
 {
-    stringstream list;
+    std::stringstream list;
     list << "NAME,X,Y,Z,ANGLE,SCALE\n";
     for( auto i : _features ){
         list << _featureTypes[ i.type ] << ","
@@ -916,7 +913,7 @@ SMF::getFeatures( )
     return list.str();
 }
 
-ImageBuf *
+OIIO::ImageBuf *
 SMF::getGrass()
 {
     HeaderExtn_Grass *headerGrass = nullptr;
