@@ -125,7 +125,7 @@ main( int argc, char **argv )
     if( options[ HELP ] || argc == 0 ){
         int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
         option::printUsage( std::cout, usage, columns );
-        shutdown(1);
+        shutdown( options[ HELP ] ? 0 : 1 );
     }
 
     // -v --verbose
