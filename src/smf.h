@@ -15,8 +15,8 @@
 /** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>
  * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4\n
  * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
+ * SMFFormat.h provides a macro for this MINIMAP_SIZE = 699048
  */
-#define MINIMAP_SIZE 699048
 
 #define SMF_HEADER              0x00000001 //!<
 #define SMF_EXTRA_HEADER        0x00000002 //!<
@@ -35,9 +35,6 @@
 // (|=  ) turns it on
 
 
-/*! Spring Map File
- *
- */
 class SMF {
     std::filesystem::path _filePath;
     uint32_t _dirtyMask = 0xFFFFFFFF;
@@ -51,23 +48,17 @@ class SMF {
      * start of every header Extn must look like this, then comes data specific
      * for header type
      */
-    struct HeaderExtension {
-        int bytes = 0;      //!< size of the header
-        int type = 0;       //!< type of the header
-        HeaderExtension( )= default;
-        HeaderExtension( int i, int j ) : bytes( i ), type( j ){ };
-    };
-    std::vector< SMF::HeaderExtension * > _headerExtensions;
+    std::vector< std::unique_ptr< ExtraHeader > > extraHeaders;
 
     /*! grass Header Extn.
      *
      * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
      * that defines ground vegetation.
      */
-    struct HeaderExtn_Grass: public HeaderExtension
+    struct HeaderExtn_Grass: public ExtraHeader
     {
         int ptr = 80; ///< offset to beginning of grass map data.
-        HeaderExtn_Grass( ) : HeaderExtension(12, 1 ){ };
+        HeaderExtn_Grass( ) : ExtraHeader(12, 1 ){ };
     };
 
     OIIO::ImageSpec _heightSpec;
@@ -132,8 +123,6 @@ class SMF {
                      OIIO::ImageBuf *sourceBuf = nullptr );
 
 public:
-    SMF( )= default;
-    ~SMF();
 
     void good() const;
     static bool test  ( const std::filesystem::path& filePath );

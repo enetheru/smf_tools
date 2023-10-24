@@ -27,12 +27,6 @@ SMF::good() const
 
 }
 
-SMF::~SMF()
-{
-    //delete extra headers
-    for( auto i : _headerExtensions ) delete i;
-}
-
 bool
 SMF::test( const std::filesystem::path& filePath )
 {
@@ -123,25 +117,31 @@ SMF::read()
 
     // Extra headers Information
     uint32_t offset;
-    SMF::HeaderExtension *headerExtn;
-    for(int i = 0; i < _header.numExtraHeaders; ++i ){
-        headerExtn = new SMF::HeaderExtension;
+    for( int i = 0; i < _header.numExtraHeaders; ++i ){
+        auto headerStub = std::make_unique<ExtraHeader>(0, 0);
         offset = file.tellg();
-        file.read( (char *)headerExtn, sizeof(SMF::HeaderExtension) );
-        file.seekg( offset );
-        if( headerExtn->type == 1 ){
-            auto *headerGrass = new SMF::HeaderExtn_Grass;
-            file.read( (char *)headerGrass, sizeof(SMF::HeaderExtn_Grass));
-            _headerExtensions.push_back((SMF::HeaderExtension *)headerGrass );
-            map.addBlock( headerGrass->ptr, _grassSpec.image_bytes(), "grass" );
+        file.read((char *)headerStub.get(), sizeof( *headerStub ) );
+
+        switch( headerStub->type ){
+            case MEH_Vegetation: {
+                spdlog::info("Found grass header" );
+                auto header = std::make_unique<SMF::HeaderExtn_Grass>();
+                // re-read the header into the appropriate container
+                file.seekg( offset );
+                file.read( (char *)header.get(), sizeof(*header));
+                map.addBlock( offset, header->size, "MEH_Vegetation" );
+                map.addBlock( header->ptr, _grassSpec.image_bytes(), "grass" );
+                extraHeaders.push_back( std::move( header ) );
+                break;
+            }
+            default: {
+                spdlog::warn("Extra Header({}) has unknown type: {}", i, headerStub->type);
+                //move the read head to the end of the header
+                file.seekg(offset + headerStub->size );
+                map.addBlock(offset, headerStub->size, "MEH_UNKNOWN" );
+                extraHeaders.push_back( std::move(headerStub ) ); //save the stub for later
+            }
         }
-        else {
-            spdlog::warn( "Extra Header({}) has unknown type: {}", i, headerExtn->type);
-            _headerExtensions.push_back( headerExtn );
-        }
-        map.addBlock( offset, headerExtn->bytes, "extraheader" );
-        file.seekg( offset + headerExtn->bytes );
-        delete headerExtn;
     }
 
     // Tile index Information
@@ -235,22 +235,28 @@ SMF::info()
         ;
 
     //Header Extensions
-    for( auto i : _headerExtensions ){
-        if( i->type == 0 ){
-            info << "\n    Null Header"
-                 << "\n\tsize: " << i->bytes
-                 << "\n\ttype: " << i->type;
-        }
-        else if( i->type == 1 ){
-            info << "\n    Grass"
-                 << "\n\tsize: " << i->bytes
-                 << "\n\ttype: " << i->type
-                 << "\n\tptr:  " << to_hex(((HeaderExtn_Grass *) i)->ptr);
-        }
-        else {
-            info << "\n    Unknown"
-                 << "\n\tsize: " << i->bytes
-                 << "\n\ttype: " << i->type;
+    for( const auto &extraHeader : extraHeaders ){
+        switch( extraHeader->type ){
+            case MEH_None:{
+                info << "\n    Null Header"
+                     << "\n\tsize: " << extraHeader->size
+                     << "\n\ttype: " << extraHeader->type;
+            }
+                break;
+            case MEH_Vegetation:{
+                auto header = static_cast< HeaderExtn_Grass *>( extraHeader.get() );
+                info << "\n    Grass"
+                     << "\n\tsize: " << header->size
+                     << "\n\ttype: " << header->type
+                     << "\n\tptr:  " << to_hex(header->ptr );
+            }
+                break;
+            default:{
+                info << "\n    Unknown"
+                     << "\n\tsize: " << extraHeader->size
+                     << "\n\ttype: " << extraHeader->type;
+            }
+
         }
     }
 
@@ -318,7 +324,7 @@ SMF::updatePtrs()
 
     _header.heightmapPtr = sizeof( _header );
 
-    for( auto i : _headerExtensions ) _header.heightmapPtr += i->bytes;
+    for( const auto &extraHeader : extraHeaders ) _header.heightmapPtr += extraHeader->size;
 
     _header.typeMapPtr = _header.heightmapPtr + _heightSpec.image_bytes();
     _header.tilesPtr = _header.typeMapPtr + _typeSpec.image_bytes();
@@ -337,14 +343,22 @@ SMF::updatePtrs()
     eof += _features.size() * sizeof( SMF::Feature );
 
     // Optional Headers.
-    for( auto i : _headerExtensions ){
-        if( i->type == 1 ){
-            auto *headerGrass = (SMF::HeaderExtn_Grass *)i;
-            headerGrass->ptr = eof;
-            eof = headerGrass->ptr + _grassSpec.image_bytes();
-        }
-        else {
-            spdlog::warn( "unknown header extn" );
+    for( const auto &extraHeader : extraHeaders ){
+        switch( extraHeader->type ){
+            case MEH_None:{
+                spdlog::warn( "Extra Header Type is MEH_None" );
+                break;
+            }
+            case MEH_Vegetation:{
+                //FIXME grass at the end of file doesnt account for additional extra headers.
+                auto header = static_cast<SMF::HeaderExtn_Grass *>(extraHeader.get() );
+                header->ptr = eof;
+                eof = header->ptr + _grassSpec.image_bytes();
+                break;
+            }
+            default:{
+                spdlog::warn( "unknown header extn" );
+            }
         }
     }
 }
@@ -388,33 +402,30 @@ SMF::enableGrass( bool enable )
     HeaderExtn_Grass *headerGrass = nullptr;
 
     // get header if it exists.
-    for( auto i : _headerExtensions ){
-        if( i->type == 1 ){
-            headerGrass = (HeaderExtn_Grass *)i;
+    for( const auto &extraHeader : extraHeaders ){
+        if( extraHeader->type == 1 ){
+            headerGrass = static_cast<HeaderExtn_Grass *>( extraHeader.get() );
             break;
         }
-    }
-
-    // if we have a header, and we don't want it anymore
-    if( !enable && headerGrass ){
-        for(auto i = _headerExtensions.end(); i != _headerExtensions.begin(); --i ){
-            if( (*i)->type == 1 ){
-                headerGrass = (HeaderExtn_Grass *)*i;
-                delete headerGrass;
-                i = _headerExtensions.erase(i);
-                --_header.numExtraHeaders;
-            }
-        }
-        _dirtyMask |= SMF_ALL;
-        return;
     }
 
     //if it doesn't exist, and we don't want it, do nothing
     if(! (enable || headerGrass) ) return;
 
+    // if we have a header, and we don't want it anymore
+
+    if( !enable && headerGrass ){
+        auto erased = erase_if(
+                extraHeaders,
+                [](const auto &header) {
+                    return header->type == MEH_Vegetation; } );
+        _header.numExtraHeaders -= erased;
+        _dirtyMask |= SMF_ALL;
+        return;
+    }
+
     // otherwise we don't have and we want one
-    headerGrass = new HeaderExtn_Grass();
-    _headerExtensions.push_back(headerGrass );
+    extraHeaders.emplace_back(std::make_unique<HeaderExtn_Grass>() );
     ++_header.numExtraHeaders;
     _dirtyMask |= SMF_ALL;
 }
@@ -584,7 +595,9 @@ SMF::writeExtraHeaders()
     }
 
     file.seekp( sizeof( _header ) );
-    for( auto i : _headerExtensions ) file.write((char *)i, i->bytes );
+    for( const auto &extraheader : extraHeaders ){
+        file.write( (char *)extraheader.get(), extraheader->size );
+    }
     file.close();
 
     _dirtyMask &= !SMF_EXTRA_HEADER;
@@ -788,28 +801,18 @@ SMF::writeFeatures()
 
 // Write the grass image to the smf
 void
-SMF::writeGrass( OIIO::ImageBuf *sourceBuf )
-{
-    HeaderExtn_Grass *headerGrass = nullptr;
-
-    // get header if it exists.
-    for( auto i : _headerExtensions ){
-        if( i->type == 1 ){
-            headerGrass = (HeaderExtn_Grass *)i;
-            break;
+SMF::writeGrass( OIIO::ImageBuf *sourceBuf ) {
+    const auto &header = *std::find_if(extraHeaders.begin(), extraHeaders.end(),
+        [](const auto &header){ return header->type == MEH_Vegetation; } );
+    if( header ){
+        auto headerGrass = static_cast<HeaderExtn_Grass *>( header.get() );
+        SPDLOG_DEBUG( "Writing Grass" );
+        if( writeImage( headerGrass->ptr, _grassSpec, sourceBuf ) ){
+            spdlog::warn( "wrote blank grass map" );
         }
+        _dirtyMask &= !SMF_GRASS;
     }
-
-    //if it doesn't exist, do nothing.
-    if( headerGrass == nullptr ) return;
-
-    SPDLOG_DEBUG( "Writing Grass" );
-
-    if( writeImage( headerGrass->ptr, _grassSpec, sourceBuf ) ){
-        spdlog::warn( "wrote blank grass map" );
-    }
-
-    _dirtyMask &= !SMF_GRASS;
+    return;
 }
 
 //FIXME returning nullptr on fail is crap.
@@ -914,14 +917,12 @@ SMF::getFeatures( )
 }
 
 OIIO::ImageBuf *
-SMF::getGrass()
-{
-    HeaderExtn_Grass *headerGrass = nullptr;
-    for( auto i : _headerExtensions ){
-        if( i->type == 1 ){
-            headerGrass = (HeaderExtn_Grass *)i;
-            return getImage( headerGrass->ptr, _grassSpec );
-        }
+SMF::getGrass() {
+    const auto &header = *std::find_if(extraHeaders.begin(), extraHeaders.end(),
+        [](const auto &header){ return header->type == MEH_Vegetation; } );
+    if( header ){
+        auto headerGrass = static_cast<HeaderExtn_Grass *>( header.get() );
+        return getImage( headerGrass->ptr, _grassSpec );
     }
     return nullptr;
 }
