@@ -98,11 +98,11 @@ main( int argc, char **argv )
 
     std::fstream inFile( parse.nonOption( 0 ), std::ios::in );
     inFile.seekg( 0, std::ios::end );
-    int inSize = inFile.tellg();
+    uint32_t inSize = inFile.tellg();
     inFile.close();
 
     spdlog::info( "{} bytes", inSize );
-    int tiles = (inSize - 32) / smt->tileBytes;
+    uint32_t tiles = (inSize - 32) / smt->getTileBytes();
     spdlog::info( "{} tiles", tiles);
     inFile.open( parse.nonOption( 0 ), std::ios::out | std::ios::in );
     inFile.seekp(20);

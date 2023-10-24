@@ -5,28 +5,18 @@
 
 #include <OpenImageIO/imagebuf.h>
 
+#include <recoil/SMFFormat.h>
+
 // Borrowing from OpenGL for texture compression formats for implementation
 #define GL_UNSIGNED_SHORT       0x1403
 #define GL_RGBA8				0x8058
 
-class SMT {
-public:
-    /*! Header Structure as written on disk.
-     */
-    struct Header {
-        [[maybe_unused]] char magic[16] = "spring tilefile";   //!< "spring tilefile\0"
-        uint32_t version = 1;                                  //!< must be 1 for now
-        uint32_t nTiles = 0;                                   //!< total number of tiles in this file
-        uint32_t tileSize = 32;                                //!< x and y dimension of tiles, must remain 32 for now.
-        uint32_t tileType = 1;                                 //!< must be 1,  1=dxt1
-    };
+#define SMT_HCT_DXT1 1 // dxt1 compressed tiles
 
+class SMT {
 private:
     //! File Header
-    Header header;
-
-    //! Input File
-
+    TileFileHeader header{"spring tilefile", 1, 0, 32, SMT_HCT_DXT1 };
 
     void calcTileBytes();
     uint32_t _tileBytes = 680; 
@@ -35,23 +25,23 @@ private:
     //! load data from fileName
     void load();
     
-    void appendDXT1(   const OIIO::ImageBuf & );
+    void appendDXT1( const OIIO::ImageBuf & );
     //FIXME UNUSED void appendRGBA8(  const OIIO::ImageBuf & );
     //FIXME UNUSED void appendUSHORT( const OIIO::ImageBuf & );
-	std::unique_ptr< OIIO::ImageBuf> getTileDXT1( uint32_t );
+	OIIO::ImageBuf getTileDXT1( uint32_t );
     //FIXME UNUSED OIIO::ImageBuf *getTileRGBA8( uint32_t );
     //FIXME UNUSED OIIO::ImageBuf *getTileUSHORT( uint32_t );
 
 public:
     //FIXME Remove all these references.
     std::filesystem::path filePath = "output.smt";
-    const uint32_t &nTiles = header.nTiles;
-    
-    const uint32_t &tileType = header.tileType;
-    const uint32_t &tileSize = header.tileSize;
-    const uint32_t &tileBytes = _tileBytes;
 
-    SMT( )= default;
+    [[nodiscard]] int getNumTiles() const{ return header.numTiles; }
+    [[nodiscard]] int getTileSize() const{ return header.tileSize; }
+    [[nodiscard]] int getTileType() const{ return header.compressionType; }
+    [[nodiscard]] uint32_t getTileBytes() const{ return _tileBytes; }
+
+
 
     /*! File type test.
      *
@@ -70,12 +60,12 @@ public:
     static SMT *open  ( const std::filesystem::path& filePath );
 
     void reset( );
-    std::string info();
+    [[nodiscard]] std::string info() const;
 
-    void setTileSize( uint32_t r );
-    void setType    ( uint32_t t ); // 1=DXT1
+    void setTileSize( int size );
+    void setType    ( int type ); // 1=DXT1
     //FIXME UNUSED void setFilePath( std::filesystem::path _filePath );
 
-	std::unique_ptr< OIIO::ImageBuf > getTile( uint32_t );
+	OIIO::ImageBuf getTile( uint32_t );
     void append( const OIIO::ImageBuf & );
 };

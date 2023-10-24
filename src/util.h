@@ -45,8 +45,7 @@ std::unique_ptr< OIIO::ImageBuf > fix_channels(
     std::unique_ptr< OIIO::ImageBuf> &&,
     const OIIO::ImageSpec & );
 
-void channels( OIIO::ImageBuf *&sourceBuf,
-               const OIIO::ImageSpec& spec );
+OIIO::ImageBuf channels( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec& destSpec );
 
 /// Scales an ImageBuf according to a given ImageSpec
 /* in place scale */
@@ -54,8 +53,7 @@ std::unique_ptr< OIIO::ImageBuf > fix_scale(
     std::unique_ptr< OIIO::ImageBuf> &&,
     const OIIO::ImageSpec & );
 
-void scale( OIIO::ImageBuf *&sourceBuf,
-            const OIIO::ImageSpec& spec );
+OIIO::ImageBuf scale( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec &destSpec );
 
 /// output a progress indicator
 void progressBar( const std::string& message, float goal, float progress );

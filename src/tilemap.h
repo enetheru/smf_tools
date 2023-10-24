@@ -7,38 +7,37 @@
 
 class TileMap {
     std::vector< uint32_t > _map;
+    uint32_t _width{};
+    uint32_t _height{};
 public:
-    // data members
-    uint32_t width;
-    uint32_t height;
 
     // constructors
     TileMap( ) = default;
     TileMap( uint32_t width, uint32_t height );
 
-    static TileMap *createCSV( std::filesystem::path filePath );
-
-    TileMap( const TileMap &rhs);
+    // Assignment
     TileMap &operator=( const TileMap &rhs);
 
-    //import
-    void fromCSV( std::filesystem::path filePath );
-
-    //export
+    //csv
+    static TileMap *createCSV( const std::filesystem::path& filePath );
+    void fromCSV( const std::filesystem::path& filePath );
     std::string toCSV();
 
-    //modification
-    void setSize(uint32_t _width, uint32_t _height );
+    //size
+    void setSize( uint32_t width, uint32_t height );
+    [[nodiscard]] auto size() const -> std::pair<uint32_t, uint32_t> { return {_width, _height }; }
+    [[nodiscard]] auto width() const -> uint32_t { return _width; }
+    [[nodiscard]] auto height() const -> uint32_t { return _height; }
+    [[nodiscard]] auto length() const -> uint32_t { return _map.size();}
 
     //generation
     void consecutive( );
 
     //access
-    uint32_t &operator() ( uint32_t y, uint32_t x );
-    uint32_t &operator() ( uint32_t idx );
-    uint32_t *data();
-
-	//information
-	int size() { return _map.size(); }
+    [[nodiscard]] uint32_t getXY( uint32_t x, uint32_t y ) const ;
+    [[nodiscard]] uint32_t getI( uint32_t index ) const ;
+    uint32_t *data() { return _map.data(); }
+    void setXY( uint32_t x, uint32_t y, uint32_t value );
+    void setI( uint32_t index, uint32_t value );
 };
 

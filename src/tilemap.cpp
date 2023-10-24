@@ -12,13 +12,13 @@
 // ============
 
 TileMap::TileMap( uint32_t width,  uint32_t height )
-    : width( width ), height( height )
+    : _width( width ), _height( height )
 {
-    _map.resize( width * height , 0 );
+    _map.resize( _width * _height , 0 );
 }
 
 TileMap *
-TileMap::createCSV( std::filesystem::path filePath )
+TileMap::createCSV( const std::filesystem::path& filePath )
 {
     std::fstream file( filePath, std::ios::in );
     if(! file.good() ) return nullptr;
@@ -29,13 +29,6 @@ TileMap::createCSV( std::filesystem::path filePath )
     return tileMap;
 }
 
-// Copy Constructor
-TileMap::TileMap( const TileMap& rhs)
-:   width( rhs.width ), height( rhs.height )
-{
-    _map = rhs._map;
-}
-
 // Assignment operator
 TileMap &
 TileMap::operator=( const TileMap &rhs) = default;
@@ -44,10 +37,10 @@ TileMap::operator=( const TileMap &rhs) = default;
 // ======
 //FIXME, function can error but does not notify caller.
 void
-TileMap::fromCSV( std::filesystem::path filePath )
+TileMap::fromCSV( const std::filesystem::path& filePath )
 {
     // reset
-    width = height = 0;
+    _width = _height = 0;
     // setup
     std::string cell;
     std::stringstream line;
@@ -59,15 +52,15 @@ TileMap::fromCSV( std::filesystem::path filePath )
     }
 
     // get dimensions
-    if( std::getline( file, cell ) ) ++height;
+    if( std::getline( file, cell ) ) ++_height;
     else return;
 
     line.str( cell );
-    while( std::getline( line, cell, ',' ) ) ++width;
-    while( std::getline( file, cell ) ) ++height;
+    while( std::getline( line, cell, ',' ) ) ++_width;
+    while( std::getline( file, cell ) ) ++_height;
 
     //reserve space to avoid many memory allocations
-    _map.resize( width * height );
+    _map.resize( _width * _height );
 
     // convert csv
     file.clear();
@@ -83,10 +76,10 @@ TileMap::fromCSV( std::filesystem::path filePath )
         uint32_t x = 0;
         for( const auto& i : tokens ){
             try {
-                _map[x + width * y] = stoi( i );
+                _map[x + _width * y] = stoi( i );
             }
             catch (std::invalid_argument const& ex) {
-                _map[x + width * y] = 0;
+                _map[x + _width * y] = 0;
                 spdlog::error( ex.what() );
             }
             ++x;
@@ -103,7 +96,7 @@ TileMap::toCSV( )
     uint32_t j = 1;
     for( auto i : _map ){
         ss << i;
-        if( j % width ) ss << ",";
+        if( j % _width ) ss << ",";
         else ss << "\n";
         ++j;
     }
@@ -112,14 +105,13 @@ TileMap::toCSV( )
 
 //FIXME, function can error but does not notify the caller.
 void
-TileMap::setSize(uint32_t _width, uint32_t _height )
-{
-    if( _width > 0  || _height > 0 ){
+TileMap::setSize( uint32_t width, uint32_t height ) {
+    if( width == 0 || height == 0 ){
         spdlog::error( "WidthxHeight must be > 1" );
         return;
     }
 
-    this->width = _width; this->height = _height;
+    _width = width; _height = height;
     _map.resize(_width * _height );
 }
 
@@ -127,40 +119,48 @@ TileMap::setSize(uint32_t _width, uint32_t _height )
 // ==========
 
 void
-TileMap::consecutive( )
-{
+TileMap::consecutive( ) {
     for( uint32_t i = 0; i < _map.size(); ++i ) _map[ i ] = i;
 }
 
 // ACCESS
 // ======
 //FIXME using uint32_t_max as an error code is not cool. re-think this whole business.
-uint32_t &
-TileMap::operator() ( uint32_t x, uint32_t y )
-{
-    static uint32_t error = UINT32_MAX;
-    if( x > width || y > height ){
-        spdlog::critical( "out of range error: x:{} > width:{} || y:{} > height:{}", x, width, y, height);
-        return error;
+uint32_t
+TileMap::getXY( uint32_t x, uint32_t y ) const {
+    if( x >= _width || y >= _height ){
+        spdlog::critical( "out of range error: x:{} > _width:{} || y:{} > height:{}", x, _width, y, _height);
+        return UINT32_MAX;
     }
-    return _map[ x + width * y ];
+    return _map[ x + _width * y ];
 }
 
-uint32_t &
-TileMap::operator() ( uint32_t idx )
-{
-    static uint32_t error = UINT32_MAX;
-    if( idx >= _map.size() ){
-        spdlog::critical( "index({}) is out of range", idx );
-        return error;
+void
+TileMap::setXY( uint32_t x, uint32_t y, uint32_t value ) {
+    if( x > _width || y > _height ){
+        spdlog::critical( "out of range error: x:{} > _width:{} || y:{} > height:{}", x, _width, y, _height);
+        return;
     }
-    return _map[idx];
+    _map[ x + _width * y ] = value;
 }
 
-uint32_t *
-TileMap::data( )
-{
-    return _map.data();
+uint32_t
+TileMap::getI( uint32_t index ) const {
+    static uint32_t error = UINT32_MAX;
+    if( index >= _map.size() ){
+        spdlog::critical( "index({}) is out of range", index );
+        return error;
+    }
+    return _map[ index ];
+}
+
+void
+TileMap::setI( uint32_t index, uint32_t value ) {
+    if( index >= _map.size() ){
+        spdlog::critical( "index({}) is out of range", index );
+        return;
+    }
+    _map[ index ] = value;
 }
 
 

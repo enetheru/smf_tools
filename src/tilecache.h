@@ -6,28 +6,28 @@
 
 #include <OpenImageIO/imagebuf.h>
 
+enum class TileSourceType {
+    Image,SMT,SMF
+};
+
 class TileCache
 {
+    struct TileSource{
+        uint32_t iStart,iEnd;
+        TileSourceType type;
+        std::filesystem::path filePath;
+    };
     // member data
-    uint32_t _nTiles = 0;
-    // FIXME this twin vector mapping can be turned into a pair or a tuple
-    std::vector< uint32_t > map;
-    std::vector< std::filesystem::path > fileNames;
+    uint32_t tileCount = 0;
+    std::vector<TileSource> sources;
 
 public:
     // data access
-    const uint32_t &nTiles = _nTiles;
+    uint32_t getNumTiles() const { return tileCount; }
 
     // modifications
-    void addSource( std::filesystem::path filePath );
+    void addSource( const std::filesystem::path& filePath );
 
     /// get a tile from the cache
-    std::unique_ptr< OIIO::ImageBuf > getTile(uint32_t n);
-
-    TileCache &operator=( const TileCache& rhs ){
-        _nTiles = rhs._nTiles;
-        map = rhs.map;
-        fileNames = rhs.fileNames;
-        return *this;
-    }
+    std::optional<OIIO::ImageBuf> getTile( uint32_t index );
 };

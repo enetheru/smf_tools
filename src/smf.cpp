@@ -43,7 +43,7 @@ SMF::test( const std::filesystem::path& filePath )
 }
 
 SMF *
-SMF::create( std::filesystem::path filePath, bool overwrite )
+SMF::create( const std::filesystem::path& filePath, bool overwrite )
 {
     SMF *smf;
     std::fstream file;
@@ -53,7 +53,7 @@ SMF::create( std::filesystem::path filePath, bool overwrite )
     if( file.good() && !overwrite ) return nullptr;
     file.close();
 
-    SPDLOG_DEBUG( "Creating {}", filePath );
+    SPDLOG_DEBUG( "Creating {}", filePath.string() );
 
     // attempt to create a new file or overwrite existing
     file.open( filePath, std::ios::binary | std::ios::out );
@@ -72,10 +72,10 @@ SMF::create( std::filesystem::path filePath, bool overwrite )
 }
 
 SMF *
-SMF::open( std::filesystem::path filePath ){
+SMF::open( const std::filesystem::path& filePath ){
     SMF *smf;
     if( test( filePath ) ){
-        SPDLOG_DEBUG( "Opening {}", filePath );
+        SPDLOG_DEBUG( "Opening {}", filePath.string() );
 
         smf = new SMF;
         smf->_dirtyMask = 0x00000000;
@@ -93,7 +93,7 @@ SMF::read()
 {
     FileMap map;
 
-    SPDLOG_DEBUG( "Reading ", filePath );
+    SPDLOG_DEBUG( "Reading ", _filePath.string() );
     std::ifstream file( _filePath );
     if(! file.good() )spdlog::error( "unable to read: {}", _filePath.string() );
 
@@ -163,7 +163,7 @@ SMF::read()
     }
 
     // while were at it, let's get the file offset for the tile map.
-    _mapPtr = file.tellg();
+    _mapPtr = (int)file.tellg();
     map.addBlock( _mapPtr, _mapSpec.image_bytes(), "map" );
 
     // Featurelist information
@@ -244,7 +244,7 @@ SMF::info()
             }
                 break;
             case MEH_Vegetation:{
-                auto header = static_cast< HeaderExtn_Grass *>( extraHeader.get() );
+                auto header = reinterpret_cast< HeaderExtn_Grass *>( extraHeader.get() );
                 info << "\n    Grass"
                      << "\n\tsize: " << header->size
                      << "\n\ttype: " << header->type
@@ -326,21 +326,21 @@ SMF::updatePtrs()
 
     for( const auto &extraHeader : extraHeaders ) _header.heightmapPtr += extraHeader->size;
 
-    _header.typeMapPtr = _header.heightmapPtr + _heightSpec.image_bytes();
-    _header.tilesPtr = _header.typeMapPtr + _typeSpec.image_bytes();
-    _mapPtr = _header.tilesPtr + sizeof( SMF::HeaderTiles );
+    _header.typeMapPtr = _header.heightmapPtr + (int)_heightSpec.image_bytes();
+    _header.tilesPtr = _header.typeMapPtr + (int)_typeSpec.image_bytes();
+    _mapPtr = _header.tilesPtr + (int)sizeof( SMF::HeaderTiles );
 
-    for( const auto& [index,name] : _smtList ) _mapPtr += (sizeof(uint32_t) + name.size() + 1);
+    for( const auto& [index,name] : _smtList ) _mapPtr += (int)(sizeof(uint32_t) + name.size() + 1);
 
-    _header.minimapPtr = _mapPtr + _mapSpec.image_bytes();
+    _header.minimapPtr = _mapPtr + (int)_mapSpec.image_bytes();
     _header.metalmapPtr = _header.minimapPtr + MINIMAP_SIZE;
-    _header.featurePtr = _header.metalmapPtr + _metalSpec.image_bytes();
+    _header.featurePtr = _header.metalmapPtr + (int)_metalSpec.image_bytes();
 
     // eof is used here to help with optional extras like grass
     // find out the expected end of the file
-    int eof = _header.featurePtr + sizeof( SMF::HeaderFeatures );
-    for( const auto& i : _featureTypes ) eof += i.size() + 1;
-    eof += _features.size() * sizeof( SMF::Feature );
+    int eof = _header.featurePtr + (int)sizeof( SMF::HeaderFeatures );
+    for( const auto& i : _featureTypes ) eof += (int)i.size() + 1;
+    eof += (int)_features.size() * (int)sizeof( SMF::Feature );
 
     // Optional Headers.
     for( const auto &extraHeader : extraHeaders ){
@@ -351,9 +351,9 @@ SMF::updatePtrs()
             }
             case MEH_Vegetation:{
                 //FIXME grass at the end of file doesnt account for additional extra headers.
-                auto header = static_cast<SMF::HeaderExtn_Grass *>(extraHeader.get() );
+                auto header = reinterpret_cast<SMF::HeaderExtn_Grass *>(extraHeader.get() );
                 header->ptr = eof;
-                eof = header->ptr + _grassSpec.image_bytes();
+                eof = header->ptr + (int)_grassSpec.image_bytes();
                 break;
             }
             default:{
@@ -404,7 +404,7 @@ SMF::enableGrass( bool enable )
     // get header if it exists.
     for( const auto &extraHeader : extraHeaders ){
         if( extraHeader->type == 1 ){
-            headerGrass = static_cast<HeaderExtn_Grass *>( extraHeader.get() );
+            headerGrass = reinterpret_cast<HeaderExtn_Grass *>( extraHeader.get() );
             break;
         }
     }
@@ -415,7 +415,7 @@ SMF::enableGrass( bool enable )
     // if we have a header, and we don't want it anymore
 
     if( !enable && headerGrass ){
-        auto erased = erase_if(
+        int erased = (int)erase_if(
                 extraHeaders,
                 [](const auto &header) {
                     return header->type == MEH_Vegetation; } );
@@ -433,18 +433,18 @@ SMF::enableGrass( bool enable )
 //TODO create a new function that Sets the map y depth and water level.
 
 void
-SMF::addTileFile( std::filesystem::path filePath )
+SMF::addTileFile( const std::filesystem::path& filePath )
 {
     _dirtyMask |= SMF_MAP;
 
-    SMT *smt = SMT::open( filePath.string() );
+    SMT *smt = SMT::open( filePath );
     if( smt == nullptr ) spdlog::error( "Invalid smt file ", filePath.string() );
 
     ++_headerTiles.nFiles;
-    _headerTiles.nTiles += smt->nTiles;
+    _headerTiles.nTiles += smt->getNumTiles();
     
     //FIXME Figure out what this is attempting to do:
-    _smtList.emplace_back( smt->nTiles,
+    _smtList.emplace_back( smt->getNumTiles(),
             filePath.string().substr( filePath.string().find_last_of( "/\\" ) + 1 ) );
     
 
@@ -489,7 +489,7 @@ SMF::addFeature( const std::string& name, float x, float y, float z, float r, fl
 }
 
 void
-SMF::addFeatures( std::filesystem::path filePath )
+SMF::addFeatures( const std::filesystem::path& filePath )
 {
     // test the file
     std::fstream file( filePath, std::ifstream::in );
@@ -605,7 +605,7 @@ SMF::writeExtraHeaders()
 
 //FIXME using true and false for error conditions is a PITA, change it to use something more robust.
 bool
-SMF::writeImage( unsigned int ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf *sourceBuf )
+SMF::writeImage( unsigned int ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf &sourceBuf )
 {
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
@@ -614,30 +614,26 @@ SMF::writeImage( unsigned int ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf *
     }
     file.seekp( ptr );
 
-    if( sourceBuf == nullptr ){
+    if( !sourceBuf.initialized() ){
         char zero = 0;
         for( uint32_t i = 0; i < spec.image_bytes(); ++i )
             file.write( &zero, sizeof( char ) );
         return true;
     }
 
-    sourceBuf->read( 0, 0, true, spec.format );
-    auto *tempBuf = new OIIO::ImageBuf;
-    tempBuf->copy( *sourceBuf );
-    channels( tempBuf, spec );
-    scale( tempBuf, spec );
+    sourceBuf.read( 0, 0, true, spec.format );
+    sourceBuf = channels( sourceBuf, spec );
+    sourceBuf = scale( sourceBuf, spec );
 
     // write the data to the smf
-    file.write( (char *)tempBuf->localpixels(), spec.image_bytes() );
+    file.write( (char *)sourceBuf.localpixels(), spec.image_bytes() );
     file.close();
 
-    tempBuf->clear();
-    delete tempBuf;
     return false;
 }
 
 void
-SMF::writeHeight( OIIO::ImageBuf *sourceBuf )
+SMF::writeHeight( OIIO::ImageBuf &sourceBuf )
 {
     SPDLOG_DEBUG( "Writing height" );
     _dirtyMask &= !SMF_HEIGHT;
@@ -648,7 +644,7 @@ SMF::writeHeight( OIIO::ImageBuf *sourceBuf )
 }
 
 void
-SMF::writeType( OIIO::ImageBuf *sourceBuf )
+SMF::writeType( OIIO::ImageBuf &sourceBuf )
 {
     SPDLOG_DEBUG( "INFO: Writing type" );
     _dirtyMask &= !SMF_TYPE;
@@ -660,7 +656,7 @@ SMF::writeType( OIIO::ImageBuf *sourceBuf )
 
 //FIXME, the fact that this function can fail, but not notify it caller is annoying.
 void
-SMF::writeMini( OIIO::ImageBuf * sourceBuf )
+SMF::writeMini( OIIO::ImageBuf &sourceBuf )
 {
     SPDLOG_DEBUG( "Writing mini" );
     _dirtyMask &= !SMF_MINI;
@@ -672,7 +668,7 @@ SMF::writeMini( OIIO::ImageBuf * sourceBuf )
     }
     file.seekp( _header.minimapPtr );
 
-    if( sourceBuf == nullptr ){
+    if( !sourceBuf.initialized() ){
         char zero[ MINIMAP_SIZE ] = { 0 };
         file.write( zero, sizeof( zero ) );
         file.close();
@@ -680,18 +676,16 @@ SMF::writeMini( OIIO::ImageBuf * sourceBuf )
         return;
     }
 
-    sourceBuf->read( 0, 0, true, _miniSpec.format );
-    auto *tempBuf = new OIIO::ImageBuf;
-    tempBuf->copy( *sourceBuf );
-    channels( tempBuf, _miniSpec );
-    scale( tempBuf, _miniSpec );
+    sourceBuf.read( 0, 0, true, _miniSpec.format );
+    sourceBuf = channels( sourceBuf, _miniSpec );
+    sourceBuf = scale( sourceBuf, _miniSpec );
 
     OIIO::ImageSpec spec;
     int blocks_size = 0;
     squish::u8 *blocks = nullptr;
     for( int i = 0; i < 9; ++i ){
         SPDLOG_DEBUG( "mipmap loop: {}", i );
-        spec = tempBuf->specmod();
+        spec = sourceBuf.specmod();
 
         blocks_size = squish::GetStorageRequirements(
                 spec.width, spec.height, squish::kDxt1 );
@@ -702,7 +696,7 @@ SMF::writeMini( OIIO::ImageBuf * sourceBuf )
         }
 
         SPDLOG_DEBUG( "compressing to dxt1" );
-        squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
+        squish::CompressImage( (squish::u8 *)sourceBuf.localpixels(),
                 spec.width, spec.height, blocks, squish::kDxt1 );
 
         // Write data to smf
@@ -713,11 +707,9 @@ SMF::writeMini( OIIO::ImageBuf * sourceBuf )
         spec.height = spec.height >> 1;
 
         SPDLOG_DEBUG( "Scaling to: {}x{}", spec.width, spec.height );
-        scale( tempBuf, spec );
+        sourceBuf = scale( sourceBuf, spec );
     }
     delete blocks;
-    delete tempBuf;
-
     file.close();
 }
 
@@ -750,7 +742,8 @@ SMF::writeMap( TileMap *tileMap )
     _dirtyMask &= !SMF_MAP;
 
     if( tileMap == nullptr ){
-        writeImage( _mapPtr, _mapSpec, nullptr );
+        OIIO::ImageBuf blank(_mapSpec );
+        writeImage( _mapPtr, _mapSpec, blank );
         spdlog::warn( "Wrote blank map" );
         return;
     }
@@ -764,7 +757,7 @@ SMF::writeMap( TileMap *tileMap )
 
 /// write the metal image to the smf
 void
-SMF::writeMetal( OIIO::ImageBuf *sourceBuf )
+SMF::writeMetal( OIIO::ImageBuf &sourceBuf )
 {
     SPDLOG_DEBUG( "Writing metal" );
     _dirtyMask &= !SMF_METAL;
@@ -801,18 +794,17 @@ SMF::writeFeatures()
 
 // Write the grass image to the smf
 void
-SMF::writeGrass( OIIO::ImageBuf *sourceBuf ) {
+SMF::writeGrass( OIIO::ImageBuf &sourceBuf ) {
     const auto &header = *std::find_if(extraHeaders.begin(), extraHeaders.end(),
         [](const auto &header){ return header->type == MEH_Vegetation; } );
     if( header ){
-        auto headerGrass = static_cast<HeaderExtn_Grass *>( header.get() );
+        auto headerGrass = reinterpret_cast<HeaderExtn_Grass *>( header.get() );
         SPDLOG_DEBUG( "Writing Grass" );
         if( writeImage( headerGrass->ptr, _grassSpec, sourceBuf ) ){
             spdlog::warn( "wrote blank grass map" );
         }
         _dirtyMask &= !SMF_GRASS;
     }
-    return;
 }
 
 //FIXME returning nullptr on fail is crap.
@@ -857,9 +849,11 @@ SMF::getMap( )
         return nullptr;
     }
     file.seekg( _mapPtr );
-    for( int y = 0; y < _mapSpec.height; ++y )
-    for( int x = 0; x < _mapSpec.width; ++x ){
-        file.read( (char *)&(*tileMap)( x, y ), 4 );
+    for( int y = 0; y < _mapSpec.height; ++y ) {
+        for (int x = 0; x < _mapSpec.width; ++x) {
+            auto d = tileMap->getXY(x, y);
+            file.read((char *) &d, 4);
+        }
     }
     return tileMap;
 }
@@ -921,7 +915,7 @@ SMF::getGrass() {
     const auto &header = *std::find_if(extraHeaders.begin(), extraHeaders.end(),
         [](const auto &header){ return header->type == MEH_Vegetation; } );
     if( header ){
-        auto headerGrass = static_cast<HeaderExtn_Grass *>( header.get() );
+        auto headerGrass = reinterpret_cast<HeaderExtn_Grass *>( header.get() );
         return getImage( headerGrass->ptr, _grassSpec );
     }
     return nullptr;

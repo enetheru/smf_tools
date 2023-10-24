@@ -1,4 +1,3 @@
-#include <string>
 #include <OpenImageIO/imagebuf.h>
 #include <spdlog/spdlog.h>
 
@@ -11,88 +10,68 @@
 #include "smf.h"
 #include "tilecache.h"
 
-std::unique_ptr< OIIO::ImageBuf >
 //FIXME review this function for memory leaks
-TileCache::getTile(const uint32_t n)
-{
-    std::unique_ptr< OIIO::ImageBuf >
-        outBuf( new OIIO::ImageBuf );
-
+std::optional<OIIO::ImageBuf>
+TileCache::getTile( const uint32_t index ){
     // returning an initialized imagebuf is not a good idea
-    if( n >= nTiles ){
-        spdlog::critical( "getTile({}) request out of range 0-{}", n, nTiles );
-        return nullptr;
+    if( index >= tileCount ){
+        spdlog::critical( "getTile({}) request out of range 0-{}", index, tileCount );
+        return {};
     }
 
-    SMT *smt;
-    static SMT *lastSmt = nullptr;
-
-    // FIXME, what the fuck does this do?
-    auto i = map.begin();
-    auto fileName = fileNames.begin();
-    while( *i <= n ){
-        ++i;
-        ++fileName;
-    }
-
+    //FIXME pull from already loaded file.
     // already open smt file?
+    /*SMT *smt;
+    static SMT *lastSmt = nullptr;
     if( lastSmt && (! lastSmt->filePath.compare( *fileName )) ){
-        outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles);
-    }
-    // open a new smt file?
-    else if  ( (smt = SMT::open( *fileName )) ){
-        //FIXME shouldn't have a manual delete here, use move semantics instead
-        delete lastSmt;
-        lastSmt = smt;
-        outBuf = lastSmt->getTile( n - *i + lastSmt->nTiles );
-    }
-    // open the image file?
-    else {
-        outBuf->reset( fileName->string() );
-    }
-    if( !outBuf->initialized() ) {
-        spdlog::error("failed to open source for tile: ", n);
-        return nullptr;
-    }
+        outBuf = lastSmt->getTile( index - *i + lastSmt->nTiles);
+    }*/
 
-#ifdef DEBUG_IMG
-    DLOG( INFO ) << "Exporting Image";
-    outBuf->write( "TileCache.getTile.tif" , "tif" );
-#endif
+    const auto &tileSource = *std::find_if(sources.begin(), sources.end(),
+        [index]( auto source ){ return index > source.iStart && index < source.iEnd; } );
 
-    return outBuf;
+    switch( tileSource.type ){
+        case TileSourceType::SMT: {
+            auto smt = std::unique_ptr<SMT>( SMT::open(  tileSource.filePath ) );
+            return smt->getTile( index - tileSource.iStart + smt->getNumTiles() );
+        }
+        case TileSourceType::SMF: {
+
+        } break;
+        case TileSourceType::Image: {
+            return OIIO::ImageBuf( tileSource.filePath.string() );
+        }
+        default:{
+            spdlog::error("failed to open source for tile: ", index);
+            return {};
+        }
+    }
+    return {};
 }
 
 //TODO go over this function to see if it can be refactored
 void
-TileCache::addSource( std::filesystem::path filePath ) {
+TileCache::addSource( const std::filesystem::path& filePath ) {
     auto image = OIIO::ImageInput::open( filePath );
     if( image ){
         image->close();
-
-        _nTiles++;
-        map.push_back( nTiles );
-        fileNames.push_back( filePath.filename() );
+        sources.emplace_back(tileCount, (++tileCount), TileSourceType::Image, filePath.filename() );
         return;
     }
 
-    SMT *smt = SMT::open( filePath );
+    std::unique_ptr<SMT> smt( SMT::open( filePath ) );
     if( smt ){
-        if(! smt->nTiles ) return;
-        _nTiles += smt->nTiles;
-        map.push_back( nTiles );
-        fileNames.push_back( filePath.filename() );
-
-        delete smt;
+        sources.emplace_back(tileCount, (tileCount += smt->getNumTiles()), TileSourceType::SMT, filePath.filename() );
         return;
     }
 
-    SMF *smf = SMF::open( filePath );
+    std::unique_ptr<SMF> smf( SMF::open( filePath ) );
     if( smf ){
         // get the fileNames here
         auto smtList = smf->getSMTList();
-        for( const auto& [a,b] : smtList ) addSource( b );
-        delete smf;
+        for( const auto& [numTiles,fileName] : smtList ){
+            sources.emplace_back(tileCount, (tileCount += numTiles), TileSourceType::SMF, fileName );
+        }
         return;
     }
 

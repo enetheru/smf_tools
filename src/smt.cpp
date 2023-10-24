@@ -10,7 +10,6 @@
 #include "util.h"
 
 using namespace std;
-OIIO_NAMESPACE_USING
 
 SMT *
 SMT::create( const std::filesystem::path& filePath, bool overwrite ) {
@@ -63,11 +62,11 @@ SMT::reset( ) {
     }
 
     //reset tile count
-    header.nTiles = 0;
+    header.numTiles = 0;
     calcTileBytes();
 
     // write header
-    file.write( (char *)&header, sizeof(SMT::Header) );
+    file.write( (char *)&header, sizeof(header) );
     file.flush();
     file.close();
 }
@@ -79,16 +78,16 @@ SMT::setFilePath( std::filesystem::path _filePath ) {
 }*/
 
 void
-SMT::setType( uint32_t t ) {
-    if( header.tileType == t)return;
-    header.tileType = t;
+SMT::setType( int type ) {
+    if( header.compressionType == type )return;
+    header.compressionType = SMT_HCT_DXT1;
     reset();
 }
 
 void
-SMT::setTileSize( uint32_t r ) {
-    if( header.tileSize == r )return;
-    header.tileSize = r;
+SMT::setTileSize( int size ) {
+    if( header.tileSize == size )return;
+    header.tileSize = size;
     reset();
 }
 
@@ -96,7 +95,7 @@ void
 SMT::calcTileBytes() {
     // reset variables
     _tileBytes = 0;
-    int mip = header.tileSize;
+    int mipSize = getTileSize();
 
     /*!
      * Calculate the size of the raw format of dxt1 with 4 mip levels
@@ -104,11 +103,11 @@ SMT::calcTileBytes() {
      * 32x32, 16x16, 8x8, 4x4
      * 512  + 128  + 32 + 8 = 680
      */
-    if( header.tileType == 1 ){
-        tileSpec = ImageSpec( tileSize, tileSize, 4, TypeDesc::UINT8 );
+    if(header.compressionType == 1 ){
+        tileSpec = OIIO::ImageSpec(mipSize, mipSize, 4, OIIO::TypeDesc::UINT8 );
         for( int i=0; i < 4; ++i ){
-            _tileBytes += (mip * mip)/2;
-            mip /= 2;
+            _tileBytes += (mipSize * mipSize) / 2;
+            mipSize /= 2;
         }
     }
     /* FIXME UNUSED
@@ -127,7 +126,7 @@ SMT::calcTileBytes() {
         }
     }*/
     else {
-        spdlog::critical("Invalid tiletype: {}", tileType );
+        spdlog::critical("Invalid tiletype: {}", getTileType() );
         //FIXME, the function can error but it does not notify the caller.
         return;
     }
@@ -141,7 +140,7 @@ SMT::load( ) {
         //FIXME the function can error but it does not notify the caller
         return;
     }
-    inFile.read( (char *)&header, sizeof(SMT::Header) );
+    inFile.read( (char *)&header, sizeof(header) );
     calcTileBytes();
 
     // do some simple checking of file size vs reported tile numbers
@@ -152,12 +151,12 @@ SMT::load( ) {
     inFile.seekg( 0, std::ios::end );
     actualBytes = (uint32_t)inFile.tellg() - 32;
     inFile.close();
-    guessBytes = header.nTiles * tileBytes; // file size - header
-    guessTiles = actualBytes / tileBytes;
-    remainderBytes = actualBytes % tileBytes;
+    guessBytes = header.numTiles * _tileBytes; // file size - header
+    guessTiles = actualBytes / _tileBytes;
+    remainderBytes = actualBytes % _tileBytes;
 
 
-    if( header.nTiles != guessTiles || actualBytes != guessBytes ) {
+    if(header.numTiles != guessTiles || actualBytes != guessBytes ) {
         spdlog::warn(
                 R"(Possible Data Issue
     ({}).header.nTiles:\033[40G{}
@@ -166,21 +165,21 @@ SMT::load( ) {
     Guess Tiles:\033[40G{}
     Guess Bytes:\033[40G{}
     Modulus remainder:\033[40G)",
-                filePath.string(), header.nTiles, actualBytes, tileBytes, guessTiles, guessBytes,  remainderBytes );
+                filePath.string(), header.numTiles, actualBytes, _tileBytes, guessTiles, guessBytes, remainderBytes );
     }
 }
 
 std::string
-SMT::info( ) {
+SMT::info( ) const {
     stringstream ss;
-    ss <<  "\tFilename: " << filePath << endl
-        << "\tVersion: " << header.version << endl
-        << "\tTiles: " << header.nTiles << endl
+    ss << "\tFilename: " << filePath << endl
+       << "\tVersion: " << header.version << endl
+       << "\tTiles: " << header.numTiles << endl
         << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
         << "\tCompression: ";
-    if( header.tileType == 1 ) ss << "dxt1";
-    else if( header.tileType == GL_RGBA8 ) ss << "UINT8";
-    else if( header.tileType == GL_UNSIGNED_SHORT ) ss << "UINT16";
+    if(header.compressionType == 1 ) ss << "dxt1";
+    else if(header.compressionType == GL_RGBA8 ) ss << "UINT8";
+    else if(header.compressionType == GL_UNSIGNED_SHORT ) ss << "UINT16";
     else {
         ss << "UNKNOWN";
     }
@@ -191,7 +190,7 @@ void
 SMT::append( const OIIO::ImageBuf &sourceBuf ) {
     //sourceBuf.write( "SMT_append_sourcebuf.tif", "tif" );
 
-    if( tileType == 1                 ) appendDXT1(   sourceBuf );
+    if( getTileType() == SMT_HCT_DXT1 ) appendDXT1( sourceBuf );
     //FIXME UNUSED if( tileType == GL_RGBA8           ) appendRGBA8( sourceBuf );
     //FIXME UNUSED if( tileType == GL_UNSIGNED_SHORT ) appendUSHORT( sourceBuf );
 }
@@ -199,11 +198,10 @@ SMT::append( const OIIO::ImageBuf &sourceBuf ) {
 void
 SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
     // make a copy of the input buffer for processing
-    std::unique_ptr< OIIO::ImageBuf >
-            tempBuf( new ImageBuf( sourceBuf ) );
+    OIIO::ImageBuf tempBuf( sourceBuf );
 
     // imagespec will let us work through the image contents
-    ImageSpec spec;
+    OIIO::ImageSpec spec;
     // block_size tells us how much memory to allocate per DXT compress cycle
     int blocks_size = 0;
     // blocks is the resulting memory area for DXT1 compressed files
@@ -211,7 +209,7 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
 
     // open our filestream and get ready to start writing dxt images to it
     fstream file(filePath, ios::binary | ios::in | ios::out);
-    file.seekp( sizeof(SMT::Header) + tileBytes * header.nTiles );
+    file.seekp( sizeof(header) + _tileBytes * header.numTiles );
 
     // loop through the mipmaps
     for( int i = 0; i < 4; ++i ){
@@ -221,11 +219,10 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
         spdlog::info( "writing mip to file: " << ss.str();
         tempBuf->write( ss.str(), "tif" );
 #endif
-        spec = tempBuf->specmod();
+        spec = tempBuf.specmod();
         spdlog::info( "mip: {}, size: {}x{}x{}" , i, spec.width, spec.height, spec.nchannels );
 
-        blocks_size = squish::GetStorageRequirements(
-            spec.width, spec.height, squish::kDxt1 );
+        blocks_size = squish::GetStorageRequirements( spec.width, spec.height, squish::kDxt1 );
         spdlog::info( "dxt1 requires {} bytes", blocks_size );
 
         // allocate memory the first time, will be re-used in subsequent runs.
@@ -235,30 +232,30 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
         // kColourRangeFit = faster|poor quality
         // kColourMetricPerceptual = default|default
         // kColourIterativeClusterFit = slow|high quality
-        if( !tempBuf->localpixels() ){
+        if( !tempBuf.localpixels() ){
             spdlog::critical( "pixel data unavailable" );
             //FIXME the function can error but it does not notify the caller
             return;
         }
-        squish::CompressImage( (squish::u8 *)tempBuf->localpixels(),
+        squish::CompressImage( (squish::u8 *)tempBuf.localpixels(),
             spec.width, spec.height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-        spdlog::info( "\n{}", image_to_hex( (const uint8_t *)tempBuf->localpixels(), spec.width, spec.height ) );
+        spdlog::info( "\n{}", image_to_hex( (const uint8_t *)tempBuf.localpixels(), spec.width, spec.height ) );
         spdlog::info( "\n()", image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 ) );
 
         // Write data to smf
         spdlog::info( "writing {} to {}", blocks_size, filePath.string() );
         file.write( (char*)blocks, blocks_size );
 
-        spec = ImageSpec(spec.width >> 1, spec.height >> 1, spec.nchannels, spec.format );
-        tempBuf = fix_scale( std::move( tempBuf ), spec );
+        spec = OIIO::ImageSpec(spec.width >> 1, spec.height >> 1, spec.nchannels, spec.format );
+        tempBuf = scale(  tempBuf, spec );
     }
 
     if( blocks != nullptr ) delete blocks;
-    ++header.nTiles;
+    ++header.numTiles;
 
     file.seekp( 20 );
-    file.write( (char *)&(header.nTiles), 4 );
+    file.write((char *)&(header.numTiles), 4 );
 
     file.flush();
     file.close();
@@ -297,49 +294,39 @@ SMT::appendRGBA8( const OIIO::ImageBuf &sourceBuf ) {
 void
 SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf ){ }*/
 
-std::unique_ptr< OIIO::ImageBuf >
+OIIO::ImageBuf
 SMT::getTile( uint32_t n ) {
-    if( tileType == 1                 ) return getTileDXT1( n );
+    if( getTileType() == SMT_HCT_DXT1 ) return getTileDXT1( n );
 //    if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
 //    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
-    std::unique_ptr< OIIO::ImageBuf > temp;
-    return temp;
+    return {};
 }
 
-std::unique_ptr< OIIO::ImageBuf >
+OIIO::ImageBuf
 SMT::getTileDXT1( const uint32_t n ) {
-    if(n >= header.nTiles) {
-        spdlog::critical("tile index:{} is out of range 0-{}", n, header.nTiles );
-        return nullptr;
+    if(n >= header.numTiles) {
+        spdlog::critical("tile index:{} is out of range 0-{}", n, header.numTiles );
+        return {};
     }
 
-    std::unique_ptr< char > raw_dxt1a( new char[ tileBytes ] );
+    std::vector<char> raw_dxt1a(_tileBytes);
 
     ifstream file( filePath );
     if(! file.good() ){
         spdlog::critical( "Failed to open file:'{}' for reading", filePath.string() );
-        return nullptr;
+        return {};
     }
 
-    file.seekg( sizeof(SMT::Header) + tileBytes * n );
-    file.read( (char *)raw_dxt1a.get(), tileBytes );
+    file.seekg( sizeof(header) + _tileBytes * n );
+    file.read( raw_dxt1a.data(), _tileBytes );
     file.close();
 
-    std::unique_ptr< char >
-            rgba8888( new char[ header.tileSize * header.tileSize * 4 ] );
+    std::vector<char> rgba8888(header.tileSize * header.tileSize * 4);
 
-    squish::DecompressImage( (squish::u8 *)( rgba8888.get() ),
-            header.tileSize, header.tileSize, raw_dxt1a.get(), squish::kDxt1 );
+    squish::DecompressImage( (squish::u8 *)( rgba8888.data() ),
+        (int)header.tileSize, (int)header.tileSize, raw_dxt1a.data(), squish::kDxt1 );
 
-    std::unique_ptr< OIIO::ImageBuf >
-        tempBuf( new ImageBuf( filePath.string() + "_" + to_string( n ),
-                tileSpec, rgba8888.get() ) );
-
-    std::unique_ptr< OIIO::ImageBuf >
-            outBuf( new OIIO::ImageBuf );
-    outBuf->copy( *tempBuf );
-
-    return outBuf;
+    return { filePath.string() + "_" + to_string( n ), tileSpec, rgba8888.data() };
 }
 
 /* FIXME UNUSED

@@ -10,7 +10,6 @@
 
 
 using namespace std;
-OIIO_NAMESPACE_USING
 
 enum optionsIndex
 {
@@ -100,10 +99,10 @@ main( int argc, char **argv )
     SMF *smf = nullptr;
     SMT *smt = nullptr;
     bool force = false;
-    uint32_t mapWidth = 0, mapLength = 0;
+    int mapWidth = 0, mapLength = 0;
     std::filesystem::path outFilePath;
     fstream tempFile;
-    uint32_t tileSize = 32;
+    int tileSize = 32;
     float mapFloor = 0.01f, mapCeiling = 1.0f;
 
     // Options Parsing
@@ -170,7 +169,7 @@ main( int argc, char **argv )
             spdlog::critical( "additional arguments are not smt files" );
         }
         smt = SMT::open( parse.nonOption( 0 ) );
-        tileSize = smt->tileSize;
+        tileSize = smt->getTileSize();
         delete smt;
         smt = nullptr;
     }
@@ -209,8 +208,8 @@ main( int argc, char **argv )
 
     // Fix up map height and length to match tile source and smt files.
     if( tileMap != nullptr ){
-        int diffuseWidth = tileSize * tileMap->width;
-        int diffuseHeight = tileSize * tileMap->height;
+        int diffuseWidth = tileSize * tileMap->width();
+        int diffuseHeight = tileSize * tileMap->height();
         if( diffuseWidth % 1024 || diffuseHeight % 1024){
             spdlog::error( "(tileMap * tileSize) % 1024 != 0,"
                 "supplied arguments do not construct a valid map" );
@@ -224,7 +223,7 @@ R"(Checking input dimensions
     tileSize: {}x{}
     diffuse=  {}x{}
     mapSize=  {}x{})",
-        tileMap->width, tileMap->height,
+        tileMap->width(), tileMap->height(),
         tileSize, tileSize,
         diffuseWidth, diffuseHeight,
         mapWidth, mapLength );
@@ -287,20 +286,22 @@ R"(Checking input dimensions
 
     // height
     if( options[ HEIGHT ] ){
-        ImageBuf heightBuf( options[ HEIGHT ].arg );
-        smf->writeHeight( &heightBuf );
+        OIIO::ImageBuf heightBuf( options[ HEIGHT ].arg );
+        smf->writeHeight( heightBuf );
     }
     else {
-        smf->writeHeight();
+        OIIO::ImageBuf empty;
+        smf->writeHeight(empty);
     }
 
     // type
     if( options[ TYPE ] ){
-        ImageBuf typeBuf( options[ TYPE ].arg );
-        smf->writeType( &typeBuf );
+        OIIO::ImageBuf typeBuf( options[ TYPE ].arg );
+        smf->writeType( typeBuf );
     }
     else {
-        smf->writeType();
+        OIIO::ImageBuf empty;
+        smf->writeType( empty );
     }
 
     // map header
@@ -312,20 +313,22 @@ R"(Checking input dimensions
 
     // minimap
     if( options[ MINI ] ){
-        ImageBuf miniBuf( options[ MINI ].arg );
-        smf->writeMini( &miniBuf );
+        OIIO::ImageBuf miniBuf( options[ MINI ].arg );
+        smf->writeMini( miniBuf );
     }
     else {
-        smf->writeMini();
+        OIIO::ImageBuf empty;
+        smf->writeMini( empty );
     }
 
     // metalmap
     if( options[ METAL ] ){
-        ImageBuf metalBuf( options[ METAL ].arg );
-        smf->writeMetal( &metalBuf );
+        OIIO::ImageBuf metalBuf( options[ METAL ].arg );
+        smf->writeMetal( metalBuf );
     }
     else {
-        smf->writeMetal();
+        OIIO::ImageBuf empty;
+        smf->writeMetal( empty );
     }
 
 
@@ -334,8 +337,8 @@ R"(Checking input dimensions
 
     // grass
     if( options[ GRASS ] ){
-        ImageBuf grassBuf( options[ GRASS ].arg );
-        smf->writeGrass( &grassBuf );
+        OIIO::ImageBuf grassBuf( options[ GRASS ].arg );
+        smf->writeGrass( grassBuf );
     }
 
     spdlog::info( smf->info() );

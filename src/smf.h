@@ -82,7 +82,7 @@ class SMF {
     HeaderTiles _headerTiles;
     std::vector< std::pair< uint32_t, std::string > > _smtList;
 
-    uint32_t _mapPtr{};         ///< pointer to beginning of the tilemap
+    int _mapPtr{};         ///< pointer to beginning of the tilemap
     OIIO::ImageSpec _mapSpec;
 
     OIIO::ImageSpec _miniSpec;
@@ -119,15 +119,14 @@ class SMF {
 
     // == Internal Utility Functions ==
     OIIO::ImageBuf *getImage( uint32_t ptr, const OIIO::ImageSpec& spec );
-    bool writeImage( uint32_t ptr, const OIIO::ImageSpec& spec,
-                     OIIO::ImageBuf *sourceBuf = nullptr );
+    bool writeImage( uint32_t ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf &sourceBuf );
 
 public:
 
     void good() const;
     static bool test  ( const std::filesystem::path& filePath );
-    static SMF *create( std::filesystem::path filePath, bool overwrite = false );
-    static SMF *open  ( std::filesystem::path filePath );
+    static SMF *create( const std::filesystem::path& filePath, bool overwrite = false );
+    static SMF *open  ( const std::filesystem::path& filePath );
 
     /*! create info string
      *
@@ -196,7 +195,7 @@ public:
 
     void enableGrass( bool enable = false );
 
-    void addTileFile( std::filesystem::path filePath );
+    void addTileFile( const std::filesystem::path& filePath );
 
     //TODO UNUSED void clearTileFiles( );
 
@@ -208,19 +207,19 @@ public:
     //TODO UNUSED void clearFeatures();
 
     /// add a csv list of features
-    void addFeatures( std::filesystem::path filePath );
+    void addFeatures( const std::filesystem::path& filePath );
 
     void writeHeader( );
     void writeExtraHeaders();
-    void writeHeight  ( OIIO::ImageBuf *buf = nullptr );
-    void writeType    ( OIIO::ImageBuf *buf = nullptr );
+    void writeHeight  ( OIIO::ImageBuf &buf);
+    void writeType    ( OIIO::ImageBuf &buf );
     void writeTileHeader( );
-    void writeMap     ( TileMap *tileMap = nullptr );
-    void writeMini    ( OIIO::ImageBuf *buf = nullptr );
-    void writeMetal   ( OIIO::ImageBuf *buf = nullptr );
+    void writeMap     ( TileMap *tileMap );
+    void writeMini    ( OIIO::ImageBuf &buf );
+    void writeMetal   ( OIIO::ImageBuf &buf );
     void writeFeatures();
     // Extra
-    void writeGrass   ( OIIO::ImageBuf *buf = nullptr );
+    void writeGrass   ( OIIO::ImageBuf &buf );
 
     OIIO::ImageBuf *getHeight();
     OIIO::ImageBuf *getType();

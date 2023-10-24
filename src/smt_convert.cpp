@@ -1,3 +1,5 @@
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -113,6 +115,7 @@ static void shutdown( int code ){
 int
 main( int argc, char **argv )
 {
+    spdlog::set_pattern("[%l] %s:%#:%v");
     // == Variables ==
     bool overwrite = false;
     // temporary
@@ -131,7 +134,7 @@ main( int argc, char **argv )
     // output
     std::filesystem::path outFilePath = "output.smt";
     TileMap out_tileMap;
-    uint32_t out_format = 1;
+    int out_format = SMT_HCT_DXT1;
     OIIO::ImageSpec out_tileSpec( 32, 32, 4, TypeDesc::UINT8 );
     uint32_t out_img_width = 0, out_img_height = 0;
 
@@ -162,13 +165,13 @@ main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        spdlog::warn( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        SPDLOG_WARN( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
         fail = true;
     }
 
     // non options
     if( parse.nonOptionsCount() == 0 ){
-        spdlog::error( "Missing input tilesources" );
+        SPDLOG_ERROR( "Missing input tilesources" );
         fail = true;
     }
 
@@ -176,7 +179,7 @@ main( int argc, char **argv )
 
     if( (options[ IMGOUT ] && options[ SMTOUT ])
         || (!options[ IMGOUT ] && !options[ SMTOUT ]) ){
-        spdlog::error( "must have one output format --img or --smt" );
+        SPDLOG_ERROR( "must have one output format --img or --smt" );
         fail = true;
     }
 
@@ -208,7 +211,7 @@ main( int argc, char **argv )
         if( (out_format == 1)
          && ((out_tileSpec.width % 4) || (out_tileSpec.height % 4))
           ){
-            spdlog::error( "tilesize must be a multiple of 4x4" );
+            SPDLOG_ERROR( "tilesize must be a multiple of 4x4" );
             fail = true;
         }
     }
@@ -227,7 +230,7 @@ main( int argc, char **argv )
         if( (out_format == 1)
             && ((out_img_width % 4) || (out_img_height % 4))
           ){
-            spdlog::error( "imagesize must be a multiple of 4x4" );
+            SPDLOG_ERROR( "imagesize must be a multiple of 4x4" );
             fail = true;
         }
     }
@@ -250,7 +253,7 @@ main( int argc, char **argv )
     }
 
     if( fail || parse.error() ){
-        spdlog::error( "Options parsing." );
+        SPDLOG_ERROR( "Options parsing." );
         shutdown( 1 );
     }
 
@@ -259,33 +262,38 @@ main( int argc, char **argv )
         SPDLOG_INFO( "adding {} to tilecache.", parse.nonOption( i ) );
         src_tileCache.addSource( parse.nonOption( i ) );
     }
-    if( !src_tileCache.nTiles ){
-        spdlog::critical("no tiles in cache" );
+    if( !src_tileCache.getNumTiles() ){
+        SPDLOG_CRITICAL("no tiles in cache" );
+        
     }
-    spdlog::info( "{} tiles in cache", src_tileCache.nTiles );
+    SPDLOG_INFO( "{} tiles in cache", src_tileCache.getNumTiles() );
 
     // == SOURCE TILE SPEC ==
     {
-        std::unique_ptr< OIIO::ImageBuf >
-                tempBuf(src_tileCache.getTile(0) );
-        sSpec.width = tempBuf->spec().width;
-        sSpec.height = tempBuf->spec().height;
-        sSpec.nchannels = out_tileSpec.nchannels;
-        sSpec.set_format( out_tileSpec.format );
-        spdlog::info( "Source Tile Size: {}x{}", sSpec.width, sSpec.height );
+        auto maybe = src_tileCache.getTile(0);
+        if( maybe.has_value() ){
+            auto tempBuf = maybe.value();
+            sSpec.width = tempBuf.spec().width;
+            sSpec.height = tempBuf.spec().height;
+            sSpec.nchannels = out_tileSpec.nchannels;
+            sSpec.set_format( out_tileSpec.format );
+            SPDLOG_INFO( "Source Tile Size: {}x{}", sSpec.width, sSpec.height );
+        } else {
+            SPDLOG_CRITICAL("request for tile 0 from tilecache failed to retrieve a value");
+        }
     }
 
     // == FILTER ==
     if( options[ FILTER ] ){
         src_filter = expandString( options[ FILTER ].arg );
         if( src_filter.empty() ) {
-            spdlog::error( "failed to interpret filter string" );
+            SPDLOG_ERROR( "failed to interpret filter string" );
             shutdown( 1 );
         }
     }
     else {
         SPDLOG_INFO( "no filter specified, using all tiles" );
-        src_filter.resize( src_tileCache.nTiles );
+        src_filter.resize( src_tileCache.getNumTiles() );
         for( unsigned i = 0; i < src_filter.size(); ++i ) src_filter[ i ] = i;
     }
 
@@ -304,13 +312,14 @@ main( int argc, char **argv )
         // attempt to load from csv
         else {
             src_tileMap.fromCSV( options[ TILEMAP ].arg );
-            if( src_tileMap.width != 0 && src_tileMap.height != 0 ){\
+            if( src_tileMap.width() != 0 && src_tileMap.height() != 0 ){\
                 SPDLOG_INFO( "tilemap derived from csv" );
             }
         }
         // check for failure
-        if( src_tileMap.width == 0 || src_tileMap.height == 0 ){
-            spdlog::error( "unable to open: {}", options[ TILEMAP ].arg );
+        if( src_tileMap.width() == 0 || src_tileMap.height() == 0 ){
+            SPDLOG_ERROR( "unable to open: {}", options[ TILEMAP ].arg );
+            
             shutdown( 1 );
         }
     }
@@ -328,27 +337,27 @@ main( int argc, char **argv )
     src_tiledImage.tileCache = src_tileCache;
     src_tiledImage.setTSpec( sSpec );
     src_tiledImage.setOverlap( overlap );
-    spdlog::info( R"(Source Tiled Image:
+    SPDLOG_INFO( R"(Source Tiled Image:
     Full size: {}x{}
     Tile size: {}x{}
     TileMap size: {}x{})",
                           src_tiledImage.getWidth(), src_tiledImage.getHeight(),
-                          src_tiledImage.tSpec.width, src_tiledImage.tSpec.height,
-                          src_tiledImage.tileMap.width, src_tiledImage.tileMap.height );
+                          src_tiledImage.getTileSpec().width, src_tiledImage.getTileSpec().height,
+                          src_tiledImage.tileMap.width(), src_tiledImage.tileMap.height() );
 
     // == IMAGESIZE ==
     if(! options[ IMAGESIZE ] ){
         out_img_width = src_tiledImage.getWidth();
         out_img_height = src_tiledImage.getHeight();
     }
-    spdlog::info( "ImageSize = {}x{}", out_img_width, out_img_height );
+    SPDLOG_INFO( "ImageSize = {}x{}", out_img_width, out_img_height );
 
     // == TILESIZE ==
     // TODO if smt is specified then default to 32x32
     if(! options[ TILESIZE ] ){
         if( options[ IMGOUT ] ){
-            out_tileSpec.width = out_img_width;
-            out_tileSpec.height = out_img_height;
+            out_tileSpec.width = (int)out_img_width;
+            out_tileSpec.height = (int)out_img_height;
         }
         else {
             out_tileSpec.width = 32;
@@ -358,7 +367,7 @@ main( int argc, char **argv )
 
 /*    if( out_img_width % out_tileSpec.width
             || out_img_height % out_tileSpec.height ){
-        spdlog::error( "image size must be a multiple of tile size"
+        SPDLOG_ERROR( "image size must be a multiple of tile size"
             << "\n\timage size: " << out_img_width << "x" << out_img_height
             << "\n\ttile size: " << out_tileSpec.width << "x" << out_tileSpec.height;
         shutdown( 1 );
@@ -368,13 +377,13 @@ main( int argc, char **argv )
     out_tileMap.setSize( out_img_width / out_tileSpec.width,
                          out_img_height / out_tileSpec.height);
 
-    spdlog::info( R"(    Output Sizes:
+    SPDLOG_INFO( R"(    Output Sizes:
     Full Size: {}x{}
     Tile Size: {}x{}
     tileMap Size: {}x{})",
                           out_img_width, out_img_height,
                           out_tileSpec.width, out_tileSpec.height,
-                          out_tileMap.width, out_tileMap.height );
+                          out_tileMap.width(), out_tileMap.height() );
 
     // work out the relative tile size
     float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
@@ -388,7 +397,7 @@ main( int argc, char **argv )
     if( options[ SMTOUT ] ){
         tempSMT = SMT::create(outFilePath , overwrite );
         if(! tempSMT ){
-            spdlog::critical( "cannot overwrite existing file" );
+            SPDLOG_CRITICAL( "will not overwrite {}", outFilePath.string() );
             shutdown(1);
         }
         tempSMT->setType( out_format );
@@ -398,15 +407,15 @@ main( int argc, char **argv )
     // tile hashtable for exact duplicate detection
     std::unordered_map<std::string, int> hash_map;
     int *item;
-    hash_map.reserve(out_tileMap.width * out_tileMap.height);
+    hash_map.reserve(out_tileMap.length() );
 
     // == OUTPUT THE IMAGES ==
     int numTiles = 0;
     int numDupes = 0;
     OIIO::ROI roi = OIIO::ROI::All();
-    std::unique_ptr< OIIO::ImageBuf > out_buf;
-    for( uint32_t y = 0; y < out_tileMap.height; ++y ) {
-        for( uint32_t x = 0; x < out_tileMap.width; ++x ){
+    OIIO::ImageBuf out_buf;
+    for( uint32_t y = 0; y < out_tileMap.height(); ++y ) {
+        for( uint32_t x = 0; x < out_tileMap.width(); ++x ){
             SPDLOG_INFO( "Processing split ({}x{})", x, y );
 
             roi.xbegin = x * rel_tile_width;
@@ -416,9 +425,9 @@ main( int argc, char **argv )
             out_buf = src_tiledImage.getRegion( roi );
 
             if( dupli == 1 ){
-                item = &hash_map[ computePixelHashSHA1( *out_buf ) ];
+                item = &hash_map[ computePixelHashSHA1( out_buf ) ];
                 if( *item ){
-                    out_tileMap( x, y ) = *item;
+                    out_tileMap.setXY( x, y, *item );
                     ++numDupes;
                     continue;
                 }
@@ -430,30 +439,30 @@ main( int argc, char **argv )
             // scale according to out_tileSpec, which is conditionally defined by
             // --tilesize or --imagesize depending on whether one image is
             // being exported or whether to split up into chunks.
-            out_buf = fix_scale( std::move( out_buf ), out_tileSpec );
+            out_buf = scale( out_buf , out_tileSpec );
 
-            if( options[ SMTOUT ] ) tempSMT->append( *out_buf );
+            if( options[ SMTOUT ] ) tempSMT->append( out_buf );
             if( options[ IMGOUT ] ){
                 name << outFilePath << "." << std::setfill('0') << std::setw(6) << numTiles << ".tif";
-                out_buf->write( name.str() );
+                out_buf.write( name.str() );
                 name.str( std::string() );
             }
-            out_tileMap(x,y) = numTiles;
+            out_tileMap.setXY( x, y, numTiles );
             ++numTiles;
 
             if( options[ PROGRESS ] ){
                 progressBar( "[Progress]:",
-                    out_tileMap.width * out_tileMap.height - numDupes,
+                    out_tileMap.length() - numDupes,
                     numTiles );
             }
         }
     }
-    spdlog::info( "actual:max = {}:{}", numTiles, out_tileMap.width * out_tileMap.height );
-    spdlog::info( "number of dupes = {}", numDupes );
+    SPDLOG_INFO( "actual:max = {}:{}", numTiles, out_tileMap.length() );
+    SPDLOG_INFO( "number of dupes = {}", numDupes );
 
     // if the tileMap only contains 1 value, then we are only outputting
     //     a single image, so skip tileMap csv export
-    if( out_tileMap.size() > 1 ){
+    if( out_tileMap.length() > 1 ){
         std::fstream out_csv(outFilePath.string() + ".csv", std::ios::out );
         out_csv << out_tileMap.toCSV();
         out_csv.close();
@@ -464,3 +473,5 @@ main( int argc, char **argv )
     OIIO::shutdown();
     return 0;
 }
+
+#pragma clang diagnostic pop

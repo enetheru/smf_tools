@@ -39,10 +39,7 @@ find_package( fmt REQUIRED HINTS C:/src/fmt/cmake-build-debug/lib/cmake/fmt)
 find_package( spdlog REQUIRED HINTS C:/src/spdlog/cmake-build-debug/lib/cmake/spdlog )
 find_package( libsquish REQUIRED HINTS C:/src/libsquish/cmake-build-debug/lib/cmake/libsquish )
 
-# we dont want to use external googletest
-#add_definitions( -DGTEST_USE_OWN_TR1_TUPLE=0 )
-#add_subdirectory( ext/googletest )
-#set( GTEST_LIBS "gtest" "gtest_main" )
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 # Testing
 # =======

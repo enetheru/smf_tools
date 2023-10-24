@@ -14,7 +14,7 @@ OIIO_NAMESPACE_USING
 // CONSTRUCTORS
 // ============
 TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
-    uint32_t inTileWidth, uint32_t inTileHeight )
+    int inTileWidth, int inTileHeight )
 {
     setTileSize( inTileWidth, inTileHeight );
     setSize( inWidth, inHeight );
@@ -28,8 +28,9 @@ TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
 void
 TiledImage::setTileMap( const TileMap& inTileMap )
 {
-    if( !(inTileMap.width && inTileMap.height) ){
-        spdlog::critical( "tilemap width or heght is invalid: {}x{}", inTileMap.width, inTileMap.height );
+    const auto [ width, height ] = inTileMap.size();
+    if( !(width && height) ){
+        spdlog::critical( "tilemap width or height is invalid: {}x{}", width, height );
         return;
     }
     tileMap = inTileMap;
@@ -39,12 +40,12 @@ TiledImage::setTileMap( const TileMap& inTileMap )
 void
 TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
-    if( inWidth >= tSpec.width || inHeight >= tSpec.height ){
+    if( inWidth >= _tSpec.width || inHeight >= _tSpec.height ){
         spdlog::critical( "in:{}x{} must be >= tile: {}x{}",
-                          inWidth, inHeight, tSpec.width, tSpec.height );
+                          inWidth, inHeight, _tSpec.width, _tSpec.height );
         return;
     }
-    tileMap.setSize( inWidth / tSpec.width, inHeight / tSpec.height );
+    tileMap.setSize( inWidth / _tSpec.width, inHeight / _tSpec.height );
 }
 
 void
@@ -55,11 +56,11 @@ TiledImage::setTSpec( ImageSpec spec )
 
 //FIXME function can error but does not notify the caller.
 void
-TiledImage::setTileSize( uint32_t inWidth, uint32_t inHeight )
+TiledImage::setTileSize( int inWidth, int inHeight )
 {
     if( inWidth > 0 || inHeight > 0 ){
         spdlog::critical( "in:{}x{} must be > tile: 0x0",
-                          inWidth, inHeight, tSpec.width, tSpec.height );
+                          inWidth, inHeight, _tSpec.width, _tSpec.height );
         return;
     }
     _tSpec = ImageSpec( inWidth, inHeight, _tSpec.nchannels, _tSpec.format );
@@ -72,7 +73,7 @@ TiledImage::setOverlap( uint32_t overlap ) {
 
 void
 TiledImage::mapFromCSV( std::filesystem::path filePath ) {
-    tileMap.fromCSV( filePath );
+    tileMap.fromCSV( std::move(filePath) );
 }
 
 // GENERATION
@@ -80,13 +81,11 @@ TiledImage::mapFromCSV( std::filesystem::path filePath ) {
 //FIXME function can error but does not notify the caller.
 void
 TiledImage::squareFromCache( ) {
-    int tileCount = tileCache.nTiles;
-    if( !tileCount ){
+    if( !tileCache.getNumTiles() ){
         spdlog::critical("tileCache has no tiles");
         return;
     }
-
-    int square = sqrt(tileCount);
+    auto square = (uint32_t)sqrt(tileCache.getNumTiles());
     tileMap.setSize( square, square );
     tileMap.consecutive();
 }
@@ -96,21 +95,21 @@ TiledImage::squareFromCache( ) {
 
 uint32_t
 TiledImage::getWidth() const {
-    return tileMap.width * (tSpec.width - overlap) + overlap;
+    return tileMap.width() * (_tSpec.width - _overlap) + _overlap;
 }
 
 uint32_t
 TiledImage::getHeight() const {
-    return tileMap.height * (tSpec.height - overlap) + overlap;
+    return tileMap.height() * (_tSpec.height - _overlap) + _overlap;
 }
 
-std::unique_ptr< ImageBuf >
+ImageBuf
 TiledImage::getRegion( const ROI &roi ) {
     spdlog::info( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
 
     ImageSpec outSpec( roi.width(), roi.height(), 4, TypeDesc::UINT8 );
 
-    std::unique_ptr< ImageBuf > outBuf( new ImageBuf( outSpec ) );
+    ImageBuf outBuf( outSpec );
     //outBuf->write( "TiledImage_getRegion_outBuf.tif", "tif" );
 
     //current point of interest
@@ -122,19 +121,19 @@ TiledImage::getRegion( const ROI &roi ) {
          spdlog::info( "Point of interest ({}, {})", ix, iy );
 
         //determine the tile under the point of interest
-        uint32_t mx = ix / (tSpec.width - overlap);
-        uint32_t my = iy / (tSpec.height - overlap);
+        uint32_t mx = ix / (_tSpec.width - _overlap);
+        uint32_t my = iy / (_tSpec.height - _overlap);
 
         //determine the top left corner of the copy window
-        cw.xbegin = ix - mx * (tSpec.width - overlap);
-        cw.ybegin = iy - my * (tSpec.height - overlap);
+        cw.xbegin = ix - mx * (_tSpec.width - _overlap);
+        cw.ybegin = iy - my * (_tSpec.height - _overlap);
 
         //determine the bottom right corner of the copy window
-        if( roi.xend / (tSpec.width - overlap) > mx ) cw.xend = tSpec.width;
-        else cw.xend = roi.xend - mx * (tSpec.width - overlap);
+        if( roi.xend / (_tSpec.width - _overlap) > mx ) cw.xend = _tSpec.width;
+        else cw.xend = roi.xend - mx * (_tSpec.width - _overlap);
 
-        if( roi.yend / (tSpec.height - overlap) > my ) cw.yend = tSpec.height;
-        else cw.yend = roi.yend - my * (tSpec.height - overlap);
+        if( roi.yend / (_tSpec.height - _overlap) > my ) cw.yend = _tSpec.height;
+        else cw.yend = roi.yend - my * (_tSpec.height - _overlap);
 
         spdlog::info( "copy window ({}, {})->({}}, {}})", cw.xbegin, cw.ybegin, cw.xend, cw.yend );
 
@@ -147,25 +146,26 @@ TiledImage::getRegion( const ROI &roi ) {
         spdlog::info( "Paste position: {}x{}", dx, dy );
 
         //Optimisation: exact copy of previous tile test
-        uint32_t index = tileMap(mx, my);
+        uint32_t index = tileMap.getXY(mx, my);
         if( index != index_p ){
             // create blank tile if index is out of range
-            if( index >= tileCache.nTiles ){
-                currentTile.reset( new OIIO::ImageBuf( tSpec ) );
+            if( index >= tileCache.getNumTiles() ){
+                currentTile.reset( _tSpec );
             } else {
-                currentTile = tileCache.getTile(index);
+                currentTile = tileCache.getTile(index).value();
                 // A possibility exists that the tile cache will give us a tile that
                 // has dimensions other than expected. So let's check and scale.
-                currentTile = fix_scale( std::move( currentTile ), tSpec );
+                //currentTile = fix_scale( std::move( currentTile ), _tSpec );
+                currentTile = scale( currentTile, _tSpec );
                 // it's possible that the tile retrieved has different channels
                 // than the tiledImage spec
-                currentTile = fix_channels( std::move( currentTile ), tSpec );
+                currentTile = channels( currentTile, _tSpec );
             }
             index_p = index;
         }
-        if( currentTile ){
+        if( currentTile.initialized() ){
             //copy pixel data from source tile to dest
-            ImageBufAlgo::paste( *outBuf, dx, dy, 0, 0, *currentTile, cw );
+            ImageBufAlgo::paste( outBuf, dx, dy, 0, 0, currentTile, cw );
             //outBuf->write( "TiledImage_getRegion_outBuf_paste.tif", "tif");
         }
 
@@ -186,20 +186,18 @@ TiledImage::getRegion( const ROI &roi ) {
     return outBuf ;
 }
 
-std::unique_ptr< ImageBuf >
+OIIO::ImageBuf
 TiledImage::getUVRegion(
         const uint32_t xbegin, const uint32_t xend,
-        const uint32_t ybegin, const uint32_t yend )
-{
+        const uint32_t ybegin, const uint32_t yend ) {
     ROI roi(xbegin, xend, ybegin, yend );
     return getRegion( roi );
 }
 
-std::unique_ptr< ImageBuf >
-TiledImage::getTile( const uint32_t idx )
-{
-    auto retval = tileCache.getTile( idx );
-    retval = fix_channels( std::move( currentTile ), tSpec );
-    retval = fix_scale( std::move( currentTile ), tSpec );
+OIIO::ImageBuf
+TiledImage::getTile( const uint32_t idx ) {
+    auto retval = tileCache.getTile( idx ).value();
+    retval = channels( currentTile , _tSpec );
+    retval = scale( currentTile , _tSpec );
     return retval;
 }
