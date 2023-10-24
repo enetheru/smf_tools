@@ -49,8 +49,8 @@ find_package( libsquish REQUIRED HINTS C:/src/libsquish/cmake-build-debug/lib/cm
 if( BUILD_TESTS )
     enable_testing()
     find_package( GTest REQUIRED HINTS C:/src/googletest/cmake-build-debug/lib/cmake/GTest )
-    add_subdirectory( ctest )
-    add_subdirectory( gtest )
+    add_subdirectory( test/ctest )
+    add_subdirectory( test/gtest )
 endif()
 
 # sub directories

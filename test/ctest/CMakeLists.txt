@@ -45,7 +45,7 @@ set_tests_properties( smt_info PROPERTIES LABELS "smt_info" WILL_FAIL TRUE )
 add_test( NAME smt_info_h COMMAND $<TARGET_FILE:smt_info> -h )
 set_tests_properties( smt_info_h PROPERTIES LABELS "smt_info help" )
 
-add_test( NAME smt_info_help COMMAND $<TARGET_FILE:smt_info> -help )
+add_test( NAME smt_info_help COMMAND $<TARGET_FILE:smt_info> --help )
 set_tests_properties( smt_info_help PROPERTIES LABELS "smt_info help" )
 
 
@@ -54,6 +54,9 @@ set_tests_properties( smt_info_help PROPERTIES LABELS "smt_info help" )
 add_test( NAME smt_convert COMMAND $<TARGET_FILE:smt_convert> )
 set_tests_properties( smt_convert PROPERTIES LABELS "smt_convert" WILL_FAIL TRUE )
 
+file(GLOB IMG_FILES ${PROJECT_SOURCE_DIR}/test/data/tiles/*.BMP)
+add_test( NAME smt_convert_tiles COMMAND $<TARGET_FILE:smt_convert> -v --smt ${IMG_FILES} )
+set_tests_properties( smt_convert_tiles PROPERTIES LABELS "smt_convert_tiles" )
 
 # smt_repair
 # ==========
