@@ -10,6 +10,7 @@
 #include <OpenImageIO/imagebuf.h>
 
 #include "tilemap.h"
+#include "recoil/SMFFormat.h"
 
 /** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>
  * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4\n
@@ -41,30 +42,9 @@ class SMF {
     std::filesystem::path _filePath;
     uint32_t _dirtyMask = 0xFFFFFFFF;
 
-    /*! Header struct as it is written on disk
-     */
-    struct Header {
-        [[maybe_unused]] char magic[ 16 ] = "spring map file"; ///< byte:0 \n "spring map file"
-        int version = 1;      //!< byte:16 \n Must be 1 for now
-        int id;               //!< byte:20 \n Prevents name clashes with other maps.
-        int width = 128;      //!< byte:24 \n Map width * 64
-        int length = 128;     //!< byte:28 \n Map length * 64
-        int squareWidth = 8;  //!< byte:32 \n Distance between vertices. must be 8
-        int squareTexels = 8; //!< byte:36 \n Number of texels per square, must be 8 for now
-        int tileSize = 32;    //!< byte:40 \n Number of texels in a tile, must be 32 for now
-        float floor = 10;     //!< byte:44 \n Height value that 0 in the heightmap corresponds to
-        float ceiling = 256;  //!< byte:48 \n Height value that 0xffff in the heightmap corresponds to
-
-        int heightPtr;        //!< byte:52 \n File offset to elevation data `short int[(mapy+1)*(mapx+1)]`
-        int typePtr;          //!< byte:56 \n File offset to typedata `unsigned char[mapy/2 * mapx/2]`
-        int tilesPtr;         //!< byte:60 \n File offset to tile data
-        int miniPtr;          //!< byte:64 \n File offset to minimap,
-        int metalPtr;         //!< byte:68 \n File offset to metalmap `unsigned char[mapx/2 * mapy/2]`
-        int featuresPtr;      //!< byte:72 \n File offset to feature data
-
-        int nHeaderExtensions = 0;///< byte:76 \n Numbers of extra headers following this header
-    };/* byte: 80 */
-    Header _header;
+    /*! Header struct as it is written on disk */
+    SMFHeader _header{"spring map file", 1, 0, 128, 128,
+                      8, 8, 32, 10, 256};
 
     /*! Header Extension.
      *

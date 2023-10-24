@@ -109,22 +109,22 @@ SMF::read()
 
     // read header structure.
     file.seekg(0);
-    file.read( (char *)&_header, sizeof(SMF::Header) );
+    file.read( (char *)&_header, sizeof(_header) );
     updateSpecs();
 
     // for each pointer, make sure they don't overlap with memory space of
     // other data
     map.addBlock(0,80, "header");
-    map.addBlock( _header.heightPtr, _heightSpec.image_bytes(), "height" );
-    map.addBlock( _header.typePtr, _typeSpec.image_bytes() , "type");
-    map.addBlock( _header.miniPtr, MINIMAP_SIZE, "mini" );
-    map.addBlock( _header.metalPtr, _metalSpec.image_bytes(), "metal" );
+    map.addBlock(_header.heightmapPtr, _heightSpec.image_bytes(), "height" );
+    map.addBlock(_header.typeMapPtr, _typeSpec.image_bytes() , "type");
+    map.addBlock(_header.minimapPtr, MINIMAP_SIZE, "mini" );
+    map.addBlock(_header.metalmapPtr, _metalSpec.image_bytes(), "metal" );
 
 
     // Extra headers Information
     uint32_t offset;
     SMF::HeaderExtension *headerExtn;
-    for(int i = 0; i < _header.nHeaderExtensions; ++i ){
+    for(int i = 0; i < _header.numExtraHeaders; ++i ){
         headerExtn = new SMF::HeaderExtension;
         offset = file.tellg();
         file.read( (char *)headerExtn, sizeof(SMF::HeaderExtension) );
@@ -167,11 +167,11 @@ SMF::read()
     map.addBlock( _mapPtr, _mapSpec.image_bytes(), "map" );
 
     // Featurelist information
-    file.seekg( _header.featuresPtr );
+    file.seekg( _header.featurePtr );
     file.read( (char *)&_headerFeatures.nTypes, 4 );
     file.read( (char *)&_headerFeatures.nFeatures, 4 );
 
-    map.addBlock( _header.featuresPtr, sizeof( SMF::HeaderFeatures ), "featuresHeader" );
+    map.addBlock(_header.featurePtr, sizeof( SMF::HeaderFeatures ), "featuresHeader" );
 
     offset = file.tellg();
     std::string featureName;
@@ -203,35 +203,35 @@ SMF::info()
     info << "[File Information]"
          << "\n\tFile Name: " << _filePath
          << "\n\tFile Size: " << to_hex( file_size(_filePath ) )
-         << "\n[header]: "
-         << "\n\tVersion: " << _header.version
-         << "\n\tID:      " << _header.id
+            << "\n[header]: "
+            << "\n\tVersion: " << _header.version
+            << "\n\tID:      " << _header.mapid
 
-         << "\n\n\tWidth:          " << _header.width
-         << " | " << _header.width / 64
-         << "\n\tLength:         "   << _header.length
-         << " | " << _header.length / 64
-         << "\n\tSquareSize:     "   << _header.squareWidth
-         << "\n\tTexelPerSquare: "   << _header.squareTexels
-         << "\n\tTileSize:       "   << _header.tileSize
-         << "\n\tMinHeight:      "   << _header.floor
-         << "\n\tMaxHeight:      "   << _header.ceiling
+            << "\n\n\tWidth:          " << _header.mapx
+            << " | " << _header.mapx / 64
+            << "\n\tLength:         " << _header.mapy
+            << " | " << _header.mapy / 64
+            << "\n\tSquareSize:     " << _header.squareSize
+            << "\n\tTexelPerSquare: " << _header.texelPerSquare
+            << "\n\tTileSize:       " << _header.tilesize
+            << "\n\tMinHeight:      " << _header.minHeight
+            << "\n\tMaxHeight:      " << _header.maxHeight
 
-         << "\n\n\tHeightPtr:   "   << to_hex(_header.heightPtr) << " "
-            << _header.width+1 << "x"
-            << _header.length+1 << ":" << 1 << " UINT16"
-         << "\n\tTypePtr:     "     << to_hex(_header.typePtr) << " "
-            << _header.width << "x" << _header.length << ":" << 1 << " UINT8"
-         << "\n\tTilesPtr:    "     << to_hex(_header.tilesPtr)
-         << "\n\tMapPtr:      "     << to_hex(_mapPtr) << " "
-            << _header.width * 8 / _header.tileSize << "x"
-            << _header.length * 8 / _header.tileSize << ":" << 1 << " UINT32"
-         << "\n\tMiniPtr:     "     << to_hex(_header.miniPtr)
-            << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
-         << "\n\tMetalPtr:    "     << to_hex(_header.metalPtr)
-         << " " << _header.width << "x" << _header.length << ":" << 1 << "  UINT8"
-         << "\n\tFeaturesPtr: "     << to_hex(_header.featuresPtr)
-         << "\n  HeaderExtensions: "   << _header.nHeaderExtensions
+            << "\n\n\tHeightPtr:   " << to_hex(_header.heightmapPtr) << " "
+            << _header.mapx + 1 << "x"
+            << _header.mapy + 1 << ":" << 1 << " UINT16"
+            << "\n\tTypePtr:     " << to_hex(_header.typeMapPtr) << " "
+            << _header.mapx << "x" << _header.mapy << ":" << 1 << " UINT8"
+            << "\n\tTilesPtr:    " << to_hex(_header.tilesPtr)
+            << "\n\tMapPtr:      " << to_hex(_mapPtr) << " "
+            << _header.mapx * 8 / _header.tilesize << "x"
+            << _header.mapy * 8 / _header.tilesize << ":" << 1 << " UINT32"
+         << "\n\tMiniPtr:     " << to_hex(_header.minimapPtr)
+         << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
+         << "\n\tMetalPtr:    " << to_hex(_header.metalmapPtr)
+         << " " << _header.mapx << "x" << _header.mapy << ":" << 1 << "  UINT8"
+         << "\n\tFeaturesPtr: "     << to_hex(_header.featurePtr)
+         << "\n  HeaderExtensions: "   << _header.numExtraHeaders
         ;
 
     //Header Extensions
@@ -275,20 +275,20 @@ SMF::updateSpecs()
 {
     SPDLOG_DEBUG( "Updating ImageSpec's" );
     // Set _heightSpec.
-    _heightSpec.width = _header.width + 1;
-    _heightSpec.height = _header.length + 1;
+    _heightSpec.width = _header.mapx + 1;
+    _heightSpec.height = _header.mapy + 1;
     _heightSpec.nchannels = 1;
     _heightSpec.set_format( OIIO::TypeDesc::UINT16 );
 
     // set _typeSpec
-    _typeSpec.width = _header.width / 2;
-    _typeSpec.height = _header.length / 2;
+    _typeSpec.width = _header.mapx / 2;
+    _typeSpec.height = _header.mapy / 2;
     _typeSpec.nchannels = 1;
     _typeSpec.set_format( OIIO::TypeDesc::UINT8 );
 
     // set map spec
-    _mapSpec.width = _header.width * 8 / _header.tileSize;
-    _mapSpec.height = _header.length * 8 / _header.tileSize;
+    _mapSpec.width = _header.mapx * 8 / _header.tilesize;
+    _mapSpec.height = _header.mapy * 8 / _header.tilesize;
     _mapSpec.nchannels = 1;
     _mapSpec.set_format( OIIO::TypeDesc::UINT );
 
@@ -299,14 +299,14 @@ SMF::updateSpecs()
     _miniSpec.set_format( OIIO::TypeDesc::UINT8 );
 
     // set _metalSpec
-    _metalSpec.width = _header.width / 2;
-    _metalSpec.height = _header.length / 2;
+    _metalSpec.width = _header.mapx / 2;
+    _metalSpec.height = _header.mapy / 2;
     _metalSpec.nchannels = 1;
     _metalSpec.set_format( OIIO::TypeDesc::UINT8 );
 
     // set _grassSpec
-    _grassSpec.width = _header.width / 4;
-    _grassSpec.height = _header.length / 4;
+    _grassSpec.width = _header.mapx / 4;
+    _grassSpec.height = _header.mapy / 4;
     _grassSpec.nchannels = 1;
     _grassSpec.set_format( OIIO::TypeDesc::UINT8 );
 }
@@ -316,23 +316,23 @@ SMF::updatePtrs()
 {
     SPDLOG_DEBUG( "Updating file offset pointers" );
 
-    _header.heightPtr = sizeof( SMF::Header );
+    _header.heightmapPtr = sizeof( _header );
 
-    for( auto i : _headerExtensions ) _header.heightPtr += i->bytes;
+    for( auto i : _headerExtensions ) _header.heightmapPtr += i->bytes;
 
-    _header.typePtr = _header.heightPtr + _heightSpec.image_bytes();
-    _header.tilesPtr = _header.typePtr + _typeSpec.image_bytes();
+    _header.typeMapPtr = _header.heightmapPtr + _heightSpec.image_bytes();
+    _header.tilesPtr = _header.typeMapPtr + _typeSpec.image_bytes();
     _mapPtr = _header.tilesPtr + sizeof( SMF::HeaderTiles );
 
     for( const auto& [index,name] : _smtList ) _mapPtr += (sizeof(uint32_t) + name.size() + 1);
 
-    _header.miniPtr = _mapPtr + _mapSpec.image_bytes();
-    _header.metalPtr = _header.miniPtr + MINIMAP_SIZE;
-    _header.featuresPtr = _header.metalPtr + _metalSpec.image_bytes();
+    _header.minimapPtr = _mapPtr + _mapSpec.image_bytes();
+    _header.metalmapPtr = _header.minimapPtr + MINIMAP_SIZE;
+    _header.featurePtr = _header.metalmapPtr + _metalSpec.image_bytes();
 
     // eof is used here to help with optional extras like grass
     // find out the expected end of the file
-    int eof = _header.featuresPtr + sizeof( SMF::HeaderFeatures );
+    int eof = _header.featurePtr + sizeof( SMF::HeaderFeatures );
     for( const auto& i : _featureTypes ) eof += i.size() + 1;
     eof += _features.size() * sizeof( SMF::Feature );
 
@@ -358,17 +358,17 @@ SMF::setFilePath( std::filesystem::path filePath ) {
 
 void
 SMF::setSize( int width, int length ) {
-    if( _header.width == width && _header.length == length ) return;
-    _header.width = width * 64;
-    _header.length = length * 64;
+    if(_header.mapx == width && _header.mapy == length ) return;
+    _header.mapx = width * 64;
+    _header.mapy = length * 64;
     _dirtyMask |= SMF_ALL;
 }
 
 void
 SMF::setTileSize( int size )
 {
-    if( _header.tileSize == size ) return;
-    _header.tileSize = size;
+    if(_header.tilesize == size ) return;
+    _header.tilesize = size;
     _dirtyMask |= SMF_HEADER;
     //FIXME this also effects the tile map, really need to write more elaborate statements
 }
@@ -376,9 +376,9 @@ SMF::setTileSize( int size )
 void
 SMF::setDepth( float floor, float ceiling )
 {
-    if( _header.floor == floor && _header.ceiling == ceiling ) return;
-    _header.floor = floor;
-    _header.ceiling = ceiling;
+    if(_header.minHeight == floor && _header.maxHeight == ceiling ) return;
+    _header.minHeight = floor;
+    _header.maxHeight = ceiling;
     _dirtyMask |= SMF_HEADER;
 }
 
@@ -402,7 +402,7 @@ SMF::enableGrass( bool enable )
                 headerGrass = (HeaderExtn_Grass *)*i;
                 delete headerGrass;
                 i = _headerExtensions.erase(i);
-                --_header.nHeaderExtensions;
+                --_header.numExtraHeaders;
             }
         }
         _dirtyMask |= SMF_ALL;
@@ -415,7 +415,7 @@ SMF::enableGrass( bool enable )
     // otherwise we don't have and we want one
     headerGrass = new HeaderExtn_Grass();
     _headerExtensions.push_back(headerGrass );
-    ++_header.nHeaderExtensions;
+    ++_header.numExtraHeaders;
     _dirtyMask |= SMF_ALL;
 }
 
@@ -561,12 +561,12 @@ SMF::writeHeader()
 {
     SPDLOG_DEBUG( "Writing headers" );
 
-    _header.id = rand();
+    _header.mapid = rand();
 
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if( !file.good() )spdlog::error( "Unable to open {} for writing", _filePath.string() );
 
-    file.write( (char *)&_header, sizeof(SMF::Header) );
+    file.write( (char *)&_header, sizeof(_header) );
     file.close();
 
     _dirtyMask &= !SMF_HEADER;
@@ -583,7 +583,7 @@ SMF::writeExtraHeaders()
         return;
     }
 
-    file.seekp( sizeof( Header ) );
+    file.seekp( sizeof( _header ) );
     for( auto i : _headerExtensions ) file.write((char *)i, i->bytes );
     file.close();
 
@@ -629,7 +629,7 @@ SMF::writeHeight( OIIO::ImageBuf *sourceBuf )
     SPDLOG_DEBUG( "Writing height" );
     _dirtyMask &= !SMF_HEIGHT;
 
-    if( writeImage( _header.heightPtr, _heightSpec, sourceBuf ) ){
+    if( writeImage(_header.heightmapPtr, _heightSpec, sourceBuf ) ){
         spdlog::warn( "Wrote blank heightmap" );
     }
 }
@@ -640,7 +640,7 @@ SMF::writeType( OIIO::ImageBuf *sourceBuf )
     SPDLOG_DEBUG( "INFO: Writing type" );
     _dirtyMask &= !SMF_TYPE;
 
-    if( writeImage( _header.typePtr, _typeSpec, sourceBuf ) ){
+    if( writeImage(_header.typeMapPtr, _typeSpec, sourceBuf ) ){
         spdlog::warn( "Wrote blank typemap" );
     }
 }
@@ -657,7 +657,7 @@ SMF::writeMini( OIIO::ImageBuf * sourceBuf )
         spdlog::error( "Unable to open {} for writing", _filePath.string() );
         return;
     }
-    file.seekp( _header.miniPtr );
+    file.seekp( _header.minimapPtr );
 
     if( sourceBuf == nullptr ){
         char zero[ MINIMAP_SIZE ] = { 0 };
@@ -756,7 +756,7 @@ SMF::writeMetal( OIIO::ImageBuf *sourceBuf )
     SPDLOG_DEBUG( "Writing metal" );
     _dirtyMask &= !SMF_METAL;
 
-    if( writeImage( _header.metalPtr, _metalSpec, sourceBuf ) )
+    if( writeImage(_header.metalmapPtr, _metalSpec, sourceBuf ) )
         spdlog::warn( "Wrote blank metalmap" );
 }
 
@@ -773,7 +773,7 @@ SMF::writeFeatures()
         spdlog::error( "Unable to open {} for writing", _filePath.string() );
         return;
     }
-    file.seekp( _header.featuresPtr );
+    file.seekp( _header.featurePtr );
 
     // set the current state
     _headerFeatures.nTypes = _featureTypes.size();
@@ -834,13 +834,13 @@ SMF::getImage( unsigned int ptr, const OIIO::ImageSpec& spec)
 OIIO::ImageBuf *
 SMF::getHeight( )
 {
-    return getImage( _header.heightPtr, _heightSpec );
+    return getImage(_header.heightmapPtr, _heightSpec );
 }
 
 OIIO::ImageBuf *
 SMF::getType( )
 {
-    return getImage( _header.typePtr, _typeSpec );
+    return getImage(_header.typeMapPtr, _typeSpec );
 }
 
 TileMap *
@@ -872,7 +872,7 @@ OIIO::ImageBuf *SMF::getMini(){
         return nullptr;
     }
 
-    file.seekg( _header.miniPtr );
+    file.seekg( _header.minimapPtr );
     file.read( temp.data(), MINIMAP_SIZE );
     file.close();
 
@@ -885,7 +885,7 @@ OIIO::ImageBuf *SMF::getMini(){
 OIIO::ImageBuf *
 SMF::getMetal( )
 {
-    return getImage( _header.metalPtr, _metalSpec );
+    return getImage(_header.metalmapPtr, _metalSpec );
 }
 
 std::string

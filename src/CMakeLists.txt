@@ -11,6 +11,8 @@ target_include_directories( smf_tools
         PRIVATE
             ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}
+        PUBLIC
+            ${CMAKE_SOURCE_DIR}/ext
 )
 target_link_libraries( smf_tools
         PRIVATE
