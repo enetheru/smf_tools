@@ -9,8 +9,6 @@
 #include "tiledimage.h"
 #include "util.h"
 
-OIIO_NAMESPACE_USING
-
 // CONSTRUCTORS
 // ============
 TiledImage::TiledImage( uint32_t inWidth, uint32_t inHeight,
@@ -49,7 +47,7 @@ TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 }
 
 void
-TiledImage::setTSpec( ImageSpec spec )
+TiledImage::setTSpec( OIIO::ImageSpec spec )
 {
     _tSpec = std::move(spec);
 }
@@ -63,7 +61,7 @@ TiledImage::setTileSize( int inWidth, int inHeight )
                           inWidth, inHeight, _tSpec.width, _tSpec.height );
         return;
     }
-    _tSpec = ImageSpec( inWidth, inHeight, _tSpec.nchannels, _tSpec.format );
+    _tSpec = OIIO::ImageSpec( inWidth, inHeight, _tSpec.nchannels, _tSpec.format );
 }
 
 void
@@ -103,20 +101,20 @@ TiledImage::getHeight() const {
     return tileMap.height() * (_tSpec.height - _overlap) + _overlap;
 }
 
-ImageBuf
-TiledImage::getRegion( const ROI &roi ) {
+OIIO::ImageBuf
+TiledImage::getRegion( const OIIO::ROI &roi ) {
     spdlog::info( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
 
-    ImageSpec outSpec( roi.width(), roi.height(), 4, TypeDesc::UINT8 );
+    OIIO::ImageSpec outSpec( roi.width(), roi.height(), 4, OIIO::TypeDesc::UINT8 );
 
-    ImageBuf outBuf( outSpec );
+    OIIO::ImageBuf outBuf( outSpec );
     //outBuf->write( "TiledImage_getRegion_outBuf.tif", "tif" );
 
     //current point of interest
     uint32_t ix = roi.xbegin;
     uint32_t iy = roi.ybegin;
     static uint32_t index_p = INT_MAX;
-    ROI cw{0,0,0,0,0,1,0,4}; // copy window
+    OIIO::ROI cw{0,0,0,0,0,1,0,4}; // copy window
     while( true ){
          spdlog::info( "Point of interest ({}, {})", ix, iy );
 
@@ -165,7 +163,7 @@ TiledImage::getRegion( const ROI &roi ) {
         }
         if( currentTile.initialized() ){
             //copy pixel data from source tile to dest
-            ImageBufAlgo::paste( outBuf, dx, dy, 0, 0, currentTile, cw );
+            OIIO::ImageBufAlgo::paste( outBuf, dx, dy, 0, 0, currentTile, cw );
             //outBuf->write( "TiledImage_getRegion_outBuf_paste.tif", "tif");
         }
 
@@ -190,7 +188,7 @@ OIIO::ImageBuf
 TiledImage::getUVRegion(
         const uint32_t xbegin, const uint32_t xend,
         const uint32_t ybegin, const uint32_t yend ) {
-    ROI roi(xbegin, xend, ybegin, yend );
+    OIIO::ROI roi(xbegin, xend, ybegin, yend );
     return getRegion( roi );
 }
 

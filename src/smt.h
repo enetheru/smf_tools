@@ -4,7 +4,6 @@
 #include <filesystem>
 
 #include <OpenImageIO/imagebuf.h>
-
 #include <recoil/SMFFormat.h>
 
 // Borrowing from OpenGL for texture compression formats for implementation

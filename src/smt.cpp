@@ -9,12 +9,10 @@
 #include "smt.h"
 #include "util.h"
 
-using namespace std;
-
 SMT *
 SMT::create( const std::filesystem::path& filePath, bool overwrite ) {
     SMT *smt;
-    ifstream file( filePath );
+    std::ifstream file( filePath );
     if( file.good() && !overwrite ) return nullptr;
 
     smt = new SMT;
@@ -27,7 +25,7 @@ SMT::create( const std::filesystem::path& filePath, bool overwrite ) {
 bool
 SMT::test( const std::filesystem::path& filePath ) {
     char magic[ 16 ] = "";
-    ifstream file( filePath );
+    std::ifstream file( filePath );
     if( file.good() ){
         file.read( (char *)magic, 16 );
         if(! strcmp( magic, "spring tilefile" ) ){
@@ -54,7 +52,7 @@ void
 SMT::reset( ) {
     spdlog::info("Resetting {}", filePath.string() );
     // Clears content of SMT file and re-writes the header.
-    fstream file( filePath, ios::binary | ios::out );
+    std::fstream file( filePath, std::ios::binary | std::ios::out );
 
     if(! file.good() ){
         spdlog::error("Unable to write to {}", filePath.string() );
@@ -134,7 +132,7 @@ SMT::calcTileBytes() {
 
 void
 SMT::load( ) {
-    ifstream inFile(filePath, ifstream::in);
+    std::ifstream inFile(filePath, std::ifstream::in);
     if( inFile.good() ){
         spdlog::critical( "Failed to load: {}", filePath.string() );
         //FIXME the function can error but it does not notify the caller
@@ -171,11 +169,11 @@ SMT::load( ) {
 
 std::string
 SMT::info( ) const {
-    stringstream ss;
-    ss << "\tFilename: " << filePath << endl
-       << "\tVersion: " << header.version << endl
-       << "\tTiles: " << header.numTiles << endl
-        << "\tTileSize: " << header.tileSize << "x" << header.tileSize << endl
+    std::stringstream ss;
+    ss << "\tFilename: " << filePath << std::endl
+       << "\tVersion: " << header.version << std::endl
+       << "\tTiles: " << header.numTiles << std::endl
+        << "\tTileSize: " << header.tileSize << "x" << header.tileSize << std::endl
         << "\tCompression: ";
     if(header.compressionType == 1 ) ss << "dxt1";
     else if(header.compressionType == GL_RGBA8 ) ss << "UINT8";
@@ -208,7 +206,7 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
     squish::u8 *blocks = nullptr;
 
     // open our filestream and get ready to start writing dxt images to it
-    fstream file(filePath, ios::binary | ios::in | ios::out);
+    std::fstream file(filePath, std::ios::binary | std::ios::in | std::ios::out);
     file.seekp( sizeof(header) + _tileBytes * header.numTiles );
 
     // loop through the mipmaps
@@ -311,7 +309,7 @@ SMT::getTileDXT1( const uint32_t n ) {
 
     std::vector<char> raw_dxt1a(_tileBytes);
 
-    ifstream file( filePath );
+    std::ifstream file( filePath );
     if(! file.good() ){
         spdlog::critical( "Failed to open file:'{}' for reading", filePath.string() );
         return {};
@@ -326,7 +324,7 @@ SMT::getTileDXT1( const uint32_t n ) {
     squish::DecompressImage( (squish::u8 *)( rgba8888.data() ),
         (int)header.tileSize, (int)header.tileSize, raw_dxt1a.data(), squish::kDxt1 );
 
-    return { filePath.string() + "_" + to_string( n ), tileSpec, rgba8888.data() };
+    return { filePath.string() + "_" + std::to_string( n ), tileSpec, rgba8888.data() };
 }
 
 /* FIXME UNUSED
