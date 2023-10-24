@@ -10,21 +10,19 @@
 TEST( squish, DXT1CompressImage_raw_zero )
 {
     // fake image 256x256xRGBA8
-    uint32_t width = 16;
-    uint32_t height = 16;
+    int width = 16;
+    int height = 16;
     uint32_t channels = 4;
     uint8_t data[ width * height * channels];
 
     int blocks_size = squish::GetStorageRequirements(
                     width, height, squish::kDxt1 );
 
-    squish::u8 *blocks = new squish::u8[ blocks_size ];
+    auto *blocks = new squish::u8[ blocks_size ];
 
     //zero fake image data
-    for( uint32_t i = 0; i < width * height * 4; ++i )
-        data[i] = 0;
+    for( int i = 0; i < width * height * 4; ++i ) data[ i ] = 0;
     std::cout << "\n" << image_to_hex( data, width, height );
-
 
     squish::CompressImage( (squish::u8 *)data,
             width, height, blocks,

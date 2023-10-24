@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
-#include <OpenImageIO/imagebufalgo.h>
-#include <squish/squish.h>
 #include <fstream>
 
 #include "../src/util.h"
