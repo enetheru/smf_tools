@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <OpenImageIO/imagebuf.h>
+#include <filesystem>
 
 enum class TileSourceType {
     Image,SMT,SMF
@@ -18,12 +19,12 @@ class TileCache
         std::filesystem::path filePath;
     };
     // member data
-    uint32_t tileCount = 0;
+    uint32_t _numTiles = 0;
     std::vector<TileSource> sources;
 
 public:
     // data access
-    uint32_t getNumTiles() const { return tileCount; }
+    [[nodiscard]] uint32_t getNumTiles() const { return _numTiles; }
 
     // modifications
     void addSource( const std::filesystem::path& filePath );

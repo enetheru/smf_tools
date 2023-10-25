@@ -14,8 +14,8 @@
 std::optional<OIIO::ImageBuf>
 TileCache::getTile( const uint32_t index ){
     // returning an initialized imagebuf is not a good idea
-    if( index >= tileCount ){
-        spdlog::critical( "getTile({}) request out of range 0-{}", index, tileCount );
+    if(index >= _numTiles ){
+        spdlog::critical("getTile({}) request out of range 0-{}", index, _numTiles );
         return {};
     }
 
@@ -55,13 +55,15 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
     auto image = OIIO::ImageInput::open( filePath );
     if( image ){
         image->close();
-        sources.emplace_back(tileCount, (++tileCount), TileSourceType::Image, filePath.filename() );
+        auto start = _numTiles; _numTiles++;
+        sources.emplace_back(start, _numTiles, TileSourceType::Image, filePath.filename() );
         return;
     }
 
     std::unique_ptr<SMT> smt( SMT::open( filePath ) );
     if( smt ){
-        sources.emplace_back(tileCount, (tileCount += smt->getNumTiles()), TileSourceType::SMT, filePath.filename() );
+        auto start = _numTiles; _numTiles += smt->getNumTiles();
+        sources.emplace_back(start, _numTiles, TileSourceType::SMT, filePath.filename() );
         return;
     }
 
@@ -70,7 +72,8 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
         // get the fileNames here
         auto smtList = smf->getSMTList();
         for( const auto& [numTiles,fileName] : smtList ){
-            sources.emplace_back(tileCount, (tileCount += numTiles), TileSourceType::SMF, fileName );
+            auto start = _numTiles; _numTiles += numTiles;
+            sources.emplace_back(start, _numTiles, TileSourceType::SMF, fileName );
         }
         return;
     }
