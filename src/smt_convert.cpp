@@ -473,5 +473,3 @@ main( int argc, char **argv )
     OIIO::shutdown();
     return 0;
 }
-
-#pragma clang diagnostic pop

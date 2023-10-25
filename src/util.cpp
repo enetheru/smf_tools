@@ -13,8 +13,7 @@
 #include "util.h"
 
 std::pair< uint32_t, uint32_t >
-valxval( const std::string& input )
-{
+valxval( const std::string& input ) {
     std::pair< uint32_t, uint32_t> result;
 
     auto d = input.find_first_of( 'x', 0 );
@@ -28,11 +27,11 @@ valxval( const std::string& input )
 }
 
 std::vector< uint32_t >
-expandString( const char *s )
-{
+expandString( const std::string &source ) {
     std::vector< uint32_t > result;
     int start = 0;
     bool sequence = false, fail = false;
+    const char *s = source.data();
     const char *begin;
 
     do {

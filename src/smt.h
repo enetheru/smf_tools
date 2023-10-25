@@ -27,7 +27,7 @@ private:
     void appendDXT1( const OIIO::ImageBuf & );
     //FIXME UNUSED void appendRGBA8(  const OIIO::ImageBuf & );
     //FIXME UNUSED void appendUSHORT( const OIIO::ImageBuf & );
-	OIIO::ImageBuf getTileDXT1( uint32_t );
+	OIIO::ImageBuf getTileDXT1( int index );
     //FIXME UNUSED OIIO::ImageBuf *getTileRGBA8( uint32_t );
     //FIXME UNUSED OIIO::ImageBuf *getTileUSHORT( uint32_t );
 

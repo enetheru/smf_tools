@@ -32,46 +32,31 @@ TEST( utils, to_hex ){
 
 // fix_channels
 // ============
-TEST( utils, fix_channels ){
-
-    // Create input buffer with one channel.
+TEST( utils, channels ){
     OIIO::ImageSpec inputSpec( 32, 32, 1, OIIO::TypeDesc::UINT8 );
-    std::unique_ptr< OIIO::ImageBuf > inputBuf( new OIIO::ImageBuf( inputSpec ) );
-
-    //create output buffer
+    OIIO::ImageBuf inputBuf(inputSpec );
     OIIO::ImageSpec outputSpec( 32, 32, 4, OIIO::TypeDesc::UINT8 );
 
-    // run function
-    auto outputBuf = fix_channels( std::move( inputBuf ), outputSpec );
+    inputBuf = channels( inputBuf , outputSpec );
 
-    // Test resutls
-    // FIXME, I am unhappy with the thoroughness of the test, the setup...
-    ASSERT_EQ( outputBuf->spec().nchannels, 4 );
-    OIIO::shutdown();
+    ASSERT_EQ( inputBuf.spec().nchannels, 4 );
 }
 
-// fix_scale
-TEST( utils, fix_scale ){
-
-    // Create input buffer with one channel.
+TEST( utils, scale ){
     OIIO::ImageSpec inputSpec( 32, 32, 1, OIIO::TypeDesc::UINT8 );
-    std::unique_ptr< OIIO::ImageBuf > inputBuf( new OIIO::ImageBuf( inputSpec ) );
+    OIIO::ImageBuf inputBuf( inputSpec );
 
-    //create output buffer
     OIIO::ImageSpec outputSpec( 123, 456, 4, OIIO::TypeDesc::UINT8 );
 
-    // run function
-    auto outputBuf = fix_scale( std::move( inputBuf ), outputSpec );
+    inputBuf = scale( inputBuf , outputSpec );
 
-    // Test resutls
-    // FIXME, I am unhappy with the thoroughness of the test, the setup...
-    ASSERT_EQ( outputBuf->spec().width, 123 );
-    ASSERT_EQ( outputBuf->spec().height, 456 );
-
-    OIIO::shutdown();
+    ASSERT_EQ( inputBuf.spec().width, 123 );
+    ASSERT_EQ( inputBuf.spec().height, 456 );
 }
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  auto test_results = RUN_ALL_TESTS();
+  OIIO::shutdown();
+  return test_results;
 }

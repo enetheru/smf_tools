@@ -5,7 +5,6 @@
 
 #include <utility>
 
-#include "smf_tools.h"
 #include "tiledimage.h"
 #include "util.h"
 
@@ -38,7 +37,7 @@ TiledImage::setTileMap( const TileMap& inTileMap )
 void
 TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
-    if( inWidth >= _tSpec.width || inHeight >= _tSpec.height ){
+    if( (int)inWidth >= _tSpec.width || (int)inHeight >= _tSpec.height ){
         spdlog::critical( "in:{}x{} must be >= tile: {}x{}",
                           inWidth, inHeight, _tSpec.width, _tSpec.height );
         return;

@@ -1,6 +1,3 @@
-//
-// Created by nicho on 24/10/2023.
-//
 #include <gtest/gtest.h>
 #include "tilemap.h"
 

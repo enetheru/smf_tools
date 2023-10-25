@@ -2,7 +2,11 @@ cmake_minimum_required( VERSION 3.24.0 )
 
 project(mapconv)
 
-option( CMAKE_VERBOSE_MAKEFILE "")
+option( CMAKE_VERBOSE_MAKEFILE "Enable Verbose Makefile generation" ON)
+option( BUILD_DOCS "Whether or not to build the documentation" OFF )
+option( BUILD_TESTS "Test" OFF )
+option( BUILD_PACKAGES "Build Packages" OFF )
+option( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
 # Configuration
 # =============
@@ -11,12 +15,6 @@ if( NOT CMAKE_BUILD_TYPE )
         "The type of build, options are None, Debug, Release, RelWithDebInfo, MinSizeRel" FORCE )
 endif()
 message( "Build Type: " ${CMAKE_BUILD_TYPE} )
-
-option( BUILD_DOCS "Whether or not to build the documentation" OFF )
-option( BUILD_TESTS "Test" OFF )
-option( BUILD_PACKAGES "Build Packages" OFF )
-
-option( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
 # Compiler
 # --------

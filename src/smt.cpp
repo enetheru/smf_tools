@@ -1,5 +1,4 @@
 #include <fstream>
-#include <utility>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
@@ -154,7 +153,7 @@ SMT::load( ) {
     remainderBytes = actualBytes % _tileBytes;
 
 
-    if(header.numTiles != guessTiles || actualBytes != guessBytes ) {
+    if( header.numTiles != guessTiles || actualBytes != guessBytes ) {
         spdlog::warn(
                 R"(Possible Data Issue
     ({}).header.nTiles:\033[40G{}
@@ -301,9 +300,9 @@ SMT::getTile( uint32_t n ) {
 }
 
 OIIO::ImageBuf
-SMT::getTileDXT1( const uint32_t n ) {
-    if(n >= header.numTiles) {
-        spdlog::critical("tile index:{} is out of range 0-{}", n, header.numTiles );
+SMT::getTileDXT1( const int index ) {
+    if( index >= header.numTiles) {
+        spdlog::critical("tile index:{} is out of range 0-{}", index, header.numTiles );
         return {};
     }
 
@@ -315,7 +314,7 @@ SMT::getTileDXT1( const uint32_t n ) {
         return {};
     }
 
-    file.seekg( sizeof(header) + _tileBytes * n );
+    file.seekg( (int)sizeof(header) + _tileBytes * index );
     file.read( raw_dxt1a.data(), _tileBytes );
     file.close();
 
@@ -324,7 +323,7 @@ SMT::getTileDXT1( const uint32_t n ) {
     squish::DecompressImage( (squish::u8 *)( rgba8888.data() ),
         (int)header.tileSize, (int)header.tileSize, raw_dxt1a.data(), squish::kDxt1 );
 
-    return { filePath.string() + "_" + std::to_string( n ), tileSpec, rgba8888.data() };
+    return { std::format("{}_{}", filePath.string(), index ), tileSpec, rgba8888.data() };
 }
 
 /* FIXME UNUSED

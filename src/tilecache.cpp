@@ -1,11 +1,6 @@
 #include <OpenImageIO/imagebuf.h>
 #include <spdlog/spdlog.h>
 
-#include "smf_tools.h"
-#ifdef IMG_DEBUG
-#include <sstream>
-#endif
-
 #include "smt.h"
 #include "smf.h"
 #include "tilecache.h"

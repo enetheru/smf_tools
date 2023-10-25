@@ -20,7 +20,7 @@ std::pair< uint32_t, uint32_t > valxval( const std::string& s );
  *  inbetween are expanded.\n
  *  ie '1,2,3-7,2-5' = {1,2,3,4,5,6,7,2,3,4,5}
  */
-std::vector< uint32_t > expandString( const char *s );
+std::vector< uint32_t > expandString( const std::string &source );
 
 /// Convert integer to hex string.
 /*  Takes an integer and outputs its hex value as a string with leading '0x'
@@ -39,29 +39,16 @@ std::string to_hex(T i)
 /*  Returns a copy of the sourceBuf with the number of channels in
  *  the ImageSpec spec.
  *  If there is no Alpha then an opaque one is created.
- *  If sourceBuf is nullptr then a blank image is returned.
  */
-std::unique_ptr< OIIO::ImageBuf > fix_channels(
-    std::unique_ptr< OIIO::ImageBuf> &&,
-    const OIIO::ImageSpec & );
-
 OIIO::ImageBuf channels( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec& destSpec );
 
 /// Scales an ImageBuf according to a given ImageSpec
-/* in place scale */
-std::unique_ptr< OIIO::ImageBuf > fix_scale(
-    std::unique_ptr< OIIO::ImageBuf> &&,
-    const OIIO::ImageSpec & );
-
 OIIO::ImageBuf scale( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec &destSpec );
 
 /// output a progress indicator
 void progressBar( const std::string& message, float goal, float progress );
 
 /// simple map class for checking overlapping regions of memory
-/*
- *
- */
 //FIXME rename this and move to own source file
 class FileMap{
     struct Block{
