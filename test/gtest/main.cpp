@@ -5,6 +5,7 @@
 
 #include "../src/util.h"
 
+
 TEST( utils, valxval ){
     auto [first, second] = valxval( "123x456" );
     ASSERT_EQ( first, 123u );
@@ -55,8 +56,10 @@ TEST( utils, scale ){
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  auto test_results = RUN_ALL_TESTS();
-  OIIO::shutdown();
-  return test_results;
+    spdlog::set_pattern("[%l] %s:%#:%! %v");
+    spdlog::set_level(spdlog::level::trace );
+    ::testing::InitGoogleTest(&argc, argv);
+    auto test_results = RUN_ALL_TESTS();
+    OIIO::shutdown();
+    return test_results;
 }

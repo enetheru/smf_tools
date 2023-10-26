@@ -18,7 +18,7 @@ using OIIO::TypeDesc;
 #include "smt.h"
 #include "smf.h"
 #include "util.h"
-#include "tilecache.h"
+#include "t_tilecache.h"
 #include "tiledimage.h"
 
 enum optionsIndex
@@ -115,8 +115,7 @@ static void shutdown( int code ){
 int
 main( int argc, char **argv )
 {
-    spdlog::set_pattern("[%l] %s:%#:%v");
-    // == Variables ==
+    spdlog::set_pattern("[%l] %s:%#:%! %v");    // == Variables ==
     bool overwrite = false;
     // temporary
     SMF *tempSMF = nullptr;

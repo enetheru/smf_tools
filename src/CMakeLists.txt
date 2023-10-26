@@ -1,8 +1,8 @@
 add_library( smf_tools
     smf.cpp         smf.h
     smt.cpp         smt.h
-    tilemap.cpp     tilemap.h
-    tilecache.cpp   tilecache.h
+    tilemap.cpp t_tilemap.h
+    tilecache.cpp t_tilecache.h
     tiledimage.cpp  tiledimage.h
     util.cpp        util.h
 )
@@ -22,9 +22,11 @@ target_link_libraries( smf_tools
             libsquish::Squish
             ZLIB::ZLIB
             libjpeg-turbo::turbojpeg-static
+
         PUBLIC
             OpenImageIO::OpenImageIO
             TIFF::tiff
+            png_static
             libjpeg-turbo::jpeg-static
             bcrypt
             spdlog::spdlog

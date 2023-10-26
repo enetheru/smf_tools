@@ -95,7 +95,7 @@ static void shutdown( int code ){
 int
 main( int argc, char **argv )
 {
-    // == temporary/global variables
+    spdlog::set_pattern("[%l] %s:%#:%! %v");    // == temporary/global variables
     SMF *smf = nullptr;
     SMT *smt = nullptr;
     bool force = false;
@@ -116,7 +116,7 @@ main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        spdlog::error( "Unknown option: {}", string( opt->name, opt->namelen ) );
+        SPDLOG_ERROR( "Unknown option: {}", string( opt->name, opt->namelen ) );
         fail = true;
     }
 
@@ -149,13 +149,13 @@ main( int argc, char **argv )
     if( options[ MAPSIZE ] ){
         std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
         if( mapWidth % 2 || mapLength % 2 ){
-            spdlog::error( "map sizes must be multiples of two" );
+            SPDLOG_ERROR( "map sizes must be multiples of two" );
             fail = true;
         }
     }
     if( (! mapWidth || ! mapLength) && (! options[ TILEMAP ]) ){
         //FIXME dont error here, check first if a tilefile is specified.
-        spdlog::error("--mapsize not specified");
+        SPDLOG_ERROR("--mapsize not specified");
         fail = true;
     }
 
@@ -166,7 +166,7 @@ main( int argc, char **argv )
     // take the tilesize from the first smt added
     if( parse.nonOptionsCount() ){
         if(! SMT::test( parse.nonOption( 0 ) ) ){
-            spdlog::critical( "additional arguments are not smt files" );
+            SPDLOG_CRITICAL( "additional arguments are not smt files" );
         }
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->getTileSize();
@@ -178,7 +178,7 @@ main( int argc, char **argv )
         tileSize = atoi( options[ TILESIZE ].arg );
     }
     if( tileSize % 4 ){
-        spdlog::error("tile size must be a multiple of 4");
+        SPDLOG_ERROR("tile size must be a multiple of 4");
         fail = true;
     }
 
@@ -211,13 +211,13 @@ main( int argc, char **argv )
         int diffuseWidth = tileSize * tileMap->width();
         int diffuseHeight = tileSize * tileMap->height();
         if( diffuseWidth % 1024 || diffuseHeight % 1024){
-            spdlog::error( "(tileMap * tileSize) % 1024 != 0,"
+            SPDLOG_ERROR( "(tileMap * tileSize) % 1024 != 0,"
                 "supplied arguments do not construct a valid map" );
             fail = true;
         }
         mapWidth = diffuseWidth / 512;
         mapLength = diffuseHeight / 512;
-        spdlog::info(
+        SPDLOG_INFO(
 R"(Checking input dimensions
     tileMap:  {}x{}
     tileSize: {}x{}
@@ -238,7 +238,7 @@ R"(Checking input dimensions
 
     // == lets do it! ==
     if(! (smf = SMF::create( outFilePath, force )) ){
-        spdlog::critical( "Unable to create: {}", outFilePath.string() );
+        SPDLOG_CRITICAL( "Unable to create: {}", outFilePath.string() );
     }
 
     // == Information Collection ==
@@ -341,7 +341,7 @@ R"(Checking input dimensions
         smf->writeGrass( grassBuf );
     }
 
-    spdlog::info( smf->info() );
+    SPDLOG_INFO( smf->info() );
     smf->good();
 
     delete smf;

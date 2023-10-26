@@ -13,17 +13,17 @@
 void
 SMF::good() const
 {
-    if( _dirtyMask & SMF_HEADER          ) spdlog::info( "dirty header");
-    if( _dirtyMask & SMF_EXTRA_HEADER    ) spdlog::info( "dirty headerExtn");
-    if( _dirtyMask & SMF_HEIGHT          ) spdlog::info( "dirty height");
-    if( _dirtyMask & SMF_TYPE            ) spdlog::info( "dirty type");
-    if( _dirtyMask & SMF_MAP_HEADER      ) spdlog::info( "dirty map header");
-    if( _dirtyMask & SMF_MAP             ) spdlog::info( "dirty map");
-    if( _dirtyMask & SMF_MINI            ) spdlog::info( "dirty mini");
-    if( _dirtyMask & SMF_METAL           ) spdlog::info( "dirty metal");
-    if( _dirtyMask & SMF_FEATURES_HEADER ) spdlog::info( "dirty features header");
-    if( _dirtyMask & SMF_FEATURES        ) spdlog::info( "dirty features");
-    if( _dirtyMask & SMF_GRASS           ) spdlog::info( "dirty grass");
+    if( _dirtyMask & SMF_HEADER          ) SPDLOG_INFO( "dirty header");
+    if( _dirtyMask & SMF_EXTRA_HEADER    ) SPDLOG_INFO( "dirty headerExtn");
+    if( _dirtyMask & SMF_HEIGHT          ) SPDLOG_INFO( "dirty height");
+    if( _dirtyMask & SMF_TYPE            ) SPDLOG_INFO( "dirty type");
+    if( _dirtyMask & SMF_MAP_HEADER      ) SPDLOG_INFO( "dirty map header");
+    if( _dirtyMask & SMF_MAP             ) SPDLOG_INFO( "dirty map");
+    if( _dirtyMask & SMF_MINI            ) SPDLOG_INFO( "dirty mini");
+    if( _dirtyMask & SMF_METAL           ) SPDLOG_INFO( "dirty metal");
+    if( _dirtyMask & SMF_FEATURES_HEADER ) SPDLOG_INFO( "dirty features header");
+    if( _dirtyMask & SMF_FEATURES        ) SPDLOG_INFO( "dirty features");
+    if( _dirtyMask & SMF_GRASS           ) SPDLOG_INFO( "dirty grass");
 
 }
 
@@ -58,7 +58,7 @@ SMF::create( const std::filesystem::path& filePath, bool overwrite )
     // attempt to create a new file or overwrite existing
     file.open( filePath, std::ios::binary | std::ios::out );
     if(! file.good() ){
-        spdlog::error( "Unable to write to: {}", filePath.string() );
+        SPDLOG_ERROR( "Unable to write to: {}", filePath.string() );
         return nullptr;
     }
     file.close();
@@ -84,7 +84,7 @@ SMF::open( const std::filesystem::path& filePath ){
         return smf;
     }
 
-    spdlog::error( "Cannot open {}", filePath.string() );
+    SPDLOG_ERROR( "Cannot open {}", filePath.string() );
     return nullptr;
 }
 
@@ -95,7 +95,7 @@ SMF::read()
 
     SPDLOG_DEBUG( "Reading ", _filePath.string() );
     std::ifstream file( _filePath );
-    if(! file.good() )spdlog::error( "unable to read: {}", _filePath.string() );
+    if(! file.good() )SPDLOG_ERROR( "unable to read: {}", _filePath.string() );
 
     file.seekg( 0, std::ios::end );
     // add block after the end of the file to test against.
@@ -124,7 +124,7 @@ SMF::read()
 
         switch( headerStub->type ){
             case MEH_Vegetation: {
-                spdlog::info("Found grass header" );
+                SPDLOG_INFO("Found grass header" );
                 auto header = std::make_unique<SMF::HeaderExtn_Grass>();
                 // re-read the header into the appropriate container
                 file.seekg( offset );
@@ -135,7 +135,7 @@ SMF::read()
                 break;
             }
             default: {
-                spdlog::warn("Extra Header({}) has unknown type: {}", i, headerStub->type);
+                SPDLOG_WARN("Extra Header({}) has unknown type: {}", i, headerStub->type);
                 //move the read head to the end of the header
                 file.seekg(offset + headerStub->size );
                 map.addBlock(offset, headerStub->size, "MEH_UNKNOWN" );
@@ -346,7 +346,7 @@ SMF::updatePtrs()
     for( const auto &extraHeader : extraHeaders ){
         switch( extraHeader->type ){
             case MEH_None:{
-                spdlog::warn( "Extra Header Type is MEH_None" );
+                SPDLOG_WARN( "Extra Header Type is MEH_None" );
                 break;
             }
             case MEH_Vegetation:{
@@ -357,7 +357,7 @@ SMF::updatePtrs()
                 break;
             }
             default:{
-                spdlog::warn( "unknown header extn" );
+                SPDLOG_WARN( "unknown header extn" );
             }
         }
     }
@@ -438,7 +438,7 @@ SMF::addTileFile( const std::filesystem::path& filePath )
     _dirtyMask |= SMF_MAP;
 
     SMT *smt = SMT::open( filePath );
-    if( smt == nullptr ) spdlog::error( "Invalid smt file ", filePath.string() );
+    if( smt == nullptr ) SPDLOG_ERROR( "Invalid smt file ", filePath.string() );
 
     ++_headerTiles.nFiles;
     _headerTiles.nTiles += smt->getNumTiles();
@@ -493,7 +493,7 @@ SMF::addFeatures( const std::filesystem::path& filePath )
 {
     // test the file
     std::fstream file( filePath, std::ifstream::in );
-    if(! file.good() ) spdlog::error( "addFeatures: Cannot open {}", filePath.string() );
+    if(! file.good() ) SPDLOG_ERROR( "addFeatures: Cannot open {}", filePath.string() );
 
     int n = 0;
     std::string cell;
@@ -517,8 +517,8 @@ SMF::addFeatures( const std::filesystem::path& filePath )
                 stof( tokens[ 5 ] ) ); //s
         }
         catch (std::invalid_argument const& ex) {
-            spdlog::warn( "addFeatures: {}, skipping invalid line at {}", filePath.string(), n );
-            spdlog::error( "{}", ex.what() );
+            SPDLOG_WARN( "addFeatures: {}, skipping invalid line at {}", filePath.string(), n );
+            SPDLOG_ERROR( "{}", ex.what() );
             continue;
         }
 
@@ -542,7 +542,7 @@ R"(addFeatures"
 void
 SMF::addFeatureDefaults()
 {
-    spdlog::warn( "adding default features clears any existing features" );
+    SPDLOG_WARN( "adding default features clears any existing features" );
 
     clearFeatures();
 
@@ -575,7 +575,7 @@ SMF::writeHeader()
     _header.mapid = rand();
 
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
-    if( !file.good() )spdlog::error( "Unable to open {} for writing", _filePath.string() );
+    if( !file.good() )SPDLOG_ERROR( "Unable to open {} for writing", _filePath.string() );
 
     file.write( (char *)&_header, sizeof(_header) );
     file.close();
@@ -590,7 +590,7 @@ SMF::writeExtraHeaders()
 
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for writing", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for writing", _filePath.string() );
         return;
     }
 
@@ -609,7 +609,7 @@ SMF::writeImage( unsigned int ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf &
 {
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for writing", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for writing", _filePath.string() );
         return true;
     }
     file.seekp( ptr );
@@ -639,7 +639,7 @@ SMF::writeHeight( OIIO::ImageBuf &sourceBuf )
     _dirtyMask &= !SMF_HEIGHT;
 
     if( writeImage(_header.heightmapPtr, _heightSpec, sourceBuf ) ){
-        spdlog::warn( "Wrote blank heightmap" );
+        SPDLOG_WARN( "Wrote blank heightmap" );
     }
 }
 
@@ -650,7 +650,7 @@ SMF::writeType( OIIO::ImageBuf &sourceBuf )
     _dirtyMask &= !SMF_TYPE;
 
     if( writeImage(_header.typeMapPtr, _typeSpec, sourceBuf ) ){
-        spdlog::warn( "Wrote blank typemap" );
+        SPDLOG_WARN( "Wrote blank typemap" );
     }
 }
 
@@ -663,7 +663,7 @@ SMF::writeMini( OIIO::ImageBuf &sourceBuf )
 
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for writing", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for writing", _filePath.string() );
         return;
     }
     file.seekp( _header.minimapPtr );
@@ -672,7 +672,7 @@ SMF::writeMini( OIIO::ImageBuf &sourceBuf )
         char zero[ MINIMAP_SIZE ] = { 0 };
         file.write( zero, sizeof( zero ) );
         file.close();
-        spdlog::warn( "Wrote blank minimap" );
+        SPDLOG_WARN( "Wrote blank minimap" );
         return;
     }
 
@@ -744,7 +744,7 @@ SMF::writeMap( TileMap *tileMap )
     if( tileMap == nullptr ){
         OIIO::ImageBuf blank(_mapSpec );
         writeImage( _mapPtr, _mapSpec, blank );
-        spdlog::warn( "Wrote blank map" );
+        SPDLOG_WARN( "Wrote blank map" );
         return;
     }
 
@@ -763,7 +763,7 @@ SMF::writeMetal( OIIO::ImageBuf &sourceBuf )
     _dirtyMask &= !SMF_METAL;
 
     if( writeImage(_header.metalmapPtr, _metalSpec, sourceBuf ) )
-        spdlog::warn( "Wrote blank metalmap" );
+        SPDLOG_WARN( "Wrote blank metalmap" );
 }
 
 /// write the feature header information to the smf
@@ -776,7 +776,7 @@ SMF::writeFeatures()
 
     std::fstream file( _filePath, std::ios::binary | std::ios::in | std::ios::out );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for writing", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for writing", _filePath.string() );
         return;
     }
     file.seekp( _header.featurePtr );
@@ -801,7 +801,7 @@ SMF::writeGrass( OIIO::ImageBuf &sourceBuf ) {
         auto headerGrass = reinterpret_cast<HeaderExtn_Grass *>( header.get() );
         SPDLOG_DEBUG( "Writing Grass" );
         if( writeImage( headerGrass->ptr, _grassSpec, sourceBuf ) ){
-            spdlog::warn( "wrote blank grass map" );
+            SPDLOG_WARN( "wrote blank grass map" );
         }
         _dirtyMask &= !SMF_GRASS;
     }
@@ -813,7 +813,7 @@ SMF::getImage( unsigned int ptr, const OIIO::ImageSpec& spec)
 {
     std::ifstream file( _filePath );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for reading", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for reading", _filePath.string() );
         return nullptr;
     }
 
@@ -844,7 +844,7 @@ SMF::getMap( )
     auto *tileMap = new TileMap( _mapSpec.width, _mapSpec.height );
     std::fstream file( _filePath, std::ios::binary | std::ios::in );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for reading", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for reading", _filePath.string() );
         //FIXME returning nullptr is crap
         return nullptr;
     }
@@ -864,7 +864,7 @@ OIIO::ImageBuf *SMF::getMini(){
 
     std::ifstream file( _filePath );
     if(! file.good() ){
-        spdlog::error( "Unable to open {} for reading", _filePath.string() );
+        SPDLOG_ERROR( "Unable to open {} for reading", _filePath.string() );
         //FIXME returning nullptr on return is crap. make return type a unique ptr and it will make more sense.
         return nullptr;
     }

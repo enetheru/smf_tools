@@ -65,6 +65,6 @@ public:
     void setType    ( int type ); // 1=DXT1
     //FIXME UNUSED void setFilePath( std::filesystem::path _filePath );
 
-	OIIO::ImageBuf getTile( uint32_t );
+	OIIO::ImageBuf getTile( int index );
     void append( const OIIO::ImageBuf & );
 };

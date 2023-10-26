@@ -22,12 +22,12 @@ TEST( squish, DXT1CompressImage_raw_zero )
 
     //zero fake image data
     for( int i = 0; i < width * height * 4; ++i ) data[ i ] = 0;
-    spdlog::trace( image_to_hex( data, width, height ) );
+    SPDLOG_TRACE( image_to_hex( data, width, height ) );
 
     squish::CompressImage( (squish::u8 *)data,
             width, height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-    spdlog::trace( image_to_hex( blocks, width, height, 1) );
+    SPDLOG_TRACE( image_to_hex( blocks, width, height, 1) );
 }
 
 TEST( squish, DXT1CompressImage_raw_random )
@@ -46,13 +46,13 @@ TEST( squish, DXT1CompressImage_raw_random )
     //randomise fake image data
     for( uint32_t i = 0; i < width * height * 4; ++i )
         data[i] = rand();
-    spdlog::trace( image_to_hex( data, width, height ) );
+    SPDLOG_TRACE( image_to_hex( data, width, height ) );
 
 
     squish::CompressImage( (squish::u8 *)data,
             width, height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-    spdlog::trace( image_to_hex( blocks, width, height, 1) );
+    SPDLOG_TRACE( image_to_hex( blocks, width, height, 1) );
 }
 
 TEST( squish, DXT1CompressImage_ImageBuf_zero )
@@ -72,7 +72,7 @@ TEST( squish, DXT1CompressImage_ImageBuf_zero )
     squish::CompressImage( (squish::u8 *)buf.localpixels(),
             spec.width, spec.height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-    spdlog::trace( image_to_hex( blocks, spec.width, spec.height, 1) );
+    SPDLOG_TRACE( image_to_hex( blocks, spec.width, spec.height, 1) );
 }
 
 TEST( squish, DXT1CompressImage_ImageBuf_gradient )
@@ -91,11 +91,11 @@ TEST( squish, DXT1CompressImage_ImageBuf_gradient )
     float B[4] = { 0, 0, 1, 1 };
     float A[4] = { 0, 0, 0, 1 };
     OIIO::ImageBufAlgo::fill( buf, R, B, G, A );
-    spdlog::trace( image_to_hex( (uint8_t *)buf.localpixels(), spec.width, spec.height ) );
+    SPDLOG_TRACE( image_to_hex( (uint8_t *)buf.localpixels(), spec.width, spec.height ) );
 
 
     squish::CompressImage( (squish::u8 *)buf.localpixels(),
             spec.width, spec.height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-    spdlog::trace( image_to_hex( blocks, spec.width, spec.height, 1) );
+    SPDLOG_TRACE( image_to_hex( blocks, spec.width, spec.height, 1) );
 }

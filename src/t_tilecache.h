@@ -11,6 +11,8 @@ enum class TileSourceType {
     Image,SMT,SMF
 };
 
+std::string to_string( TileSourceType type );
+
 class TileCache
 {
     struct TileSource{

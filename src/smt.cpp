@@ -49,12 +49,12 @@ SMT::open( const std::filesystem::path& filePath ) {
 
 void
 SMT::reset( ) {
-    spdlog::info("Resetting {}", filePath.string() );
+    SPDLOG_INFO("Resetting {}", filePath.string() );
     // Clears content of SMT file and re-writes the header.
     std::fstream file( filePath, std::ios::binary | std::ios::out );
 
     if(! file.good() ){
-        spdlog::error("Unable to write to {}", filePath.string() );
+        SPDLOG_ERROR("Unable to write to {}", filePath.string() );
         return;
     }
 
@@ -123,7 +123,7 @@ SMT::calcTileBytes() {
         }
     }*/
     else {
-        spdlog::critical("Invalid tiletype: {}", getTileType() );
+        SPDLOG_CRITICAL("Invalid tiletype: {}", getTileType() );
         //FIXME, the function can error but it does not notify the caller.
         return;
     }
@@ -133,7 +133,7 @@ void
 SMT::load( ) {
     std::ifstream inFile(filePath, std::ifstream::in);
     if( inFile.good() ){
-        spdlog::critical( "Failed to load: {}", filePath.string() );
+        SPDLOG_CRITICAL( "Failed to load: {}", filePath.string() );
         //FIXME the function can error but it does not notify the caller
         return;
     }
@@ -153,8 +153,8 @@ SMT::load( ) {
     remainderBytes = actualBytes % _tileBytes;
 
 
-    if( header.numTiles != guessTiles || actualBytes != guessBytes ) {
-        spdlog::warn(
+    if( header.numTiles != (int)guessTiles || actualBytes != guessBytes ) {
+        SPDLOG_WARN(
                 R"(Possible Data Issue
     ({}).header.nTiles:\033[40G{}
     File data bytes:\033[40G{}
@@ -213,14 +213,14 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
 #ifdef DEBUG_IMG
         std::stringstream ss;
         ss << "SMT.appendDXT1.mip" << i << ".tif";
-        spdlog::info( "writing mip to file: " << ss.str();
+        SPDLOG_INFO( "writing mip to file: " << ss.str();
         tempBuf->write( ss.str(), "tif" );
 #endif
         spec = tempBuf.specmod();
-        spdlog::info( "mip: {}, size: {}x{}x{}" , i, spec.width, spec.height, spec.nchannels );
+        SPDLOG_INFO( "mip: {}, size: {}x{}x{}" , i, spec.width, spec.height, spec.nchannels );
 
         blocks_size = squish::GetStorageRequirements( spec.width, spec.height, squish::kDxt1 );
-        spdlog::info( "dxt1 requires {} bytes", blocks_size );
+        SPDLOG_INFO( "dxt1 requires {} bytes", blocks_size );
 
         // allocate memory the first time, will be re-used in subsequent runs.
         if( blocks == nullptr ) blocks = new squish::u8[ blocks_size ];
@@ -230,18 +230,18 @@ SMT::appendDXT1( const OIIO::ImageBuf &sourceBuf ) {
         // kColourMetricPerceptual = default|default
         // kColourIterativeClusterFit = slow|high quality
         if( !tempBuf.localpixels() ){
-            spdlog::critical( "pixel data unavailable" );
+            SPDLOG_CRITICAL( "pixel data unavailable" );
             //FIXME the function can error but it does not notify the caller
             return;
         }
         squish::CompressImage( (squish::u8 *)tempBuf.localpixels(),
             spec.width, spec.height, blocks,
             squish::kDxt1 | squish::kColourRangeFit );
-        spdlog::info( "\n{}", image_to_hex( (const uint8_t *)tempBuf.localpixels(), spec.width, spec.height ) );
-        spdlog::info( "\n()", image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 ) );
+        SPDLOG_INFO( "\n{}", image_to_hex( (const uint8_t *)tempBuf.localpixels(), spec.width, spec.height ) );
+        SPDLOG_INFO( "\n()", image_to_hex( (const uint8_t *)blocks, spec.width, spec.height, 1 ) );
 
         // Write data to smf
-        spdlog::info( "writing {} to {}", blocks_size, filePath.string() );
+        SPDLOG_INFO( "writing {} to {}", blocks_size, filePath.string() );
         file.write( (char*)blocks, blocks_size );
 
         spec = OIIO::ImageSpec(spec.width >> 1, spec.height >> 1, spec.nchannels, spec.format );
@@ -292,17 +292,17 @@ void
 SMT::appendUSHORT( const OIIO::ImageBuf &sourceBuf ){ }*/
 
 OIIO::ImageBuf
-SMT::getTile( uint32_t n ) {
-    if( getTileType() == SMT_HCT_DXT1 ) return getTileDXT1( n );
-//    if( tileType == GL_RGBA8          ) return getTileRGBA8( n );
-//    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( n );
+SMT::getTile( int index ) {
+    if( getTileType() == SMT_HCT_DXT1 ) return getTileDXT1( index );
+//    if( tileType == GL_RGBA8          ) return getTileRGBA8( index );
+//    if( tileType == GL_UNSIGNED_SHORT ) return getTileUSHORT( index );
     return {};
 }
 
 OIIO::ImageBuf
 SMT::getTileDXT1( const int index ) {
     if( index >= header.numTiles) {
-        spdlog::critical("tile index:{} is out of range 0-{}", index, header.numTiles );
+        SPDLOG_CRITICAL("tile index:{} is out of range 0-{}", index, header.numTiles );
         return {};
     }
 
@@ -310,7 +310,7 @@ SMT::getTileDXT1( const int index ) {
 
     std::ifstream file( filePath );
     if(! file.good() ){
-        spdlog::critical( "Failed to open file:'{}' for reading", filePath.string() );
+        SPDLOG_CRITICAL( "Failed to open file:'{}' for reading", filePath.string() );
         return {};
     }
 

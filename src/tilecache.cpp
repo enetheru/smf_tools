@@ -1,16 +1,30 @@
 #include <OpenImageIO/imagebuf.h>
 #include <spdlog/spdlog.h>
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 #include "smt.h"
 #include "smf.h"
-#include "tilecache.h"
+#include "t_tilecache.h"
+
+std::string to_string( TileSourceType type ){
+    switch(type){
+        case TileSourceType::Image:
+            return "Image";
+        case TileSourceType::SMT:
+            return "SMT";
+        case TileSourceType::SMF:
+            return "SMF";
+        default:
+            return "Unknown";
+    }
+}
 
 //FIXME review this function for memory leaks
 std::optional<OIIO::ImageBuf>
 TileCache::getTile( const uint32_t index ){
-    // returning an initialized imagebuf is not a good idea
-    if(index >= _numTiles ){
-        spdlog::critical("getTile({}) request out of range 0-{}", index, _numTiles );
+    SPDLOG_INFO("Requesting tile: {} of {}", index+1, _numTiles );
+    if( index+1 > _numTiles ){
+        SPDLOG_CRITICAL("Request for tile {} is greater than _numTiles:{}", index+1, _numTiles );
         return {};
     }
 
@@ -22,8 +36,16 @@ TileCache::getTile( const uint32_t index ){
         outBuf = lastSmt->getTile( index - *i + lastSmt->nTiles);
     }*/
 
-    const auto &tileSource = *std::find_if(sources.begin(), sources.end(),
-        [index]( auto source ){ return index > source.iStart && index < source.iEnd; } );
+    auto iterator = std::find_if(sources.begin(), sources.end(),
+        [index]( auto source ){ return index >= source.iStart && index <= source.iEnd; } );
+
+    if( iterator == sources.end() ){
+        SPDLOG_ERROR("Unable to find TileSource for tile index '{}' in TileCache", index );
+        return {};
+    }
+    const auto &tileSource = *iterator;
+
+    SPDLOG_INFO("TileSource: {{filePath: {}, type: {}, iStart: {}, iEnd: {}}}", tileSource.filePath.string(), to_string(tileSource.type), tileSource.iStart, tileSource.iEnd );
 
     switch( tileSource.type ){
         case TileSourceType::SMT: {
@@ -31,13 +53,14 @@ TileCache::getTile( const uint32_t index ){
             return smt->getTile( index - tileSource.iStart + smt->getNumTiles() );
         }
         case TileSourceType::SMF: {
-
+            //TODO evaluate if loading tiles from an SMF is viable, or should be removed.
+            SPDLOG_CRITICAL("Loading tiles from an SMF is not currently implemented");
         } break;
         case TileSourceType::Image: {
             return OIIO::ImageBuf( tileSource.filePath.string() );
         }
         default:{
-            spdlog::error("failed to open source for tile: ", index);
+            SPDLOG_ERROR("TileSource has unknown type '{}' at index {}", to_string(tileSource.type), index);
             return {};
         }
     }
@@ -47,33 +70,37 @@ TileCache::getTile( const uint32_t index ){
 //TODO go over this function to see if it can be refactored
 void
 TileCache::addSource( const std::filesystem::path& filePath ) {
+    SPDLOG_INFO("Adding {} to TileCache", filePath.string() );
     auto image = OIIO::ImageInput::open( filePath );
     if( image ){
+        SPDLOG_INFO( "{} is an image file", filePath.string() );
         image->close();
         auto start = _numTiles; _numTiles++;
-        sources.emplace_back(start, _numTiles, TileSourceType::Image, filePath.filename() );
+        sources.emplace_back(start, _numTiles-1, TileSourceType::Image, filePath.string() );
         return;
     }
 
     std::unique_ptr<SMT> smt( SMT::open( filePath ) );
     if( smt ){
+        SPDLOG_INFO( "{} is an SMT file", filePath.string() );
         auto start = _numTiles; _numTiles += smt->getNumTiles();
-        sources.emplace_back(start, _numTiles, TileSourceType::SMT, filePath.filename() );
+        sources.emplace_back(start, _numTiles-1, TileSourceType::SMT, filePath.string() );
         return;
     }
 
     std::unique_ptr<SMF> smf( SMF::open( filePath ) );
     if( smf ){
+        SPDLOG_INFO( "{} is an SMF file", filePath.string() );
         // get the fileNames here
         auto smtList = smf->getSMTList();
         for( const auto& [numTiles,fileName] : smtList ){
             auto start = _numTiles; _numTiles += numTiles;
-            sources.emplace_back(start, _numTiles, TileSourceType::SMF, fileName );
+            sources.emplace_back(start, _numTiles-1, TileSourceType::SMF, fileName );
         }
         return;
     }
 
-    spdlog::error( "unrecognised format: ", filePath.string() );
+    SPDLOG_ERROR( "Unrecognised file format: ", filePath.string() );
 }
 
 

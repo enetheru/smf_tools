@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "tilemap.h"
+#include "t_tilemap.h"
 
 /* TODO
     // constructors

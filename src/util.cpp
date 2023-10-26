@@ -52,7 +52,7 @@ expandString( const std::string &source ) {
             }
             catch (std::invalid_argument const& ex) {
                 fail = true;
-                spdlog::error( ex.what() );
+                SPDLOG_ERROR( ex.what() );
             }
         } else {
             sequence = false;
@@ -61,14 +61,14 @@ expandString( const std::string &source ) {
             }
             catch (std::invalid_argument const& ex) {
                 fail = true;
-                spdlog::error( ex.what() );
+                SPDLOG_ERROR( ex.what() );
             }
         }
     }
     while( *s++ != '\0' );
 
     if( fail ){
-        spdlog::warn( "Possible Parse Error while splitting filter string" );
+        SPDLOG_WARN( "Possible Parse Error while splitting filter string" );
     }
     return result;
 }
@@ -81,7 +81,7 @@ fix_channels( std::unique_ptr< OIIO::ImageBuf> && inBuf, const OIIO::ImageSpec &
     static const float fill[] = { 0, 0, 0, 1.0 };
 
     if( !inBuf ){
-        spdlog::critical( "nullptr passed to fix_channels()" );
+        SPDLOG_CRITICAL( "nullptr passed to fix_channels()" );
         //FIXME I think I should be able to assume that nullptr is not passed in here.
         return nullptr;
     }
@@ -106,7 +106,7 @@ channels( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec &destSpec )
     float fill[] = { 0, 0, 0, 1.0 };
 
     if( !sourceBuf.initialized() ) {
-        spdlog::critical("sourceBuf is not initialised");
+        SPDLOG_CRITICAL("sourceBuf is not initialised");
         return {};
     }
 
@@ -129,7 +129,7 @@ fix_scale(
     using std::unique_ptr;
 
     if( !inBuf ) {
-        spdlog::critical("nullptr passed to fix_scale()" );
+        SPDLOG_CRITICAL("nullptr passed to fix_scale()" );
         //FIXME I think I should be able to assume that nullptr is not passed in here.
         return nullptr;
     }
@@ -165,7 +165,7 @@ scale( const OIIO::ImageBuf& sourceBuf, const OIIO::ImageSpec& destSpec ) {
 
     const OIIO::ImageSpec& srcSpec = sourceBuf.spec();
     if( !sourceBuf.initialized() ) {
-        spdlog::critical("srcbuf is not initialised" );
+        SPDLOG_CRITICAL("srcbuf is not initialised" );
         return {};
     }
 

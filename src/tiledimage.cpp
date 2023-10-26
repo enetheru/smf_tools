@@ -27,7 +27,7 @@ TiledImage::setTileMap( const TileMap& inTileMap )
 {
     const auto [ width, height ] = inTileMap.size();
     if( !(width && height) ){
-        spdlog::critical( "tilemap width or height is invalid: {}x{}", width, height );
+        SPDLOG_CRITICAL( "tilemap width or height is invalid: {}x{}", width, height );
         return;
     }
     tileMap = inTileMap;
@@ -38,7 +38,7 @@ void
 TiledImage::setSize( uint32_t inWidth, uint32_t inHeight )
 {
     if( (int)inWidth >= _tSpec.width || (int)inHeight >= _tSpec.height ){
-        spdlog::critical( "in:{}x{} must be >= tile: {}x{}",
+        SPDLOG_CRITICAL( "in:{}x{} must be >= tile: {}x{}",
                           inWidth, inHeight, _tSpec.width, _tSpec.height );
         return;
     }
@@ -56,7 +56,7 @@ void
 TiledImage::setTileSize( int inWidth, int inHeight )
 {
     if( inWidth > 0 || inHeight > 0 ){
-        spdlog::critical( "in:{}x{} must be > tile: 0x0",
+        SPDLOG_CRITICAL( "in:{}x{} must be > tile: 0x0",
                           inWidth, inHeight, _tSpec.width, _tSpec.height );
         return;
     }
@@ -79,7 +79,7 @@ TiledImage::mapFromCSV( std::filesystem::path filePath ) {
 void
 TiledImage::squareFromCache( ) {
     if( !tileCache.getNumTiles() ){
-        spdlog::critical("tileCache has no tiles");
+        SPDLOG_CRITICAL("tileCache has no tiles");
         return;
     }
     auto square = (uint32_t)sqrt(tileCache.getNumTiles());
@@ -102,7 +102,7 @@ TiledImage::getHeight() const {
 
 OIIO::ImageBuf
 TiledImage::getRegion( const OIIO::ROI &roi ) {
-    spdlog::info( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
+    SPDLOG_INFO( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
 
     OIIO::ImageSpec outSpec( roi.width(), roi.height(), 4, OIIO::TypeDesc::UINT8 );
 
@@ -115,7 +115,7 @@ TiledImage::getRegion( const OIIO::ROI &roi ) {
     static uint32_t index_p = INT_MAX;
     OIIO::ROI cw{0,0,0,0,0,1,0,4}; // copy window
     while( true ){
-         spdlog::info( "Point of interest ({}, {})", ix, iy );
+         SPDLOG_INFO( "Point of interest ({}, {})", ix, iy );
 
         //determine the tile under the point of interest
         uint32_t mx = ix / (_tSpec.width - _overlap);
@@ -132,15 +132,15 @@ TiledImage::getRegion( const OIIO::ROI &roi ) {
         if( roi.yend / (_tSpec.height - _overlap) > my ) cw.yend = _tSpec.height;
         else cw.yend = roi.yend - my * (_tSpec.height - _overlap);
 
-        spdlog::info( "copy window ({}, {})->({}}, {}})", cw.xbegin, cw.ybegin, cw.xend, cw.yend );
+        SPDLOG_INFO( "copy window ({}, {})->({}}, {}})", cw.xbegin, cw.ybegin, cw.xend, cw.yend );
 
         //determine the dimensions of the copy window
-        spdlog::info( "copy window size {}x{}", cw.width(), cw.height() );
+        SPDLOG_INFO( "copy window size {}x{}", cw.width(), cw.height() );
 
         //determine the top left of the paste window
         uint32_t dx = ix - roi.xbegin;
         uint32_t dy = iy - roi.ybegin;
-        spdlog::info( "Paste position: {}x{}", dx, dy );
+        SPDLOG_INFO( "Paste position: {}x{}", dx, dy );
 
         //Optimisation: exact copy of previous tile test
         uint32_t index = tileMap.getXY(mx, my);

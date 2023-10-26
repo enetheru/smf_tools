@@ -68,7 +68,7 @@ class FileMap{
             if( (temp.begin >= i.begin && temp.begin <= i.end)
              || (temp.end >= i.begin && temp.end <= i.end)
              || (temp.begin <= i.begin && temp.end >= i.end) ){
-                spdlog::error( "'{}' clashes with existing block '{}'", temp.name, i.name );
+                SPDLOG_ERROR( "'{}' clashes with existing block '{}'", temp.name, i.name );
             }
         }
         list.push_back( temp );

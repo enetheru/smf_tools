@@ -55,7 +55,7 @@ struct Arg: public option::Arg
         tempFile.close();
 
         if (msg) {
-            spdlog::error( "Option '{}' cannot find file: {}" , option.name, option.arg );
+            SPDLOG_ERROR( "Option '{}' cannot find file: {}" , option.name, option.arg );
         }
         return option::ARG_ILLEGAL;
 
@@ -65,7 +65,7 @@ struct Arg: public option::Arg
     {
         auto image = OIIO::ImageInput::open( option.arg );
         if(! image ){
-            spdlog::error( "Option '{}' cannot find file: {}", option.name, option.arg );
+            SPDLOG_ERROR( "Option '{}' cannot find file: {}", option.name, option.arg );
             return option::ARG_ILLEGAL;
         } else {
             image->close();

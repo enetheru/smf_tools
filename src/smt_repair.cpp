@@ -45,7 +45,7 @@ static void shutdown( int code ){
 int
 main( int argc, char **argv )
 {
-    // Option parsing
+    spdlog::set_pattern("[%l] %s:%#:%! %v");    // Option parsing
     // ==============
     bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);
@@ -69,41 +69,41 @@ main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        spdlog::warn( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        SPDLOG_WARN( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
         fail = true;
     }
 
     // non options
     if( parse.nonOptionsCount() == 0 ){
-        spdlog::error( "no file given" );
+        SPDLOG_ERROR( "no file given" );
         shutdown( 1 );
     }
     else if( parse.nonOptionsCount() > 1 ){
-        spdlog::error( "too many arguments" );
+        SPDLOG_ERROR( "too many arguments" );
         shutdown( 1 );
    }
 
     if( fail || parse.error() ){
-        spdlog::error( "Options parsing" );
+        SPDLOG_ERROR( "Options parsing" );
         shutdown( 1 );
     }
 
 // test file properties
     SMT *smt;
     if(! (smt = SMT::open( parse.nonOption( 0 ) )) ){
-        spdlog::error( "\nunable to open file" );
+        SPDLOG_ERROR( "\nunable to open file" );
         shutdown ( 1 );
     }
-    spdlog::info( smt->info() );
+    SPDLOG_INFO( smt->info() );
 
     std::fstream inFile( parse.nonOption( 0 ), std::ios::in );
     inFile.seekg( 0, std::ios::end );
     uint32_t inSize = inFile.tellg();
     inFile.close();
 
-    spdlog::info( "{} bytes", inSize );
+    SPDLOG_INFO( "{} bytes", inSize );
     uint32_t tiles = (inSize - 32) / smt->getTileBytes();
-    spdlog::info( "{} tiles", tiles);
+    SPDLOG_INFO( "{} tiles", tiles);
     inFile.open( parse.nonOption( 0 ), std::ios::out | std::ios::in );
     inFile.seekp(20);
     inFile.write( (char *)&tiles, 4 );

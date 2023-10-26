@@ -29,7 +29,7 @@ static void shutdown( int code ){
 
 int main( int argc, char **argv )
 {
-    // Option parsing
+    spdlog::set_pattern("[%l] %s:%#:%! %v");    // Option parsing
     // ==============
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
@@ -48,23 +48,23 @@ int main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        spdlog::warn( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        SPDLOG_WARN( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
     }
 
     // non options
     for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        spdlog::warn( "Unknown Option: {}", parse.nonOption( i ) );
+        SPDLOG_WARN( "Unknown Option: {}", parse.nonOption( i ) );
     }
 
     if( parse.error() ) shutdown( 1 );
 
     SMT *smt;
     if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
-        spdlog::critical( "cannot open smt file" );
+        SPDLOG_CRITICAL( "cannot open smt file" );
         shutdown(1);
     }
 
-    spdlog::info( smt->info() );
+    SPDLOG_INFO( smt->info() );
     OIIO::shutdown();
     return 0;
 }

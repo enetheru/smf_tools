@@ -5,7 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "tilemap.h"
+#include "t_tilemap.h"
 
 
 // CONSTRUCTORS
@@ -47,7 +47,7 @@ TileMap::fromCSV( const std::filesystem::path& filePath )
     std::vector< std::string > tokens;
     std::fstream file( filePath, std::ios::in );
     if(! file.good() ){
-        spdlog::error( "unable to open {}", filePath.string() );
+        SPDLOG_ERROR( "unable to open {}", filePath.string() );
         return;
     }
 
@@ -80,7 +80,7 @@ TileMap::fromCSV( const std::filesystem::path& filePath )
             }
             catch (std::invalid_argument const& ex) {
                 _map[x + _width * y] = 0;
-                spdlog::error( ex.what() );
+                SPDLOG_ERROR( ex.what() );
             }
             ++x;
         }
@@ -107,7 +107,7 @@ TileMap::toCSV( )
 void
 TileMap::setSize( uint32_t width, uint32_t height ) {
     if( width == 0 || height == 0 ){
-        spdlog::error( "WidthxHeight must be > 1" );
+        SPDLOG_ERROR( "WidthxHeight must be > 1" );
         return;
     }
 
@@ -129,7 +129,7 @@ TileMap::consecutive( ) {
 uint32_t
 TileMap::getXY( uint32_t x, uint32_t y ) const {
     if( x >= _width || y >= _height ){
-        spdlog::critical( "out of range error: x:{} > _width:{} || y:{} > height:{}", x, _width, y, _height);
+        SPDLOG_CRITICAL( "out of range error: x:{} > _width:{} || y:{} > height:{}", x, _width, y, _height);
         return UINT32_MAX;
     }
     return _map[ x + _width * y ];
@@ -138,7 +138,7 @@ TileMap::getXY( uint32_t x, uint32_t y ) const {
 void
 TileMap::setXY( uint32_t x, uint32_t y, uint32_t value ) {
     if( x > _width || y > _height ){
-        spdlog::critical( "out of range error: x:{} > _width:{} || y:{} > height:{}", x, _width, y, _height);
+        SPDLOG_CRITICAL( "out of range error: x:{} > _width:{} || y:{} > height:{}", x, _width, y, _height);
         return;
     }
     _map[ x + _width * y ] = value;
@@ -148,7 +148,7 @@ uint32_t
 TileMap::getI( uint32_t index ) const {
     static uint32_t error = UINT32_MAX;
     if( index >= _map.size() ){
-        spdlog::critical( "index({}) is out of range", index );
+        SPDLOG_CRITICAL( "index({}) is out of range", index );
         return error;
     }
     return _map[ index ];
@@ -157,7 +157,7 @@ TileMap::getI( uint32_t index ) const {
 void
 TileMap::setI( uint32_t index, uint32_t value ) {
     if( index >= _map.size() ){
-        spdlog::critical( "index({}) is out of range", index );
+        SPDLOG_CRITICAL( "index({}) is out of range", index );
         return;
     }
     _map[ index ] = value;

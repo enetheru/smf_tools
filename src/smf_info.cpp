@@ -29,7 +29,7 @@ static void shutdown( int code ){
 
 int main( int argc, char **argv )
 {
-    // Option parsing
+    spdlog::set_pattern("[%l] %s:%#:%! %v");    // Option parsing
     // ==============
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );
@@ -47,7 +47,7 @@ int main( int argc, char **argv )
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        spdlog::error( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        SPDLOG_ERROR( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
     }
 
     if( parse.error() ) shutdown( 1 );
@@ -58,11 +58,11 @@ int main( int argc, char **argv )
     for( int i = 0; i < parse.nonOptionsCount(); ++i ){
         smf = SMF::open( parse.nonOption( i ) );
         if(! smf ){
-            spdlog::error( "cannot open smf file" );
+            SPDLOG_ERROR( "cannot open smf file" );
             retVal = 1;
         }
         else {
-            spdlog::info( smf->info() );
+            SPDLOG_INFO( smf->info() );
             smf->good();
             delete smf;
         }

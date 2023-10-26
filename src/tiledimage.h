@@ -6,8 +6,8 @@
 #include <OpenImageIO/imagebuf.h>
 #include <filesystem>
 
-#include "tilemap.h"
-#include "tilecache.h"
+#include "t_tilemap.h"
+#include "t_tilecache.h"
 
 class TiledImage {
     // == data members ==
