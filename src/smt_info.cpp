@@ -29,7 +29,7 @@ static void shutdown( int code ){
 
 int main( int argc, char **argv )
 {
-    spdlog::set_pattern("[%l] %s:%#:%! %v");    // Option parsing
+    spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
     // ==============
     argc -= (argc > 0); argv += (argc > 0);
     option::Stats stats( usage, argc, argv );

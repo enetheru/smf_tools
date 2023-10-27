@@ -132,7 +132,7 @@ SMT::calcTileBytes() {
 void
 SMT::load( ) {
     std::ifstream inFile(filePath, std::ifstream::in);
-    if( inFile.good() ){
+    if( !inFile.good() ){
         SPDLOG_CRITICAL( "Failed to load: {}", filePath.string() );
         //FIXME the function can error but it does not notify the caller
         return;
@@ -302,7 +302,7 @@ SMT::getTile( int index ) {
 OIIO::ImageBuf
 SMT::getTileDXT1( const int index ) {
     if( index >= header.numTiles) {
-        SPDLOG_CRITICAL("tile index:{} is out of range 0-{}", index, header.numTiles );
+        SPDLOG_CRITICAL("tile index:{} is out of range 0-{}", index, header.numTiles-1 );
         return {};
     }
 

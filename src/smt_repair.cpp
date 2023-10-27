@@ -45,7 +45,7 @@ static void shutdown( int code ){
 int
 main( int argc, char **argv )
 {
-    spdlog::set_pattern("[%l] %s:%#:%! %v");    // Option parsing
+    spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
     // ==============
     bool fail = false;
     argc -= (argc > 0); argv += (argc > 0);

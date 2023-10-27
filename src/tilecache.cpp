@@ -50,7 +50,7 @@ TileCache::getTile( const uint32_t index ){
     switch( tileSource.type ){
         case TileSourceType::SMT: {
             auto smt = std::unique_ptr<SMT>( SMT::open(  tileSource.filePath ) );
-            return smt->getTile( index - tileSource.iStart + smt->getNumTiles() );
+            return smt->getTile( index - tileSource.iStart );
         }
         case TileSourceType::SMF: {
             //TODO evaluate if loading tiles from an SMF is viable, or should be removed.
@@ -90,17 +90,19 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
 
     std::unique_ptr<SMF> smf( SMF::open( filePath ) );
     if( smf ){
-        SPDLOG_INFO( "{} is an SMF file", filePath.string() );
+        SPDLOG_INFO( "{} is an SMF file Adding any references to SMT files", filePath.string() );
         // get the fileNames here
         auto smtList = smf->getSMTList();
         for( const auto& [numTiles,fileName] : smtList ){
-            auto start = _numTiles; _numTiles += numTiles;
-            sources.emplace_back(start, _numTiles-1, TileSourceType::SMF, fileName );
+            SPDLOG_INFO("Adding {} from {}", fileName, filePath.string() );
+            addSource( fileName );
+            //auto start = _numTiles; _numTiles += numTiles;
+            //sources.emplace_back(start, _numTiles-1, TileSourceType::SMT, filePath.parent_path() / fileName );
         }
         return;
     }
 
-    SPDLOG_ERROR( "Unrecognised file format: ", filePath.string() );
+    SPDLOG_ERROR( "Unable to open file: {}", filePath.string() );
 }
 
 

@@ -115,7 +115,7 @@ static void shutdown( int code ){
 int
 main( int argc, char **argv )
 {
-    spdlog::set_pattern("[%l] %s:%#:%! %v");    // == Variables ==
+    spdlog::set_pattern("[%l] %s:%#:%! | %v");    // == Variables ==
     bool overwrite = false;
     // temporary
     SMF *tempSMF = nullptr;
