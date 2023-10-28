@@ -6,7 +6,8 @@ add_executable( gtests main.cpp
         t_squish.cpp
         t_tilemap.cpp
         t_tilecache.cpp
-        t_filemap.cpp)
+        t_filemap.cpp
+        t_util.cpp)
 
 target_link_libraries( gtests
         PRIVATE

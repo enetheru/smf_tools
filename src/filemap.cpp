@@ -2,7 +2,7 @@
 
 bool FileMap::addBlock( uint32_t begin, uint32_t size, const std::string& name )
 {
-    SPDLOG_DEBUG( "Adding DataBlock:{{ name: {}, begin: {}, end: {} }}", name, begin, begin + size-1);
+    SPDLOG_DEBUG( "Adding DataBlock:{{ name: {}, begin: {}, size: {} }}", name, begin, size );
     DataBlock newBlock{begin, begin + size - 1, name };
     bool clash = false;
     for( const auto& block : dataBlocks ){
