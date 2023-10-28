@@ -333,21 +333,21 @@ main( int argc, char **argv )
 
     // == Build source TiledImage ==
     src_tiledImage.setTileMap( src_tileMap );
-    src_tiledImage.tileCache = src_tileCache;
-    src_tiledImage.setTSpec( sSpec );
-    src_tiledImage.setOverlap( overlap );
-    SPDLOG_INFO( R"(Source Tiled Image:
+    src_tiledImage.setTileCache( src_tileCache );
+    src_tiledImage.setTileSize( sSpec.width, sSpec.height, overlap );
+    auto src_imageSpec = src_tiledImage.getImageSpec();
+    SPDLOG_INFO(R"(Source Tiled Image:
     Full size: {}x{}
     Tile size: {}x{}
     TileMap size: {}x{})",
-                          src_tiledImage.getWidth(), src_tiledImage.getHeight(),
-                          src_tiledImage.getTileSpec().width, src_tiledImage.getTileSpec().height,
-                          src_tiledImage.tileMap.width(), src_tiledImage.tileMap.height() );
+                src_imageSpec.width, src_imageSpec.height,
+                sSpec.width, sSpec.height,
+                src_tileMap.width(), src_tileMap.height() );
 
     // == IMAGESIZE ==
     if(! options[ IMAGESIZE ] ){
-        out_img_width = src_tiledImage.getWidth();
-        out_img_height = src_tiledImage.getHeight();
+        out_img_width = src_imageSpec.width;
+        out_img_height = src_imageSpec.height;
     }
     SPDLOG_INFO( "ImageSize = {}x{}", out_img_width, out_img_height );
 
@@ -385,8 +385,9 @@ main( int argc, char **argv )
                           out_tileMap.width(), out_tileMap.height() );
 
     // work out the relative tile size
-    float xratio = (float)src_tiledImage.getWidth() / (float)out_img_width;
-    float yratio = (float)src_tiledImage.getHeight() / (float)out_img_height;
+    src_imageSpec = src_tiledImage.getImageSpec();
+    float xratio = (float)src_imageSpec.width / (float)out_img_width;
+    float yratio = (float)src_imageSpec.height / (float)out_img_height;
     SPDLOG_INFO( "Scale Ratio: {}x{}", xratio, yratio );
 
     rel_tile_width = out_tileSpec.width * xratio;

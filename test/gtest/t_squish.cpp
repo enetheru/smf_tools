@@ -7,8 +7,7 @@
 
 #include "../src/util.h"
 
-TEST( squish, DXT1CompressImage_raw_zero )
-{
+TEST( squish, DXT1CompressImage_raw_zero ) {
     // fake image 256x256xRGBA8
     int width = 16;
     int height = 16;
@@ -30,8 +29,7 @@ TEST( squish, DXT1CompressImage_raw_zero )
     SPDLOG_TRACE( image_to_hex( blocks, width, height, 1) );
 }
 
-TEST( squish, DXT1CompressImage_raw_random )
-{
+TEST( squish, DXT1CompressImage_raw_random ) {
     // fake image 256x256xRGBA8
     uint32_t width = 16;
     uint32_t height = 16;
@@ -75,8 +73,7 @@ TEST( squish, DXT1CompressImage_ImageBuf_zero )
     SPDLOG_TRACE( image_to_hex( blocks, spec.width, spec.height, 1) );
 }
 
-TEST( squish, DXT1CompressImage_ImageBuf_gradient )
-{
+TEST( squish, DXT1CompressImage_ImageBuf_gradient ) {
     // fake image 256x256xRGBA8
     OIIO::ImageSpec spec( 16, 16, 4, OIIO::TypeDesc::UINT8 );
     OIIO::ImageBuf buf( spec );

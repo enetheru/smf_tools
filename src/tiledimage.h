@@ -5,47 +5,44 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <filesystem>
+#include <utility>
 
 #include "tilemap.h"
 #include "tilecache.h"
 
+/*
+ * TiledImage is made from a set of tiles stored in the TileCache,
+ * and a TileMap which describes how to reconstruct them
+ */
+
 class TiledImage {
-    // == data members ==
-    OIIO::ImageBuf currentTile;
-    OIIO::ImageSpec _tSpec = OIIO::ImageSpec( 32, 32, 4, OIIO::TypeDesc::UINT8 );
-    uint32_t _overlap = 0; //!< used for when tiles share border pixels
+    TileCache _tileCache;
+    TileMap _tileMap;
+
+    OIIO::ImageSpec _imageSpec = OIIO::ImageSpec(0,0,4,OIIO::TypeDesc::UINT8 );
+    uint32_t _tileWidth{}, _tileHeight{}, _tileOverlap{};
 
 public:
-    TileMap tileMap;
-    TileCache tileCache;
-    [[nodiscard]] const OIIO::ImageSpec &getTileSpec() const { return _tSpec; }
+    //[[nodiscard]] const OIIO::ImageSpec &getTileSpec() const { return _tileSpec; }
+    [[nodiscard]] const OIIO::ImageSpec &getImageSpec() const { return _imageSpec; };
 
     // == constructors ==
     TiledImage( ) = default;
-    TiledImage( uint32_t inWidth, uint32_t inHeight,
-        int inTileWidth = 32, int inTileHeight = 32 );
+    TiledImage( TileCache tileCache, const TileMap& tileMap );
+    explicit TiledImage( const OIIO::ImageSpec& imageSpec, uint32_t tileWidth = 32, uint32_t tileHeight = 32, uint32_t tileOverlap = 0 );
 
-    // == Modifications ==
-    void setSize( uint32_t width, uint32_t height );
-    void setTileSize( int width, int height );
-    void setTSpec( OIIO::ImageSpec spec );
+    void setImageSpec( const OIIO::ImageSpec& imageSpec );
+    void setTileSize( uint32_t width, uint32_t height, uint32_t overlap = 0 );
     void setTileMap( const TileMap& tileMap );
-    void setOverlap( uint32_t overlap );
 
-    void mapFromCSV( std::filesystem::path filePath );
+    void setTileCache( const TileCache& tileCache ) { _tileCache = tileCache; }
 
     /// == Generation ==
     void squareFromCache();
-
-    // access methods
-    [[nodiscard]] uint32_t getWidth() const;
-    [[nodiscard]] uint32_t getHeight() const;
 
     OIIO::ImageBuf getRegion( const OIIO::ROI & );
 
     OIIO::ImageBuf getUVRegion(
             uint32_t xbegin, uint32_t xend,
             uint32_t ybegin, uint32_t yend );
-
-    OIIO::ImageBuf getTile( uint32_t idx );
 };

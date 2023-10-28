@@ -4,7 +4,7 @@
 TEST( fileemap, add_block ) {
     FileMap fileMap;
 
-    ASSERT_EQ( fileMap.addBlock( 0, 5, "first" ), false );
-    ASSERT_EQ( fileMap.addBlock( 6, 10, "second" ), false );
-    ASSERT_EQ( fileMap.addBlock( 3, 7, "third" ), true );
+    EXPECT_EQ( fileMap.addBlock( 0, 5, "first" ), false );
+    EXPECT_EQ( fileMap.addBlock( 6, 10, "second" ), false );
+    EXPECT_EQ( fileMap.addBlock( 3, 7, "third" ), true );
 }

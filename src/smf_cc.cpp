@@ -200,9 +200,10 @@ main( int argc, char **argv )
             smfTemp = SMF::open( options[ TILEMAP ].arg );
             tileMap = smfTemp->getMap();
             delete smfTemp;
-        }
+        } //FIXME this needs better testing, file extension or something.
         else {
-            tileMap = TileMap::createCSV( options[ TILEMAP ].arg );
+            tileMap = new TileMap();
+            tileMap->fromCSV( options[ TILEMAP ].arg );
         }
     }
 

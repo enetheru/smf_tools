@@ -24,8 +24,8 @@
 
 TEST( tilecache, default_constructor ) {
     TileCache tilecache;
-    ASSERT_EQ(tilecache.getNumTiles(), 0);
-    ASSERT_FALSE( tilecache.getTile(0).has_value() );
+    EXPECT_EQ( tilecache.getNumTiles(), 0);
+    EXPECT_FALSE( tilecache.getTile(0).has_value() );
 }
 
 TEST( tilecache, add_image ) {

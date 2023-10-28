@@ -19,7 +19,6 @@ public:
     TileMap &operator=( const TileMap &rhs);
 
     //csv
-    static TileMap *createCSV( const std::filesystem::path& filePath );
     void fromCSV( const std::filesystem::path& filePath );
     std::string toCSV();
 

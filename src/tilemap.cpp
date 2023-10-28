@@ -12,21 +12,8 @@
 // ============
 
 TileMap::TileMap( uint32_t width,  uint32_t height )
-    : _width( width ), _height( height )
-{
+    : _width( width ), _height( height ) {
     _map.resize( _width * _height , 0 );
-}
-
-TileMap *
-TileMap::createCSV( const std::filesystem::path& filePath )
-{
-    std::fstream file( filePath, std::ios::in );
-    if(! file.good() ) return nullptr;
-    file.close();
-
-    auto *tileMap = new TileMap;
-    tileMap->fromCSV( filePath );
-    return tileMap;
 }
 
 // Assignment operator
