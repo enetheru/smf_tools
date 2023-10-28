@@ -1,10 +1,11 @@
 add_library( smf_tools
     smf.cpp         smf.h
     smt.cpp         smt.h
-    tilemap.cpp t_tilemap.h
-    tilecache.cpp t_tilecache.h
+    tilemap.cpp     tilemap.h
+    tilecache.cpp   tilecache.h
     tiledimage.cpp  tiledimage.h
     util.cpp        util.h
+    filemap.cpp     filemap.h
 )
 
 target_include_directories( smf_tools

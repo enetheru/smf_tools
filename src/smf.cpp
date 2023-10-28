@@ -8,6 +8,7 @@
 
 #include "smf.h"
 #include "smt.h"
+#include "filemap.h"
 #include "util.h"
 
 void

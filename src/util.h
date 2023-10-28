@@ -48,34 +48,6 @@ OIIO::ImageBuf scale( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec &de
 /// output a progress indicator
 void progressBar( const std::string& message, float goal, float progress );
 
-/// simple map class for checking overlapping regions of memory
-//FIXME rename this and move to own source file
-class FileMap{
-    struct Block{
-        uint32_t begin;
-        uint32_t end;
-        std::string name;
-    };
-
-    std::vector< Block > list;
-
-    public:
-    void addBlock( uint32_t begin, uint32_t size, const std::string& name = "")
-    {
-        SPDLOG_DEBUG( "adding: {}({})({}-{})", name, begin, begin + size-1);
-        Block temp{ begin, begin + size-1, name };
-        for( const auto& i : list ){
-            if( (temp.begin >= i.begin && temp.begin <= i.end)
-             || (temp.end >= i.begin && temp.end <= i.end)
-             || (temp.begin <= i.begin && temp.end >= i.end) ){
-                SPDLOG_ERROR( "'{}' clashes with existing block '{}'", temp.name, i.name );
-            }
-        }
-        list.push_back( temp );
-    }
-
-};
-
 // Convert an image to ascii so we can get direct feedback from the app
 /* FIXME does this need to use some sort of enumerator for  the type? probably
  * in fact homogenising the image types used in the lib is probably a good idea.

@@ -9,7 +9,7 @@
 
 #include <OpenImageIO/imagebuf.h>
 
-#include "t_tilemap.h"
+#include "tilemap.h"
 #include "recoil/SMFFormat.h"
 
 /** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>

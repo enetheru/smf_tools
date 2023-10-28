@@ -18,7 +18,7 @@ using OIIO::TypeDesc;
 #include "smt.h"
 #include "smf.h"
 #include "util.h"
-#include "t_tilecache.h"
+#include "tilecache.h"
 #include "tiledimage.h"
 
 enum optionsIndex

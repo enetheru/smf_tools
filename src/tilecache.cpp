@@ -4,7 +4,7 @@
 
 #include "smt.h"
 #include "smf.h"
-#include "t_tilecache.h"
+#include "tilecache.h"
 
 std::string to_string( TileSourceType type ){
     switch(type){
