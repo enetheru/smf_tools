@@ -8,7 +8,9 @@ add_executable( gtests main.cpp
         t_tilecache.cpp
         t_filemap.cpp
         t_util.cpp
-        t_tiledimage.cpp)
+        t_tiledimage.cpp
+        t_smt.cpp
+        t_smf.cpp)
 
 target_link_libraries( gtests
         PRIVATE
