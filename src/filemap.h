@@ -6,19 +6,18 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
-
 /// simple map class for checking overlapping regions of memory
 class FileMap{
-    struct Block{
+    struct DataBlock{
         uint32_t begin;
         uint32_t end;
         std::string name;
     };
-
-    std::vector< Block > list;
+    std::vector< DataBlock > dataBlocks;
+    std::vector<std::pair<DataBlock, DataBlock>> overlappingBlocks;
 
 public:
-    void addBlock( uint32_t begin, uint32_t size, const std::string& name = "");
+    bool addBlock( uint32_t begin, uint32_t size, const std::string& name = "" );
 };
 
 #endif //MAPCONV_FILEMAP_H
