@@ -6,3 +6,6 @@ set_tests_properties( smf_cc_h PROPERTIES LABELS "smf_cc help" )
 
 add_test( NAME smf_cc_help COMMAND $<TARGET_FILE:smf_cc> -help )
 set_tests_properties( smf_cc_help PROPERTIES LABELS "smf_cc help" )
+
+# Shell script tests
+# COMMAND="smf_cc -vf --mapsize 8x8"

@@ -1,4 +1,4 @@
-set( TEST_DATA_DIR ${CMAKE_SOURCE_DIR}/test/data)
+set( TEST_DATA_DIR ${CMAKE_SOURCE_DIR}/test/data )
 
 # smf_info
 # ========

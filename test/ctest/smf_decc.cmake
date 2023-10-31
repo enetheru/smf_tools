@@ -9,3 +9,9 @@ set_tests_properties( smf_decc_help PROPERTIES LABELS "smf_decc help")
 
 add_test( NAME smf_decc_extract COMMAND $<TARGET_FILE:smf_decc> ${TEST_DATA_DIR}/data.smf )
 set_tests_properties( smf_decc_extract PROPERTIES LABELS "smf_decc")
+
+
+# Shell script tests
+# COMMAND="smf_decc -v ../data/data.smf"
+
+#

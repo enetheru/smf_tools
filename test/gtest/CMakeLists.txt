@@ -1,6 +1,7 @@
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 
 add_compile_definitions("-DSOURCE_ROOT=\"${CMAKE_SOURCE_DIR}\"")
+add_compile_definitions(GTEST_COLOR)
 
 add_executable( gtests main.cpp
         t_squish.cpp
