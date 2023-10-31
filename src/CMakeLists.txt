@@ -57,6 +57,10 @@ add_executable( smt_repair smt_repair.cpp )
 target_include_directories( smt_repair PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
 target_link_libraries( smt_repair smf_tools -static )
 
+add_executable( mapconv mapconv.cpp )
+target_include_directories( mapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
+target_link_libraries( mapconv smf_tools -static )
+
 INSTALL(PROGRAMS
     ${CMAKE_CURRENT_BINARY_DIR}/smf_cc
     ${CMAKE_CURRENT_BINARY_DIR}/smf_decc
@@ -65,4 +69,5 @@ INSTALL(PROGRAMS
     ${CMAKE_CURRENT_BINARY_DIR}/smt_info
     ${CMAKE_CURRENT_BINARY_DIR}/smt_repair
     ${CMAKE_CURRENT_SOURCE_DIR}/makemap.sh
+    ${CMAKE_CURRENT_SOURCE_DIR}/mapconv
            DESTINATION bin)
