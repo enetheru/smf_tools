@@ -6,6 +6,7 @@
 
 #include <OpenImageIO/imagebuf.h>
 #include <filesystem>
+#include <nlohmann/json.hpp>
 
 enum class TileSourceType {
     Image,SMT,SMF,None
@@ -19,9 +20,13 @@ class TileCache
         uint32_t iStart{},iEnd{};
         TileSourceType type = TileSourceType::None;
         std::filesystem::path filePath{};
-        [[nodiscard]] std::string info() const {
-            return std::format("{{ iStart: {}, iEnd: {}, type: {}, path: '{}' }}",
-                               iStart, iEnd, to_string(type), filePath.string() );
+        [[nodiscard]] nlohmann::json json() const {
+            nlohmann::json j;
+            j["start"] = iStart;
+            j["end"] = iEnd;
+            j["type"] = to_string(type);
+            j["path"] = filePath.string();
+            return j;
         }
     };
     // member data
@@ -46,5 +51,5 @@ public:
     /// get a tile from the cache
     std::optional<OIIO::ImageBuf> getTile( uint32_t index ) const ;
 
-    [[nodiscard]] std::string info() const ;
+    [[nodiscard]] nlohmann::json json() const ;
 };

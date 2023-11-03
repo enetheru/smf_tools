@@ -19,7 +19,7 @@ TEST( tiledimage, constructor_cache_map ){
 
     TileCache tileCache;
     tileCache.addSource( testPath / "data.smt" );
-    SPDLOG_INFO( "TileCache: {}", tileCache.info() );
+    SPDLOG_INFO( "TileCache: {}", tileCache.json().dump(4) );
 
     TileMap tileMap;
     tileMap.fromCSV( testPath / "tilemap.csv" );

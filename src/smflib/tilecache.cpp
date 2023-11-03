@@ -45,10 +45,10 @@ TileCache::getTile( const uint32_t index ) const {
             }
             return result;
     } );*/
-    SPDLOG_INFO( "this TileCache: ", info() );
+    SPDLOG_INFO( "this TileCache: ", json().dump() );
     TileSource tileSource{0,0, TileSourceType::None, "" };
     for( auto source : _sources ){
-        SPDLOG_INFO("TileSource: {}", source.info() );
+        SPDLOG_INFO("TileSource: {}", source.json().dump() );
         if( index >= source.iStart && index <= source.iEnd ){
             tileSource = source;
         }
@@ -119,18 +119,6 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
     SPDLOG_ERROR( "Unable to open file: {}", filePath.string() );
 }
 
-std::string TileCache::info() const {
-    std::string result;
-    result = std::format("{{ numTiles: {}, numSources: {}", _numTiles, _sources.size() );
-    std::format_to( std::back_inserter(result), "\n\tsources {{");
-    std::for_each(_sources.begin(), _sources.end(), [&result](const auto & source){
-        std::format_to( std::back_inserter(result), "\n\t\t{}", source.info() );
-    });
-    std::format_to( std::back_inserter(result), "\n\t}}\n}}" );
-    return result;
-}
-
-
 TileCache::TileCache( TileCache &&other ) noexcept
     : _numTiles( std::exchange(other._numTiles,0) ),
       _sources( std::move( other._sources ) )
@@ -152,4 +140,15 @@ TileCache &TileCache::operator=(TileCache &&other) noexcept {
     _numTiles = std::exchange( other._numTiles, 0 );
     _sources = std::exchange( other._sources, {} );
     return *this;
+}
+
+nlohmann::json TileCache::json() const {
+    nlohmann::json j;
+    j["numTiles"] = _numTiles;
+    j["numSources"] = _sources.size();
+    j["sources"] = nlohmann::json::array();
+    std::for_each(_sources.begin(), _sources.end(), [&j](const auto & source){
+        j["sources"] += source.json();
+    });
+    return j;
 }
