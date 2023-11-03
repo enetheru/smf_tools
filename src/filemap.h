@@ -17,7 +17,9 @@ class FileMap{
     std::vector<std::pair<DataBlock, DataBlock>> overlappingBlocks;
 
 public:
-    bool addBlock( uint32_t begin, uint32_t size, const std::string& name = "" );
+    bool addBlock( uint32_t begin, uint32_t size, const std::string& name = "" ); //TODO add[[nodiscard]] to this function
+    //TODO add bool hasOverlap()
+    //TODO add bool removeBlock(...)
 };
 
 #endif //MAPCONV_FILEMAP_H

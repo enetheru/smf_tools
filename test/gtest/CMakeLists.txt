@@ -21,3 +21,6 @@ target_link_libraries( gtests
                 GTest::gtest_main
                 libsquish::Squish
         )
+target_link_options( gtests
+        PUBLIC "LINKER:--allow-multiple-definition")
+

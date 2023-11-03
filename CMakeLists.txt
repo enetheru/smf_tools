@@ -4,7 +4,7 @@ project(mapconv)
 
 option( CMAKE_VERBOSE_MAKEFILE "Enable Verbose Makefile generation" ON)
 option( BUILD_DOCS "Whether or not to build the documentation" OFF )
-option( BUILD_TESTS "Test" OFF )
+option( BUILD_TESTS "Test" ON )
 option( BUILD_PACKAGES "Build Packages" OFF )
 option( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
 
@@ -26,16 +26,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Dependencies
 # ============
+find_package( ZLIB REQUIRED )
 find_package( CMath REQUIRED )
-find_package( OpenImageIO REQUIRED )
+find_package( OpenImageIO REQUIRED HINTS C:/src/OpenImageIO/cmake-build-debug/lib/cmake/OpenImageIO  )
 find_package( Boost REQUIRED COMPONENTS thread filesystem )
 find_package( OpenEXR REQUIRED )
+#find_package( TIFF REQUIRED HINTS C:/src/libTIFF/cmake-build-debug/lib/cmake/tiff/)
+#find_package( PNG REQUIRED HINTS C:/src/lpng1640/cmake-build-debug/lib/cmake/libpng )
+#find_package( fmt REQUIRED HINTS C:/src/fmt/cmake-build-debug/lib/cmake/fmt )
 find_package( libjpeg-turbo REQUIRED )
-find_package( ZLIB REQUIRED )
-find_package( TIFF REQUIRED HINTS C:/src/libTIFF/cmake-build-debug/lib/cmake/tiff/)
-find_package( PNG REQUIRED HINTS C:/src/lpng1640/cmake-build-debug/lib/cmake/libpng )
-find_package( fmt REQUIRED HINTS C:/src/fmt/cmake-build-debug/lib/cmake/fmt)
 find_package( spdlog REQUIRED HINTS C:/src/spdlog/cmake-build-debug/lib/cmake/spdlog )
+find_package( nlohmann_json 3.2.0 REQUIRED HINTS C:/src/json/cmake-build-debug)
 find_package( libsquish REQUIRED HINTS C:/src/libsquish/cmake-build-debug/lib/cmake/libsquish )
 
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)

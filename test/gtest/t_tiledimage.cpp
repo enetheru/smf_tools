@@ -1,6 +1,11 @@
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 
 #include "tiledimage.h"
+
+[[maybe_unused]] static const std::filesystem::path currentPath = std::filesystem::current_path();
+[[maybe_unused]] static const std::filesystem::path sourcePath( SOURCE_ROOT );
+[[maybe_unused]] static const std::filesystem::path testPath( sourcePath / "test/data" );
 
 TEST( tiledimage, default_constructor ) {
     TiledImage tiledImage;
@@ -11,14 +16,24 @@ TEST( tiledimage, default_constructor ) {
 }
 
 TEST( tiledimage, constructor_cache_map ){
+
     TileCache tileCache;
+    tileCache.addSource( testPath / "data.smt" );
+    SPDLOG_INFO( "TileCache: {}", tileCache.info() );
+
     TileMap tileMap;
-    TiledImage tilesImage( tileCache, tileMap );
+    tileMap.fromCSV( testPath / "tilemap.csv" );
+    SPDLOG_INFO( "TileMap: {}", tileMap.info() );
+
+    TiledImage tiledImage( tileCache, tileMap );
+    auto imageBuf = tiledImage.getUVRegion({0, 1, 0, 1} );
+    imageBuf.write("tiledimage-con_cache_map.jpg" );
 }
 
 TEST( tiledimage, constructor_size ) {
     TiledImage tiledImage( {1024, 1024, 4, OIIO::TypeDesc::UINT8},
                            32, 32, 0 );
+
 
 
 }

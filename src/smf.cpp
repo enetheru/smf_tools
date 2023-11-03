@@ -196,7 +196,6 @@ SMF::read()
     file.close();
 }
 
-//TODO format as json
 std::string
 SMF::info()
 {

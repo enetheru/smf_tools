@@ -42,7 +42,5 @@ public:
 
     OIIO::ImageBuf getRegion( const OIIO::ROI & );
 
-    OIIO::ImageBuf getUVRegion(
-            uint32_t xbegin, uint32_t xend,
-            uint32_t ybegin, uint32_t yend );
+    OIIO::ImageBuf getUVRegion( OIIO::ROI roi );
 };

@@ -21,9 +21,9 @@ std::string to_string( TileSourceType type ){
 
 //FIXME review this function for memory leaks
 std::optional<OIIO::ImageBuf>
-TileCache::getTile( const uint32_t index ){
+TileCache::getTile( const uint32_t index ) const {
     SPDLOG_INFO("Requesting tile: {} of {}", index+1, _numTiles );
-    if( index+1 > _numTiles ){
+    if( index >= _numTiles ){
         SPDLOG_CRITICAL("Request for tile {} is greater than _numTiles:{}", index+1, _numTiles );
         return {};
     }
@@ -36,14 +36,28 @@ TileCache::getTile( const uint32_t index ){
         outBuf = lastSmt->getTile( index - *i + lastSmt->nTiles);
     }*/
 
-    auto iterator = std::find_if(sources.begin(), sources.end(),
-        [index]( auto source ){ return index >= source.iStart && index <= source.iEnd; } );
+    /*auto iterator = std::find_if(sources.begin(), sources.end(),
+        [index]( auto source ){
+            bool result = index >= source.iStart;
+            result &= index <= source.iEnd;
+            if( result ){
+                SPDLOG_INFO( "index: {} = Tile Source: {{ iStart: {}, iEnd: {}, filename: {}", index, source.iStart, source.iEnd, source.filePath.string() );
+            }
+            return result;
+    } );*/
+    SPDLOG_INFO( "this TileCache: ", info() );
+    TileSource tileSource{0,0, TileSourceType::None, "" };
+    for( auto source : _sources ){
+        SPDLOG_INFO("TileSource: {}", source.info() );
+        if( index >= source.iStart && index <= source.iEnd ){
+            tileSource = source;
+        }
+    }
 
-    if( iterator == sources.end() ){
+    if( tileSource.type == TileSourceType::None ){
         SPDLOG_ERROR("Unable to find TileSource for tile index '{}' in TileCache", index );
         return {};
     }
-    const auto &tileSource = *iterator;
 
     SPDLOG_INFO("TileSource: {{filePath: {}, type: {}, iStart: {}, iEnd: {}}}", tileSource.filePath.string(), to_string(tileSource.type), tileSource.iStart, tileSource.iEnd );
 
@@ -76,15 +90,15 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
         SPDLOG_INFO( "{} is an image file", filePath.string() );
         image->close();
         auto start = _numTiles; _numTiles++;
-        sources.emplace_back(start, _numTiles-1, TileSourceType::Image, filePath.string() );
+        _sources.emplace_back(start, _numTiles - 1, TileSourceType::Image, filePath.string() );
         return;
     }
 
     std::unique_ptr<SMT> smt( SMT::open( filePath ) );
     if( smt ){
-        SPDLOG_INFO( "{} is an SMT file", filePath.string() );
+        SPDLOG_INFO( smt->info() );
         auto start = _numTiles; _numTiles += smt->getNumTiles();
-        sources.emplace_back(start, _numTiles-1, TileSourceType::SMT, filePath.string() );
+        _sources.emplace_back(start, _numTiles - 1, TileSourceType::SMT, filePath.string() );
         return;
     }
 
@@ -105,4 +119,37 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
     SPDLOG_ERROR( "Unable to open file: {}", filePath.string() );
 }
 
+std::string TileCache::info() const {
+    std::string result;
+    result = std::format("{{ numTiles: {}, numSources: {}", _numTiles, _sources.size() );
+    std::format_to( std::back_inserter(result), "\n\tsources {{");
+    std::for_each(_sources.begin(), _sources.end(), [&result](const auto & source){
+        std::format_to( std::back_inserter(result), "\n\t\t{}", source.info() );
+    });
+    std::format_to( std::back_inserter(result), "\n\t}}\n}}" );
+    return result;
+}
 
+
+TileCache::TileCache( TileCache &&other ) noexcept
+    : _numTiles( std::exchange(other._numTiles,0) ),
+      _sources( std::move( other._sources ) )
+    { }
+
+TileCache::TileCache( const TileCache &other )
+    : _numTiles( other._numTiles ) ,
+      _sources( other._sources ) {}
+
+TileCache &TileCache::operator=( const TileCache &other) {
+    if( this == &other ) return *this;
+    _numTiles = other._numTiles;
+    _sources = other._sources;
+    return *this;
+}
+
+TileCache &TileCache::operator=(TileCache &&other) noexcept {
+    if( this == &other )return *this;
+    _numTiles = std::exchange( other._numTiles, 0 );
+    _sources = std::exchange( other._sources, {} );
+    return *this;
+}

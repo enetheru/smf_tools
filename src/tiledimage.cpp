@@ -15,6 +15,18 @@ TiledImage::TiledImage(const OIIO::ImageSpec& imageSpec, uint32_t tileWidth, uin
     _tileMap.setSize( imageSpec.width / (tileWidth - tileOverlap), imageSpec.height / (tileHeight - tileOverlap) );
 }
 
+TiledImage::TiledImage( TileCache tileCache, const TileMap& tileMap ):
+        _tileCache( std::move( tileCache ) ), _tileMap( tileMap ) {
+    SPDLOG_INFO("Constructing TiledImage from TileCache and TileMap");
+    SPDLOG_INFO( "TileCache: {}", _tileCache.info() );
+    SPDLOG_INFO( "TileMap: {}", _tileMap.info() );
+    // How to get the tile size, and the imageSpec from these?
+    auto imageBuf = _tileCache.getTile(1);
+    _imageSpec = imageBuf->spec();
+    _tileWidth = _imageSpec.width;
+    _tileHeight = _imageSpec.height;
+}
+
 //FIXME function can error but does not notify the caller.
 void
 TiledImage::squareFromCache( ) {
@@ -31,7 +43,7 @@ TiledImage::squareFromCache( ) {
 // ======
 OIIO::ImageBuf
 TiledImage::getRegion( const OIIO::ROI &roi ) {
-    SPDLOG_INFO( "source window ({}, {})->({}}, {}})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
+    SPDLOG_INFO( "source window ({}, {})->({}, {})", roi.xbegin, roi.ybegin, roi.xend, roi.yend );
 
     OIIO::ImageSpec outSpec( _imageSpec );
     outSpec.width = roi.width();
@@ -68,7 +80,7 @@ TiledImage::getRegion( const OIIO::ROI &roi ) {
         if( roi.yend / (_tileHeight - _tileOverlap) > my ) copyRegion.yend = _tileHeight;
         else copyRegion.yend = roi.yend - my * (_tileHeight - _tileOverlap);
 
-        SPDLOG_INFO("copy window ({}, {})->({}}, {}})", copyRegion.xbegin, copyRegion.ybegin, copyRegion.xend, copyRegion.yend );
+        SPDLOG_INFO("copy window ({}, {})->({}, {})", copyRegion.xbegin, copyRegion.ybegin, copyRegion.xend, copyRegion.yend );
 
         //determine the dimensions of the copy window
         SPDLOG_INFO("copy window size {}x{}", copyRegion.width(), copyRegion.height() );
@@ -120,10 +132,13 @@ TiledImage::getRegion( const OIIO::ROI &roi ) {
 }
 
 OIIO::ImageBuf
-TiledImage::getUVRegion(
-        const uint32_t xbegin, const uint32_t xend,
-        const uint32_t ybegin, const uint32_t yend ) {
-    OIIO::ROI roi(xbegin, xend, ybegin, yend );
+TiledImage::getUVRegion( OIIO::ROI roi ) {
+    int width = _tileMap.width() * _tileWidth;
+    int height = _tileMap.height() * _tileHeight;
+    roi.xbegin *= width;
+    roi.xend *= width;
+    roi.ybegin *= height;
+    roi.yend *= height;
     return getRegion( roi );
 }
 
@@ -143,7 +158,4 @@ TiledImage::setTileSize( uint32_t width, uint32_t height, uint32_t overlap ) {
     _tileOverlap = overlap;
 }
 
-TiledImage::TiledImage( TileCache tileCache, const TileMap& tileMap ):
-    _tileCache( std::move( tileCache ) ), _tileMap( tileMap ) {
-    // How to get the tile size, and the imageSpec from these?
-}
+

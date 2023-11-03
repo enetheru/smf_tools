@@ -1,5 +1,18 @@
+
+# == Help Tests ==
 add_test( NAME smt_convert COMMAND $<TARGET_FILE:smt_convert> )
 set_tests_properties( smt_convert PROPERTIES LABELS "smt_convert" WILL_FAIL TRUE )
+
+add_test( NAME smt_convert_h COMMAND $<TARGET_FILE:smt_convert> -h )
+set_tests_properties( smt_convert_h PROPERTIES LABELS "smt_convert help" )
+
+add_test( NAME smt_convert_help COMMAND $<TARGET_FILE:smt_convert> --help )
+set_tests_properties( smt_convert_help PROPERTIES LABELS "smt_convert help" )
+
+add_test( NAME smt_convert_version COMMAND $<TARGET_FILE:smt_convert> --version )
+set_tests_properties( smt_convert_version PROPERTIES LABELS "smt_convert version" )
+
+# == Other Tests ==
 
 file(GLOB IMG_FILES ${TEST_DATA_DIR}/tiles/*.BMP)
 add_test( NAME smt_convert_tiles COMMAND $<TARGET_FILE:smt_convert> -v --smt ${IMG_FILES} )

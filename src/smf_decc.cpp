@@ -25,6 +25,7 @@ const option::Descriptor usage[] = {
         "  -v,  \t--verbose  \tMOAR output." },
     { QUIET, 0, "q", "quiet", Arg::None,
         "  -q,  \t--quiet  \tSupress Output." },
+//TODO add output prefix as an option, rather than solely relying on the input filename
     { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 

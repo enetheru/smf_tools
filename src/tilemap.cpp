@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <spdlog/spdlog.h>
+#include "nlohmann/json.hpp"
 
 #include "tilemap.h"
 
@@ -148,6 +149,15 @@ TileMap::setI( uint32_t index, uint32_t value ) {
         return;
     }
     _map[ index ] = value;
+}
+
+std::string TileMap::info() const {
+    nlohmann::json j;
+    j["width"] = width();
+    j["height"] = height();
+    j["numTiles"] = _map.size();
+    return j.dump(4);
+    //return std::format("{{ Width:{}, Height:{}, numTiles: {} }}", width(), height(), _map.size() );
 }
 
 

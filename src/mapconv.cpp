@@ -1,12 +1,11 @@
 /*
  * re-implementation of pymapconv using smf_tools.
  * the existing implementation that generates a qt gui appears to use a generic tool to create an interface from cli arguments.
- *
- *
  */
 
 #include <spdlog/spdlog.h>
 #include "option_args.h"
+#include <fmt/core.h>
 
 // TLMCPPOP
 enum optionsIndex
@@ -15,6 +14,7 @@ enum optionsIndex
     VERBOSE,
     QUIET,
     HELP,
+    VERSION,
     MAP_NAME,
     TEXTURE,
     HEIGHT_MAP,
@@ -47,115 +47,113 @@ enum optionsIndex
 };
 
 const option::Descriptor usage[] = {
-        {UNKNOWN,  0,    "",          "",        Arg::None,
-                R"(USAGE: mapconv [-h] [-o OUTFILE] [-t INTEX] [-a HEIGHTMAP] [-m METALMAP] [--normalizemetal NORMALIZEMETAL] [-x MAXHEIGHT] [-n MINHEIGHT] [-g GEOVENTFILE] [-k FEATUREPLACEMENT] [-j FEATURELIST]
-        [-f FEATUREMAP] [-r GRASSMAP] [-y TYPEMAP] [-p MINIMAP] [-l MAPNORMALS] [-z SPECULAR] [-w SPLATDISTRIBUTION] [-q NUMTHREADS] [-u] [-v NVDXT_OPTIONS]
-        [--highresheightmapfilter HIGHRESHEIGHTMAPFILTER] [-c] [-d DECOMPILE] [-s] [-v,])"},
-        {HELP,     0,    "h",         "help",    Arg::None,
-                "  -h,  \t--help  \tPrint usage and exit."},
-        {VERBOSE,  0,    "v",         "verbose", Arg::None,
-                "  -v,  \t--verbose  \tMOAR output."},
-        {QUIET,    0,    "q",         "quiet",   Arg::None,
-                "  -q,  \t--quiet  \tSupress Output."},
+    { UNKNOWN, 0, "", "", Arg::None,
+"USAGE:\v  mapconv  \t -o <OUTFILE> -t <INTEX> -a <HEIGHTMAP> [-m METALMAP] [--normalizemetal NORMALIZEMETAL] [-x MAXHEIGHT] [-n MINHEIGHT] [-g GEOVENTFILE] [-k FEATUREPLACEMENT] [-j FEATURELIST]"
+"[-f FEATUREMAP] [-r GRASSMAP] [-y TYPEMAP] [-p MINIMAP] [-l MAPNORMALS] [-z SPECULAR] [-w SPLATDISTRIBUTION] [-q NUMTHREADS] [-u] [-v NVDXT_OPTIONS]"
+"[--highresheightmapfilter HIGHRESHEIGHTMAPFILTER] [-c] [-d DECOMPILE] [-s] [-v,]"},
+    { {},{},"","", Arg::None , 0 }, // column formatting break
+    { HELP,    0, "h", "help",    Arg::None,"  -h,  \t--help  \tPrint usage and exit."},
+    { VERBOSE, 0, "v", "verbose", Arg::None,"  -v,  \t--verbose  \tMOAR output."},
+    { QUIET,   0, "q", "quiet",   Arg::None,"  -q,  \t--quiet  \tSupress Output."},
+    { VERSION, 0,  "", "version", Arg::None,"  -q,  \t--quiet  \tSupress Output."},
+    { {},{},"","", Arg::None , 0 }, // column formatting break
 
+    { MAP_NAME, 0, "o", "outfile", Arg::Required, "  -o,  \t--outfile <my_new_map.smf>"
+"  \tThe name of the created map file. Should end in .smf. A tilefile (extension .smt) is also created, this name may contain spaces" },
+    //default='my_new_map.smf' }
 
-        {MAP_NAME, 0, "-o", "--outfile", Arg::None,
-         "|MAP NAME| <output mapname.smf> (required) The name of the created map file. Should end in .smf. A tilefile (extension .smt) is also created, this name may contain spaces" },
-        //default='my_new_map.smf' }
+    { TEXTURE, 0, "t", "intex", Arg::Required, "  -t,  \t--intex <image filepath>"
+"  \tInput bitmap to use for the map. Sizes must be multiples of 1024. Xsize and Ysize are determined from this file; xsize = intex width / 8, ysize = height / 8. Don't use Alpha unless you know what you are doing." },
+    // default='', type=str)
 
-        {TEXTURE, 0, "-t", "--intex", Arg::None,
-        "|TEXTURE| <texturemap.bmp> (required) Input bitmap to use for the map. Sizes must be multiples of 1024. Xsize and Ysize are determined from this file; xsize = intex width / 8, ysize = height / 8. Don\'t use Alpha unless you know what you are doing." },
-        // default='', type=str)
+    { HEIGHT_MAP, 0, "a", "heightmap", Arg::Required, "  -a,  \t--heightmap <image filepath>"
+"  \tInput heightmap to use for the map, this should be 16 bit greyscale PNG image or a 16bit intel byte order single channel .raw image. Must be xsize*64+1 by ysize*64+1" },
+    // default='', type=str)
 
-        {HEIGHT_MAP, 0, "-a", "--heightmap", Arg::None,
-        "|HEIGHT MAP| <heightmap file> (required) Input heightmap to use for the map, this should be 16 bit greyscale PNG image or a 16bit intel byte order single channel .raw image. Must be xsize*64+1 by ysize*64+1" },
-        // default='', type=str)
+    { METAL_MAP, 0, "m", "metalmap", Arg::Required, "  -m,  \t--metalmap <image filepath>"
+"  \tMetal map to use, red channel is amount of metal. Resized to xsize / 2 by ysize / 2." },
+    // type=str)
 
-        {METAL_MAP, 0, "-m", "--metalmap", Arg::None,
-        "|METAL MAP| <metalmap.bmp> Metal map to use, red channel is amount of metal. Resized to xsize / 2 by ysize / 2." },
-        // type=str)
+    { NORMALIZE_METAL_MAP, 0, "", "normalizemetal", Arg::Required, "  \t--normalizemetal <float>"
+"  \tIf the metal map has noisy spots, specify how many percent of deviation from the median metal map value will be corrected to the median. E.g. 15.0 (%) will correct 1.7 and 2.3 to 2.0" },
+    // default=0.0, type=float)
 
-        {NORMALIZE_METAL_MAP, 0, "", "--normalizemetal", Arg::None,
-        "|NORMALIZE METAL MAP| <percent spread> (optional) If the metal map has noisy spots, specify how many percent of deviation from the median metal map value will be corrected to the median. E.g. 15.0 (%) will correct 1.7 and 2.3 to 2.0" },
-        // default=0.0, type=float)
+    { MAXIMUM_HEIGHT, 0, "x", "maxheight", Arg::Required, "  -x,  \t--maxheight <float>"
+"  \tWhat altitude in spring the max(0xff for 8 bit images or 0xffff for 16bit images) level of the height map represents" },
+    // default=100.0, type=float)
 
-        {MAXIMUM_HEIGHT, 0, "-x", "--maxheight", Arg::None,
-        "|MAXIMUM HEIGHT| <max height> (required) What altitude in spring the max(0xff for 8 bit images or 0xffff for 16bit images) level of the height map represents" },
-        // default=100.0, type=float)
+    { MINIMUM_HEIGHT, 0, "n", "minheight", Arg::Required, "  -n,  \t--minheight <float>"
+"  \tWhat altitude in spring the minimum level (0) of the height map represents" },
+    // default=-50.0, type=float)
 
-        {MINIMUM_HEIGHT, 0, "-n", "--minheight", Arg::None,
-        "|MINIMUM HEIGHT| <min height> (required) What altitude in spring the minimum level (0) of the height map represents"},
-        // default=-50.0, type=float)
-
-        {GEOVENT_DECAL, 0, "-g", "--geoventfile", Arg::None,
-        "|GEOVENT DECAL| <geovent.bmp> The decal for geothermal vents; appears on the compiled map at each vent. Custom geovent decals should use all white as transparent, clear this if you do not wish to have geovents drawn."},
-        // default='./resources/geovent.bmp', type=str)
+    { GEOVENT_DECAL, 0, "g", "geoventfile", Arg::None, "  -g,  \t--geoventfile <image filePath>"
+"  \t The decal for geothermal vents; appears on the compiled map at each vent. Custom geovent decals should use all white as transparent, clear this if you do not wish to have geovents drawn."},
+    // default='./resources/geovent.bmp', type=str)
 
 //# {'-c', '--compress', help =  '<compression> How much we should try to compress the texture map. Values between [0;1] lower values make higher quality, larger files. [NOT IMPLEMENTED YET]',  default = 0.0, type = float )
 //# {'-i', '--invert', help = 'Flip the height map image upside-down on reading.', default = False, action='store_true' )
 //# {'-l', '--lowpass', help = '<int kernelsize> Smoothes the heightmap with a gaussian kernel size specified', default = 0, type=int)
 
-        {FEATURE_PLACEMENT_FILE, 0, "-k", "--featureplacement", Arg::None,
-        "|FEATURE PLACEMENT FILE| <featureplacement.lua> A feature placement text file defining the placement of each feature. (Default: fp.txt). See README.txt for details. The default format specifies it to have each line look like this: \n { name = \'agorm_talltree6\', x = 224, z = 3616, rot = '0' , scale = 1.0} \n the [scale] argument currently does nothing in the engine. "},
-        // type=str)
+    { FEATURE_PLACEMENT_FILE, 0, "k", "featureplacement", Arg::Required, "  -k,  \t--featureplacement <featureplacement.lua>"
+"  \tA feature placement text file defining the placement of each feature. (Default: fp.txt). See README.txt for details. The default format specifies it to have each line look like this: \n { name = \'agorm_talltree6\', x = 224, z = 3616, rot = '0' , scale = 1.0} \n the [scale] argument currently does nothing in the engine. "},
+    // type=str)
 
-        {FEATURE_LIST_FILE, 0, "-j", "--featurelist", Arg::None,
-        "|FEATURE LIST FILE| <feature_list_file.txt> (required if featuremap image is specified) A file with the name of one feature on each line. Specifying a number from 32767 to -32768 next to the feature name will tell mapconv how much to rotate the feature. specifying -1 will rotate it randomly." },
-        //type=str)
+    { FEATURE_LIST_FILE, 0, "j", "featurelist", Arg::Required, "  -j,  \t--featurelist <feature_list_file.txt>"
+"  \tA file with the name of one feature on each line. Specifying a number from 32767 to -32768 next to the feature name will tell mapconv how much to rotate the feature. specifying -1 will rotate it randomly." },
+    //type=str)
 
-        {FEATURE_MAP, 0, "-f", "--featuremap", Arg::None,
-        "|FEATURE MAP| <featuremap.bmp> Feature placement image, xsize by ysize. Green 255 pixels are geo vents, blue is grass, green 201-215 are engine default trees, red 255-0 each correspond to a line in --featurelist" },
-        // type=str)
+    { FEATURE_MAP, 0, "f", "featuremap", Arg::None, "  -f,  \t--featuremap <image filePath>"
+"  \tFeature placement image, xsize by ysize. Green 255 pixels are geo vents, blue is grass, green 201-215 are engine default trees, red 255-0 each correspond to a line in --featurelist" },
+    // type=str)
 
-        {GRASS_MAP, 0, "-r", "--grassmap", Arg::None,
-        "|GRASS MAP| <grassmap.bmp> If specified, will override the grass specified in the featuremap. Expects an xsize/4 x ysize/4 sized bitmap, all values that are not 0 will result in grass" },
-        //type=str)
+    { GRASS_MAP, 0, "r", "grassmap", Arg::None, "  -r,  \t--grassmap <grassmap.bmp>"
+"  \tIf specified, will override the grass specified in the featuremap. Expects an xsize/4 x ysize/4 sized bitmap, all values that are not 0 will result in grass" },
+    //type=str)
 
-        {TYPE_MAP, 0, "-y", "--typemap", Arg::None,
-        "|TYPE MAP| <typemap.bmp> Type map to use, uses the red channel to define terrain type [0-255]. types are defined in the .smd, if this argument is skipped the entire map will TERRAINTYPE0"},
-        // type=str)
+    { TYPE_MAP, 0, "y", "typemap", Arg::None, "  -y,  \t--typemap <typemap.bmp>"
+"  \tType map to use, uses the red channel to define terrain type [0-255]. types are defined in the .smd, if this argument is skipped the entire map will TERRAINTYPE0"},
+    // type=str)
 
-        {OVERRIDE_MINIMAP, 0, "-p", "--minimap", Arg::None,
-        "|OVERRIDE MINIMAP| <minimap.bmp> If specified, will override generating a minimap from the texture file (intex) with the specified file. Must be 1024x1024 size." },
-        //type=str)
+    { OVERRIDE_MINIMAP, 0, "p", "minimap", Arg::None, "  -p,  \t--minimap <minimap.bmp>"
+"  \tIf specified, will override generating a minimap from the texture file (intex) with the specified file. Must be 1024x1024 size." },
+    //type=str)
 
-        {MAPNORMALS, 0, "-l", "--mapnormals", Arg::None,
-        "|MAPNORMALS| Compress and flip the map-wide normals to RGB .dds. Must be <= 16k * 16k sized (Windows only)" },
-        // type=str)
+    { MAPNORMALS, 0, "l", "mapnormals", Arg::None, "  -l,  \t--mapnormals <image filePath"
+"  \tCompress and flip the map-wide normals to RGB .dds. Must be <= 16k * 16k sized (Windows only)" },
+    // type=str)
 
-        {SPECULAR, 0, "-z", "--specular", Arg::None,
-        "|SPECULAR| Compress and flip the map-wide specular to RGBA .dds. Must be <= 16k * 16k sized (Windows only)" },
-        // type=str)
+    { SPECULAR, 0, "z", "specular", Arg::None, "  -z,  \t--specular <image filePath>"
+"  \tCompress and flip the map-wide specular to RGBA .dds. Must be <= 16k * 16k sized (Windows only)" },
+    // type=str)
 
-        {SPLATDISTRIBUTION, 0, "-w", "--splatdistribution", Arg::None,
-        "|SPLATDISTRIBUTION| Compress and flip the splat distribution map to RGBA .dds. Must be <= 16k * 16k sized (Windows only)" },
-        // type=str)
+    {SPLATDISTRIBUTION, 0, "w", "splatdistribution", Arg::None, "  -w,  \t--splatdistribution <image filePath>"
+"  \tCompress and flip the splat distribution map to RGBA .dds. Must be <= 16k * 16k sized (Windows only)" },
+    // type=str)
 
-        {MULTITHREAD, 0, "-q", "--numthreads", Arg::None,
-        "|MULTITHREAD| <numthreads> How many threads to use for main compression job (default 4, Windows only)" },
-        // default=4, type=int)
+    { MULTITHREAD, 0, "q", "numthreads", Arg::None, "  -q,  \t--numthreads <integer>"
+"  \tHow many threads to use for main compression job (default 4, Windows only)" },
+    // default=4, type=int)
 
-        {LINUX, 0, "-u", "--linux", Arg::None,
-        "|LINUX| Check this if you are running linux and wish to use AMD Compressonator instead of nvdxt.exe" },
-        //default=(platform.system() == 'Linux'), action='store_true')
+    {LINUX, 0, "u", "linux", Arg::None, "  -u,  \t--linux"
+"  \tCheck this if you are running linux and wish to use AMD Compressonator instead of nvdxt.exe" },
+    //default=(platform.system() == 'Linux'), action='store_true')
 
 //# {'-s', '--justsmf', help = 'Just create smf file, dont make tile file (for quick recompilations)', default = 0, type=int)
 
-        {NVDXT, 0, "-v", "--nvdxt_options", Arg::None, "|NVDXT| compression options " },
-        //, default='-Sinc -quality_highest')
+    {NVDXT, 0, "v", "nvdxt_options", Arg::None, "  -v,  \t--nvdxt_options  \tcompression options " },
+    //, default='-Sinc -quality_highest')
 
 //        {'--highresheightmapfilter',
 //        help='Which filter to use when downsampling highres heightmap: [lanczos, bilinear, nearest, median, histogram] ',
 //        default="nearest", type = str)
 
-        {Dirty, 0, "-c", "--dirty", Arg::None,
-        "|Dirty| Keep temp directory after compilation" },
+    {Dirty, 0, "c", "dirty", Arg::None, "  -c,  \t--dirty  \tKeep temp directory after compilation" },
         //default=False, action='store_true')
 
         //# {'-q', '--quick', help='|FAST| Quick compilation (lower texture quality)', action='store_true') //not implemented yet
 
-        {DECOMPILE, 0, "-d", "--decompile", Arg::None,
-         "|DECOMPILE| Decompiles a map to everything you need to recompile it"},
+    {DECOMPILE, 0, "d", "decompile", Arg::None, "  -d,  \t--decompile  \tDecompiles a map to everything you need to recompile it"},
+
         // type=str)
 
 //        {'-s', '--skiptexture', help='|DECOMPILE| Skip generating the texture during decompilation', default = False, action = 'store_true')
@@ -181,12 +179,17 @@ main( int argc, char **argv )
     auto* options = new option::Option[ stats.options_max ];
     auto* buffer = new option::Option[ stats.buffer_max ];
     option::Parser parse( usage, argc, argv, options, buffer );
+    int term_columns = getenv("COLUMNS" ) ? atoi(getenv("COLUMNS" ) ) : 80;
 
+    // No arguments
+    if( argc == 0 ){
+        option::printUsage(std::cout, usage, term_columns, 60, 80 );
+        shutdown( 1 );
+    }
     // Help Message
-    if( options[ HELP ] || argc == 0 ) {
-        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
-        option::printUsage( std::cout, usage, columns );
-        shutdown( options[ HELP ] ? 0 : 1 );
+    if( options[ HELP ] ) {
+        option::printUsage(std::cout, usage, term_columns, 60, 80);
+        shutdown( 0 );
     }
 
     // setup logging level.
