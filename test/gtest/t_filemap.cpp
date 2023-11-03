@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "filemap.h"
+#include "smflib/filemap.h"
 
 TEST( fileemap, add_block ) {
     FileMap fileMap;

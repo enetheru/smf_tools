@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "util.h"
+#include "smflib/util.h"
 
 TEST(utils, valxval) {
     auto [first, second] = valxval("123x456");

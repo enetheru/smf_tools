@@ -17,7 +17,7 @@ target_link_libraries( gtests
         PRIVATE
                 -static
         PUBLIC
-                smf_tools
+                smflib
                 GTest::gtest_main
                 libsquish::Squish
         )

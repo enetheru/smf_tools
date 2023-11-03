@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
-#include "tilemap.h"
+#include "smflib/tilemap.h"
 
 /* TODO
     std::string toCSV();

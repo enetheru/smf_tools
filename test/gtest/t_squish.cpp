@@ -5,7 +5,7 @@
 #include <squish/squish.h>
 #include <fstream>
 
-#include "../src/util.h"
+#include "smflib/util.h"
 
 TEST( squish, DXT1CompressImage_raw_zero ) {
     // fake image 256x256xRGBA8

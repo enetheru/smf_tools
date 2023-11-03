@@ -15,11 +15,11 @@ using OIIO::TypeDesc;
 #include <spdlog/spdlog.h>
 
 #include "option_args.h"
-#include "smt.h"
-#include "smf.h"
-#include "util.h"
-#include "tilecache.h"
-#include "tiledimage.h"
+#include "smflib/smt.h"
+#include "smflib/smf.h"
+#include "smflib/util.h"
+#include "smflib/tilecache.h"
+#include "smflib/tiledimage.h"
 
 enum optionsIndex
 {

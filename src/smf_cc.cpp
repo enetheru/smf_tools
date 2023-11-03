@@ -4,9 +4,9 @@
 #include <spdlog/spdlog.h>
 
 #include "option_args.h"
-#include "smt.h"
-#include "smf.h"
-#include "util.h"
+#include "smflib/smt.h"
+#include "smflib/smf.h"
+#include "smflib/util.h"
 
 
 using namespace std;

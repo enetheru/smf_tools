@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "tiledimage.h"
+#include "smflib/tiledimage.h"
 
 [[maybe_unused]] static const std::filesystem::path currentPath = std::filesystem::current_path();
 [[maybe_unused]] static const std::filesystem::path sourcePath( SOURCE_ROOT );
@@ -23,7 +23,7 @@ TEST( tiledimage, constructor_cache_map ){
 
     TileMap tileMap;
     tileMap.fromCSV( testPath / "tilemap.csv" );
-    SPDLOG_INFO( "TileMap: {}", tileMap.info() );
+    SPDLOG_INFO( "TileMap: {}", tileMap.json().dump(4) );
 
     TiledImage tiledImage( tileCache, tileMap );
     auto imageBuf = tiledImage.getUVRegion({0, 1, 0, 1} );

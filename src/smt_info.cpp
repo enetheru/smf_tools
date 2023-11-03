@@ -1,7 +1,7 @@
 #include <spdlog/spdlog.h>
 
 #include "option_args.h"
-#include "smt.h"
+#include "smflib/smt.h"
 
 enum optionsIndex
 {

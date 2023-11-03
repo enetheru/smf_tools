@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "smf.h"
+#include "smflib/smf.h"
 
 TEST( smf, default_constructor ){
     SMF smf;

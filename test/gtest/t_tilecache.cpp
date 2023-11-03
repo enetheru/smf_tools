@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
-#include "tilecache.h"
+#include "smflib/tilecache.h"
 
 #ifndef SOURCE_ROOT
 #define SOURCE_ROOT "./"

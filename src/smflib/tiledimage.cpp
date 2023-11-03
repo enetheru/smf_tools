@@ -19,7 +19,7 @@ TiledImage::TiledImage( TileCache tileCache, const TileMap& tileMap ):
         _tileCache( std::move( tileCache ) ), _tileMap( tileMap ) {
     SPDLOG_INFO("Constructing TiledImage from TileCache and TileMap");
     SPDLOG_INFO( "TileCache: {}", _tileCache.info() );
-    SPDLOG_INFO( "TileMap: {}", _tileMap.info() );
+    SPDLOG_INFO( "TileMap: {}", _tileMap.json().dump(4) );
     // How to get the tile size, and the imageSpec from these?
     auto imageBuf = _tileCache.getTile(1);
     _imageSpec = imageBuf->spec();

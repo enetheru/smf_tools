@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "smt.h"
+#include "smflib/smt.h"
 
 TEST( smt, default_constructor ){
     SMT smt;
