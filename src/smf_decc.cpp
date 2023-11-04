@@ -95,7 +95,7 @@ main( int argc, char **argv )
 
     SPDLOG_INFO( "Extracting Header Info" );
     file.open( "out_Header_Info.txt", std::ios::out );
-    file << smf->info();
+    file << smf->json().dump(4);
     file.close();
 
     SPDLOG_INFO( "Extracting height image" );

@@ -62,7 +62,7 @@ int main( int argc, char **argv )
             retVal = 1;
         }
         else {
-            SPDLOG_INFO( smf->info() );
+            SPDLOG_INFO(smf->json().dump(4) );
             smf->good();
             delete smf;
         }

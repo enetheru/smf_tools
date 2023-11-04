@@ -8,6 +8,7 @@
 #include <filesystem>
 
 #include <OpenImageIO/imagebuf.h>
+#include <nlohmann/json.hpp>
 
 #include "tilemap.h"
 #include "recoil/SMFFormat.h"
@@ -82,6 +83,7 @@ class SMF {
     HeaderTiles _headerTiles;
     std::vector< std::pair< uint32_t, std::string > > _smtList;
 
+    //FIXME why do I have a duplicate value here, shouldnt I just use the value from the header?
     int _mapPtr{};         ///< pointer to beginning of the tilemap
     OIIO::ImageSpec _mapSpec;
 
@@ -132,7 +134,7 @@ public:
      *
      * creates a string with information about the class
      */
-    std::string info( );
+    [[nodiscard]] nlohmann::ordered_json json();
 
     /*! Update the file offset pointers
      *

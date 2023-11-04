@@ -6,6 +6,8 @@
 #include <squish/squish.h>
 #include <spdlog/spdlog.h>
 
+#include <nlohmann/json.hpp>
+
 #include "smf.h"
 #include "smt.h"
 #include "filemap.h"
@@ -25,7 +27,6 @@ SMF::good() const
     if( _dirtyMask & SMF_FEATURES_HEADER ) SPDLOG_INFO( "dirty features header");
     if( _dirtyMask & SMF_FEATURES        ) SPDLOG_INFO( "dirty features");
     if( _dirtyMask & SMF_GRASS           ) SPDLOG_INFO( "dirty grass");
-
 }
 
 bool
@@ -194,86 +195,6 @@ SMF::read()
         map.addBlock( file.tellg(), sizeof( SMF::Feature) * _headerFeatures.nFeatures, "features" );
 
     file.close();
-}
-
-std::string
-SMF::info()
-{
-    std::stringstream info;
-    info << "[File Information]"
-         << "\n\tFile Name: " << _filePath
-         << "\n\tFile Size: " << to_hex( file_size(_filePath ) )
-            << "\n[header]: "
-            << "\n\tVersion: " << _header.version
-            << "\n\tID:      " << _header.mapid
-
-            << "\n\n\tWidth:          " << _header.mapx
-            << " | " << _header.mapx / 64
-            << "\n\tLength:         " << _header.mapy
-            << " | " << _header.mapy / 64
-            << "\n\tSquareSize:     " << _header.squareSize
-            << "\n\tTexelPerSquare: " << _header.texelPerSquare
-            << "\n\tTileSize:       " << _header.tilesize
-            << "\n\tMinHeight:      " << _header.minHeight
-            << "\n\tMaxHeight:      " << _header.maxHeight
-
-            << "\n\n\tHeightPtr:   " << to_hex(_header.heightmapPtr) << " "
-            << _header.mapx + 1 << "x"
-            << _header.mapy + 1 << ":" << 1 << " UINT16"
-            << "\n\tTypePtr:     " << to_hex(_header.typeMapPtr) << " "
-            << _header.mapx << "x" << _header.mapy << ":" << 1 << " UINT8"
-            << "\n\tTilesPtr:    " << to_hex(_header.tilesPtr)
-            << "\n\tMapPtr:      " << to_hex(_mapPtr) << " "
-            << _header.mapx * 8 / _header.tilesize << "x"
-            << _header.mapy * 8 / _header.tilesize << ":" << 1 << " UINT32"
-         << "\n\tMiniPtr:     " << to_hex(_header.minimapPtr)
-         << " " << 1024 << "x" << 1024 << ":" << 4 << " DXT1"
-         << "\n\tMetalPtr:    " << to_hex(_header.metalmapPtr)
-         << " " << _header.mapx << "x" << _header.mapy << ":" << 1 << "  UINT8"
-         << "\n\tFeaturesPtr: "     << to_hex(_header.featurePtr)
-         << "\n  HeaderExtensions: "   << _header.numExtraHeaders
-        ;
-
-    //Header Extensions
-    for( const auto &extraHeader : extraHeaders ){
-        switch( extraHeader->type ){
-            case MEH_None:{
-                info << "\n    Null Header"
-                     << "\n\tsize: " << extraHeader->size
-                     << "\n\ttype: " << extraHeader->type;
-            }
-                break;
-            case MEH_Vegetation:{
-                auto header = reinterpret_cast< HeaderExtn_Grass *>( extraHeader.get() );
-                info << "\n    Grass"
-                     << "\n\tsize: " << header->size
-                     << "\n\ttype: " << header->type
-                     << "\n\tptr:  " << to_hex(header->ptr );
-            }
-                break;
-            default:{
-                info << "\n    Unknown"
-                     << "\n\tsize: " << extraHeader->size
-                     << "\n\ttype: " << extraHeader->type;
-            }
-
-        }
-    }
-
-    // Tileindex Information
-    info << "\n  Tile Index Information"
-         << "\n\tTile Files:  " << _smtList.size()
-         << "\n\tTotal tiles: " << _headerTiles.nTiles;
-    for( const auto& [a,b] : _smtList ){
-        info << "\n\t    " << b << ":" << b <<  std::endl;
-    }
-
-    // Features Information
-    info << "\n  Features Information"
-         << "\n\tFeatures: " << _headerFeatures.nFeatures
-         << "\n\tTypes:    " << _headerFeatures.nTypes;
-
-    return info.str();
 }
 
 void
@@ -919,4 +840,73 @@ SMF::getGrass() {
         return getImage( headerGrass->ptr, _grassSpec );
     }
     return nullptr;
+}
+
+nlohmann::ordered_json SMF::json() {
+    nlohmann::ordered_json j;
+    j["filename"] = _filePath;
+    j["filesize"] = std::format( "{}", humanise( file_size( _filePath ) ));
+    nlohmann::ordered_json h;
+    h["version"] = _header.version;
+    h["id"] = _header.mapid;
+    h["width"] = std::format( "{} | {}", _header.mapx, _header.mapx / 64 );
+    h["height"] = std::format( "{} | {}", _header.mapy, _header.mapy / 64 );
+    h["squareSize"] = _header.squareSize;
+    h["texelPerSquare"] = _header.texelPerSquare;
+    h["tilesize"] = _header.tilesize;
+    h["minHeight"] = _header.minHeight;
+    h["maxHeight"] = _header.maxHeight;
+    h["heightmapPtr"] = std::format( "{} | {}x{}:1 UINT16",  to_hex(_header.heightmapPtr ), _header.mapx+1, _header.mapy+1 );
+    h["typeMapPtr"] = std::format( "{} | {}x{}:1 UINT8",  to_hex(_header.typeMapPtr ), _header.mapx, _header.mapy );
+    h["tilesPtr"] = std::format( "{} | {}x{}:1 UINT32", to_hex(_header.tilesPtr), _header.mapx * 8 / _header.tilesize, _header.mapy * 8 / _header.tilesize );
+    h["minimapPtr"] = std::format( "{} | 1024x1024:4 DXT1",  to_hex(_header.minimapPtr ) );
+    h["metalmapPtr"] = std::format( "{} | {}x{}:1 UINT8",  to_hex(_header.metalmapPtr ), _header.mapx, _header.mapy );
+    h["featurePtr"] = std::format( "{}",  to_hex(_header.featurePtr ) );
+    h["numExtraHeaders"] = _header.numExtraHeaders;
+    j["header"] = h;
+
+    //Header Extensions
+    j["extraHeaders"] = nlohmann::json::array();
+    for( const auto &extraHeader : extraHeaders ){
+        nlohmann::ordered_json eh;
+        switch( extraHeader->type ){
+            case MEH_None:{
+                //FIXME info << "\n    Null Header";
+                eh["size"] = extraHeader->size;
+                eh["type"] = extraHeader->type;
+            }break;
+            case MEH_Vegetation:{
+                auto header = reinterpret_cast< HeaderExtn_Grass *>( extraHeader.get() );
+                //FIXME info << "\n    Grass"
+                eh["size"] = extraHeader->size;
+                eh["type"] = extraHeader->type;
+                eh["ptr"] = to_hex( header->ptr );
+            }break;
+            default:{
+                //FIXME info << "\n    Unknown"
+                eh["size"] = extraHeader->size;
+                eh["type"] = extraHeader->type;
+            }
+        }
+        j["extraHeaders"] += eh;
+    }
+
+    // Tileindex Information
+    nlohmann::ordered_json ti;
+    ti["Num Files"] = _smtList.size();
+    ti["Num Tiles"] = _headerTiles.nTiles;
+    ti["File List"] = nlohmann::json::array();
+
+    for( const auto& [numTiles,fileName] : _smtList ){
+        ti["File List"] += { numTiles, fileName };
+    }
+    j["Tile Index Info"] = ti;
+
+    // Features Information
+    nlohmann::ordered_json fi;
+    fi["Num Features"] = _headerFeatures.nFeatures;
+    fi["Num Types"] = _headerFeatures.nTypes;
+    j["Feature Info"] = fi;
+
+    return j;
 }

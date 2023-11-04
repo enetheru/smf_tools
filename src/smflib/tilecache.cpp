@@ -142,8 +142,8 @@ TileCache &TileCache::operator=(TileCache &&other) noexcept {
     return *this;
 }
 
-nlohmann::json TileCache::json() const {
-    nlohmann::json j;
+nlohmann::ordered_json TileCache::json() const {
+    nlohmann::ordered_json j;
     j["numTiles"] = _numTiles;
     j["numSources"] = _sources.size();
     j["sources"] = nlohmann::json::array();

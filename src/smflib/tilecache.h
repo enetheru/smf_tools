@@ -20,8 +20,8 @@ class TileCache
         uint32_t iStart{},iEnd{};
         TileSourceType type = TileSourceType::None;
         std::filesystem::path filePath{};
-        [[nodiscard]] nlohmann::json json() const {
-            nlohmann::json j;
+        [[nodiscard]] nlohmann::ordered_json json() const {
+            nlohmann::ordered_json j;
             j["start"] = iStart;
             j["end"] = iEnd;
             j["type"] = to_string(type);
@@ -46,10 +46,10 @@ public:
 
     // modifications
     void addSource( const std::filesystem::path& filePath );
-    auto getSources() const -> const auto & { return _sources; }
+    [[nodiscard]] auto getSources() const -> const auto & { return _sources; }
 
     /// get a tile from the cache
-    std::optional<OIIO::ImageBuf> getTile( uint32_t index ) const ;
+    [[nodiscard]] std::optional<OIIO::ImageBuf> getTile( uint32_t index ) const ;
 
-    [[nodiscard]] nlohmann::json json() const ;
+    [[nodiscard]] nlohmann::ordered_json json() const ;
 };

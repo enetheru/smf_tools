@@ -40,6 +40,6 @@ public:
     void setXY( uint32_t x, uint32_t y, uint32_t value );
     void setI( uint32_t index, uint32_t value );
 
-    [[nodiscard]] nlohmann::json json() const ;
+    [[nodiscard]] nlohmann::ordered_json json() const ;
 };
 

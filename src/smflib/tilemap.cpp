@@ -150,8 +150,8 @@ TileMap::setI( uint32_t index, uint32_t value ) {
     _map[ index ] = value;
 }
 
-nlohmann::json TileMap::json() const {
-    nlohmann::json j;
+nlohmann::ordered_json TileMap::json() const {
+    nlohmann::ordered_json j;
     j["width"] = width();
     j["height"] = height();
     j["numTiles"] = _map.size();

@@ -342,7 +342,7 @@ R"(Checking input dimensions
         smf->writeGrass( grassBuf );
     }
 
-    SPDLOG_INFO( smf->info() );
+    SPDLOG_INFO( smf->json().dump(4) );
     smf->good();
 
     delete smf;
