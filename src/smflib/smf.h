@@ -129,6 +129,7 @@ public:
     static bool test  ( const std::filesystem::path& filePath );
     static SMF *create( const std::filesystem::path& filePath, bool overwrite = false );
     static SMF *open  ( const std::filesystem::path& filePath );
+    //FIXME SMF::open change to output a unique buffer rather than a raw pointer
 
     /*! create info string
      *

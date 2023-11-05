@@ -55,6 +55,7 @@ public:
      */
     static SMT *create( const std::filesystem::path& filePath, bool overwrite = false );
     static SMT *open  ( const std::filesystem::path& filePath );
+    //FIXME SMT::open change to output a unique buffer rather than a raw pointer
 
     void reset( );
     [[nodiscard]] nlohmann::ordered_json json() const;

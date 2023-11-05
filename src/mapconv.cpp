@@ -46,17 +46,20 @@ enum optionsIndex
 //{'-s', '--skiptexture', help='|DECOMPILE| Skip generating the texture during decompilation', default = False, action = 'store_true')
 };
 
+const option::Descriptor usage_short[] = {
+        { UNKNOWN, 0, "", "", Arg::None,
+                "USAGE:\v  mapconv  \t -o <OUTFILE> -t <INTEX> -a <HEIGHTMAP> [-m METALMAP] [--normalizemetal NORMALIZEMETAL] [-x MAXHEIGHT] [-n MINHEIGHT] [-g GEOVENTFILE] [-k FEATUREPLACEMENT] [-j FEATURELIST]"
+                "[-f FEATUREMAP] [-r GRASSMAP] [-y TYPEMAP] [-p MINIMAP] [-l MAPNORMALS] [-z SPECULAR] [-w SPLATDISTRIBUTION] [-q NUMTHREADS] [-u] [-v NVDXT_OPTIONS]"
+                "[--highresheightmapfilter HIGHRESHEIGHTMAPFILTER] [-c] [-d DECOMPILE] [-s] [-v,]"},
+        { 0, 0, nullptr, nullptr, nullptr, nullptr }
+};
+
 const option::Descriptor usage[] = {
-    { UNKNOWN, 0, "", "", Arg::None,
-"USAGE:\v  mapconv  \t -o <OUTFILE> -t <INTEX> -a <HEIGHTMAP> [-m METALMAP] [--normalizemetal NORMALIZEMETAL] [-x MAXHEIGHT] [-n MINHEIGHT] [-g GEOVENTFILE] [-k FEATUREPLACEMENT] [-j FEATURELIST]"
-"[-f FEATUREMAP] [-r GRASSMAP] [-y TYPEMAP] [-p MINIMAP] [-l MAPNORMALS] [-z SPECULAR] [-w SPLATDISTRIBUTION] [-q NUMTHREADS] [-u] [-v NVDXT_OPTIONS]"
-"[--highresheightmapfilter HIGHRESHEIGHTMAPFILTER] [-c] [-d DECOMPILE] [-s] [-v,]"},
-    { {},{},"","", Arg::None , 0 }, // column formatting break
     { HELP,    0, "h", "help",    Arg::None,"  -h,  \t--help  \tPrint usage and exit."},
     { VERBOSE, 0, "v", "verbose", Arg::None,"  -v,  \t--verbose  \tMOAR output."},
     { QUIET,   0, "q", "quiet",   Arg::None,"  -q,  \t--quiet  \tSupress Output."},
-    { VERSION, 0,  "", "version", Arg::None,"  -q,  \t--quiet  \tSupress Output."},
-    { {},{},"","", Arg::None , 0 }, // column formatting break
+    { VERSION, 0,  "", "version", Arg::None,"  -V,  \t--version  \tDisplay Version Information."},
+    { {},{},"","", Arg::None , nullptr }, // column formatting break
 
     { MAP_NAME, 0, "o", "outfile", Arg::Required, "  -o,  \t--outfile <my_new_map.smf>"
 "  \tThe name of the created map file. Should end in .smf. A tilefile (extension .smt) is also created, this name may contain spaces" },
@@ -183,9 +186,18 @@ main( int argc, char **argv )
 
     // No arguments
     if( argc == 0 ){
+        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
+        shutdown( 1 );
+    }
+
+    // unknown options
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
+        SPDLOG_WARN( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
         option::printUsage(std::cout, usage, term_columns, 60, 80 );
         shutdown( 1 );
     }
+
     // Help Message
     if( options[ HELP ] ) {
         option::printUsage(std::cout, usage, term_columns, 60, 80);
@@ -198,12 +210,6 @@ main( int argc, char **argv )
         spdlog::set_level(spdlog::level::info);
     if( options[ QUIET ] )
         spdlog::set_level(spdlog::level::off);
-
-    // unknown options
-    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        SPDLOG_WARN( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
-        fail = true;
-    }
 
     // non options
     if( parse.nonOptionsCount() == 0 ){

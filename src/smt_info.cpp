@@ -3,22 +3,28 @@
 #include "option_args.h"
 #include "smflib/smt.h"
 
-enum optionsIndex
-{
+enum optionsIndex {
     UNKNOWN,
     HELP,
-    QUIET
+    VERBOSE,
+    QUIET,
+    VERSION
+};
+
+const option::Descriptor usage_short[] = {
+        { UNKNOWN, 0, "", "", Arg::None,
+          "USAGE: smt_info <smt file> \n"
+          "  eg. 'smt_info myfile.smt'\n"},
+        { 0, 0, nullptr, nullptr, nullptr, nullptr }
 };
 
 const option::Descriptor usage[] = {
-    { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: smtinfo <smt file> \n"
-        "  eg. 'smtinfo myfile.smt'\n"},
-    { HELP, 0, "h", "help", Arg::None,
-        "  -h,  \t--help  \tPrint usage and exit." },
-    { QUIET, 0, "q", "quiet", Arg::None,
-        "  -q,  \t--quiet  \tSupress output, except warnings and errors" },
-    { 0, 0, nullptr, nullptr, nullptr, nullptr }
+        {UNKNOWN, 0, "",      "",        Arg::None, ""},
+        {HELP,    0, "h",     "help",    Arg::None, "  -h,  \t--help  \tPrint usage and exit."},
+        {VERBOSE, 0, "v",     "verbose", Arg::None, "  -v,  \t--verbose  \tMOAR output."},
+        {QUIET,   0, "q",     "quiet",   Arg::None, "  -q,  \t--quiet  \tSupress Output."},
+        {VERSION, 0, "",      "version", Arg::None, "  -V,  \t--version  \tDisplay Version Information."},
+        {0,       0, nullptr, nullptr,   nullptr,   nullptr}
 };
 
 static void shutdown( int code ){
@@ -26,45 +32,70 @@ static void shutdown( int code ){
     exit( code );
 }
 
-
 int main( int argc, char **argv )
 {
-    spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
+    spdlog::set_pattern("[%l] %s:%#:%! | %v");
+    spdlog::set_level( spdlog::level::warn );
+
+    // Option parsing
     // ==============
     argc -= (argc > 0); argv += (argc > 0);
+    bool arg_fail = false;
     option::Stats stats( usage, argc, argv );
-    auto* options = new option::Option[ stats.options_max ];
-    auto* buffer = new option::Option[ stats.buffer_max ];
-    option::Parser parse( usage, argc, argv, options, buffer );
+    std::vector<option::Option> options(stats.options_max );
+    std::vector<option::Option> buffer(stats.options_max );
+    option::Parser parse( usage, argc, argv, options.data(), buffer.data() );
+    int term_columns = getenv("COLUMNS" ) ? atoi(getenv("COLUMNS" ) ) : 80;
 
-    if( options[ HELP ] || argc == 0 ) {
-        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
-        option::printUsage( std::cout, usage, columns );
-        shutdown( options[ HELP ] ? 0 : 1 );
+    // No arguments
+    if( argc == 0 ){
+        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
+        shutdown( 1 );
     }
-
-    if( options[ QUIET ] ) spdlog::set_level(spdlog::level::off);
-
 
     // unknown options
     for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        SPDLOG_WARN( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        SPDLOG_ERROR( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        arg_fail = true;
     }
 
-    // non options
-    for( int i = 1; i < parse.nonOptionsCount(); ++i ){
-        SPDLOG_WARN( "Unknown Option: {}", parse.nonOption( i ) );
+    // Version Message
+    if( options[ VERSION ] ) {
+        fmt::println("Version Information Goes here"); //FIXME add version information
+        shutdown( 0 );
     }
 
-    if( parse.error() ) shutdown( 1 );
+    // Help Message
+    if( options[ HELP ] ) {
+        option::printUsage(std::cout, usage, term_columns, 60, 80);
+        shutdown( 0 );
+    }
 
-    SMT *smt;
-    if(! ( smt = SMT::open( parse.nonOption(0)) ) ){
+    // setup logging level.
+    if( options[ VERBOSE ] )
+        spdlog::set_level(spdlog::level::info);
+    if( options[ QUIET ] )
+        spdlog::set_level(spdlog::level::off);
+
+    if( parse.error() || arg_fail ) {
+        SPDLOG_ERROR("Options Parsing Error");
+        shutdown(1);
+    }
+
+    // End of generic parsing options like quiet, verbose etc.
+
+    if( parse.nonOptionsCount() == 0 ){
+        SPDLOG_ERROR("No smt files specified");
+        shutdown(1);
+    }
+
+    auto smt = std::unique_ptr<SMT>( SMT::open( parse.nonOption(0)) );
+    if(! smt ){
         SPDLOG_CRITICAL( "cannot open smt file" );
         shutdown(1);
     }
 
-    SPDLOG_INFO( smt->json().dump(4) );
+    fmt::print( "{}", smt->json().dump(4) );
     OIIO::shutdown();
     return 0;
 }

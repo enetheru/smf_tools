@@ -17,6 +17,7 @@ enum optionsIndex
     HELP,
     VERBOSE,
     QUIET,
+    VERSION,
     OUTPUT,
     FORCE,
     MAPSIZE,
@@ -27,64 +28,70 @@ enum optionsIndex
     // Compression
 };
 
+const option::Descriptor usage_short[] = {
+        {UNKNOWN, 0, "",      "",      Arg::None,
+                                                "USAGE: smf_cc [options] [smt1 ... smtn]\n\n"
+                                                "eg. $ smf_cc -v -o mymap.smf --mapsize 8x8 --height height.tif \\ \n"
+                                                "    > --mini minimap.jpeg --metal metalmap.png --grass grass.png mymap.smt \n"
+                                                "\nGENERAL OPTIONS:"},
+        {0,       0, nullptr, nullptr, nullptr, nullptr}
+};
+
 const option::Descriptor usage[] = {
-    { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: smf_cc [options] [smt1 ... smtn]\n\n"
-        "eg. $ smf_cc -v -o mymap.smf --mapsize 8x8 --height height.tif \\ \n"
-        "    > --mini minimap.jpeg --metal metalmap.png --grass grass.png mymap.smt \n"
-        "\nGENERAL OPTIONS:" },
+        {UNKNOWN,  0,  "",      "",         Arg::None,
+                                                           "USAGE: smf_cc [options] [smt1 ... smtn]\n\n"
+                                                           "eg. $ smf_cc -v -o mymap.smf --mapsize 8x8 --height height.tif \\ \n"
+                                                           "    > --mini minimap.jpeg --metal metalmap.png --grass grass.png mymap.smt \n"
+                                                           "\nGENERAL OPTIONS:"},
+        {{},       {}, "",      "",         Arg::None,     nullptr}, // column formatting break
+        {HELP,     0,  "h",     "help",     Arg::None,     "  -h,  \t--help  \tPrint usage and exit."},
+        {VERBOSE,  0,  "v",     "verbose",  Arg::None,     "  -v,  \t--verbose  \tMOAR output."},
+        {QUIET,    0,  "q",     "quiet",    Arg::None,     "  -q,  \t--quiet  \tSupress Output."},
+        {VERSION,  0,  "",      "version",  Arg::None,     "  -V,  \t--version  \tDisplay Version Information."},
+        {{},       {}, "",      "",         Arg::None,     nullptr}, // column formatting break
 
-    { HELP, 0, "h", "help", Arg::None, "  -h,  \t--help"
-        "\tPrint usage and exit." },
+        {OUTPUT,   0,  "o",     "output",   Arg::Required, "  -o,  \t--output=mymap.smf"
+                                                           "\tFile to operate on, will create if it doesnt exist"},
 
-    { VERBOSE, 0, "v", "verbose", Arg::None, "  -v,  \t--verbose"
-        "\tPrint extra information." },
+        {FORCE,    0,  "f",     "force",    Arg::None,     "  -f,  \t--force"
+                                                           "\tOverwrite existing output files"},
 
-    { QUIET, 0, "q", "quiet", Arg::None, "  -q,  \t--quiet"
-        "\tSupress output." },
+        {MAPSIZE,  0,  "",      "mapsize",  Arg::Required, "\t--mapsize=XxZ"
+                                                           "\tWidth and length of map, in spring map units eg. '--mapsize=4x4',"
+                                                           "must be multiples of two."},
 
-    { OUTPUT, 0, "o", "output", Arg::Required, "  -o,  \t--output=mymap.smf"
-        "\tFile to operate on, will create if it doesnt exist" },
+        {TILESIZE, 0,  "",      "tilesize", Arg::Numeric,  "\t--tilesize=X"
+                                                           "\tSize of tiles, in pixels eg. '--tilesize=32',"
+                                                           "must be multiples of 4."},
 
-    { FORCE, 0, "f", "force", Arg::None, "  -f,  \t--force"
-        "\tOverwrite existing output files" },
+        {FLOOR,    0,  "y",     "floor",    Arg::Numeric,  "  -y,  \t--floor=1.0f"
+                                                           "\tMinimum height of the map."},
 
-    { MAPSIZE, 0, "", "mapsize", Arg::Required, "\t--mapsize=XxZ"
-        "\tWidth and length of map, in spring map units eg. '--mapsize=4x4',"
-        "must be multiples of two." },
+        {CEILING,  0,  "Y",     "ceiling",  Arg::Numeric,  "  -Y,  \t--ceiling=1.0f"
+                                                           "\tMaximum height of the map."},
 
-    { TILESIZE, 0, "", "tilesize", Arg::Numeric, "\t--tilesize=X"
-        "\tSize of tiles, in pixels eg. '--tilesize=32',"
-        "must be multiples of 4." },
+        {HEIGHT,   0,  "",      "height",   Arg::File,     "\t--height=height.tif"
+                                                           "\t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap."},
 
-    { FLOOR, 0, "y", "floor", Arg::Numeric, "  -y,  \t--floor=1.0f"
-        "\tMinimum height of the map." },
+        {TYPE,     0,  "",      "type",     Arg::File,     "\t--type=type.tif"
+                                                           "\t(x*32)x(y*32):1 UINT8 Image to use for typemap."},
 
-    { CEILING, 0, "Y", "ceiling", Arg::Numeric, "  -Y,  \t--ceiling=1.0f"
-        "\tMaximum height of the map." },
+        {TILEMAP,  0,  "",      "tilemap",  Arg::File,     "\t--tilemap=map.tif"
+                                                           "\t(x*16)x(y*16):1 UINT32 Image or CSV to use for tilemap."},
 
-    { HEIGHT, 0, "", "height", Arg::File, "\t--height=height.tif"
-        "\t(x*64+1)x(y*64+1):1 UINT16 Image to use for heightmap." },
+        {MINI,     0,  "",      "mini",     Arg::File,     "\t--mini=mini.tif"
+                                                           "\t(1024)x(1024):4 UINT8 Image to use for minimap."},
 
-    { TYPE, 0, "", "type", Arg::File, "\t--type=type.tif"
-        "\t(x*32)x(y*32):1 UINT8 Image to use for typemap." },
+        {METAL,    0,  "",      "metal",    Arg::File,     "\t--metal=metal.tif"
+                                                           "\t(x*32)x(y*32):1 UINT8 Image to use for metalmap."},
 
-    { TILEMAP, 0, "", "tilemap", Arg::File, "\t--tilemap=map.tif"
-        "\t(x*16)x(y*16):1 UINT32 Image or CSV to use for tilemap." },
+        {FEATURES, 0,  "",      "features", Arg::File,     "\t--features=list.csv"
+                                                           "\tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
 
-    { MINI, 0, "", "mini", Arg::File, "\t--mini=mini.tif"
-        "\t(1024)x(1024):4 UINT8 Image to use for minimap." },
+        {GRASS,    0,  "",      "grass",    Arg::File,     "\t--grass=grass.tif"
+                                                           "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap."},
 
-    { METAL, 0, "", "metal", Arg::File, "\t--metal=metal.tif"
-        "\t(x*32)x(y*32):1 UINT8 Image to use for metalmap." },
-
-    { FEATURES, 0, "", "features", Arg::File, "\t--features=list.csv"
-        "\tList of features with format:\n\t\tNAME,X,Y,Z,R,S"},
-
-    { GRASS, 0, "", "grass", Arg::File, "\t--grass=grass.tif"
-        "\t(x*16)x(y*16):1 UINT8 Image to use for grassmap." },
-
-    {0,0,nullptr,nullptr,nullptr,nullptr}
+        {0,        0,  nullptr, nullptr,    nullptr,       nullptr}
 };
 
 static void shutdown( int code ){
@@ -96,6 +103,56 @@ int
 main( int argc, char **argv )
 {
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // == temporary/global variables
+    spdlog::set_level( spdlog::level::warn );
+
+    // Options Parsing
+    // ===============
+    argc -= (argc > 0); argv += (argc > 0);
+    int term_columns = getenv("COLUMNS" ) ? atoi(getenv("COLUMNS" ) ) : 80;
+    bool arg_fail = false;
+    option::Stats stats( usage, argc, argv );
+    std::vector<option::Option> options(stats.options_max);
+    std::vector<option::Option> buffer(stats.options_max);
+    option::Parser parse( usage, argc, argv, options.data(), buffer.data() );
+
+    // No arguments
+    if( argc == 0 ){
+        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
+        shutdown( 1 );
+    }
+
+    // unknown options
+    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
+        SPDLOG_ERROR( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
+        arg_fail = true;
+    }
+
+    // Version Message
+    if( options[ VERSION ] ) {
+        fmt::println("Version Information Goes here"); //FIXME add version information
+        shutdown( 0 );
+    }
+
+    // Help Message
+    if( options[ HELP ] ) {
+        option::printUsage(std::cout, usage, term_columns, 60, 80);
+        shutdown( 0 );
+    }
+
+    // setup logging level.
+    if( options[ VERBOSE ] )
+        spdlog::set_level(spdlog::level::info);
+    if( options[ QUIET ] )
+        spdlog::set_level(spdlog::level::off);
+
+    if( parse.error() || arg_fail ) {
+        SPDLOG_ERROR("Options Parsing Error");
+        shutdown(1);
+    }
+
+    // End of generic options
+    // ======================
+
     SMF *smf = nullptr;
     SMT *smt = nullptr;
     bool force = false;
@@ -104,37 +161,6 @@ main( int argc, char **argv )
     fstream tempFile;
     int tileSize = 32;
     float mapFloor = 0.01f, mapCeiling = 1.0f;
-
-    // Options Parsing
-    // ===============
-    bool fail = false;
-    argc -= (argc > 0); argv += (argc > 0);
-    option::Stats stats( usage, argc, argv );
-    auto* options = new option::Option[ stats.options_max ];
-    auto* buffer = new option::Option[ stats.buffer_max ];
-    option::Parser parse( usage, argc, argv, options, buffer );
-
-    // unknown options
-    for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-        SPDLOG_ERROR( "Unknown option: {}", string( opt->name, opt->namelen ) );
-        fail = true;
-    }
-
-    // -h --help
-    if( options[ HELP ] || argc == 0 ){
-        int columns = getenv( "COLUMNS" ) ? atoi( getenv( "COLUMNS" ) ) : 80;
-        option::printUsage( std::cout, usage, columns );
-        shutdown( options[ HELP ] ? 0 : 1 );
-    }
-
-    // -v --verbose
-    spdlog::set_level(spdlog::level::warn);
-    if( options[ VERBOSE ] )
-        spdlog::set_level(spdlog::level::info);
-
-    // -q --quiet
-    if( options[ QUIET ] )
-        spdlog::set_level(spdlog::level::off);
 
     // -o --output filename
     if( options[ OUTPUT ] ) outFilePath = options[ OUTPUT ].arg;
@@ -150,13 +176,13 @@ main( int argc, char **argv )
         std::tie( mapWidth, mapLength ) = valxval( options[ MAPSIZE ].arg );
         if( mapWidth % 2 || mapLength % 2 ){
             SPDLOG_ERROR( "map sizes must be multiples of two" );
-            fail = true;
+            arg_fail = true;
         }
     }
     if( (! mapWidth || ! mapLength) && (! options[ TILEMAP ]) ){
         //FIXME dont error here, check first if a tilefile is specified.
         SPDLOG_ERROR("--mapsize not specified");
-        fail = true;
+        arg_fail = true;
     }
 
     //TODO add squarewidth
@@ -179,7 +205,7 @@ main( int argc, char **argv )
     }
     if( tileSize % 4 ){
         SPDLOG_ERROR("tile size must be a multiple of 4");
-        fail = true;
+        arg_fail = true;
     }
 
     // -y --floor
@@ -214,7 +240,7 @@ main( int argc, char **argv )
         if( diffuseWidth % 1024 || diffuseHeight % 1024){
             SPDLOG_ERROR( "(tileMap * tileSize) % 1024 != 0,"
                 "supplied arguments do not construct a valid map" );
-            fail = true;
+            arg_fail = true;
         }
         mapWidth = diffuseWidth / 512;
         mapLength = diffuseHeight / 512;
@@ -233,7 +259,7 @@ R"(Checking input dimensions
     //TODO collect feature information from the command line.
 
     // end option parsing
-    if( fail || parse.error() ){
+    if(arg_fail || parse.error() ){
         shutdown(1);
     }
 
@@ -346,8 +372,6 @@ R"(Checking input dimensions
     smf->good();
 
     delete smf;
-    delete [] options;
-    delete [] buffer;
     OIIO::shutdown();
     return 0;
 }
