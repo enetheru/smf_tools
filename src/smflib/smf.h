@@ -120,7 +120,7 @@ class SMF {
     OIIO::ImageSpec _grassSpec;
 
     // == Internal Utility Functions ==
-    OIIO::ImageBuf *getImage( uint32_t ptr, const OIIO::ImageSpec& spec );
+    OIIO::ImageBuf getImage( uint32_t ptr, const OIIO::ImageSpec& spec );
     bool writeImage( uint32_t ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf &sourceBuf );
 
 public:
@@ -224,14 +224,14 @@ public:
     // Extra
     void writeGrass   ( OIIO::ImageBuf &buf );
 
-    OIIO::ImageBuf *getHeight();
-    OIIO::ImageBuf *getType();
-    std::vector< std::pair< uint32_t, std::string > >
-            getSMTList(){ return _smtList; };
-    TileMap *getMap();
-    OIIO::ImageBuf *getMini();
-    OIIO::ImageBuf *getMetal();
+    // Get Functions
+    OIIO::ImageBuf getHeight();
+    OIIO::ImageBuf getType();
+    OIIO::ImageBuf getMini();
+    OIIO::ImageBuf getMetal();
+    OIIO::ImageBuf getGrass();
+    auto getSMTList(){ return _smtList; };
+    TileMap getMap();
     std::string getFeatureTypes();
     std::string getFeatures();
-    OIIO::ImageBuf *getGrass();
 };

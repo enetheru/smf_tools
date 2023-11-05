@@ -1,7 +1,4 @@
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
-
 #include <fstream>
-#include <sstream>
 #include <vector>
 #include <iostream>
 #include <unordered_map>
@@ -117,10 +114,6 @@ main( int argc, char **argv )
 {
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // == Variables ==
     bool overwrite = false;
-    // temporary
-    SMF *tempSMF = nullptr;
-    SMT *tempSMT = nullptr;
-    std::stringstream name;
 
     // source
     TileCache src_tileCache;
@@ -135,7 +128,8 @@ main( int argc, char **argv )
     TileMap out_tileMap;
     int out_format = SMT_HCT_DXT1;
     OIIO::ImageSpec out_tileSpec( 32, 32, 4, TypeDesc::UINT8 );
-    uint32_t out_img_width = 0, out_img_height = 0;
+    uint32_t out_img_width = 1024, out_img_height = 1024;
+    std::unique_ptr<SMT> tempSMT;
 
     // relative intermediate size
     uint32_t rel_tile_width, rel_tile_height;
@@ -213,8 +207,7 @@ main( int argc, char **argv )
             SPDLOG_ERROR( "tilesize must be a multiple of 4x4" );
             fail = true;
         }
-    }
-    else if(! options[ IMGOUT ] ){
+    } else if(! options[ IMGOUT ] ){
         out_tileSpec.width = 32;
         out_tileSpec.height = 32;
     }
@@ -300,16 +293,15 @@ main( int argc, char **argv )
     // Source the tilemap, or generate it
     if( options[ TILEMAP ] ){
         // attempt to load from smf
-        if( SMF::test( options[ TILEMAP ].arg ) ){
-            SPDLOG_INFO( "tilemap derived from smt" );
-            tempSMF = SMF::open( options[ TILEMAP ].arg );
-            TileMap *temp_tileMap = tempSMF->getMap();
-            src_tileMap = *temp_tileMap;
-            delete temp_tileMap;
-            delete tempSMF;
+        if( ! std::filesystem::exists( options[ TILEMAP ].arg ) ){
+            SPDLOG_ERROR( "Unable to load tilemap from: {}", options[ TILEMAP ].arg );
+            shutdown( 1 );
         }
-        // attempt to load from csv
-        else {
+        // attempt to load from smf
+        auto tempSMF = SMF::open( options[ TILEMAP ].arg );
+        if( tempSMF ){
+            src_tileMap = tempSMF->getMap();
+        } else { // attempt to load from csv
             src_tileMap.fromCSV( options[ TILEMAP ].arg );
             if( src_tileMap.width() != 0 && src_tileMap.height() != 0 ){\
                 SPDLOG_INFO( "tilemap derived from csv" );
@@ -395,7 +387,7 @@ main( int argc, char **argv )
     SPDLOG_INFO( "Pre-scaled tile: {}x{}", rel_tile_width, rel_tile_height );
 
     if( options[ SMTOUT ] ){
-        tempSMT = SMT::create(outFilePath , overwrite );
+        tempSMT.reset( SMT::create( outFilePath , overwrite ) );
         if(! tempSMT ){
             SPDLOG_CRITICAL( "will not overwrite {}", outFilePath.string() );
             shutdown(1);
@@ -443,9 +435,8 @@ main( int argc, char **argv )
 
             if( options[ SMTOUT ] ) tempSMT->append( out_buf );
             if( options[ IMGOUT ] ){
-                name << outFilePath << "." << std::setfill('0') << std::setw(6) << numTiles << ".tif";
-                out_buf.write( name.str() );
-                name.str( std::string() );
+                out_buf.write( fmt::format("{}.{:0>6}.tif", outFilePath.string(), numTiles) );
+
             }
             out_tileMap.setXY( x, y, numTiles );
             ++numTiles;

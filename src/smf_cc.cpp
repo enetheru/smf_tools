@@ -219,24 +219,26 @@ main( int argc, char **argv )
     }
 
     // --tilemap
-    SMF *smfTemp = nullptr;
-    TileMap *tileMap = nullptr;
+    TileMap tileMap;
     if( options[ TILEMAP ] ){
-        if( SMF::test( options[ TILEMAP ].arg ) ){
-            smfTemp = SMF::open( options[ TILEMAP ].arg );
+        if( std::filesystem::exists( options[ TILEMAP ].arg ) ) {
+            SPDLOG_ERROR( "Unable to load file {}", options[ TILEMAP ].arg );
+            shutdown(1);
+        }
+        // Load from smf
+        std::unique_ptr<SMF> smfTemp( SMF::open( options[ TILEMAP ].arg ) );
+        if( smfTemp ){
             tileMap = smfTemp->getMap();
-            delete smfTemp;
-        } //FIXME this needs better testing, file extension or something.
-        else {
-            tileMap = new TileMap();
-            tileMap->fromCSV( options[ TILEMAP ].arg );
+        } else {
+            // load from csv
+            tileMap.fromCSV(options[TILEMAP].arg);
         }
     }
 
     // Fix up map height and length to match tile source and smt files.
-    if( tileMap != nullptr ){
-        int diffuseWidth = tileSize * tileMap->width();
-        int diffuseHeight = tileSize * tileMap->height();
+    if( tileMap.length() ){
+        int diffuseWidth = tileSize * tileMap.width();
+        int diffuseHeight = tileSize * tileMap.height();
         if( diffuseWidth % 1024 || diffuseHeight % 1024){
             SPDLOG_ERROR( "(tileMap * tileSize) % 1024 != 0,"
                 "supplied arguments do not construct a valid map" );
@@ -250,7 +252,7 @@ R"(Checking input dimensions
     tileSize: {}x{}
     diffuse=  {}x{}
     mapSize=  {}x{})",
-        tileMap->width(), tileMap->height(),
+        tileMap.width(), tileMap.height(),
         tileSize, tileSize,
         diffuseWidth, diffuseHeight,
         mapWidth, mapLength );
@@ -336,7 +338,7 @@ R"(Checking input dimensions
     smf->writeTileHeader();
 
     // tilemap
-    smf->writeMap( tileMap );
+    smf->writeMap( &tileMap );
 
     // minimap
     if( options[ MINI ] ){

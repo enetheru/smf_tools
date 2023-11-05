@@ -29,6 +29,7 @@ SMF::good() const
     if( _dirtyMask & SMF_GRASS           ) SPDLOG_INFO( "dirty grass");
 }
 
+//FIXME remove this redundant test function as we have filesystem now.
 bool
 SMF::test( const std::filesystem::path& filePath )
 {
@@ -729,80 +730,77 @@ SMF::writeGrass( OIIO::ImageBuf &sourceBuf ) {
 }
 
 //FIXME returning nullptr on fail is crap.
-OIIO::ImageBuf *
-SMF::getImage( unsigned int ptr, const OIIO::ImageSpec& spec)
+OIIO::ImageBuf
+SMF::getImage( unsigned int ptr, const OIIO::ImageSpec& spec )
 {
     std::ifstream file( _filePath );
     if(! file.good() ){
         SPDLOG_ERROR( "Unable to open {} for reading", _filePath.string() );
-        return nullptr;
+        return {};
     }
 
-    auto *imageBuf = new OIIO::ImageBuf( spec );
+    OIIO::ImageBuf imageBuf( spec );
 
     file.seekg( ptr );
-    file.read( (char *)imageBuf->localpixels(), spec.image_bytes() );
+    file.read( (char *)imageBuf.localpixels(), spec.image_bytes() );
     file.close();
 
     return imageBuf;
 }
 
-OIIO::ImageBuf *
-SMF::getHeight( )
-{
+OIIO::ImageBuf
+SMF::getHeight( ){
     return getImage(_header.heightmapPtr, _heightSpec );
 }
 
-OIIO::ImageBuf *
-SMF::getType( )
-{
+OIIO::ImageBuf
+SMF::getType( ){
     return getImage(_header.typeMapPtr, _typeSpec );
 }
 
-TileMap *
+TileMap
 SMF::getMap( )
 {
-    auto *tileMap = new TileMap( _mapSpec.width, _mapSpec.height );
+    TileMap tileMap( _mapSpec.width, _mapSpec.height );
     std::fstream file( _filePath, std::ios::binary | std::ios::in );
     if(! file.good() ){
         SPDLOG_ERROR( "Unable to open {} for reading", _filePath.string() );
-        //FIXME returning nullptr is crap
-        return nullptr;
+        return tileMap;
     }
     file.seekg( _mapPtr );
     for( int y = 0; y < _mapSpec.height; ++y ) {
         for (int x = 0; x < _mapSpec.width; ++x) {
-            auto d = tileMap->getXY(x, y);
-            file.read((char *) &d, 4);
+            uint32_t value;
+            file.read((char *) &value, 4);
+            tileMap.setXY( x, y, value);
         }
     }
     return tileMap;
 }
 
-OIIO::ImageBuf *SMF::getMini(){
+OIIO::ImageBuf SMF::getMini(){
     //TODO consider using openimageio dds reader to get minimap
-    std::array< char, MINIMAP_SIZE > temp{};
+
 
     std::ifstream file( _filePath );
     if(! file.good() ){
         SPDLOG_ERROR( "Unable to open {} for reading", _filePath.string() );
-        //FIXME returning nullptr on return is crap. make return type a unique ptr and it will make more sense.
-        return nullptr;
+        return {};
     }
 
     file.seekg( _header.minimapPtr );
+    std::array< char, MINIMAP_SIZE > temp{};
     file.read( temp.data(), MINIMAP_SIZE );
     file.close();
 
-    auto imageBuf = new OIIO::ImageBuf( _miniSpec );
-    squish::DecompressImage( (squish::u8 *)imageBuf->localpixels(), 1024, 1024, temp.data(), squish::kDxt1);
+    OIIO::ImageBuf imageBuf( _miniSpec );
+    squish::DecompressImage( (squish::u8 *)imageBuf.localpixels(), 1024, 1024, temp.data(), squish::kDxt1);
 
     return imageBuf;
 }
 
-OIIO::ImageBuf *
-SMF::getMetal( )
-{
+OIIO::ImageBuf
+SMF::getMetal( ) {
     return getImage(_header.metalmapPtr, _metalSpec );
 }
 
@@ -831,15 +829,16 @@ SMF::getFeatures( )
     return list.str();
 }
 
-OIIO::ImageBuf *
+OIIO::ImageBuf
 SMF::getGrass() {
     const auto &header = *std::find_if(extraHeaders.begin(), extraHeaders.end(),
         [](const auto &header){ return header->type == MEH_Vegetation; } );
+
     if( header ){
         auto headerGrass = reinterpret_cast<HeaderExtn_Grass *>( header.get() );
         return getImage( headerGrass->ptr, _grassSpec );
     }
-    return nullptr;
+    return {};
 }
 
 nlohmann::ordered_json SMF::json() {

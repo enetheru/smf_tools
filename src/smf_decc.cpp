@@ -114,8 +114,6 @@ main( int argc, char **argv )
     }
 
     std::fstream file;
-    OIIO::ImageBuf *buf; //FIXME is buf really needed here?
-    TileMap *tileMap;
 
     SPDLOG_INFO( "Extracting Header Info" );
     file.open( "out_Header_Info.txt", std::ios::out );
@@ -123,27 +121,42 @@ main( int argc, char **argv )
     file.close();
 
     SPDLOG_INFO( "Extracting height image" );
-    buf = smf->getHeight();
-    buf->write( "out_height.tif", OIIO::TypeUnknown, "tif" );
-
+    auto height = smf->getHeight();
+    if( ! height.has_error() ){
+        height.write( "out_height.tif", OIIO::TypeUInt16, "tif" );
+    } else {
+        SPDLOG_ERROR( height.geterror() );
+    }
 
     SPDLOG_INFO( "Extracting type image" );
-    buf = smf->getType();
-    buf->write("out_type.tif", OIIO::TypeUnknown, "tif");
+    auto type = smf->getType();
+    if( ! type.has_error() ){
+        type.write("out_type.tif", OIIO::TypeUnknown, "tif");
+    } else {
+        SPDLOG_ERROR( type.geterror() );
+    }
 
-    SPDLOG_INFO( "Extracting map image" );
-    tileMap = smf->getMap();
+    SPDLOG_INFO( "Extracting map csv" );
+    auto tileMap = smf->getMap();
     file.open("out_tilemap.csv", std::ios::out );
-    file << tileMap->toCSV();
+    file << tileMap.toCSV();
     file.close();
 
     SPDLOG_INFO( "Extracting mini image" );
-    buf = smf->getMini();
-    buf->write("out_mini.tif", OIIO::TypeUnknown, "tif");
+    auto mini = smf->getMini();
+    if( ! mini.has_error() ){
+        mini.write("out_mini.png", OIIO::TypeUInt8, "png");
+    } else {
+        SPDLOG_ERROR( mini.geterror() );
+    }
 
     SPDLOG_INFO( "Extracting metal image" );
-    buf = smf->getMetal();
-    buf->write("out_metal.tif", OIIO::TypeUnknown, "tif");
+    auto metal = smf->getMetal();
+    if( ! metal.has_error() ){
+        metal.write("out_metal.tif", OIIO::TypeUnknown, "tif");
+    } else {
+        SPDLOG_ERROR( metal.geterror() );
+    }
 
     SPDLOG_INFO( "Extracting featureList" );
     file.open( "out_featuretypes.txt", std::ios::out );
@@ -155,11 +168,14 @@ main( int argc, char **argv )
     file << smf->getFeatures();
     file.close();
 
-    buf = smf->getGrass();
-    if( buf ){
-        SPDLOG_INFO( "Extracting grass image" );
-        buf->write("out_grass.tif", OIIO::TypeUnknown, "tif");
+    SPDLOG_INFO( "Extracting grass image" );
+    auto grass = smf->getGrass();
+    if( ! grass.has_error() ){
+        grass.write("out_grass.tif", OIIO::TypeUnknown, "tif");
+    } else {
+        SPDLOG_ERROR( grass.geterror() );
     }
+
     OIIO::shutdown();
     return 0;
 }
