@@ -7,7 +7,6 @@
 	* `std::string OIIO::ImageBufAlgo::computePixelHashSHA1(const ImageBuf &src, string_view extrainfo = "", [ROI](https://openimageio.readthedocs.io/en/latest/imageioapi.html#_CPPv4N4OIIO3ROIE "OIIO::ROI") roi = {}, int blocksize = 0, int nthreads = 0)`
 * TODO Test all the public interfaces
 * TODO Pessimise the code
-* TODO add json serialisation for output from info() function.
 
 ## Testing
 TODO: Make sure all tools  output 1 on any errors, eg.

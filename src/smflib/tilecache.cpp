@@ -96,7 +96,7 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
 
     std::unique_ptr<SMT> smt( SMT::open( filePath ) );
     if( smt ){
-        SPDLOG_INFO( smt->info() );
+        SPDLOG_INFO(smt->json().dump(4) );
         auto start = _numTiles; _numTiles += smt->getNumTiles();
         _sources.emplace_back(start, _numTiles - 1, TileSourceType::SMT, filePath.string() );
         return;
@@ -148,7 +148,7 @@ nlohmann::ordered_json TileCache::json() const {
     j["numSources"] = _sources.size();
     j["sources"] = nlohmann::json::array();
     std::for_each(_sources.begin(), _sources.end(), [&j](const auto & source){
-        j["sources"] += source.json();
+        j["sources"] += source.json().dump();
     });
     return j;
 }

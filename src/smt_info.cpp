@@ -64,7 +64,7 @@ int main( int argc, char **argv )
         shutdown(1);
     }
 
-    SPDLOG_INFO( smt->info() );
+    SPDLOG_INFO( smt->json().dump(4) );
     OIIO::shutdown();
     return 0;
 }

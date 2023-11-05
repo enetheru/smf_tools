@@ -5,6 +5,7 @@
 
 #include <OpenImageIO/imagebuf.h>
 #include <recoil/SMFFormat.h>
+#include <nlohmann/json.hpp>
 
 // Borrowing from OpenGL for texture compression formats for implementation
 #define GL_UNSIGNED_SHORT       0x1403
@@ -15,7 +16,7 @@
 class SMT {
 private:
     //! File Header
-    TileFileHeader header{"spring tilefile", 1, 0, 32, SMT_HCT_DXT1 };
+    TileFileHeader _header{"spring tilefile", 1, 0, 32, SMT_HCT_DXT1 };
 
     void calcTileBytes();
     uint32_t _tileBytes = 680; 
@@ -32,15 +33,12 @@ private:
     //FIXME UNUSED OIIO::ImageBuf *getTileUSHORT( uint32_t );
 
 public:
-    //FIXME Remove all these references.
     std::filesystem::path filePath = "output.smt";
 
-    [[nodiscard]] int getNumTiles() const{ return header.numTiles; }
-    [[nodiscard]] int getTileSize() const{ return header.tileSize; }
-    [[nodiscard]] int getTileType() const{ return header.compressionType; }
+    [[nodiscard]] int getNumTiles() const{ return _header.numTiles; }
+    [[nodiscard]] int getTileSize() const{ return _header.tileSize; }
+    [[nodiscard]] int getTileType() const{ return _header.compressionType; }
     [[nodiscard]] uint32_t getTileBytes() const{ return _tileBytes; }
-
-
 
     /*! File type test.
      *
@@ -59,7 +57,7 @@ public:
     static SMT *open  ( const std::filesystem::path& filePath );
 
     void reset( );
-    [[nodiscard]] std::string info() const;
+    [[nodiscard]] nlohmann::ordered_json json() const;
 
     void setTileSize( int size );
     void setType    ( int type ); // 1=DXT1

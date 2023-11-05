@@ -94,7 +94,7 @@ main( int argc, char **argv )
         SPDLOG_ERROR( "\nunable to open file" );
         shutdown ( 1 );
     }
-    SPDLOG_INFO( smt->info() );
+    SPDLOG_INFO(smt->json().dump(4) );
 
     std::fstream inFile( parse.nonOption( 0 ), std::ios::in );
     inFile.seekg( 0, std::ios::end );
