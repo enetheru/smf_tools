@@ -37,7 +37,7 @@ class IgnoreRestVisitor final : public Visitor {
 public:
     explicit IgnoreRestVisitor(CmdLineInterface &cmdLine)
         : cmdLine_(cmdLine) {}
-    void visit() { cmdLine_.beginIgnoring(); }
+    void visit() override { cmdLine_.beginIgnoring(); }
 
 private:
     CmdLineInterface &cmdLine_;

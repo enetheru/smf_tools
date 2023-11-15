@@ -46,21 +46,21 @@ public:
     /**
      * Destructor
      */
-    virtual ~CmdLineInterface() {}
+    ~CmdLineInterface() override = default;
 
     /**
      * Adds an argument. Ownership is not transfered.
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    virtual ArgContainer &add(Arg &a) = 0;
+    ArgContainer &add(Arg &a) override = 0;
 
     /**
      * Adds an argument. Ownership is not transfered.
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    virtual ArgContainer &add(Arg *a) = 0;
+    ArgContainer &add(Arg *a) override = 0;
 
     // TODO: Rename this to something smarter or refactor this logic so it's not needed.
     // Internal - do not use
@@ -101,34 +101,34 @@ public:
     /**
      * Returns the version string.
      */
-    virtual std::string getVersion() const = 0;
+    [[nodiscard]] virtual std::string getVersion() const = 0;
 
     /**
      * Returns the program name string.
      */
-    virtual std::string getProgramName() const = 0;
+    [[nodiscard]] virtual std::string getProgramName() const = 0;
 
     /**
      * Returns the list of ArgGroups.
      */
     virtual std::list<ArgGroup *> getArgGroups() = 0;
-    virtual std::list<Arg *> getArgList() const = 0;  // TODO: get rid of this
+    [[nodiscard]] virtual std::list<Arg *> getArgList() const = 0;  // TODO: get rid of this
 
     /**
      * Returns the delimiter string.
      */
-    virtual char getDelimiter() const = 0;
+    [[nodiscard]] virtual char getDelimiter() const = 0;
 
     /**
      * Returns the message string.
      */
-    virtual std::string getMessage() const = 0;
+    [[nodiscard]] virtual std::string getMessage() const = 0;
 
     /**
      * Indicates whether or not the help and version switches were created
      * automatically.
      */
-    virtual bool hasHelpAndVersion() const = 0;
+    [[nodiscard]] virtual bool hasHelpAndVersion() const = 0;
 
     /**
      * Resets the instance as if it had just been constructed so that the

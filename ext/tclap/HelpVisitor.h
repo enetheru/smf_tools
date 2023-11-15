@@ -34,11 +34,12 @@ namespace TCLAP {
  * object for the specified CmdLine object.
  */
 class HelpVisitor final : public Visitor {
+public:
     /**
      * Prevent accidental copying.
      */
-    HelpVisitor(const HelpVisitor &rhs);
-    HelpVisitor &operator=(const HelpVisitor &rhs);
+    HelpVisitor(const HelpVisitor &rhs) = delete;
+    HelpVisitor &operator=(const HelpVisitor &rhs) = delete;
 
 protected:
     /**

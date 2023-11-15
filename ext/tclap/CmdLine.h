@@ -25,11 +25,6 @@
 #ifndef TCLAP_CMD_LINE_H
 #define TCLAP_CMD_LINE_H
 
-#include <tclap/ValueArg.h>
-#include <tclap/MultiArg.h>
-#include <tclap/UnlabeledMultiArg.h>
-#include <tclap/UnlabeledValueArg.h>
-#include <tclap/MultiSwitchArg.h>
 #include <tclap/SwitchArg.h>
 
 #include <tclap/HelpVisitor.h>
@@ -37,9 +32,6 @@
 #include <tclap/VersionVisitor.h>
 
 #include <tclap/CmdLineOutput.h>
-#include <tclap/StdOutput.h>
-
-#include <tclap/ValuesConstraint.h>
 
 #include <tclap/ArgGroup.h>
 #include <tclap/DeferDelete.h>
@@ -47,6 +39,7 @@
 #include <cstdlib>
 #include <list>
 #include <string>
+#include <utility>
 #include <vector>
 #include <filesystem>
 
@@ -54,14 +47,14 @@ namespace TCLAP {
 
 class StandaloneArgs final : public AnyOf {
 public:
-    StandaloneArgs() {}
+    StandaloneArgs() = default;
 
-    ArgContainer &add(Arg *arg) {
+    ArgContainer &add(Arg *arg) override {
         for( const auto &it : *this ){
             if( *arg == *it ){
                 throw SpecificationException(
                     "Argument with same flag/name already exists!",
-                    arg->longID());
+                    arg->longID(""));
             }
         }
 
@@ -70,7 +63,7 @@ public:
         return *this;
     }
 
-    bool showAsGroup() const { return false; }
+    [[nodiscard]] bool showAsGroup() const override { return false; }
 };
 
 /**
@@ -130,11 +123,6 @@ protected:
     DeferDelete _deleteOnExit;
 
     /**
-     * Default output handler if nothing is specified.
-     */
-    StdOutput _defaultOutput;
-
-    /**
      * Object that handles all output for the CmdLine.
      */
     CmdLineOutput *_output;
@@ -157,13 +145,13 @@ protected:
      */
     static bool _emptyCombined(const std::string &s);
 
-private:
+public:
     /**
      * Prevent accidental copying.
      */
-    CmdLine(const CmdLine &rhs);
-    CmdLine &operator=(const CmdLine &rhs);
-
+    CmdLine(const CmdLine &rhs) = delete;
+    CmdLine &operator=(const CmdLine &rhs) = delete;
+private:
     /**
      * Encapsulates the code common to the constructors
      * (which is all of it).
@@ -198,15 +186,15 @@ public:
      * \param helpAndVersion - Whether or not to create the Help and
      * Version switches. Defaults to true.
      */
-    explicit CmdLine(const std::string& message,
+    explicit CmdLine(std::string  message,
                      char delimiter = ' ',
-                     const std::string& version = "none",
+                     std::string  version = "none",
                      bool helpAndVersion = true);
 
     /**
      * Deletes any resources allocated by a CmdLine object.
      */
-    virtual ~CmdLine() {}
+    ~CmdLine() override = default;
 
     /**
      * Adds an argument to the list of arguments to be parsed.
@@ -214,7 +202,7 @@ public:
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer &add(Arg &a);
+    ArgContainer &add(Arg &a) override;
 
     /**
      * An alternative add.  Functionally identical.
@@ -222,7 +210,7 @@ public:
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer &add(Arg *a);
+    ArgContainer &add(Arg *a) override;
 
     /**
      * Adds an argument group to the list of arguments to be parsed.
@@ -234,17 +222,17 @@ public:
      * @param args - Argument group to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer &add(ArgGroup &args);
+    ArgContainer &add(ArgGroup &args) override;
 
     // Internal, do not use
-    void addToArgList(Arg *a);
+    void addToArgList(Arg *a) override;
 
     /**
      * Parses the command line.
      * \param argc - Number of arguments.
      * \param argv - Array of arguments.
      */
-    void parse(int argc, const char *const *argv);
+    void parse(int argc, const char *const *argv) override;
 
     /**
      * Parses the command line.
@@ -254,23 +242,23 @@ public:
     // ReSharper disable once CppHidingFunction
     void parse(std::vector<std::string> &args);
 
-    void setOutput(CmdLineOutput *co);
+    void setOutput(CmdLineOutput *co) override;
 
-    std::string getVersion() const { return _version; }
+    [[nodiscard]] std::string getVersion() const override { return _version; }
 
-    std::string getProgramName() const { return _progName; }
+    [[nodiscard]] std::string getProgramName() const override { return _progName; }
 
     // TOOD: Get rid of getArgList
-    std::list<Arg *> getArgList() const { return _argList; }
-    std::list<ArgGroup *> getArgGroups() {
+    [[nodiscard]] std::list<Arg *> getArgList() const override { return _argList; }
+    std::list<ArgGroup *> getArgGroups() override {
         std::list<ArgGroup *> groups = _argGroups;
         groups.push_back(&_autoArgs);
         return groups;
     }
 
-    char getDelimiter() const { return _delimiter; }
-    std::string getMessage() const { return _message; }
-    bool hasHelpAndVersion() const { return _helpAndVersion; }
+    [[nodiscard]] char getDelimiter() const override { return _delimiter; }
+    [[nodiscard]] std::string getMessage() const override { return _message; }
+    [[nodiscard]] bool hasHelpAndVersion() const override { return _helpAndVersion; }
 
     /**
      * Disables or enables CmdLine's internal parsing exception handling.
@@ -285,12 +273,12 @@ public:
      * @retval true Parsing exceptions are handled internally.
      * @retval false Parsing exceptions are propagated to the caller.
      */
-    bool hasExceptionHandling() const { return _handleExceptions; }
+    [[nodiscard]] bool hasExceptionHandling() const { return _handleExceptions; }
 
     /**
      * Allows the CmdLine object to be reused.
      */
-    void reset();
+    void reset() override;
 
     /**
      * Allows unmatched args to be ignored. By default false.
@@ -300,17 +288,17 @@ public:
      */
     void ignoreUnmatched(bool ignore);
 
-    void beginIgnoring() { _ignoring = true; }
-    bool ignoreRest() { return _ignoring; }
+    void beginIgnoring() override { _ignoring = true; }
+    bool ignoreRest() override { return _ignoring; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Begin CmdLine.cpp
 ///////////////////////////////////////////////////////////////////////////////
 
-inline CmdLine::CmdLine(const std::string&message, const char delimiter, const std::string&version, const bool helpAndVersion)
-    : _argList(), _standaloneArgs(), _autoArgs(), _argGroups(), _progName("not_set_yet"), _message(message),
-    _version(version), _numRequired(0), _delimiter(delimiter), _deleteOnExit(), _defaultOutput(), _output(&_defaultOutput),
+inline CmdLine::CmdLine(std::string message, const char delimiter, std::string version, const bool helpAndVersion)
+    : _progName("not_set_yet"), _message(std::move(message)),
+    _version(std::move(version)), _numRequired(0), _delimiter(delimiter), _output(),
     _handleExceptions(true), _helpAndVersion(helpAndVersion), _ignoreUnmatched(false), _ignoring(false)
     { _constructor(); }
 
@@ -322,7 +310,7 @@ inline void CmdLine::_constructor() {
     // add(_autoArgs);
 
     Visitor*    v      = new IgnoreRestVisitor(*this);
-    SwitchArg * ignore = new SwitchArg(
+    auto * ignore = new SwitchArg(
         Arg::flagStartString(), Arg::ignoreNameString(),
         "Ignores the rest of the labeled arguments following this flag.", false,
         v);
@@ -333,13 +321,13 @@ inline void CmdLine::_constructor() {
 
     if (_helpAndVersion) {
         v = new HelpVisitor(this, &_output);
-        SwitchArg *help = new SwitchArg(
+        auto *help = new SwitchArg(
             "h", "help", "Displays usage information and exits.", false, v);
         _deleteOnExit(help);
         _deleteOnExit(v);
 
         v = new VersionVisitor(this, &_output);
-        SwitchArg *vers = new SwitchArg(
+        auto *vers = new SwitchArg(
             "", "version", "Displays version information and exits.", false, v);
         _deleteOnExit(vers);
         _deleteOnExit(v);
@@ -368,7 +356,7 @@ inline void CmdLine::addToArgList(Arg *a) {
     for(const auto arg : _argList ){
         if(*a == *arg){
             throw SpecificationException(
-                "Argument with same flag/name already exists!", a->longID());
+                "Argument with same flag/name already exists!", a->longID(""));
         }
     }
 
@@ -388,7 +376,7 @@ inline void CmdLine::parse(const int argc, const char *const * argv) {
     // this step is necessary so that we have easy access to
     // mutable strings.
     std::vector<std::string> args;
-    for (int i = 0; i < argc; i++) args.push_back(argv[i]);
+    for (int i = 0; i < argc; i++) args.emplace_back(argv[i]);
 
     parse(args);
 }
@@ -492,7 +480,7 @@ inline void CmdLine::parse(std::vector<std::string> &args) {
 }
 
 inline bool CmdLine::_emptyCombined(const std::string &s) {
-    if (s.length() > 0 && s[0] != Arg::flagStartChar()) return false;
+    if( !s.empty() && s[0] != Arg::flagStartChar()) return false;
 
     for (unsigned int i = 1; i < s.length(); i++)
         if (s[i] != Arg::blankChar()) return false;

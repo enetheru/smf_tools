@@ -31,17 +31,16 @@
 
 #include <tclap/ArgException.h>
 #include <tclap/ArgTraits.h>
-#include <tclap/CmdLineInterface.h>
 #include <tclap/StandardTraits.h>
 #include <tclap/Visitor.h>
 #include <tclap/sstream.h>
 
 #include <cstdio>
 #include <format>
-#include <iomanip>
 #include <iostream>
 #include <list>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace TCLAP {
@@ -52,16 +51,18 @@ namespace TCLAP {
  * anything.
  */
 class Arg {
+public:
  /**
      * Prevent accidental copying.
      */
-    Arg(const Arg &rhs);
+    Arg(const Arg &rhs) = delete;
 
     /**
      * Prevent accidental copying.
      */
-    Arg &operator=(const Arg &rhs);
+    Arg &operator=(const Arg &rhs) = delete;
 
+private:
     /**
      * The delimiter that separates an argument flag/name from the
      * value.
@@ -164,8 +165,8 @@ protected:
      * \param valreq - Whether the a value is required for the argument.
      * \param v - The visitor checked by the argument. Defaults to NULL.
      */
-    Arg(const std::string &flag, const std::string &name,
-        const std::string &desc, bool req, bool valreq, Visitor *v = nullptr);
+    Arg(std::string flag, std::string name,
+        std::string desc, bool req, bool valreq, Visitor *v = nullptr);
 
 public:
     /**
@@ -249,17 +250,17 @@ public:
     /**
      * Returns the argument flag.
      */
-    const std::string &getFlag() const;
+    [[nodiscard]] const std::string &getFlag() const;
 
     /**
      * Returns the argument name.
      */
-    const std::string &getName() const;
+    [[nodiscard]] const std::string &getName() const;
 
     /**
      * Returns the argument description.
      */
-    std::string getDescription() const { return getDescription(_required); }
+    [[nodiscard]] std::string getDescription() const { return getDescription(_required); }
 
     /**
      * Returns the argument description.
@@ -267,35 +268,35 @@ public:
      * @param required if the argument should be treated as
      * required when described.
      */
-    std::string getDescription(const bool required) const {
+    [[nodiscard]] std::string getDescription(const bool required) const {
         return (required ? "(" + _requireLabel + ") " : "") + _description;
     }
 
     /**
      * Indicates whether the argument is required.
      */
-    virtual bool isRequired() const;
+    [[nodiscard]] virtual bool isRequired() const;
 
     /**
      * Indicates whether a value must be specified for argument.
      */
-    bool isValueRequired() const;
+    [[nodiscard]] bool isValueRequired() const;
 
     /**
      * Indicates whether the argument has already been set.  Only true
      * if the arg has been matched on the command line.
      */
-    bool isSet() const;
+    [[nodiscard]] bool isSet() const;
 
     /**
      * Returns the value specified to set this flag (like -a or --all).
      */
-    const std::string &setBy() const { return _setBy; }
+    [[nodiscard]] const std::string &setBy() const { return _setBy; }
 
     /**
      * Indicates whether the argument can be ignored, if desired.
      */
-    bool isIgnoreable() const;
+    [[nodiscard]] bool isIgnoreable() const;
 
     /**
      * A method that tests whether a string matches this argument.
@@ -305,25 +306,25 @@ public:
      * \param argFlag - The string to be compared to the flag/name to determine
      * whether the arg matches.
      */
-    virtual bool argMatches(const std::string &argFlag) const;
+    [[nodiscard]] virtual bool argMatches(const std::string &argFlag) const;
 
     /**
      * Returns a simple string representation of the argument.
      * Primarily for debugging.
      */
-    virtual std::string toString() const;
+    [[nodiscard]] virtual std::string toString() const;
 
     /**
      * Returns a short ID for the usage.
      * \param valueId - The value used in the id.
      */
-    virtual std::string shortID(const std::string &valueId = "val") const;
+    [[nodiscard]] virtual std::string shortID(const std::string &valueId ) const;
 
     /**
      * Returns a long ID for the usage.
      * \param valueId - The value used in the id.
      */
-    virtual std::string longID(const std::string &valueId = "val") const;
+    [[nodiscard]] virtual std::string longID(const std::string &valueId) const;
 
     /**
      * Trims a value off of the flag.
@@ -340,7 +341,7 @@ public:
      * false.
      * \param s - string to be checked.
      */
- static bool _hasBlanks(const std::string &s);
+    static bool _hasBlanks(const std::string &s);
 
     /**
      * Used for MultiArgs to determine whether args can still be
@@ -364,14 +365,14 @@ public:
      * Hide this argument from the help output (e.g., when
      * specifying the --help flag or on error.
      */
-    virtual void hideFromHelp(const bool hide = true) { _visibleInHelp = !hide; }
+    virtual void hideFromHelp(const bool hide) { _visibleInHelp = !hide; }
 
     /**
      * Returns true if this Arg is visible in the help output.
      */
-    virtual bool visibleInHelp() const { return _visibleInHelp; }
+    [[nodiscard]] virtual bool visibleInHelp() const { return _visibleInHelp; }
 
-    virtual bool hasLabel() const { return true; }
+    [[nodiscard]] virtual bool hasLabel() const { return true; }
 };
 
 /**
@@ -396,7 +397,7 @@ typedef std::list<Visitor *>::const_iterator VisitorListIterator;
  * ValueLike traits use operator>> to assign the value from strVal.
  */
 template <typename T>
-void ExtractValue(T &destVal, const std::string &strVal, const ValueLike vl) {
+void ExtractValue(T &destVal, const std::string &strVal, const ValueLike &vl) {
     static_cast<void>(vl);  // Avoid warning about unused vl
     istringstream is(strVal.c_str());
 
@@ -428,7 +429,7 @@ void ExtractValue(T &destVal, const std::string &strVal, const ValueLike vl) {
  * StringLike uses assignment (operator=) to assign from strVal.
  */
 template <typename T>
-void ExtractValue(T &destVal, const std::string &strVal, const StringLike sl) {
+void ExtractValue(T &destVal, const std::string &strVal, const StringLike &sl) {
     static_cast<void>(sl);  // Avoid warning about unused sl
     SetString(destVal, strVal);
 }
@@ -437,10 +438,10 @@ void ExtractValue(T &destVal, const std::string &strVal, const StringLike sl) {
 // BEGIN Arg.cpp
 //////////////////////////////////////////////////////////////////////
 
-inline Arg::Arg(const std::string& flag, const std::string& name, const std::string& desc, const bool req,
+inline Arg::Arg(std::string  flag, std::string  name, std::string  desc, const bool req,
                 const bool valreq, Visitor* v)
- : _flag(flag), _name(name), _description(desc), _required(req), _requireLabel("required"),
-   _valueRequired(valreq), _alreadySet(false), _setBy(), _visitor(v), _ignoreable(true), _acceptsMultipleValues(false),
+ : _flag(std::move(flag)), _name(std::move(name)), _description(std::move(desc)), _required(req), _requireLabel("required"),
+   _valueRequired(valreq), _alreadySet(false), _visitor(v), _ignoreable(true), _acceptsMultipleValues(false),
    _visibleInHelp(true)
 {
  if (_flag.length() > 1)
@@ -456,7 +457,7 @@ inline Arg::Arg(const std::string& flag, const std::string& name, const std::str
 
  if (_name.substr(0, flagStartString().length()) == flagStartString() ||
   _name.substr(0, nameStartString().length()) == nameStartString() ||
-  _name.find(" ", 0) != std::string::npos)
+  _name.find(' ', 0) != std::string::npos)
   throw SpecificationException(
    std::format("Argument name begin with either '{}' or '{}' or space.", flagStartString(), nameStartString()),
    Arg::toString());
@@ -473,8 +474,8 @@ inline std::string Arg::shortID(const std::string&valueId) const {
  return id;
 }
 
-inline std::string Arg::longID( const std::string &valueId ) const {
-    std::string id = "";
+inline std::string Arg::longID( const std::string &valueId  ) const {
+    std::string id;
 
     if( ! _flag.empty() ) {
         id += flagStartString() + _flag;

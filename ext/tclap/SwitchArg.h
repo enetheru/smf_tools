@@ -26,6 +26,7 @@
 #define TCLAP_SWITCH_ARG_H
 
 #include <tclap/Arg.h>
+#include <tclap/ArgContainer.h>
 
 #include <string>
 #include <vector>
@@ -91,7 +92,7 @@ public:
      * \param args - Mutable list of strings. Passed
      * in from main().
      */
-    virtual bool processArg(int *i, std::vector<std::string> &args);
+    bool processArg(int *i, std::vector<std::string> &args) override;
 
     /**
      * Checks a string to see if any of the chars in the string
@@ -103,7 +104,7 @@ public:
      * Returns bool, whether or not the switch has been set.
      */
     // ReSharper disable once CppHiddenFunction
-    bool getValue() const { return _value; }
+    [[nodiscard]] bool getValue() const { return _value; }
 
     /**
      * A SwitchArg can be used as a boolean, indicating
@@ -111,9 +112,9 @@ public:
      * same as calling getValue()
      */
     // ReSharper disable once CppNonExplicitConversionOperator
-    operator bool() const { return _value; }
+    explicit operator bool() const { return _value; }
 
-    virtual void reset();
+    void reset() override;
 
 private:
     /**
@@ -155,7 +156,7 @@ inline bool SwitchArg::lastCombined(const std::string &combinedSwitches) {
 
 inline bool SwitchArg::combinedSwitchesMatch(std::string &combinedSwitches) {
     // make sure this is actually a combined switch
-    if (combinedSwitches.length() > 0 &&
+    if (!combinedSwitches.empty() &&
         combinedSwitches[0] != flagStartString()[0])
         return false;
 
@@ -170,7 +171,7 @@ inline bool SwitchArg::combinedSwitchesMatch(std::string &combinedSwitches) {
     // ok, we're not specifying a ValueArg, so we know that we have
     // a combined switch list.
     for (unsigned int i = 1; i < combinedSwitches.length(); i++) {
-        if (_flag.length() > 0 && combinedSwitches[i] == _flag[0] &&
+        if (!_flag.empty() && combinedSwitches[i] == _flag[0] &&
             _flag[0] != flagStartString()[0]) {
             // update the combined switches so this one is no longer
             // present this is necessary so that no unlabeled args are

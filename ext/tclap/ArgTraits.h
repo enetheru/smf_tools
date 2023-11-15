@@ -38,7 +38,7 @@ namespace TCLAP {
  */
 struct ValueLike {
     typedef ValueLike ValueCategory;
-    virtual ~ValueLike() {}
+    virtual ~ValueLike() = default;
 };
 
 /**
@@ -47,7 +47,7 @@ struct ValueLike {
  * will be broken up into individual tokens by operator>>.
  */
 struct StringLike {
-    virtual ~StringLike() {}
+    virtual ~StringLike() = default;
 };
 
 /**
@@ -57,7 +57,7 @@ struct StringLike {
  */
 struct StringLikeTrait {
     typedef StringLike ValueCategory;
-    virtual ~StringLikeTrait() {}
+    virtual ~StringLikeTrait() = default;
 };
 
 /**
@@ -67,7 +67,7 @@ struct StringLikeTrait {
  */
 struct ValueLikeTrait {
     typedef ValueLike ValueCategory;
-    virtual ~ValueLikeTrait() {}
+    virtual ~ValueLikeTrait() = default;
 };
 
 /**

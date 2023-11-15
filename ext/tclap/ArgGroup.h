@@ -45,13 +45,13 @@ public:
     using std::vector<Arg *>::iterator;
     using std::vector<Arg *>::const_iterator;
 
-    virtual ~ArgGroup() {}
+    ~ArgGroup() override = default;
 
     /// Add an argument to this arg group
-    virtual ArgContainer &add(Arg &arg) { return add(&arg); }
+    ArgContainer &add(Arg &arg) override { return add(&arg); }
 
     /// Add an argument to this arg group
-    virtual ArgContainer &add(Arg *arg);
+    ArgContainer &add(Arg *arg) override;
 
     /**
      * Validates that the constraints of the ArgGroup are satisfied.
@@ -69,7 +69,7 @@ public:
      *
      * @internal
      */
-    virtual bool isRequired() const = 0;
+    [[nodiscard]] virtual bool isRequired() const = 0;
 
     /**
      * Returns true if this argument group is exclusive.
@@ -78,7 +78,7 @@ public:
      * Being exclusive means there is a constraint so that some
      * arguments cannot be selected at the same time.
      */
-    virtual bool isExclusive() const = 0;
+    [[nodiscard]] virtual bool isExclusive() const = 0;
 
     /**
      * Used by the parser to connect itself to this arg group.
@@ -102,18 +102,18 @@ public:
     /**
      * If arguments in this group should show up as grouped in help.
      */
-    virtual bool showAsGroup() const { return true; }
+    [[nodiscard]] virtual bool showAsGroup() const { return true; }
 
     /// Returns the argument group's name.
-    virtual std::string getName() const;
+    [[nodiscard]] virtual std::string getName() const;
 
 protected:
     // No direct instantiation
     ArgGroup() : vector(), _parser(nullptr) {}
 
-private:
-    explicit ArgGroup(const ArgGroup &);
-    ArgGroup &operator=(const ArgGroup &);  // no copy
+public:
+    ArgGroup(const ArgGroup &) = delete;
+    ArgGroup &operator=(const ArgGroup &) = delete;  // no copy
 
 protected:
     CmdLineInterface *_parser;
@@ -126,21 +126,21 @@ protected:
  */
 class ExclusiveArgGroup : public ArgGroup {
 public:
-    inline bool validate();
-    bool isExclusive() const { return true; }
-    ArgContainer &add(Arg &arg) { return add(&arg); }
-    ArgContainer &add(Arg *arg) {
+    inline bool validate() override;
+    [[nodiscard]] bool isExclusive() const override { return true; }
+    ArgContainer &add(Arg &arg) override { return add(&arg); }
+    ArgContainer &add(Arg *arg) override {
         if (arg->isRequired()) {
             throw SpecificationException(
                 "Required arguments are not allowed in an exclusive grouping.",
-                arg->longID());
+                arg->longID(""));
         }
 
         return ArgGroup::add(arg);
     }
 
 protected:
-    ExclusiveArgGroup() {}
+    ExclusiveArgGroup() = default;
     explicit ExclusiveArgGroup(CmdLineInterface &parser) { parser.add(*this); }
 };
 
@@ -149,10 +149,10 @@ protected:
  */
 class EitherOf final : public ExclusiveArgGroup {
 public:
-    EitherOf() {}
+    EitherOf() = default;
     explicit EitherOf(CmdLineInterface &parser) : ExclusiveArgGroup(parser) {}
 
-    bool isRequired() const { return false; }
+    [[nodiscard]] bool isRequired() const override { return false; }
 };
 
 /**
@@ -161,10 +161,10 @@ public:
  */
 class OneOf final : public ExclusiveArgGroup {
 public:
-    OneOf() {}
+    OneOf() = default;
     explicit OneOf(CmdLineInterface &parser) : ExclusiveArgGroup(parser) {}
 
-    bool isRequired() const { return true; }
+    [[nodiscard]] bool isRequired() const override { return true; }
 };
 
 /**
@@ -175,19 +175,19 @@ public:
  */
 class AnyOf : public ArgGroup {
 public:
-    AnyOf() {}
+    AnyOf() = default;
     explicit AnyOf(CmdLineInterface &parser) { parser.add(*this); }
 
-    bool validate() { return false; /* All good */ }
-    bool isExclusive() const { return false; }
-    bool isRequired() const { return false; }
+    bool validate() override { return false; /* All good */ }
+    [[nodiscard]] bool isExclusive() const override { return false; }
+    [[nodiscard]] bool isRequired() const override { return false; }
 };
 
 inline ArgContainer &ArgGroup::add(Arg *arg) {
     auto find_func = [&arg](const Arg *existing){return *existing == *arg;};
     if( std::ranges::find_if(*this, find_func ) != this->end() ) {
         throw SpecificationException(
-                "Argument with same flag/name already exists!", arg->longID());
+                "Argument with same flag/name already exists!", arg->longID(""));
     }
 
     push_back(arg);

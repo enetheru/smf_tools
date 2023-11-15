@@ -27,8 +27,10 @@
 
 #include <tclap/Arg.h>
 #include <tclap/Constraint.h>
+#include <tclap/ArgContainer.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace TCLAP {
@@ -42,7 +44,7 @@ namespace TCLAP {
  * Instead use an UnlabeledValueArg.
  */
 template <class T>
-class ValueArg : public Arg {
+class ValueArg final : public Arg {
 protected:
     /**
      * The value parsed from the command line.
@@ -105,7 +107,7 @@ public:
      */
     ValueArg(const std::string &flag, const std::string &name,
              const std::string &desc, bool req, T val,
-             const std::string &typeDesc, Visitor *v = nullptr);
+             std::string typeDesc, Visitor *v = nullptr);
 
     /**
      * Labeled ValueArg constructor.
@@ -133,7 +135,7 @@ public:
      */
     ValueArg(const std::string &flag, const std::string &name,
              const std::string &desc, bool req, T val,
-             const std::string &typeDesc, ArgContainer &parser,
+             std::string typeDesc, ArgContainer &parser,
              Visitor *v = nullptr);
 
     /**
@@ -197,7 +199,7 @@ public:
      * \param args - Mutable list of strings. Passed
      * in from main().
      */
-    virtual bool processArg(int *i, std::vector<std::string> &args);
+    bool processArg(int *i, std::vector<std::string> &args) override;
 
     /**
      * Returns the value of the argument.
@@ -209,23 +211,22 @@ public:
      * same as calling getValue()
      */
     // ReSharper disable once CppNonExplicitConversionOperator
-    operator const T &() const { return getValue(); }
+    explicit operator const T &() const { return getValue(); }
 
     /**
      * Specialization of shortID.
      * \param val - value to be used.
      */
-    virtual std::string shortID(const std::string &val = "val") const;
+    [[nodiscard]] std::string shortID(const std::string &val) const override;
 
     /**
      * Specialization of longID.
      * \param val - value to be used.
      */
-    virtual std::string longID(const std::string &val = "val") const;
+    [[nodiscard]] std::string longID(const std::string &val) const override;
 
-    virtual void reset();
+    void reset() override;
 
-private:
     /**
      * Prevent accidental copying
      */
@@ -239,22 +240,22 @@ private:
 template <class T>
 ValueArg<T>::ValueArg(const std::string &flag, const std::string &name,
                       const std::string &desc, const bool         req, T val,
-                      const std::string &typeDesc, Visitor *      v)
+                      std::string typeDesc, Visitor *      v)
     : Arg(flag, name, desc, req, true, v),
       _value(val),
       _default(val),
-      _typeDesc(typeDesc),
+      _typeDesc(std::move(typeDesc)),
       _constraint(nullptr) {}
 
 template <class T>
 ValueArg<T>::ValueArg(const std::string &flag, const std::string &name,
                       const std::string &desc, const bool         req, T val,
-                      const std::string &typeDesc, ArgContainer & parser,
+                      std::string typeDesc, ArgContainer & parser,
                       Visitor *          v)
     : Arg(flag, name, desc, req, true, v),
       _value(val),
       _default(val),
-      _typeDesc(typeDesc),
+      _typeDesc(std::move(typeDesc)),
       _constraint(nullptr) {
     parser.add(this);
 }
@@ -291,7 +292,7 @@ bool ValueArg<T>::processArg(int *i, std::vector<std::string> &args) {
 
     std::string flag = args[*i];
 
-    std::string value = "";
+    std::string value;
     trimFlag(flag, value);
 
     if (argMatches(flag)) {
@@ -299,11 +300,11 @@ bool ValueArg<T>::processArg(int *i, std::vector<std::string> &args) {
             throw CmdLineParseException("Argument already set!", toString());
         }
 
-        if (delimiter() != ' ' && value == "")
+        if (delimiter() != ' ' && value.empty())
             throw ArgParseException(
                 "Couldn't find delimiter for this argument!", toString());
 
-        if (value == "") {
+        if (value.empty()) {
             (*i)++;
             if (static_cast<unsigned int>(*i) < args.size())
                 _extractValue(args[*i]);

@@ -26,6 +26,7 @@
 
 #include <exception>
 #include <string>
+#include <utility>
 
 namespace TCLAP {
 
@@ -42,34 +43,34 @@ public:
      * \param td - Text describing the type of ArgException it is.
      * of the exception.
      */
-    explicit ArgException(const std::string &text = "undefined exception",
-                          const std::string &id   = "undefined",
-                          const std::string &td   = "Generic ArgException")
-        : _errorText(text),
-          _argId(id),
-          _typeDescription(td) {}
+    explicit ArgException(std::string text = "undefined exception",
+                          std::string id   = "undefined",
+                          std::string td   = "Generic ArgException")
+        : _errorText(std::move(text)),
+          _argId(std::move(id)),
+          _typeDescription(std::move(td)) {}
 
     /**
      * Destructor.
      */
-    virtual ~ArgException() throw() {}
+    ~ArgException() noexcept override = default;
 
     /**
      * Returns the error text.
      */
-    std::string error() const { return _errorText; }
+    [[nodiscard]] std::string error() const { return _errorText; }
 
     /**
      * Returns the argument id.
      */
-    std::string argId() const {
+    [[nodiscard]] std::string argId() const {
      return _argId == "undefined" ? " " : "Argument: " + _argId;
     }
 
     /**
      * Returns the arg id and error text.
      */
-    const char *what() const throw() {
+    [[nodiscard]] const char *what() const noexcept override {
         static std::string ex;
         ex = _argId + " -- " + _errorText;
         return ex.c_str();
@@ -79,7 +80,7 @@ public:
      * Returns the type of the exception.  Used to explain and distinguish
      * between different child exceptions.
      */
-    std::string typeDescription() const { return _typeDescription; }
+    [[nodiscard]] std::string typeDescription() const { return _typeDescription; }
 
 private:
     /**
@@ -166,7 +167,7 @@ class ExitException final : std::exception {
 public:
     explicit ExitException(const int estat) : _estat(estat) {}
 
-    int getExitStatus() const { return _estat; }
+    [[nodiscard]] int getExitStatus() const { return _estat; }
 
 private:
     int _estat;

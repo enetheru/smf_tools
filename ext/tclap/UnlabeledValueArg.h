@@ -27,6 +27,7 @@
 
 #include <tclap/OptionalUnlabeledTracker.h>
 #include <tclap/ValueArg.h>
+#include <tclap/CmdLineInterface.h>
 
 #include <list>
 #include <string>
