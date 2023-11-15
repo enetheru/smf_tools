@@ -72,7 +72,6 @@ main( int argc, char **argv )
     using TCLAP::RangeInclusive;
     using TCLAP::Visitor;
 
-
     Visitor my_visitor = [&](const TCLAP::Arg &arg) { fmt::println("MyVisitor has been visited when evaluating {}", arg.getName() ); };
     auto my_constraint = std::make_shared<RangeInclusive>( -5, 5);
 

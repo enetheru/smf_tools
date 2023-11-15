@@ -28,7 +28,6 @@
 #include <tclap/CmdLineOutput.h>
 
 #include <tclap/ArgGroup.h>
-#include <tclap/DeferDelete.h>
 
 #include <cstdlib>
 #include <list>
@@ -111,13 +110,6 @@ protected:
      * from the value.  Defaults to ' ' (space).
      */
     char _delimiter;
-
-    /**
-     * Add pointers that should be deleted as part of cleanup when
-     * this object is destroyed.
-     * @internal.
-     */
-    DeferDelete _deleteOnExit;
 
     /**
      * Object that handles all output for the CmdLine.
