@@ -23,6 +23,8 @@
 #define TCLAP_VISITOR_H
 
 namespace TCLAP {
+class Arg;
+
 /**
  * A base class that defines the interface for visitors.
  */
@@ -42,7 +44,7 @@ public:
      * This method (to implemented by children) will be
      * called when the visitor is visited.
      */
-    virtual void visit() = 0;
+    virtual void visit( const Arg * ) = 0;
 };
 } // namespace TCLAP
 

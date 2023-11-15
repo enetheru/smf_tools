@@ -35,7 +35,7 @@ public:
     explicit IgnoreRestVisitor( CmdLineInterface& cmdLine )
         : cmdLine_( cmdLine ) {}
 
-    void visit() override { cmdLine_.beginIgnoring(); }
+    void visit( const Arg *arg ) override { cmdLine_.beginIgnoring(); }
 
 private:
     CmdLineInterface& cmdLine_;

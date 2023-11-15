@@ -523,7 +523,7 @@ inline std::string Arg::toString() const {
 }
 
 inline void Arg::_checkWithVisitor() const {
-    if( _visitor != nullptr ) _visitor->visit();
+    if( _visitor != nullptr ) _visitor->visit( this );
 }
 
 /**

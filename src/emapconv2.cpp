@@ -38,7 +38,7 @@ namespace TCLAP
     class MyVisitor final : public Visitor
     {
     public:
-        void visit() override { fmt::println("MyVisitor has been visited"); }
+        void visit(const Arg *arg) override { fmt::println("MyVisitor has been visited when evaluating {}", arg->getName() ); }
         ~MyVisitor() override = default;
     };
 

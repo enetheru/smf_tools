@@ -25,9 +25,7 @@
 
 #include <tclap/SwitchArg.h>
 
-#include <tclap/HelpVisitor.h>
 #include <tclap/IgnoreRestVisitor.h>
-#include <tclap/VersionVisitor.h>
 
 #include <tclap/CmdLineOutput.h>
 
@@ -76,7 +74,6 @@ protected:
     std::list< Arg* > _argList;
 
     StandaloneArgs _standaloneArgs;
-    StandaloneArgs _autoArgs; // --help, --version, etc
 
     /**
      * Some args have set constraints on them (i.e., exactly or at
@@ -251,7 +248,6 @@ public:
 
     std::list< ArgGroup* > getArgGroups() override {
         std::list< ArgGroup* > groups = _argGroups;
-        groups.push_back( &_autoArgs );
         return groups;
     }
 
@@ -306,8 +302,6 @@ inline void CmdLine::_constructor() {
     Arg::setDelimiter( _delimiter );
 
     add( _standaloneArgs );
-    _autoArgs.setParser( *this );
-    // add(_autoArgs);
 
     Visitor* v = new IgnoreRestVisitor( *this );
     auto* ignore = new SwitchArg(
@@ -316,29 +310,7 @@ inline void CmdLine::_constructor() {
         v );
     _deleteOnExit( ignore );
     _deleteOnExit( v );
-    _autoArgs.add( ignore );
     addToArgList( ignore );
-
-    if( _helpAndVersion ) {
-        v = new HelpVisitor( this, &_output );
-        auto* help = new SwitchArg(
-            "h", "help", "Displays usage information and exits.", false, v );
-        _deleteOnExit( help );
-        _deleteOnExit( v );
-
-        v = new VersionVisitor( this, &_output );
-        auto* vers = new SwitchArg(
-            "", "version", "Displays version information and exits.", false, v );
-        _deleteOnExit( vers );
-        _deleteOnExit( v );
-
-        // A bit of a hack on the order to make tests easier to fix,
-        // to be reverted
-        _autoArgs.add( vers );
-        addToArgList( vers );
-        _autoArgs.add( help );
-        addToArgList( help );
-    }
 }
 
 inline ArgContainer& CmdLine::add( ArgGroup& args ) {
