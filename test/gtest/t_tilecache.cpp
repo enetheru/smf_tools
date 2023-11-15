@@ -25,16 +25,15 @@
 TEST( tilecache, default_constructor ) {
     TileCache tilecache;
     EXPECT_EQ( tilecache.getNumTiles(), 0);
-    EXPECT_FALSE( tilecache.getTile(0).has_value() );
+    EXPECT_FALSE( tilecache.getTile(0).initialized() );
 }
 
 TEST( tilecache, add_image ) {
     TileCache tileCache;
     tileCache.addSource( (testPath / "image_1.png").make_preferred() );
     ASSERT_EQ( tileCache.getNumTiles(), 1 );
-    auto maybeTile = tileCache.getTile(0);
-    ASSERT_TRUE( maybeTile.has_value() );
-    auto imageBuf = maybeTile.value();
+    auto imageBuf = tileCache.getTile(0);
+    ASSERT_TRUE( imageBuf.initialized() );
     SPDLOG_INFO("imageBuf.name(): {}", std::string(imageBuf.name()) );
     imageBuf.read();
 
@@ -48,9 +47,8 @@ TEST( tilecache, add_smt ) {
     TileCache tileCache;
     tileCache.addSource( (testPath / "data.smt").make_preferred() );
     ASSERT_EQ( tileCache.getNumTiles(), 4018 );
-    auto maybeTile = tileCache.getTile(0);
-    ASSERT_TRUE( maybeTile.has_value() );
-    auto imageBuf = maybeTile.value();
+    auto imageBuf = tileCache.getTile(0);
+    ASSERT_TRUE( imageBuf.initialized() );
     SPDLOG_INFO("imageBuf.name(): {}", std::string(imageBuf.name()) );
     imageBuf.read();
 
@@ -64,9 +62,8 @@ TEST( tilecache, add_smf ) {
     TileCache tileCache;
     tileCache.addSource( (testPath / "data.smf").make_preferred() );
     ASSERT_EQ( tileCache.getNumTiles(), 4018 );
-    auto maybeTile = tileCache.getTile(0);
-    ASSERT_TRUE( maybeTile.has_value() );
-    auto imageBuf = maybeTile.value();
+    auto imageBuf = tileCache.getTile(0);
+    ASSERT_TRUE( imageBuf.initialized() );
     SPDLOG_INFO("imageBuf.name(): {}", std::string(imageBuf.name()) );
     imageBuf.read();
 

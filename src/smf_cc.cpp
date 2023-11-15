@@ -60,14 +60,14 @@ const option::Descriptor usage[] = {
                                                            "\tWidth and length of map, in spring map units eg. '--mapsize=4x4',"
                                                            "must be multiples of two."},
 
-        {TILESIZE, 0,  "",      "tilesize", Arg::Numeric,  "\t--tilesize=X"
+        {TILESIZE, 0,  "",      "tilesize", Arg::Integer, "\t--tilesize=X"
                                                            "\tSize of tiles, in pixels eg. '--tilesize=32',"
                                                            "must be multiples of 4."},
 
-        {FLOOR,    0,  "y",     "floor",    Arg::Numeric,  "  -y,  \t--floor=1.0f"
+        {FLOOR,    0,  "y",     "floor",    Arg::Integer, "  -y,  \t--floor=1.0f"
                                                            "\tMinimum height of the map."},
 
-        {CEILING,  0,  "Y",     "ceiling",  Arg::Numeric,  "  -Y,  \t--ceiling=1.0f"
+        {CEILING,  0,  "Y",     "ceiling",  Arg::Integer, "  -Y,  \t--ceiling=1.0f"
                                                            "\tMaximum height of the map."},
 
         {HEIGHT,   0,  "",      "height",   Arg::File,     "\t--height=height.tif"

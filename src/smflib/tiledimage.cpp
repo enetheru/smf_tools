@@ -11,7 +11,7 @@
 // CONSTRUCTORS
 // ============
 TiledImage::TiledImage(const OIIO::ImageSpec& imageSpec, uint32_t tileWidth, uint32_t tileHeight, uint32_t tileOverlap )
-    : _imageSpec( imageSpec ), _tileWidth( tileWidth ), _tileHeight( tileHeight ), _tileOverlap( tileOverlap ) {
+    : _tileWidth( tileWidth ), _tileHeight( tileHeight ), _tileOverlap( tileOverlap ), _imageSpec( imageSpec ) {
     _tileMap.setSize( imageSpec.width / (tileWidth - tileOverlap), imageSpec.height / (tileHeight - tileOverlap) );
 }
 
@@ -22,21 +22,9 @@ TiledImage::TiledImage( TileCache tileCache, const TileMap& tileMap ):
     SPDLOG_INFO( "TileMap: {}", _tileMap.json().dump(4) );
     // How to get the tile size, and the imageSpec from these?
     auto imageBuf = _tileCache.getTile(1);
-    _imageSpec = imageBuf->spec();
+    _imageSpec = imageBuf.spec();
     _tileWidth = _imageSpec.width;
     _tileHeight = _imageSpec.height;
-}
-
-//FIXME function can error but does not notify the caller.
-void
-TiledImage::squareFromCache( ) {
-    if( !_tileCache.getNumTiles() ){
-        SPDLOG_CRITICAL("tileCache has no tiles");
-        return;
-    }
-    auto square = (uint32_t)sqrt(_tileCache.getNumTiles());
-    _tileMap.setSize(square, square );
-    _tileMap.consecutive();
 }
 
 // ACCESS
@@ -97,7 +85,7 @@ TiledImage::getRegion( const OIIO::ROI &roi ) {
             if(index >= _tileCache.getNumTiles() ){
                 currentTile.reset( tileSpec );
             } else {
-                currentTile = _tileCache.getTile(index).value();
+                currentTile = _tileCache.getTile(index);
                 // A possibility exists that the tile cache will give us a tile that
                 // has dimensions other than expected. So let's check and scale.
                 //currentTile = fix_scale( std::move( currentTile ), _tSpec );

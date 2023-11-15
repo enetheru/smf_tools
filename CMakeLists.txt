@@ -7,6 +7,7 @@ option( BUILD_DOCS "Whether or not to build the documentation" OFF )
 option( BUILD_TESTS "Test" ON )
 option( BUILD_PACKAGES "Build Packages" OFF )
 option( DEBUG_IMG "Output debug images, warning there are lots of them :)" OFF )
+set( IINFO_PATH "C:/" CACHE FILEPATH "OpenImageIO iinfo.exe path for when performing testing" )
 
 # Configuration
 # =============
@@ -38,6 +39,8 @@ find_package( libjpeg-turbo REQUIRED )
 find_package( spdlog REQUIRED HINTS C:/src/spdlog/cmake-build-debug/lib/cmake/spdlog )
 find_package( nlohmann_json 3.2.0 REQUIRED HINTS C:/src/json/cmake-build-debug)
 find_package( libsquish REQUIRED HINTS C:/src/libsquish/cmake-build-debug/lib/cmake/libsquish )
+
+set( TCLAP_INCLUDES ${CMAKE_SOURCE_DIR}/ext )
 
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 

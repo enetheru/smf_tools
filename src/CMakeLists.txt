@@ -35,13 +35,28 @@ target_include_directories( mapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparse
 target_link_libraries( mapconv smflib -static )
 target_link_options( mapconv PUBLIC "LINKER:--allow-multiple-definition")
 
-INSTALL(PROGRAMS
-    ${CMAKE_CURRENT_BINARY_DIR}/smf_cc
-    ${CMAKE_CURRENT_BINARY_DIR}/smf_decc
-    ${CMAKE_CURRENT_BINARY_DIR}/smf_info
-    ${CMAKE_CURRENT_BINARY_DIR}/smt_convert
-    ${CMAKE_CURRENT_BINARY_DIR}/smt_info
-    ${CMAKE_CURRENT_BINARY_DIR}/smt_repair
-    ${CMAKE_CURRENT_SOURCE_DIR}/makemap.sh
-    ${CMAKE_CURRENT_SOURCE_DIR}/mapconv
-           DESTINATION bin)
+add_executable( emapconv
+        emapconv.cpp
+        emapconv_args.h)
+target_include_directories( emapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser ${TCLAP_INCLUDES} )
+target_link_libraries( emapconv smflib -static )
+target_link_options( emapconv PUBLIC "LINKER:--allow-multiple-definition")
+
+add_executable( emapconv2 emapconv2.cpp )
+target_compile_features( emapconv2 PUBLIC cxx_std_23 )
+target_include_directories( emapconv2 PRIVATE ${TCLAP_INCLUDES} )
+target_link_libraries( emapconv2 -static spdlog::spdlog )
+# target_link_options( emapconv2 PUBLIC "LINKER:--allow-multiple-definition")
+
+INSTALL(
+        PROGRAMS
+        ${CMAKE_CURRENT_BINARY_DIR}/smf_cc
+        ${CMAKE_CURRENT_BINARY_DIR}/smf_decc
+        ${CMAKE_CURRENT_BINARY_DIR}/smf_info
+        ${CMAKE_CURRENT_BINARY_DIR}/smt_convert
+        ${CMAKE_CURRENT_BINARY_DIR}/smt_info
+        ${CMAKE_CURRENT_BINARY_DIR}/smt_repair
+        ${CMAKE_CURRENT_SOURCE_DIR}/makemap.sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/mapconv
+        ${CMAKE_CURRENT_SOURCE_DIR}/emapconv
+        DESTINATION bin)

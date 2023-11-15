@@ -44,64 +44,64 @@ enum optionsIndex
 //FIXME what happened to specifying the span of input tiles?
 //FIXME now using output path and output name
 const option::Descriptor usage[] = {
-    { UNKNOWN, 0, "", "", Arg::None,
-        "USAGE: smt_convert [options] <source1> [source2...sourceN]> \n"
-        "  eg. 'smt_convert -o myfile.smt tilesource1.smt tilesource2.jpg'\n"
-        "\nOPTIONS:"},
+        {UNKNOWN,          0, "",      "",          Arg::None,
+                                                             "USAGE: smt_convert [options] <source1> [source2...sourceN]> \n"
+                                                             "  eg. 'smt_convert -o myfile.smt tilesource1.smt tilesource2.jpg'\n"
+                                                             "\nOPTIONS:"},
 
-    { HELP,             0, "h", "help",       Arg::None,
-"  -h,  \t--help\t"
-"Print usage and exit." },
-    { QUIET,            0, "q", "quiet",      Arg::None,
-"  -q  \t--quiet\t"
-"Suppress print output." },
-    { VERBOSE,          0, "v", "verbose",    Arg::None,
-"  -v  \t--verbose\t"
-"Print extra information." },
-    { PROGRESS,         0, "p", "progress",   Arg::None,
-"  -p  \t--progress\t"
-"Display progress indicator" },
+        {HELP,             0, "h",     "help",      Arg::None,
+                                                             "  -h,  \t--help\t"
+                                                             "Print usage and exit."},
+        {QUIET,            0, "q",     "quiet",     Arg::None,
+                                                             "  -q  \t--quiet\t"
+                                                             "Suppress print output."},
+        {VERBOSE,          0, "v",     "verbose",   Arg::None,
+                                                             "  -v  \t--verbose\t"
+                                                             "Print extra information."},
+        {PROGRESS,         0, "p",     "progress",  Arg::None,
+                                                             "  -p  \t--progress\t"
+                                                             "Display progress indicator"},
 
-    { OUTPUT_PATH,      0, "o", "output",     Arg::Required,
-"  -o  \t--output <dir>\t"
-"Filename to save as, default is output.smt" },
-    { OUTPUT_OVERWRITE, 0, "O", "overwrite",  Arg::None,
-"  -O  \t--overwrite\t"
-"Overwrite files with the same output name" },
+        {OUTPUT_PATH,      0, "o",     "output",    Arg::Required,
+                                                             "  -o  \t--output <dir>\t"
+                                                             "Filename to save as, default is output.smt"},
+        {OUTPUT_OVERWRITE, 0, "O",     "overwrite", Arg::None,
+                                                             "  -O  \t--overwrite\t"
+                                                             "Overwrite files with the same output name"},
 
-    { IMAGESIZE,        0, "i", "imagesize",  Arg::Required,
-"  -i  \t--imagesize=XxY\t"
-"Scale the constructed image to this size before splitting." },
-    { TILESIZE,         0, "t", "tilesize",   Arg::Required,
-"  -t  \t--tilesize=XxY\t"
-"Split the constructed image into tiles of this size." },
-    { FORMAT,           0, "f", "format",     Arg::Required,
-"  -f  \t--format=[DXT1,RGBA8,USHORT]\t"
-"default=DXT1, what format to put into the smt"},
-    { TILEMAP,          0, "M", "tilemap",        Arg::Required,
-"  -M  \t--tilemap=<csv|smf>\t"
-"Reconstruction tilemap." },
+        {IMAGESIZE,        0, "i",     "imagesize", Arg::Required,
+                                                             "  -i  \t--imagesize=XxY\t"
+                                                             "Scale the constructed image to this size before splitting."},
+        {TILESIZE,         0, "t",     "tilesize",  Arg::Required,
+                                                             "  -t  \t--tilesize=XxY\t"
+                                                             "Split the constructed image into tiles of this size."},
+        {FORMAT,           0, "f",     "format",    Arg::Required,
+                                                             "  -f  \t--format=[DXT1,RGBA8,USHORT]\t"
+                                                             "default=DXT1, what format to put into the smt"},
+        {TILEMAP,          0, "M",     "tilemap",   Arg::Required,
+                                                             "  -M  \t--tilemap=<csv|smf>\t"
+                                                             "Reconstruction tilemap."},
 
-    { FILTER,           0, "e", "filter",   Arg::Required,
-"  -e  \t--filter=1,2-n\t"
-"Filter input tile sources to only these values, filter syntax is in the form"
-"1,2,3,n and 1-5,n-n and can be mixed, 1-300,350,400-900" },
-    { OVERLAP,          0, "k", "overlap",   Arg::Numeric,
-"  -k  \t--overlap=0\t"
-"consider that pixel values overlap by this amount." },
-    { BORDER,           0, "b", "border",   Arg::Numeric,
-"  -b  \t--border=0\t"
-"consider that each tile has a border of this width" },
-    { DUPLI,            0, "d", "dupli",   Arg::Required,
-"  -d  \t--dupli=[None,Exact,Perceptual]\t"
-"default=Exact, whether to detect and omit duplicates." },
+        {FILTER,           0, "e",     "filter",    Arg::Required,
+                                                             "  -e  \t--filter=1,2-n\t"
+                                                             "Filter input tile sources to only these values, filter syntax is in the form"
+                                                             "1,2,3,n and 1-5,n-n and can be mixed, 1-300,350,400-900"},
+        {OVERLAP,          0, "k",     "overlap",   Arg::Integer,
+                                                             "  -k  \t--overlap=0\t"
+                                                             "consider that pixel values overlap by this amount."},
+        {BORDER,           0, "b",     "border",    Arg::Integer,
+                                                             "  -b  \t--border=0\t"
+                                                             "consider that each tile has a border of this width"},
+        {DUPLI,            0, "d",     "dupli",     Arg::Required,
+                                                             "  -d  \t--dupli=[None,Exact,Perceptual]\t"
+                                                             "default=Exact, whether to detect and omit duplicates."},
 
-    { SMTOUT,           0, "", "smt", Arg::None,
-      "\t--smt\t"              "Save tiles to smt file" },
-    { IMGOUT,           0, "", "img", Arg::None,
-      "\t--img\t"              "Save tiles as images" },
+        {SMTOUT,           0, "",      "smt",       Arg::None,
+                                                             "\t--smt\t"              "Save tiles to smt file"},
+        {IMGOUT,           0, "",      "img",       Arg::None,
+                                                             "\t--img\t"              "Save tiles as images"},
 
-    { 0, 0, nullptr, nullptr, nullptr, nullptr }
+        {0,                0, nullptr, nullptr,     nullptr, nullptr}
 };
 
 static void shutdown( int code ){
@@ -118,7 +118,6 @@ main( int argc, char **argv )
     // source
     TileCache src_tileCache;
     TileMap src_tileMap;
-    TiledImage src_tiledImage;
     std::vector<uint32_t> src_filter;
     OIIO::ImageSpec sSpec;
     uint32_t overlap = 0;
@@ -262,9 +261,8 @@ main( int argc, char **argv )
 
     // == SOURCE TILE SPEC ==
     {
-        auto maybe = src_tileCache.getTile(0);
-        if( maybe.has_value() ){
-            auto tempBuf = maybe.value();
+        auto tempBuf = src_tileCache.getTile(0);
+        if( tempBuf.initialized() ){
             sSpec.width = tempBuf.spec().width;
             sSpec.height = tempBuf.spec().height;
             sSpec.nchannels = out_tileSpec.nchannels;
@@ -319,11 +317,13 @@ main( int argc, char **argv )
         // or aspect ratio.
         SPDLOG_INFO( "no tilemap specified, generated one instead" );
         uint32_t squareSize = std::ceil( std::sqrt( src_filter.size() ) );
-        src_tileMap.setSize( squareSize, squareSize );
-        src_tileMap.consecutive();
+        src_tileMap = TileMap( squareSize, squareSize, [squareSize](uint32_t x, uint32_t y) -> auto {
+            return y * squareSize + x; } );
     }
 
     // == Build source TiledImage ==
+    TiledImage src_tiledImage;
+
     src_tiledImage.setTileMap( src_tileMap );
     src_tiledImage.setTileCache( src_tileCache );
     src_tiledImage.setTileSize( sSpec.width, sSpec.height, overlap );
@@ -455,7 +455,7 @@ main( int argc, char **argv )
     //     a single image, so skip tileMap csv export
     if( out_tileMap.length() > 1 ){
         std::fstream out_csv(outFilePath.string() + ".csv", std::ios::out );
-        out_csv << out_tileMap.toCSV();
+        out_csv << out_tileMap.csv();
         out_csv.close();
     }
 

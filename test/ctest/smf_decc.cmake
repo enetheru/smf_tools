@@ -2,6 +2,9 @@
 add_test( NAME smf_decc COMMAND $<TARGET_FILE:smf_decc> )
 set_tests_properties( smf_decc PROPERTIES LABELS "smf_decc" WILL_FAIL TRUE )
 
+add_test( NAME smf_decc_unknown COMMAND $<TARGET_FILE:smf_decc> --beans )
+set_tests_properties( smf_decc_unknown PROPERTIES LABELS "smf_decc" WILL_FAIL TRUE )
+
 add_test( NAME smf_decc_h COMMAND $<TARGET_FILE:smf_decc> -h )
 set_tests_properties( smf_decc_h PROPERTIES LABELS "smf_decc help" )
 
@@ -28,7 +31,7 @@ set_tests_properties( smf_decc_extract PROPERTIES LABELS "smf_decc")
     * File Exists
 ]]
 # TODO: Testing output artifact: Header Info
-add_test( NAME smf_decc-header COMMAND $<TARGET_FILE:smf_decc> -v )
+add_test( NAME smf_decc-header COMMAND ${IINFO_PATH} out_height.tif )
 set_property( TEST smf_decc-header PROPERTY LABELS "smf_decc")
 set_property( TEST smf_decc-header PROPERTY DEPENDS "smf_decc_extract")
 

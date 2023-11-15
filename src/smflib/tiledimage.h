@@ -16,14 +16,14 @@
  */
 
 class TiledImage {
-    TileCache _tileCache;
-    TileMap _tileMap;
+    TileCache _tileCache{};
+    TileMap _tileMap{1,1};
+    uint32_t _tileWidth{1}, _tileHeight{1}, _tileOverlap{0};
 
-    OIIO::ImageSpec _imageSpec = OIIO::ImageSpec(0,0,4,OIIO::TypeDesc::UINT8 );
-    uint32_t _tileWidth{}, _tileHeight{}, _tileOverlap{};
+    OIIO::ImageSpec _imageSpec = OIIO::ImageSpec(1,1,4,OIIO::TypeDesc::UINT8 );
+
 
 public:
-    //[[nodiscard]] const OIIO::ImageSpec &getTileSpec() const { return _tileSpec; }
     [[nodiscard]] const OIIO::ImageSpec &getImageSpec() const { return _imageSpec; };
 
     // == constructors ==
@@ -37,10 +37,6 @@ public:
 
     void setTileCache( const TileCache& tileCache ) { _tileCache = tileCache; }
 
-    /// == Generation ==
-    void squareFromCache();
-
     OIIO::ImageBuf getRegion( const OIIO::ROI & );
-
     OIIO::ImageBuf getUVRegion( OIIO::ROI roi );
 };

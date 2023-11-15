@@ -28,3 +28,6 @@ include( smt_repair.cmake )
 # =======
 include( mapconv.cmake )
 
+# emapconv
+# =======
+include( emapconv.cmake )

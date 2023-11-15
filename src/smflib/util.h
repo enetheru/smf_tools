@@ -69,3 +69,9 @@ std::string humanise( std::uintmax_t size ){
     }
     return os;
 }
+
+class Unimplemented : public std::logic_error {
+    using std::logic_error::logic_error;
+public:
+    explicit Unimplemented(const char *msg) : std::logic_error(msg){}
+};

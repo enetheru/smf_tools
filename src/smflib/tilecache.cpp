@@ -20,7 +20,7 @@ std::string to_string( TileSourceType type ){
 }
 
 //FIXME review this function for memory leaks
-std::optional<OIIO::ImageBuf>
+OIIO::ImageBuf
 TileCache::getTile( const uint32_t index ) const {
     SPDLOG_INFO("Requesting tile: {} of {}", index+1, _numTiles );
     if( index >= _numTiles ){
@@ -47,8 +47,8 @@ TileCache::getTile( const uint32_t index ) const {
     } );*/
     SPDLOG_INFO( "this TileCache: ", json().dump() );
     TileSource tileSource{0,0, TileSourceType::None, "" };
-    for( auto source : _sources ){
-        SPDLOG_INFO("TileSource: {}", source.json().dump() );
+    //FIXME dont loop through entire source list when we can use a find expression.
+    for( const auto& source : _sources ){
         if( index >= source.iStart && index <= source.iEnd ){
             tileSource = source;
         }
@@ -58,8 +58,7 @@ TileCache::getTile( const uint32_t index ) const {
         SPDLOG_ERROR("Unable to find TileSource for tile index '{}' in TileCache", index );
         return {};
     }
-
-    SPDLOG_INFO("TileSource: {{filePath: {}, type: {}, iStart: {}, iEnd: {}}}", tileSource.filePath.string(), to_string(tileSource.type), tileSource.iStart, tileSource.iEnd );
+    SPDLOG_INFO("TileSource: {}", tileSource.json().dump() );
 
     switch( tileSource.type ){
         case TileSourceType::SMT: {
@@ -81,8 +80,7 @@ TileCache::getTile( const uint32_t index ) const {
     return {};
 }
 
-//TODO go over this function to see if it can be refactored
-void
+bool
 TileCache::addSource( const std::filesystem::path& filePath ) {
     SPDLOG_INFO("Adding {} to TileCache", filePath.string() );
     auto image = OIIO::ImageInput::open( filePath );
@@ -91,7 +89,7 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
         image->close();
         auto start = _numTiles; _numTiles++;
         _sources.emplace_back(start, _numTiles - 1, TileSourceType::Image, filePath.string() );
-        return;
+        return false;
     }
 
     std::unique_ptr<SMT> smt( SMT::open( filePath ) );
@@ -99,7 +97,7 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
         SPDLOG_INFO(smt->json().dump(4) );
         auto start = _numTiles; _numTiles += smt->getNumTiles();
         _sources.emplace_back(start, _numTiles - 1, TileSourceType::SMT, filePath.string() );
-        return;
+        return false;
     }
 
     std::unique_ptr<SMF> smf( SMF::open( filePath ) );
@@ -107,16 +105,19 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
         SPDLOG_INFO( "{} is an SMF file Adding any references to SMT files", filePath.string() );
         // get the fileNames here
         auto smtList = smf->getSMTList();
+        bool result = false;
         for( const auto& [numTiles,fileName] : smtList ){
             SPDLOG_INFO("Adding {} from {}", fileName, filePath.string() );
-            addSource( fileName );
+            result |= addSource( fileName );
             //auto start = _numTiles; _numTiles += numTiles;
             //sources.emplace_back(start, _numTiles-1, TileSourceType::SMT, filePath.parent_path() / fileName );
+            //FIXME is it OK to recursively call or should I error if there is an error.
         }
-        return;
+        return result;
     }
 
     SPDLOG_ERROR( "Unable to open file: {}", filePath.string() );
+    return true;
 }
 
 TileCache::TileCache( TileCache &&other ) noexcept

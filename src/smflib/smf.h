@@ -214,7 +214,7 @@ public:
 
     void writeHeader( );
     void writeExtraHeaders();
-    void writeHeight  ( OIIO::ImageBuf &buf);
+    void writeHeight  ( OIIO::ImageBuf &buf );
     void writeType    ( OIIO::ImageBuf &buf );
     void writeTileHeader( );
     void writeMap     ( TileMap *tileMap );

@@ -51,14 +51,13 @@ TEST( tilemap, setSize ){
 }
 
 TEST( tilemap, generation ){
-    TileMap tileMap;
-    tileMap.setSize(3,3);
-    tileMap.consecutive();
+    uint32_t size = 3;
+    TileMap tileMap(size,size, [size]( uint32_t x, uint32_t y ) -> uint32_t{ return y*3+x; } );
     auto [width, height] = tileMap.size();
     auto length = tileMap.length();
-    EXPECT_EQ( width, 3 );
-    EXPECT_EQ( height, 3 );
-    EXPECT_EQ( length, 9 );
+    EXPECT_EQ( width, size );
+    EXPECT_EQ( height, size );
+    EXPECT_EQ( length, size * size );
     EXPECT_EQ( tileMap.getXY(0,0), 0 );
     EXPECT_EQ( tileMap.getXY(0,2), 6 );
     EXPECT_EQ( tileMap.getXY(2,2), 8 );
@@ -70,5 +69,5 @@ TEST( tilemap, from_csv ){
     EXPECT_EQ( tileMap.length(), 4096 );
     EXPECT_EQ( tileMap.width(), 64 );
     EXPECT_EQ( tileMap.height(), 64 );
-    spdlog::info( tileMap.toCSV() );
+    spdlog::info(tileMap.csv() );
 }

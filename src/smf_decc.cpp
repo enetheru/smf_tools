@@ -131,7 +131,7 @@ main( int argc, char **argv )
     SPDLOG_INFO( "Extracting type image" );
     auto type = smf->getType();
     if( ! type.has_error() ){
-        type.write("out_type.tif", OIIO::TypeUnknown, "tif");
+        type.write("out_type.tif", OIIO::TypeUInt8, "tif");
     } else {
         SPDLOG_ERROR( type.geterror() );
     }
@@ -139,7 +139,7 @@ main( int argc, char **argv )
     SPDLOG_INFO( "Extracting map csv" );
     auto tileMap = smf->getMap();
     file.open("out_tilemap.csv", std::ios::out );
-    file << tileMap.toCSV();
+    file << tileMap.csv();
     file.close();
 
     SPDLOG_INFO( "Extracting mini image" );
@@ -153,7 +153,7 @@ main( int argc, char **argv )
     SPDLOG_INFO( "Extracting metal image" );
     auto metal = smf->getMetal();
     if( ! metal.has_error() ){
-        metal.write("out_metal.tif", OIIO::TypeUnknown, "tif");
+        metal.write("out_metal.tif", OIIO::TypeUInt8, "tif");
     } else {
         SPDLOG_ERROR( metal.geterror() );
     }
@@ -171,7 +171,7 @@ main( int argc, char **argv )
     SPDLOG_INFO( "Extracting grass image" );
     auto grass = smf->getGrass();
     if( ! grass.has_error() ){
-        grass.write("out_grass.tif", OIIO::TypeUnknown, "tif");
+        grass.write("out_grass.png", OIIO::TypeUInt8, "png");
     } else {
         SPDLOG_ERROR( grass.geterror() );
     }
