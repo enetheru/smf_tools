@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  ArgGroup.h
@@ -31,27 +29,26 @@
 #include <utility>
 
 namespace TCLAP {
-
 /**
  * ArgGroup is the base class for implementing groups of arguments
  * that are mutually exclusive (it replaces the deprecated xor
  * handler). It is not expected to be used directly, rather one of the
  * EitherOf or OneOf derived classes are used.
  */
-class ArgGroup : public ArgContainer, protected std::vector<Arg *> {
+class ArgGroup : public ArgContainer, protected std::vector< Arg* > {
 public:
-    using std::vector<Arg *>::begin;
-    using std::vector<Arg *>::end;
-    using std::vector<Arg *>::iterator;
-    using std::vector<Arg *>::const_iterator;
+    using std::vector< Arg* >::begin;
+    using std::vector< Arg* >::end;
+    using std::vector< Arg* >::iterator;
+    using std::vector< Arg* >::const_iterator;
 
     ~ArgGroup() override = default;
 
     /// Add an argument to this arg group
-    ArgContainer &add(Arg &arg) override { return add(&arg); }
+    ArgContainer& add( Arg& arg ) override { return add( &arg ); }
 
     /// Add an argument to this arg group
-    ArgContainer &add(Arg *arg) override;
+    ArgContainer& add( Arg* arg ) override;
 
     /**
      * Validates that the constraints of the ArgGroup are satisfied.
@@ -88,13 +85,13 @@ public:
      * this arg group) are also added to the parser (and checked for
      * consistency with other args).
      */
-    void setParser(CmdLineInterface &parser) {
-        if (_parser) {
-            throw SpecificationException("Arg group can have only one parser");
+    void setParser( CmdLineInterface& parser ) {
+        if( _parser ) {
+            throw SpecificationException( "Arg group can have only one parser" );
         }
 
         _parser = &parser;
-        for(const auto arg : *this ){
+        for( const auto arg : *this ) {
             parser.addToArgList( arg );
         }
     }
@@ -109,14 +106,14 @@ public:
 
 protected:
     // No direct instantiation
-    ArgGroup() : vector(), _parser(nullptr) {}
+    ArgGroup() : vector(), _parser( nullptr ) {}
 
 public:
-    ArgGroup(const ArgGroup &) = delete;
-    ArgGroup &operator=(const ArgGroup &) = delete;  // no copy
+    ArgGroup( const ArgGroup& ) = delete;
+    ArgGroup& operator=( const ArgGroup& ) = delete; // no copy
 
 protected:
-    CmdLineInterface *_parser;
+    CmdLineInterface* _parser;
 };
 
 /**
@@ -128,20 +125,21 @@ class ExclusiveArgGroup : public ArgGroup {
 public:
     inline bool validate() override;
     [[nodiscard]] bool isExclusive() const override { return true; }
-    ArgContainer &add(Arg &arg) override { return add(&arg); }
-    ArgContainer &add(Arg *arg) override {
-        if (arg->isRequired()) {
+    ArgContainer& add( Arg& arg ) override { return add( &arg ); }
+
+    ArgContainer& add( Arg* arg ) override {
+        if( arg->isRequired() ) {
             throw SpecificationException(
                 "Required arguments are not allowed in an exclusive grouping.",
-                arg->longID(""));
+                arg->longID( "" ) );
         }
 
-        return ArgGroup::add(arg);
+        return ArgGroup::add( arg );
     }
 
 protected:
     ExclusiveArgGroup() = default;
-    explicit ExclusiveArgGroup(CmdLineInterface &parser) { parser.add(*this); }
+    explicit ExclusiveArgGroup( CmdLineInterface& parser ) { parser.add( *this ); }
 };
 
 /**
@@ -150,7 +148,7 @@ protected:
 class EitherOf final : public ExclusiveArgGroup {
 public:
     EitherOf() = default;
-    explicit EitherOf(CmdLineInterface &parser) : ExclusiveArgGroup(parser) {}
+    explicit EitherOf( CmdLineInterface& parser ) : ExclusiveArgGroup( parser ) {}
 
     [[nodiscard]] bool isRequired() const override { return false; }
 };
@@ -162,7 +160,7 @@ public:
 class OneOf final : public ExclusiveArgGroup {
 public:
     OneOf() = default;
-    explicit OneOf(CmdLineInterface &parser) : ExclusiveArgGroup(parser) {}
+    explicit OneOf( CmdLineInterface& parser ) : ExclusiveArgGroup( parser ) {}
 
     [[nodiscard]] bool isRequired() const override { return true; }
 };
@@ -176,40 +174,43 @@ public:
 class AnyOf : public ArgGroup {
 public:
     AnyOf() = default;
-    explicit AnyOf(CmdLineInterface &parser) { parser.add(*this); }
+    explicit AnyOf( CmdLineInterface& parser ) { parser.add( *this ); }
 
-    bool validate() override { return false; /* All good */ }
+    bool validate() override {
+        return false; /* All good */
+    }
+
     [[nodiscard]] bool isExclusive() const override { return false; }
     [[nodiscard]] bool isRequired() const override { return false; }
 };
 
-inline ArgContainer &ArgGroup::add(Arg *arg) {
-    auto find_func = [&arg](const Arg *existing){return *existing == *arg;};
-    if( std::ranges::find_if(*this, find_func ) != this->end() ) {
+inline ArgContainer& ArgGroup::add( Arg* arg ) {
+    auto find_func = [&arg]( const Arg* existing ) { return *existing == *arg; };
+    if( std::ranges::find_if( *this, find_func ) != this->end() ) {
         throw SpecificationException(
-                "Argument with same flag/name already exists!", arg->longID(""));
+            "Argument with same flag/name already exists!", arg->longID( "" ) );
     }
 
-    push_back(arg);
-    if (_parser) {
-        _parser->addToArgList(arg);
+    push_back( arg );
+    if( _parser ) {
+        _parser->addToArgList( arg );
     }
 
     return *this;
 }
 
 inline bool ExclusiveArgGroup::validate() {
-    const Arg * existing_arg = nullptr;
+    const Arg* existing_arg = nullptr;
     std::string flag;
 
     for( const auto arg : *this ) {
-        if( arg->isSet() ){
-            if (existing_arg != nullptr && *existing_arg != *arg) {
+        if( arg->isSet() ) {
+            if( existing_arg != nullptr && *existing_arg != *arg ) {
                 // We found a matching argument, but one was
                 // already found previously.
                 throw CmdLineParseException(
                     "Only one is allowed.",
-                    std::format("{} AND {} provided.", flag, arg->setBy() ));
+                    std::format( "{} AND {} provided.", flag, arg->setBy() ) );
             }
 
             existing_arg = arg;
@@ -222,24 +223,23 @@ inline bool ExclusiveArgGroup::validate() {
 
 inline std::string ArgGroup::getName() const {
     std::string name;
-    std::string sep = "{";  // TODO: this should change for non-exclusive arg groups
-    for(const auto it : *this ){
-        name += std::exchange(sep, " | " ) + it->getName();
+    std::string sep = "{"; // TODO: this should change for non-exclusive arg groups
+    for( const auto it : *this ) {
+        name += std::exchange( sep, " | " ) + it->getName();
     }
     return name + '}';
 }
 
 /// @internal
-inline int CountVisibleArgs( const ArgGroup &g ){
+inline int CountVisibleArgs( const ArgGroup& g ) {
     int visible = 0;
-    for( const auto it : g ){
-        if( it->visibleInHelp() ){
+    for( const auto it : g ) {
+        if( it->visibleInHelp() ) {
             visible++;
         }
     }
     return visible;
 }
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_ARG_GROUP_H

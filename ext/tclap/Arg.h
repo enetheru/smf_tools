@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  Arg.h
@@ -44,7 +42,6 @@
 #include <vector>
 
 namespace TCLAP {
-
 /**
  * A virtual base class that defines the essential data for all arguments.
  * This class, or one of its existing children, must be subclassed to do
@@ -52,22 +49,22 @@ namespace TCLAP {
  */
 class Arg {
 public:
- /**
-     * Prevent accidental copying.
-     */
-    Arg(const Arg &rhs) = delete;
+    /**
+        * Prevent accidental copying.
+        */
+    Arg( const Arg& rhs ) = delete;
 
     /**
      * Prevent accidental copying.
      */
-    Arg &operator=(const Arg &rhs) = delete;
+    Arg& operator=( const Arg& rhs ) = delete;
 
 private:
     /**
      * The delimiter that separates an argument flag/name from the
      * value.
      */
-    static char &delimiterRef() {
+    static char& delimiterRef() {
         static char delim = ' ';
         return delim;
     }
@@ -132,7 +129,7 @@ protected:
      * argument is matched.  This defaults to NULL and should not
      * be used unless absolutely necessary.
      */
-    Visitor *_visitor;
+    Visitor* _visitor;
 
     /**
      * Whether this argument can be ignored, if desired.
@@ -165,8 +162,8 @@ protected:
      * \param valreq - Whether the a value is required for the argument.
      * \param v - The visitor checked by the argument. Defaults to NULL.
      */
-    Arg(std::string flag, std::string name,
-        std::string desc, bool req, bool valreq, Visitor *v = nullptr);
+    Arg( std::string flag, std::string name,
+         std::string desc, bool req, bool valreq, Visitor* v = nullptr );
 
 public:
     /**
@@ -178,7 +175,7 @@ public:
      * Adds this to the specified list of Args.
      * \param argList - The list to add this to.
      */
-    virtual void addToList(std::list<Arg *> &argList) const;
+    virtual void addToList( std::list< Arg* >& argList ) const;
 
     /**
      * The delimiter that separates an argument flag/name from the
@@ -192,29 +189,29 @@ public:
      */
     static char blankChar() { return '\a'; }
 
-/**
- * The char that indicates the beginning of a flag.  Defaults to '-', but
- * clients can define TCLAP_FLAGSTARTCHAR to override.
- */
+    /**
+     * The char that indicates the beginning of a flag.  Defaults to '-', but
+     * clients can define TCLAP_FLAGSTARTCHAR to override.
+     */
 #ifndef TCLAP_FLAGSTARTCHAR
 #define TCLAP_FLAGSTARTCHAR '-'
 #endif
     static char flagStartChar() { return TCLAP_FLAGSTARTCHAR; }
 
-/**
- * The sting that indicates the beginning of a flag.  Defaults to "-", but
- * clients can define TCLAP_FLAGSTARTSTRING to override. Should be the same
- * as TCLAP_FLAGSTARTCHAR.
- */
+    /**
+     * The sting that indicates the beginning of a flag.  Defaults to "-", but
+     * clients can define TCLAP_FLAGSTARTSTRING to override. Should be the same
+     * as TCLAP_FLAGSTARTCHAR.
+     */
 #ifndef TCLAP_FLAGSTARTSTRING
 #define TCLAP_FLAGSTARTSTRING "-"
 #endif
     static std::string flagStartString() { return TCLAP_FLAGSTARTSTRING; }
 
-/**
- * The sting that indicates the beginning of a name.  Defaults to "--", but
- *  clients can define TCLAP_NAMESTARTSTRING to override.
- */
+    /**
+     * The sting that indicates the beginning of a name.  Defaults to "--", but
+     *  clients can define TCLAP_NAMESTARTSTRING to override.
+     */
 #ifndef TCLAP_NAMESTARTSTRING
 #define TCLAP_NAMESTARTSTRING "--"
 #endif
@@ -229,7 +226,7 @@ public:
      * Sets the delimiter for all arguments.
      * \param c - The character that delimits flags/names from values.
      */
-    static void setDelimiter(const char c) { delimiterRef() = c; }
+    static void setDelimiter( const char c ) { delimiterRef() = c; }
 
     /**
      * Pure virtual method meant to handle the parsing and value assignment
@@ -238,29 +235,29 @@ public:
      * \param args - Mutable list of strings. What is
      * passed in from main.
      */
-    virtual bool processArg(int *i, std::vector<std::string> &args) = 0;
+    virtual bool processArg( int* i, std::vector< std::string >& args ) = 0;
 
     /**
      * Operator ==.
      * Equality operator. Must be virtual to handle unlabeled args.
      * \param a - The Arg to be compared to this.
      */
-    virtual bool operator==(const Arg &a) const;
+    virtual bool operator==( const Arg& a ) const;
 
     /**
      * Returns the argument flag.
      */
-    [[nodiscard]] const std::string &getFlag() const;
+    [[nodiscard]] const std::string& getFlag() const;
 
     /**
      * Returns the argument name.
      */
-    [[nodiscard]] const std::string &getName() const;
+    [[nodiscard]] const std::string& getName() const;
 
     /**
      * Returns the argument description.
      */
-    [[nodiscard]] std::string getDescription() const { return getDescription(_required); }
+    [[nodiscard]] std::string getDescription() const { return getDescription( _required ); }
 
     /**
      * Returns the argument description.
@@ -268,7 +265,7 @@ public:
      * @param required if the argument should be treated as
      * required when described.
      */
-    [[nodiscard]] std::string getDescription(const bool required) const {
+    [[nodiscard]] std::string getDescription( const bool required ) const {
         return (required ? "(" + _requireLabel + ") " : "") + _description;
     }
 
@@ -291,7 +288,7 @@ public:
     /**
      * Returns the value specified to set this flag (like -a or --all).
      */
-    [[nodiscard]] const std::string &setBy() const { return _setBy; }
+    [[nodiscard]] const std::string& setBy() const { return _setBy; }
 
     /**
      * Indicates whether the argument can be ignored, if desired.
@@ -306,7 +303,7 @@ public:
      * \param argFlag - The string to be compared to the flag/name to determine
      * whether the arg matches.
      */
-    [[nodiscard]] virtual bool argMatches(const std::string &argFlag) const;
+    [[nodiscard]] virtual bool argMatches( const std::string& argFlag ) const;
 
     /**
      * Returns a simple string representation of the argument.
@@ -318,13 +315,13 @@ public:
      * Returns a short ID for the usage.
      * \param valueId - The value used in the id.
      */
-    [[nodiscard]] virtual std::string shortID(const std::string &valueId ) const;
+    [[nodiscard]] virtual std::string shortID( const std::string& valueId ) const;
 
     /**
      * Returns a long ID for the usage.
      * \param valueId - The value used in the id.
      */
-    [[nodiscard]] virtual std::string longID(const std::string &valueId) const;
+    [[nodiscard]] virtual std::string longID( const std::string& valueId ) const;
 
     /**
      * Trims a value off of the flag.
@@ -333,7 +330,7 @@ public:
      * \param value - Where the value trimmed from the string will
      * be stored.
      */
-    virtual void trimFlag(std::string &flag, std::string &value) const;
+    virtual void trimFlag( std::string& flag, std::string& value ) const;
 
     /**
      * Checks whether a given string has blank chars, indicating that
@@ -341,7 +338,7 @@ public:
      * false.
      * \param s - string to be checked.
      */
-    static bool _hasBlanks(const std::string &s);
+    static bool _hasBlanks( const std::string& s );
 
     /**
      * Used for MultiArgs to determine whether args can still be
@@ -365,7 +362,7 @@ public:
      * Hide this argument from the help output (e.g., when
      * specifying the --help flag or on error.
      */
-    virtual void hideFromHelp(const bool hide) { _visibleInHelp = !hide; }
+    virtual void hideFromHelp( const bool hide ) { _visibleInHelp = !hide; }
 
     /**
      * Returns true if this Arg is visible in the help output.
@@ -378,17 +375,17 @@ public:
 /**
  * Typedef of an Arg list iterator.
  */
-typedef std::list<Arg *>::const_iterator ArgListIterator;
+typedef std::list< Arg* >::const_iterator ArgListIterator;
 
 /**
  * Typedef of an Arg vector iterator.
  */
-typedef std::vector<Arg *>::const_iterator ArgVectorIterator;
+typedef std::vector< Arg* >::const_iterator ArgVectorIterator;
 
 /**
  * Typedef of a Visitor list iterator.
  */
-typedef std::list<Visitor *>::const_iterator VisitorListIterator;
+typedef std::list< Visitor* >::const_iterator VisitorListIterator;
 
 /*
  * Extract a value of type T from it's string representation contained
@@ -396,14 +393,14 @@ typedef std::list<Visitor *>::const_iterator VisitorListIterator;
  * specialization of ExtractValue depending on the value traits of T.
  * ValueLike traits use operator>> to assign the value from strVal.
  */
-template <typename T>
-void ExtractValue(T &destVal, const std::string &strVal, const ValueLike &vl) {
-    static_cast<void>(vl);  // Avoid warning about unused vl
-    istringstream is(strVal.c_str());
+template< typename T >
+void ExtractValue( T& destVal, const std::string& strVal, const ValueLike& vl ) {
+    static_cast< void >(vl); // Avoid warning about unused vl
+    istringstream is( strVal.c_str() );
 
     int valuesRead = 0;
-    while (is.good()) {
-        if (is.peek() != EOF)
+    while( is.good() ) {
+        if( is.peek() != EOF )
 #ifdef TCLAP_SETBASE_ZERO
             is >> std::setbase(0) >> destVal;
 #else
@@ -415,11 +412,11 @@ void ExtractValue(T &destVal, const std::string &strVal, const ValueLike &vl) {
         valuesRead++;
     }
 
-    if (is.fail())
-        throw ArgParseException(std::format("Couldn't read argument value from string '{}'", strVal ));
+    if( is.fail() )
+        throw ArgParseException( std::format( "Couldn't read argument value from string '{}'", strVal ) );
 
-    if (valuesRead > 1)
-        throw ArgParseException(std::format("More than one valid value parsed from string '{}'", strVal ));
+    if( valuesRead > 1 )
+        throw ArgParseException( std::format( "More than one valid value parsed from string '{}'", strVal ) );
 }
 
 /*
@@ -428,78 +425,80 @@ void ExtractValue(T &destVal, const std::string &strVal, const ValueLike &vl) {
  * specialization of ExtractValue depending on the value traits of T.
  * StringLike uses assignment (operator=) to assign from strVal.
  */
-template <typename T>
-void ExtractValue(T &destVal, const std::string &strVal, const StringLike &sl) {
-    static_cast<void>(sl);  // Avoid warning about unused sl
-    SetString(destVal, strVal);
+template< typename T >
+void ExtractValue( T& destVal, const std::string& strVal, const StringLike& sl ) {
+    static_cast< void >(sl); // Avoid warning about unused sl
+    SetString( destVal, strVal );
 }
 
 //////////////////////////////////////////////////////////////////////
 // BEGIN Arg.cpp
 //////////////////////////////////////////////////////////////////////
 
-inline Arg::Arg(std::string  flag, std::string  name, std::string  desc, const bool req,
-                const bool valreq, Visitor* v)
- : _flag(std::move(flag)), _name(std::move(name)), _description(std::move(desc)), _required(req), _requireLabel("required"),
-   _valueRequired(valreq), _alreadySet(false), _visitor(v), _ignoreable(true), _acceptsMultipleValues(false),
-   _visibleInHelp(true)
-{
- if (_flag.length() > 1)
-  throw SpecificationException("Argument flag can only be one character long", Arg::toString());
+inline Arg::Arg( std::string flag, std::string name, std::string desc, const bool req,
+                 const bool valreq, Visitor* v )
+    : _flag( std::move( flag ) ), _name( std::move( name ) ), _description( std::move( desc ) ), _required( req ),
+      _requireLabel( "required" ),
+      _valueRequired( valreq ), _alreadySet( false ), _visitor( v ), _ignoreable( true ),
+      _acceptsMultipleValues( false ),
+      _visibleInHelp( true ) {
+    if( _flag.length() > 1 )
+        throw SpecificationException( "Argument flag can only be one character long", Arg::toString() );
 
- if (_name != ignoreNameString()
-  && (_flag == flagStartString() || _flag == nameStartString() || _flag == " "))
- {
-  throw SpecificationException(
-   std::format("Argument flag cannot be either '{}' or '{}' or a space.", flagStartString(), nameStartString()),
-   Arg::toString());
- }
+    if( _name != ignoreNameString()
+        && (_flag == flagStartString() || _flag == nameStartString() || _flag == " ") ) {
+        throw SpecificationException(
+            std::format( "Argument flag cannot be either '{}' or '{}' or a space.", flagStartString(),
+                         nameStartString() ),
+            Arg::toString() );
+    }
 
- if (_name.substr(0, flagStartString().length()) == flagStartString() ||
-  _name.substr(0, nameStartString().length()) == nameStartString() ||
-  _name.find(' ', 0) != std::string::npos)
-  throw SpecificationException(
-   std::format("Argument name begin with either '{}' or '{}' or space.", flagStartString(), nameStartString()),
-   Arg::toString());
+    if( _name.substr( 0, flagStartString().length() ) == flagStartString() ||
+        _name.substr( 0, nameStartString().length() ) == nameStartString() ||
+        _name.find( ' ', 0 ) != std::string::npos )
+        throw SpecificationException(
+            std::format( "Argument name begin with either '{}' or '{}' or space.", flagStartString(),
+                         nameStartString() ),
+            Arg::toString() );
 }
 
-inline std::string Arg::shortID(const std::string&valueId) const {
- std::string id;
-
- if (!_flag.empty()) id = flagStartString() + _flag;
- else id = nameStartString() + _name;
-
- if (_valueRequired) id += delimiter() + valueId;
-
- return id;
-}
-
-inline std::string Arg::longID( const std::string &valueId  ) const {
+inline std::string Arg::shortID( const std::string& valueId ) const {
     std::string id;
 
-    if( ! _flag.empty() ) {
+    if( !_flag.empty() ) id = flagStartString() + _flag;
+    else id = nameStartString() + _name;
+
+    if( _valueRequired ) id += delimiter() + valueId;
+
+    return id;
+}
+
+inline std::string Arg::longID( const std::string& valueId ) const {
+    std::string id;
+
+    if( !_flag.empty() ) {
         id += flagStartString() + _flag;
 
-        if (_valueRequired) id += delimiter() + valueId;
+        if( _valueRequired ) id += delimiter() + valueId;
 
         id += ",  ";
     }
 
     id += nameStartString() + _name;
 
-    if (_valueRequired) id += delimiter() + valueId;
+    if( _valueRequired ) id += delimiter() + valueId;
 
     return id;
 }
 
-inline bool Arg::operator==(const Arg &a) const {
-    if (( !_flag.empty() && _flag == a._flag) || _name == a._name) return true;
+inline bool Arg::operator==( const Arg& a ) const {
+    if( (!_flag.empty() && _flag == a._flag) || _name == a._name ) return true;
     return false;
 }
 
-inline const std::string &Arg::getFlag() const { return _flag; }
+inline const std::string& Arg::getFlag() const { return _flag; }
 
-inline const std::string &Arg::getName() const { return _name; }
+inline const std::string& Arg::getName() const { return _name; }
 
 inline bool Arg::isRequired() const { return _required; }
 
@@ -509,47 +508,47 @@ inline bool Arg::isSet() const { return _alreadySet; }
 
 inline bool Arg::isIgnoreable() const { return _ignoreable; }
 
-inline bool Arg::argMatches(const std::string &argFlag) const {
-    if ((argFlag == flagStartString() + _flag && !_flag.empty()) ||
-        argFlag == nameStartString() + _name)
+inline bool Arg::argMatches( const std::string& argFlag ) const {
+    if( (argFlag == flagStartString() + _flag && !_flag.empty()) ||
+        argFlag == nameStartString() + _name )
         return true;
     return false;
 }
 
 inline std::string Arg::toString() const {
     std::string s{};
-    if (!_flag.empty()) s += flagStartString() + _flag + " ";
+    if( !_flag.empty() ) s += flagStartString() + _flag + " ";
     s += std::format( "({}{})", nameStartString(), _name );
     return s;
 }
 
 inline void Arg::_checkWithVisitor() const {
-    if (_visitor != nullptr) _visitor->visit();
+    if( _visitor != nullptr ) _visitor->visit();
 }
 
 /**
  * Implementation of trimFlag.
  */
-inline void Arg::trimFlag(std::string &flag, std::string &value) const {
+inline void Arg::trimFlag( std::string& flag, std::string& value ) const {
     int stop = 0;
-    for (int i = 0; static_cast<unsigned int>(i) < flag.length(); i++)
-        if (flag[i] == delimiter()) {
+    for( int i = 0; static_cast< unsigned int >(i) < flag.length(); i++ )
+        if( flag[ i ] == delimiter() ) {
             stop = i;
             break;
         }
 
-    if (stop > 1) {
-        value = flag.substr(stop + 1);
-        flag = flag.substr(0, stop);
+    if( stop > 1 ) {
+        value = flag.substr( stop + 1 );
+        flag = flag.substr( 0, stop );
     }
 }
 
 /**
  * Implementation of _hasBlanks.
  */
-inline bool Arg::_hasBlanks(const std::string &s) {
-    for (int i = 1; static_cast<unsigned int>(i) < s.length(); i++)
-        if (s[i] == blankChar()) return true;
+inline bool Arg::_hasBlanks( const std::string& s ) {
+    for( int i = 1; static_cast< unsigned int >(i) < s.length(); i++ )
+        if( s[ i ] == blankChar() ) return true;
 
     return false;
 }
@@ -557,8 +556,8 @@ inline bool Arg::_hasBlanks(const std::string &s) {
 /**
  * Overridden by Args that need to added to the end of the list.
  */
-inline void Arg::addToList(std::list<Arg *> &argList) const {
-    argList.push_front(const_cast<Arg *>(this));
+inline void Arg::addToList( std::list< Arg* >& argList ) const {
+    argList.push_front( const_cast< Arg* >(this) );
 }
 
 inline bool Arg::allowMore() { return false; }
@@ -570,7 +569,6 @@ inline void Arg::reset() { _alreadySet = false; }
 //////////////////////////////////////////////////////////////////////
 // END Arg.cpp
 //////////////////////////////////////////////////////////////////////
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_ARG_H

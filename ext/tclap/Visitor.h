@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  Visitor.h
@@ -25,7 +23,6 @@
 #define TCLAP_VISITOR_H
 
 namespace TCLAP {
-
 /**
  * A base class that defines the interface for visitors.
  */
@@ -47,6 +44,6 @@ public:
      */
     virtual void visit() = 0;
 };
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_VISITOR_H

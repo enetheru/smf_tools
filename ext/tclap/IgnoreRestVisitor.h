@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  IgnoreRestVisitor.h
@@ -28,20 +26,20 @@
 #include <tclap/Visitor.h>
 
 namespace TCLAP {
-
 /**
  * A Visitor that tells the CmdLine to begin ignoring arguments after
  * this one is parsed.
  */
 class IgnoreRestVisitor final : public Visitor {
 public:
-    explicit IgnoreRestVisitor(CmdLineInterface &cmdLine)
-        : cmdLine_(cmdLine) {}
+    explicit IgnoreRestVisitor( CmdLineInterface& cmdLine )
+        : cmdLine_( cmdLine ) {}
+
     void visit() override { cmdLine_.beginIgnoring(); }
 
 private:
-    CmdLineInterface &cmdLine_;
+    CmdLineInterface& cmdLine_;
 };
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_IGNORE_REST_VISITOR_H

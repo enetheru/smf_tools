@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  Constraint.h
@@ -28,11 +26,10 @@
 #include <string>
 
 namespace TCLAP {
-
 /**
  * The interface that defines the interaction between the Arg and Constraint.
  */
-template <class T>
+template< class T >
 class Constraint {
 public:
     /**
@@ -50,7 +47,7 @@ public:
      * line meets the constraint.
      * \param value - The value that will be checked.
      */
-    virtual bool check(const T &value) const = 0;
+    virtual bool check( const T& value ) const = 0;
 
     /**
      * Destructor.
@@ -59,15 +56,14 @@ public:
      */
     virtual ~Constraint() = default;
 
-    static std::string shortID(Constraint *constraint) {
-        if (!constraint) {
-         throw std::logic_error(
-             "Cannot create a ValueArg with a NULL constraint");
+    static std::string shortID( Constraint* constraint ) {
+        if( !constraint ) {
+            throw std::logic_error(
+                "Cannot create a ValueArg with a NULL constraint" );
         }
         return constraint->shortID();
     }
 };
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_CONSTRAINT_H

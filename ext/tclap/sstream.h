@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  sstream.h
@@ -33,10 +31,11 @@
 
 #if defined(TCLAP_HAVE_SSTREAM)
 #include <sstream>
+
 namespace TCLAP {
 typedef std::istringstream istringstream;
 typedef std::ostringstream ostringstream;
-}  // namespace TCLAP
+} // namespace TCLAP
 #elif defined(TCLAP_HAVE_STRSTREAM)
 #include <strstream>
 namespace TCLAP {

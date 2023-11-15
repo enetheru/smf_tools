@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  DeferDelete.h
@@ -24,7 +22,6 @@
 #define TCLAP_DEFER_DELETE_H
 
 namespace TCLAP {
-
 /**
  * DeferDelete can be used by objects that need to allocate arbitrary other
  * objects to live for the duration of the first object. Any object
@@ -37,35 +34,35 @@ class DeferDelete {
         virtual ~DeletableBase() = default;
     };
 
-    template <typename T>
+    template< typename T >
     class Deletable final : public DeletableBase {
     public:
-        explicit Deletable(T * o) : _o(o) {}
-         ~Deletable() override { delete _o; }
+        explicit Deletable( T* o ) : _o( o ) {}
+        ~Deletable() override { delete _o; }
 
     private:
-        Deletable(const Deletable &)
-            : _o(nullptr) {}
+        Deletable( const Deletable& )
+            : _o( nullptr ) {}
 
-        Deletable operator=(const Deletable &rhs) { return *this; }
+        Deletable operator=( const Deletable& rhs ) { return *this; }
 
-        T *_o;
+        T* _o;
     };
 
-    std::list<DeletableBase *> _toBeDeleted;
+    std::list< DeletableBase* > _toBeDeleted;
 
 public:
     DeferDelete() = default;
+
     ~DeferDelete() {
-        for (const auto to_be_deleted : _toBeDeleted) delete to_be_deleted;
+        for( const auto to_be_deleted : _toBeDeleted ) delete to_be_deleted;
     }
 
-    template <typename T>
-    void operator()(T *toDelete) {
-        _toBeDeleted.push_back(new Deletable<T>(toDelete));
+    template< typename T >
+    void operator()( T* toDelete ) {
+        _toBeDeleted.push_back( new Deletable< T >( toDelete ) );
     }
 };
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_DEFER_DELETE_H

@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  VersionVisitor.h
@@ -28,7 +26,6 @@
 #include <tclap/Visitor.h>
 
 namespace TCLAP {
-
 /**
  * A Visitor that will call the version method of the given CmdLineOutput
  * for the specified CmdLine object and then exit.
@@ -38,19 +35,19 @@ public:
     /**
      * Prevent accidental copying
      */
-    VersionVisitor(const VersionVisitor &rhs) = delete;
-    VersionVisitor &operator=(const VersionVisitor &rhs) = delete;
+    VersionVisitor( const VersionVisitor& rhs ) = delete;
+    VersionVisitor& operator=( const VersionVisitor& rhs ) = delete;
 
 protected:
     /**
      * The CmdLine of interest.
      */
-    CmdLineInterface *_cmd;
+    CmdLineInterface* _cmd;
 
     /**
      * The output object.
      */
-    CmdLineOutput **_out;
+    CmdLineOutput** _out;
 
 public:
     /**
@@ -58,18 +55,18 @@ public:
      * \param cmd - The CmdLine the output is generated for.
      * \param out - The type of output.
      */
-    VersionVisitor(CmdLineInterface *cmd, CmdLineOutput **out)
-        : _cmd(cmd), _out(out) {}
+    VersionVisitor( CmdLineInterface* cmd, CmdLineOutput** out )
+        : _cmd( cmd ), _out( out ) {}
 
     /**
      * Calls the version method of the output object using the
      * specified CmdLine.
      */
     void visit() override {
-        (*_out)->version(*_cmd);
-        throw ExitException(0);
+        (*_out)->version( *_cmd );
+        throw ExitException( 0 );
     }
 };
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_VERSION_VISITOR_H

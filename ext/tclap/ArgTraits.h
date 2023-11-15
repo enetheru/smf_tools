@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  ArgTraits.h
@@ -28,7 +26,6 @@
 #define TCLAP_ARG_TRAITS_H
 
 namespace TCLAP {
-
 // We use two empty structs to get compile type specialization
 // function to work
 
@@ -78,7 +75,7 @@ struct ValueLikeTrait {
  * default and means that operator>> will be used to assign values to
  * the type.
  */
-template <typename T>
+template< typename T >
 class ArgTraits {
     // This is a bit silly, but what we want to do is:
     // 1) If there exists a specialization of ArgTraits for type X,
@@ -98,26 +95,25 @@ class ArgTraits {
     // matched. This allows us to determine if T::ValueCategory
     // exists by checking the sizeof for the test function (return
     // value must have different sizeof).
-    template <typename C>
-    static short test(typename C::ValueCategory *);  // NOLINT
-    template <typename C>
-    static long test(...);                                             // NOLINT
-    static const bool hasTrait = sizeof(test<T>(nullptr)) == sizeof(short);  // NOLINT
+    template< typename C >
+    static short test( typename C::ValueCategory* ); // NOLINT
+    template< typename C >
+    static long test( ... ); // NOLINT
+    static const bool hasTrait = sizeof(test< T >( nullptr )) == sizeof( short ); // NOLINT
 
-    template <typename C, bool>
+    template< typename C, bool >
     struct DefaultArgTrait {
         typedef ValueLike ValueCategory;
     };
 
-    template <typename C>
-    struct DefaultArgTrait<C, true> {
+    template< typename C >
+    struct DefaultArgTrait< C, true > {
         typedef typename C::ValueCategory ValueCategory;
     };
 
 public:
-    typedef typename DefaultArgTrait<T, hasTrait>::ValueCategory ValueCategory;
+    typedef typename DefaultArgTrait< T, hasTrait >::ValueCategory ValueCategory;
 };
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_ARG_TRAITS_H

@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  CmdLineOutput.h
@@ -30,7 +28,6 @@
 #include <list>
 
 namespace TCLAP {
-
 class CmdLineInterface;
 class ArgException;
 
@@ -48,35 +45,34 @@ public:
      * Generates some sort of output for the USAGE.
      * \param c - The CmdLine object the output is generated for.
      */
-    virtual void usage(CmdLineInterface &c) = 0;
+    virtual void usage( CmdLineInterface& c ) = 0;
 
     /**
      * Generates some sort of output for the version.
      * \param c - The CmdLine object the output is generated for.
      */
-    virtual void version(CmdLineInterface &c) = 0;
+    virtual void version( CmdLineInterface& c ) = 0;
 
     /**
      * Generates some sort of output for a failure.
      * \param c - The CmdLine object the output is generated for.
      * \param e - The ArgException that caused the failure.
      */
-    virtual void failure(CmdLineInterface &c, ArgException &e) = 0;
+    virtual void failure( CmdLineInterface& c, ArgException& e ) = 0;
 };
 
-inline bool isInArgGroup(const Arg *arg, const std::list<ArgGroup *> &argSets) {
-    for(const auto group : argSets ) {
-        if (std::ranges::find(*group, arg) != group->end()) {
+inline bool isInArgGroup( const Arg* arg, const std::list< ArgGroup* >& argSets ) {
+    for( const auto group : argSets ) {
+        if( std::ranges::find( *group, arg ) != group->end() ) {
             return true;
         }
     }
     return false;
 }
 
-inline void removeArgsInArgGroups(std::list<Arg *> &argList, const std::list<ArgGroup *> &argSets) {
-    argList.remove_if( [&argSets]( const auto arg ){ return isInArgGroup(arg, argSets); } );
+inline void removeArgsInArgGroups( std::list< Arg* >& argList, const std::list< ArgGroup* >& argSets ) {
+    argList.remove_if( [&argSets]( const auto arg ) { return isInArgGroup( arg, argSets ); } );
 }
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_CMD_LINE_OUTPUT_H

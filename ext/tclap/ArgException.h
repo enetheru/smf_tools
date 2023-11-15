@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  ArgException.h
@@ -29,7 +27,6 @@
 #include <utility>
 
 namespace TCLAP {
-
 /**
  * A simple class that defines and argument exception.  Should be caught
  * whenever a CmdLine is created and parsed.
@@ -43,12 +40,12 @@ public:
      * \param td - Text describing the type of ArgException it is.
      * of the exception.
      */
-    explicit ArgException(std::string text = "undefined exception",
-                          std::string id   = "undefined",
-                          std::string td   = "Generic ArgException")
-        : _errorText(std::move(text)),
-          _argId(std::move(id)),
-          _typeDescription(std::move(td)) {}
+    explicit ArgException( std::string text = "undefined exception",
+                           std::string id = "undefined",
+                           std::string td = "Generic ArgException" )
+        : _errorText( std::move( text ) ),
+          _argId( std::move( id ) ),
+          _typeDescription( std::move( td ) ) {}
 
     /**
      * Destructor.
@@ -64,13 +61,13 @@ public:
      * Returns the argument id.
      */
     [[nodiscard]] std::string argId() const {
-     return _argId == "undefined" ? " " : "Argument: " + _argId;
+        return _argId == "undefined" ? " " : "Argument: " + _argId;
     }
 
     /**
      * Returns the arg id and error text.
      */
-    [[nodiscard]] const char *what() const noexcept override {
+    [[nodiscard]] const char* what() const noexcept override {
         static std::string ex;
         ex = _argId + " -- " + _errorText;
         return ex.c_str();
@@ -112,9 +109,9 @@ public:
      * \param id - The text identifying the argument source
      * of the exception.
      */
-    explicit ArgParseException(const std::string &text = "undefined exception",
-                               const std::string &id   = "undefined")
-        : ArgException(text, id,std::string("Exception found while parsing the value the Arg has been passed.")) {}
+    explicit ArgParseException( const std::string& text = "undefined exception",
+                                const std::string& id = "undefined" )
+        : ArgException( text, id, std::string( "Exception found while parsing the value the Arg has been passed." ) ) {}
 };
 
 /**
@@ -129,9 +126,11 @@ public:
      * \param id - The text identifying the argument source
      * of the exception.
      */
-    explicit CmdLineParseException(const std::string &text = "undefined exception",
-                                   const std::string &id   = "undefined")
-        : ArgException(text, id,std::string("Exception found when the values on the command line do not meet the requirements of the defined Args.")) {}
+    explicit CmdLineParseException( const std::string& text = "undefined exception",
+                                    const std::string& id = "undefined" )
+        : ArgException( text, id, std::string(
+                            "Exception found when the values on the command line do not meet the requirements of the defined Args." ) ) {
+    }
 };
 
 /**
@@ -146,9 +145,10 @@ public:
      * \param id - The text identifying the argument source
      * of the exception.
      */
-    explicit SpecificationException(const std::string &text = "undefined exception",
-                                    const std::string &id   = "undefined")
-        : ArgException(text, id,std::string("Exception found when an Arg object is improperly defined by the developer.")) {}
+    explicit SpecificationException( const std::string& text = "undefined exception",
+                                     const std::string& id = "undefined" )
+        : ArgException(
+            text, id, std::string( "Exception found when an Arg object is improperly defined by the developer." ) ) {}
 };
 
 /**
@@ -165,14 +165,13 @@ public:
  */
 class ExitException final : std::exception {
 public:
-    explicit ExitException(const int estat) : _estat(estat) {}
+    explicit ExitException( const int estat ) : _estat( estat ) {}
 
     [[nodiscard]] int getExitStatus() const { return _estat; }
 
 private:
     int _estat;
 };
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_ARG_EXCEPTION_H

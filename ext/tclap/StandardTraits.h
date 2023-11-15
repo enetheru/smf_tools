@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  StandardTraits.h
@@ -39,22 +37,20 @@
 #endif
 
 namespace TCLAP {
-
 // Integer types (signed, unsigned and bool) and floating point types all
 // have value-like semantics.
 
 // Strings have string like argument traits.
-template <>
-class ArgTraits<std::string> {
+template<>
+class ArgTraits< std::string > {
 public:
     typedef StringLike ValueCategory;
 };
 
-template <typename T>
-void SetString(T &dst, const std::string &src) {
+template< typename T >
+void SetString( T& dst, const std::string& src ) {
     dst = src;
 }
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_STANDARD_TRAITS_H

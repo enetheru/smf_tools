@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  HelpVisitor.h
@@ -28,7 +26,6 @@
 #include <tclap/Visitor.h>
 
 namespace TCLAP {
-
 /**
  * A Visitor object that calls the usage method of the given CmdLineOutput
  * object for the specified CmdLine object.
@@ -38,19 +35,19 @@ public:
     /**
      * Prevent accidental copying.
      */
-    HelpVisitor(const HelpVisitor &rhs) = delete;
-    HelpVisitor &operator=(const HelpVisitor &rhs) = delete;
+    HelpVisitor( const HelpVisitor& rhs ) = delete;
+    HelpVisitor& operator=( const HelpVisitor& rhs ) = delete;
 
 protected:
     /**
      * The CmdLine the output will be generated for.
      */
-    CmdLineInterface *_cmd;
+    CmdLineInterface* _cmd;
 
     /**
      * The output object.
      */
-    CmdLineOutput **_out;
+    CmdLineOutput** _out;
 
 public:
     /**
@@ -58,18 +55,18 @@ public:
      * \param cmd - The CmdLine the output will be generated for.
      * \param out - The type of output.
      */
-    HelpVisitor(CmdLineInterface *cmd, CmdLineOutput **out)
-        : _cmd(cmd), _out(out) {}
+    HelpVisitor( CmdLineInterface* cmd, CmdLineOutput** out )
+        : _cmd( cmd ), _out( out ) {}
 
     /**
      * Calls the usage method of the CmdLineOutput for the
      * specified CmdLine.
      */
     void visit() {
-        (*_out)->usage(*_cmd);
-        throw ExitException(0);
+        (*_out)->usage( *_cmd );
+        throw ExitException( 0 );
     }
 };
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_HELP_VISITOR_H

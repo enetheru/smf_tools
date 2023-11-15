@@ -1,5 +1,3 @@
-// -*- Mode: c++; c-basic-offset: 4; tab-width: 4; -*-
-
 /******************************************************************************
  *
  *  file:  ArgContainer.h
@@ -24,7 +22,6 @@
 #define TCLAP_ARG_CONTAINER_H
 
 namespace TCLAP {
-
 class Arg;
 
 /**
@@ -44,15 +41,14 @@ public:
      * Adds an argument. Ownership is not transfered.
      * \param a - Argument to be added.
      */
-    virtual ArgContainer &add(Arg &a) = 0;
+    virtual ArgContainer& add( Arg& a ) = 0;
 
     /**
      * Adds an argument. Ownership is not transfered.
      * \param a - Argument to be added.
      */
-    virtual ArgContainer &add(Arg *a) = 0;
+    virtual ArgContainer& add( Arg* a ) = 0;
 };
-
-}  // namespace TCLAP
+} // namespace TCLAP
 
 #endif  // TCLAP_ARG_CONTAINER_H
