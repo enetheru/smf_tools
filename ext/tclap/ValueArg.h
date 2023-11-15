@@ -25,8 +25,6 @@
 
 #include <tclap/Arg.h>
 #include <tclap/Constraint.h>
-#include <tclap/ArgTraits.h>
-#include <tclap/sstream.h>
 
 #include <string>
 #include <utility>
@@ -34,49 +32,17 @@
 
 namespace TCLAP {
 
-/*
- * Extract a value of type T from it's string representation contained
- * in strVal. The ValueLike parameter used to select the correct
- * specialization of ExtractValue depending on the value traits of T.
- * ValueLike traits use operator>> to assign the value from strVal.
- */
-template< typename T >
-void ExtractValue( T& destVal, const std::string& strVal, const ValueLike& vl ) {
-    static_cast< void >(vl); // Avoid warning about unused vl
-    istringstream is( strVal.c_str() );
+template<class T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
+T ExtractValue( const std::string& val ) { return std::stoi( val ); }
 
-    int valuesRead = 0;
-    while( is.good() ) {
-        if( is.peek() != EOF )
-#ifdef TCLAP_SETBASE_ZERO
-            is >> std::setbase(0) >> destVal;
-#else
-                is >> destVal;
-#endif
-        else
-            break;
+template<class T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+T ExtractValue( const std::string& val ) { return std::stof( val ); }
 
-        valuesRead++;
-    }
+template<class T, std::enable_if_t<std::is_convertible_v<T, std::string>, bool> = true>
+T ExtractValue( const std::string& val ) { return std::string( val ); }
 
-    if( is.fail() )
-        throw ArgParseException( std::format( "Couldn't read argument value from string '{}'", strVal ) );
-
-    if( valuesRead > 1 )
-        throw ArgParseException( std::format( "More than one valid value parsed from string '{}'", strVal ) );
-}
-
-/*
- * Extract a value of type T from it's string representation contained
- * in strVal. The ValueLike parameter used to select the correct
- * specialization of ExtractValue depending on the value traits of T.
- * StringLike uses assignment (operator=) to assign from strVal.
- */
-template< typename T >
-void ExtractValue( T& destVal, const std::string& strVal, const StringLike& sl ) {
-    static_cast< void >(sl); // Avoid warning about unused sl
-    SetString( destVal, strVal );
-}
+template<class T, std::enable_if_t<std::is_same_v<T, std::filesystem::path>, bool> = true>
+T ExtractValue( const std::string& val ) { return std::filesystem::path( val ); }
 
 /**
  * The basic labeled argument that parses a value.
@@ -122,7 +88,15 @@ protected:
      * is thrown.
      * \param val - value to be parsed.
      */
-    void _extractValue( const std::string& val );
+
+    void _extractValue( const std::string& val ) {
+        _value = ExtractValue<T>( val );
+        if( _constraint && !_constraint->check( _value ) ) {
+            throw CmdLineParseException( _constraint->description(), toString() );
+        }
+    }
+
+
 
 public:
     ValueArg( const std::string& flag, const std::string& name, const std::string& desc, std::string typeDesc )
@@ -266,20 +240,6 @@ std::string ValueArg< T >::shortID() const {
 template< class T >
 std::string ValueArg< T >::longID() const {
     return fmt::format("{} <{}>", Arg::longID(), _typeDesc );
-}
-
-template< class T >
-void ValueArg< T >::_extractValue( const std::string& val ) {
-    try {
-        ExtractValue( _value, val, typename ArgTraits< T >::ValueCategory() );
-    }
-    catch( ArgParseException& e ) {
-        throw ArgParseException( e.error(), toString() );
-    }
-
-    if( _constraint && !_constraint->check( _value ) ) {
-        throw CmdLineParseException( _constraint->description(), toString() );
-    }
 }
 
 template< class T >

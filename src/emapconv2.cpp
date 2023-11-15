@@ -145,12 +145,12 @@ main( int argc, char **argv )
     }
 
     // Deal with basic arguments
-    if( argHelp ) {
+    if( argHelp->isSet() ) {
         myout.usage(cmd);
         shutdown(0);
     }
 
-    if( argVersion ) {
+    if( argVersion->isSet() ) {
         myout.version(cmd);
         shutdown(0);
     }
