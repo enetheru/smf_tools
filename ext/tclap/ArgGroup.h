@@ -35,20 +35,24 @@ namespace TCLAP {
  * handler). It is not expected to be used directly, rather one of the
  * EitherOf or OneOf derived classes are used.
  */
-class ArgGroup : public ArgContainer, protected std::vector< Arg* > {
+class ArgGroup : public ArgContainer, protected std::vector< std::shared_ptr<Arg> > {
 public:
-    using std::vector< Arg* >::begin;
-    using std::vector< Arg* >::end;
-    using std::vector< Arg* >::iterator;
-    using std::vector< Arg* >::const_iterator;
+    using std::vector< std::shared_ptr<Arg> >::begin;
+    using std::vector< std::shared_ptr<Arg> >::end;
+    using std::vector< std::shared_ptr<Arg> >::iterator;
+    using std::vector< std::shared_ptr<Arg> >::const_iterator;
 
     ~ArgGroup() override = default;
 
     /// Add an argument to this arg group
-    ArgContainer& add( Arg& arg ) override { return add( &arg ); }
+    ArgContainer& add( std::shared_ptr<Arg> arg ) override;
 
-    /// Add an argument to this arg group
-    ArgContainer& add( Arg* arg ) override;
+    template< class ArgType, typename ...args >
+    std::shared_ptr<ArgType> add( const args & ... fwd ) {
+        auto item = std::make_shared<ArgType>( fwd ... );
+        add( item );
+        return item;
+    }
 
     /**
      * Validates that the constraints of the ArgGroup are satisfied.
@@ -91,7 +95,7 @@ public:
         }
 
         _parser = &parser;
-        for( const auto arg : *this ) {
+        for( const auto &arg : *this ) {
             parser.addToArgList( arg );
         }
     }
@@ -125,13 +129,12 @@ class ExclusiveArgGroup : public ArgGroup {
 public:
     inline bool validate() override;
     [[nodiscard]] bool isExclusive() const override { return true; }
-    ArgContainer& add( Arg& arg ) override { return add( &arg ); }
 
-    ArgContainer& add( Arg* arg ) override {
+    ArgContainer& add( const std::shared_ptr<Arg> arg ) override {
         if( arg->isRequired() ) {
             throw SpecificationException(
                 "Required arguments are not allowed in an exclusive grouping.",
-                arg->longID( "" ) );
+                arg->longID() );
         }
 
         return ArgGroup::add( arg );
@@ -184,11 +187,11 @@ public:
     [[nodiscard]] bool isRequired() const override { return false; }
 };
 
-inline ArgContainer& ArgGroup::add( Arg* arg ) {
-    auto find_func = [&arg]( const Arg* existing ) { return *existing == *arg; };
+inline ArgContainer& ArgGroup::add( std::shared_ptr<Arg> arg ) {
+    auto find_func = [&arg]( const std::shared_ptr<Arg> &existing ) { return *existing == *arg; };
     if( std::ranges::find_if( *this, find_func ) != this->end() ) {
         throw SpecificationException(
-            "Argument with same flag/name already exists!", arg->longID( "" ) );
+            "Argument with same flag/name already exists!", arg->longID() );
     }
 
     push_back( arg );
@@ -200,12 +203,12 @@ inline ArgContainer& ArgGroup::add( Arg* arg ) {
 }
 
 inline bool ExclusiveArgGroup::validate() {
-    const Arg* existing_arg = nullptr;
+    std::shared_ptr<Arg> existing_arg = nullptr;
     std::string flag;
 
-    for( const auto arg : *this ) {
+    for( const auto &arg : *this ) {
         if( arg->isSet() ) {
-            if( existing_arg != nullptr && *existing_arg != *arg ) {
+            if( !existing_arg && existing_arg != arg ) {
                 // We found a matching argument, but one was
                 // already found previously.
                 throw CmdLineParseException(
@@ -224,7 +227,7 @@ inline bool ExclusiveArgGroup::validate() {
 inline std::string ArgGroup::getName() const {
     std::string name;
     std::string sep = "{"; // TODO: this should change for non-exclusive arg groups
-    for( const auto it : *this ) {
+    for( const auto &it : *this ) {
         name += std::exchange( sep, " | " ) + it->getName();
     }
     return name + '}';
@@ -233,7 +236,7 @@ inline std::string ArgGroup::getName() const {
 /// @internal
 inline int CountVisibleArgs( const ArgGroup& g ) {
     int visible = 0;
-    for( const auto it : g ) {
+    for( const auto &it : g ) {
         if( it->visibleInHelp() ) {
             visible++;
         }

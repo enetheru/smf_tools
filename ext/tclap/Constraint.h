@@ -40,7 +40,7 @@ public:
     /**
      * Returns the short ID for the Constraint.
      */
-    [[nodiscard]] virtual std::string shortID() const = 0;
+    [[nodiscard]] virtual std::string typeDesc() const = 0;
 
     /**
      * The method used to verify that the value parsed from the command

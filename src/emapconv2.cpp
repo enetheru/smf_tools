@@ -45,9 +45,9 @@ namespace TCLAP
     class MyConstraint final : public Constraint<int>
     {
     public:
-        [[nodiscard]] std::string description() const override { return {"MyConstraint Violation"}; };
-        [[nodiscard]] std::string shortID() const override { return {"MyConstraint - Short ID"}; };
-        [[nodiscard]] bool check(const int& value) const override { return false; };
+        [[nodiscard]] std::string description() const override { return {"MyConstraint Violation"}; }
+        [[nodiscard]] std::string typeDesc() const override { return {"MyConstraint - typedesc"}; }
+        [[nodiscard]] bool check(const int& value) const override { return false; }
     };
 
     class RangeInclusive final : public Constraint<int>
@@ -57,11 +57,11 @@ namespace TCLAP
         RangeInclusive(const int lower_bound, const int upper_bound ) : _lowerBound(lower_bound), _upperBound(upper_bound) {}
         [[nodiscard]] std::string description() const override {
             return fmt::format("Range Violation({} -> {})", _lowerBound, _upperBound );
-        };
-        [[nodiscard]] std::string shortID() const override { return {"MyConstraint - Short ID"}; };
+        }
+        [[nodiscard]] std::string typeDesc() const override { return {"RangeInclusive - typeDesc"}; }
         [[nodiscard]] bool check(const int& value) const override {
             return value >= _lowerBound && value <= _upperBound;
-        };
+        }
     };
 }
 
@@ -70,73 +70,77 @@ static void shutdown( const int code ){
     exit( code );
 }
 
-
-
-
 int
 main( int argc, char **argv )
 {
-    TCLAP::Visitor *my_visitor = new TCLAP::MyVisitor(); //FIXME Visitors are dumb
-    TCLAP::Constraint<int> *my_constraint = new TCLAP::RangeInclusive( -5, 5);
+    using Path = std::filesystem::path;
+    using TCLAP::ValueArg;
+    using TCLAP::SwitchArg;
+    using TCLAP::MultiSwitchArg;
+    using TCLAP::NamedGroup;
+    using TCLAP::RangeInclusive;
+    using TCLAP::MyVisitor;
+
+    auto my_visitor = std::make_shared<MyVisitor>();
+    auto my_constraint = std::make_shared<RangeInclusive>( -5, 5);
 
     TCLAP::fmtOutput myout;
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
 
     TCLAP::CmdLine cmd("Command description message", ' ', "0.9", false);
-
-    TCLAP::SwitchArg      argVersion("V", "version", "Displays version information and exits", cmd);
-    TCLAP::SwitchArg      argHelp("h", "help", "Displays usage information and exits", cmd);
-    TCLAP::SwitchArg      argQuiet("q", "quiet", "Supress Output", cmd);
-    TCLAP::MultiSwitchArg argVerbose("v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'", cmd);
-    TCLAP::SwitchArg argWerror("", "werror", "treat warnings as errors and abort", cmd );
+    auto argVersion = cmd.add< SwitchArg >( "V", "version", "Displays version information and exits" );
+    auto argHelp    = cmd.add< SwitchArg >( "h", "help", "Displays usage information and exits" );
+    auto argQuiet   = cmd.add< SwitchArg >( "q", "quiet", "Supress Output" );
+    auto argVerbose = cmd.add< MultiSwitchArg >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
+    auto argWerror = cmd.add< SwitchArg >( "", "werror", "treat warnings as errors and abort" );
 
     // Primary modes
-    TCLAP::NamedGroup  mode(cmd, "Program Modes(default is to display info)");
-    TCLAP::SwitchArg argCompile("", "compile", "construct smf, smt, or any other files based on options", mode);
-    TCLAP::SwitchArg argDecompile("", "decompile", "deconstruct input files into human readable formats", mode);
+    NamedGroup mode( cmd, "Program Modes(default is to display info)" );
+    auto argCompile   = mode.add< SwitchArg >( "", "compile", "construct smf, smt, or any other files based on options" );
+    auto argDecompile = mode.add< SwitchArg >( "", "decompile", "deconstruct input files into human readable formats" );
 
     // Compile SubOptions - Metadata
-    TCLAP::NamedGroup compileMeta(cmd, "Compile Sub-Options");
-    TCLAP::ValueArg  argPrefix("", "prefix", "File output prefix when saving files", false, std::filesystem::path("./"), "prefix", compileMeta);
-    TCLAP::SwitchArg argOverwrite("", "overwrite", "overwrite existing files", compileMeta);
-    //TCLAP::ValueArg  argMapX("", "mapx", "Width of map", false, 128, "typedesc", compileMeta, my_visitor  );
-    TCLAP::ValueArg  argMapX("", "mapx", "Width of map", false, 128, my_constraint, cmd, my_visitor  );
-    TCLAP::ValueArg  argMapY("", "mapy", "Height of map", false, 128, "128-int_max % 128", compileMeta);
-    TCLAP::ValueArg  argMinHeight("", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float", compileMeta);
-    TCLAP::ValueArg  argMaxHeight("", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float", compileMeta);
+    NamedGroup compileMeta( cmd, "Compile Sub-Options" );
+    auto argPrefix    = compileMeta.add< ValueArg< std::filesystem::path > >( "", "prefix", "File output prefix when saving files", false, std::filesystem::path( "./" ), "prefix" );
+    auto argOverwrite = compileMeta.add< SwitchArg >( "", "overwrite", "overwrite existing files" );
+    auto argMapX      = compileMeta.add< ValueArg< int > >( "", "mapx", "Width of map", false, 128, "int", my_constraint, my_visitor );
+    auto argMapY      = compileMeta.add< ValueArg< int > >( "", "mapy", "Height of map", false, 128, "128-int_max % 128" );
+    auto argMinHeight = compileMeta.add< ValueArg< float > >( "", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float" );
+    auto argMaxHeight = compileMeta.add< ValueArg< float > >( "", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float" );
+
 
     // Compile SubOptions - Metadata Advanced
-    TCLAP::NamedGroup compileMetaAdv(cmd, "Compile Advanced Sub-Options");
-    TCLAP::ValueArg argMapId("", "map-id", "Unique ID for the map", false, static_cast<uint32_t>(0), "uint32_t", compileMetaAdv);
-    TCLAP::ValueArg argSquare_size("", "square-size", "Distance between vertices. Must be 8", false, 8, "int", compileMetaAdv);
-    TCLAP::ValueArg argTexels_per_square("", "texels-per-square", "Number of texels per square, must be 8", false, 8, "int", compileMetaAdv);
-    TCLAP::ValueArg argTile_size("", "tile-size", "Number of texels in a tile, must be 32", false, 32, "int", compileMetaAdv);
-    TCLAP::ValueArg argCompression_type("", "compression-type", "Tile compression format, must be 1, Types(1=DXT1)", false, 1, "int", compileMetaAdv);
+    NamedGroup compileMetaAdv(cmd, "Compile Advanced Sub-Options");
+	auto argMapId             = compileMetaAdv.add< ValueArg< uint32_t > > ("", "map-id", "Unique ID for the map", false, static_cast<uint32_t>(0), "uint32_t");
+	auto argSquare_size       = compileMetaAdv.add< ValueArg< int > > ("", "square-size", "Distance between vertices. Must be 8", false, 8, "int");
+	auto argTexels_per_square = compileMetaAdv.add< ValueArg< int > > ("", "texels-per-square", "Number of texels per square, must be 8", false, 8, "int");
+	auto argTile_size         = compileMetaAdv.add< ValueArg< int > > ("", "tile-size", "Number of texels in a tile, must be 32", false, 32, "int");
+	auto argCompression_type  = compileMetaAdv.add< ValueArg< int > > ("", "compression-type", "Tile compression format, must be 1, Types(1=DXT1)", false, 1, "int");
 
     // Compile SubOptions - data
-    TCLAP::NamedGroup compileData(cmd, "Compile Data Options" );
-    TCLAP::ValueArg argHeight_map("", "height-map", "Image file to use as the height map", false, std::filesystem::path{}, "path", compileData);
-    TCLAP::ValueArg argType_map("", "type-map", "Image file to use as the type map", false, std::filesystem::path{}, "path", compileData);
-    TCLAP::ValueArg argTile_map("", "tile-map", "File to use as the tile map", false, std::filesystem::path{}, "path", compileData);
-    TCLAP::ValueArg argMini_map("", "mini-map", "Image file to use as the mini map", false, std::filesystem::path{}, "path", compileData);
-    TCLAP::ValueArg argMetal_map("", "metal-map", "Image file to use as the metal map", false, std::filesystem::path{}, "path", compileData);
-    TCLAP::ValueArg argFeature_map("", "feature-map", "image file to use as the feature map", false, std::filesystem::path{}, "path", compileData);
+    NamedGroup compileData(cmd, "Compile Data Options" );
+	auto argHeight_map  = compileData.add< ValueArg< Path > > ("", "height-map", "Image file to use as the height map" );
+	auto argType_map    = compileData.add< ValueArg< Path > > ("", "type-map", "Image file to use as the type map", false, std::filesystem::path{}, "path");
+	auto argTile_map    = compileData.add< ValueArg< Path > > ("", "tile-map", "File to use as the tile map", false, std::filesystem::path{}, "path");
+	auto argMini_map    = compileData.add< ValueArg< Path > > ("", "mini-map", "Image file to use as the mini map", false, std::filesystem::path{}, "path");
+	auto argMetal_map   = compileData.add< ValueArg< Path > > ("", "metal-map", "Image file to use as the metal map", false, std::filesystem::path{}, "path");
+	auto argFeature_map = compileData.add< ValueArg< Path > > ("", "feature-map", "image file to use as the feature map", false, std::filesystem::path{}, "path");
 
     // Compile SubOptions - Extra Data
-    TCLAP::NamedGroup    compileDataEx(cmd, "Compile Extra Data Options");
-    TCLAP::ValueArg argGrass_map("", "grass-map", "Image file to use as the grass map", false, std::filesystem::path{}, "path", compileDataEx);
+    NamedGroup compileDataEx(cmd, "Compile Extra Data Options");
+	auto argGrass_map = compileDataEx.add< ValueArg< Path > > ("", "grass-map", "Image file to use as the grass map", false, std::filesystem::path{}, "path");
 
     // Compile SubOptions - Conversion and Modification
-    TCLAP::NamedGroup    conversion(cmd, "Data Conversion Options");
-    TCLAP::ValueArg argDiffuse_map("", "diffuse-map", "Image file to use to construct the smt and tilemap", false, std::filesystem::path{}, "path", conversion);
-    TCLAP::ValueArg argDecal("", "decal", "Image file to use as a decal", false, std::filesystem::path{}, "path", conversion);
-    TCLAP::ValueArg decal_value("", "decal-value", "Hexadecimal pixel value to detect when placing decal", false, std::string{}, "colour", conversion);
-    TCLAP::ValueArg height_convolv("", "height-convolv", "convolution matrix to apply to height data(for smoothing)", false, std::string{}, "matrix", conversion);
+    NamedGroup conversion(cmd, "Data Conversion Options");
+	auto argDiffuse_map = conversion.add< ValueArg< Path > > ("", "diffuse-map", "Image file to use to construct the smt and tilemap", false, std::filesystem::path{}, "path");
+	auto argDecal       = conversion.add< ValueArg< Path > > ("", "decal", "Image file to use as a decal", false, std::filesystem::path{}, "path");
+    auto decal_value = conversion.add<ValueArg< std::string >>("", "decal-value", "Hexadecimal pixel value to detect when placing decal", false, std::string{}, "colour");
+    auto height_convolv =  conversion.add<ValueArg< std::string >>("", "height-convolv", "convolution matrix to apply to height data(for smoothing)", false, std::string{}, "matrix");
 
     // Decompile Suboptions
-    TCLAP::NamedGroup     decompile(cmd, "Decompile Options");
-    TCLAP::SwitchArg reconstruct("", "reconstruct", "Reconstruct the diffuse texture from the inputs", decompile);
-    // FIXME TCLAP::ValueArg  argScale("", "scale", "Scale the reconstructed diffuse texture to this size", false, std::pair<int, int>{}, "XxY", decompile);
+    NamedGroup decompile(cmd, "Decompile Options");
+    auto reconstruct = decompile.add<SwitchArg>("", "reconstruct", "Reconstruct the diffuse texture from the inputs");
+    // FIXME TCLAP::ValueArg<int>  argScale("", "scale", "Scale the reconstructed diffuse texture to this size", false, std::pair<int, int>{}, "XxY", decompile);
 
     // Parse TCLAP arguments
     try {
@@ -161,8 +165,8 @@ main( int argc, char **argv )
 
     // setup logging level.
     int verbose = 3;
-    if( argQuiet.getValue() ) verbose = 0;
-    verbose += argVerbose.getValue();
+    if( argQuiet->getValue() ) verbose = 0;
+    verbose += argVerbose->getValue();
     if( verbose > 6 )verbose = 6;
 
     switch( verbose ){
@@ -185,9 +189,9 @@ main( int argc, char **argv )
     }
     fmt::println( "Spdlog Level: {}", static_cast<int>(spdlog::get_level()) );
 
-    if( argMapX.isSet() )
+    if( argMapX->isSet() )
     {
-        fmt::println("The value of MapX is {}", argMapX.getValue() );
+        fmt::println("The value of MapX is {}", argMapX->getValue() );
     }
 
     shutdown(0);

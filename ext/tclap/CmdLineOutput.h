@@ -61,7 +61,7 @@ public:
     virtual void failure( CmdLineInterface& c, ArgException& e ) = 0;
 };
 
-inline bool isInArgGroup( const Arg* arg, const std::list< ArgGroup* >& argSets ) {
+inline bool isInArgGroup( const std::shared_ptr<Arg> arg, const std::list< ArgGroup* >& argSets ) {
     for( const auto group : argSets ) {
         if( std::ranges::find( *group, arg ) != group->end() ) {
             return true;
@@ -70,7 +70,7 @@ inline bool isInArgGroup( const Arg* arg, const std::list< ArgGroup* >& argSets 
     return false;
 }
 
-inline void removeArgsInArgGroups( std::list< Arg* >& argList, const std::list< ArgGroup* >& argSets ) {
+inline void removeArgsInArgGroups( std::list< std::shared_ptr<Arg> >& argList, const std::list< ArgGroup* >& argSets ) {
     argList.remove_if( [&argSets]( const auto arg ) { return isInArgGroup( arg, argSets ); } );
 }
 } // namespace TCLAP

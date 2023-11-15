@@ -50,18 +50,11 @@ public:
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer& add( Arg& a ) override = 0;
-
-    /**
-     * Adds an argument. Ownership is not transfered.
-     * @param a - Argument to be added.
-     * @retval A reference to this so that add calls can be chained
-     */
-    ArgContainer& add( Arg* a ) override = 0;
+    ArgContainer& add( std::shared_ptr<Arg> a ) override = 0;
 
     // TODO: Rename this to something smarter or refactor this logic so it's not needed.
     // Internal - do not use
-    virtual void addToArgList( Arg* a ) = 0;
+    virtual void addToArgList( std::shared_ptr<Arg> a ) = 0;
 
     /**
      * Adds an argument group to the list of arguments to be parsed.
@@ -109,7 +102,7 @@ public:
      * Returns the list of ArgGroups.
      */
     virtual std::list< ArgGroup* > getArgGroups() = 0;
-    [[nodiscard]] virtual std::list< Arg* > getArgList() const = 0; // TODO: get rid of this
+    [[nodiscard]] virtual std::list< std::shared_ptr<Arg> > getArgList() const = 0; // TODO: get rid of this
 
     /**
      * Returns the delimiter string.

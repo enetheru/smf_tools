@@ -44,17 +44,16 @@ class StandaloneArgs final : public AnyOf {
 public:
     StandaloneArgs() = default;
 
-    ArgContainer& add( Arg* arg ) override {
+    ArgContainer& add( const std::shared_ptr<Arg> arg ) override {
         for( const auto& it : *this ) {
             if( *arg == *it ) {
                 throw SpecificationException(
                     "Argument with same flag/name already exists!",
-                    arg->longID( "" ) );
+                    arg->longID() );
             }
         }
 
         push_back( arg );
-
         return *this;
     }
 
@@ -66,12 +65,18 @@ public:
  * along the parsing to the appropriate Arg classes.
  */
 class CmdLine final : public CmdLineInterface {
+
+    /**
+     * The name used to identify the ignore rest argument.
+     */
+    static std::string ignoreNameString() { return "ignore_rest"; }
+
 protected:
     /**
      * The list of arguments that will be tested against the
      * command line.
      */
-    std::list< Arg* > _argList;
+    std::list< std::shared_ptr<Arg> > _argList;
 
     StandaloneArgs _standaloneArgs;
 
@@ -197,15 +202,10 @@ public:
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer& add( Arg& a ) override;
+    ArgContainer& add( std::shared_ptr<Arg> a ) override { return *this; }
 
-    /**
-     * An alternative add.  Functionally identical.
-     *
-     * @param a - Argument to be added.
-     * @retval A reference to this so that add calls can be chained
-     */
-    ArgContainer& add( Arg* a ) override;
+    template< class ArgType, typename ...args >
+    std::shared_ptr<ArgType> add( args  ... fwd );
 
     /**
      * Adds an argument group to the list of arguments to be parsed.
@@ -220,7 +220,7 @@ public:
     ArgContainer& add( ArgGroup& args ) override;
 
     // Internal, do not use
-    void addToArgList( Arg* a ) override;
+    void addToArgList( std::shared_ptr<Arg> a ) override;
 
     /**
      * Parses the command line.
@@ -244,7 +244,7 @@ public:
     [[nodiscard]] std::string getProgramName() const override { return _progName; }
 
     // TOOD: Get rid of getArgList
-    [[nodiscard]] std::list< Arg* > getArgList() const override { return _argList; }
+    [[nodiscard]] std::list< std::shared_ptr<Arg> > getArgList() const override { return _argList; }
 
     std::list< ArgGroup* > getArgGroups() override {
         std::list< ArgGroup* > groups = _argGroups;
@@ -303,14 +303,20 @@ inline void CmdLine::_constructor() {
 
     add( _standaloneArgs );
 
-    Visitor* v = new IgnoreRestVisitor( *this );
-    auto* ignore = new SwitchArg(
-        Arg::flagStartString(), Arg::ignoreNameString(),
+    auto v = std::make_shared<IgnoreRestVisitor>( *this );
+    const auto ignore = std::make_shared<SwitchArg>( Arg::flagStartString(), ignoreNameString(),
         "Ignores the rest of the labeled arguments following this flag.", false,
         v );
-    _deleteOnExit( ignore );
-    _deleteOnExit( v );
+
     addToArgList( ignore );
+}
+
+template< class ArgType, typename ...args >
+std::shared_ptr<ArgType> CmdLine::add( args  ... fwd ) {
+    auto item = std::make_shared<ArgType>( std::move(fwd) ... );
+    addToArgList( item );
+    _standaloneArgs.add( item );
+    return item;
 }
 
 inline ArgContainer& CmdLine::add( ArgGroup& args ) {
@@ -320,28 +326,19 @@ inline ArgContainer& CmdLine::add( ArgGroup& args ) {
     return *this;
 }
 
-inline ArgContainer& CmdLine::add( Arg& a ) { return add( &a ); }
 
 // TODO: Rename this to something smarter or refactor this logic so
 // it's not needed.
-inline void CmdLine::addToArgList( Arg* a ) {
-    for( const auto arg : _argList ) {
+inline void CmdLine::addToArgList( const std::shared_ptr<Arg> a ) {
+    for( const auto &arg : _argList ) {
         if( *a == *arg ) {
             throw SpecificationException(
-                "Argument with same flag/name already exists!", a->longID( "" ) );
+                "Argument with same flag/name already exists!", a->longID() );
         }
     }
 
-    a->addToList( _argList );
-
+    _argList.push_front( a );
     if( a->isRequired() ) _numRequired++;
-}
-
-inline ArgContainer& CmdLine::add( Arg* a ) {
-    addToArgList( a );
-    _standaloneArgs.add( a );
-
-    return *this;
 }
 
 inline void CmdLine::parse( const int argc, const char* const * argv ) {
@@ -387,7 +384,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
 
         for( int i = 0; static_cast< unsigned int >(i) < args.size(); i++ ) {
             bool matched = false;
-            for( const auto arg : _argList ) {
+            for( const auto &arg : _argList ) {
                 // We check if the argument was already set (e.g., for
                 // a Multi-Arg) since then we don't want to count it
                 // as required again. This is a hack/workaround to
@@ -396,7 +393,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
                 //
                 // TODO: This logic should probably be refactored to remove this logic from here.
                 const bool alreadySet = arg->isSet();
-                if( const bool ignore = arg->isIgnoreable() && ignoreRest(); !ignore && arg->processArg( &i, args ) ) {
+                if( const bool ignore = !arg->isRequired() && ignoreRest(); !ignore && arg->processArg( &i, args ) ) {
                     requiredCount += !alreadySet && arg->isRequired() ? 1 : 0;
                     matched = true;
                     break;
@@ -467,7 +464,7 @@ inline void CmdLine::missingArgsException(
     int count = 0;
 
     std::string missingArgList;
-    for( const auto arg : _argList ) {
+    for( const auto &arg : _argList ) {
         if( arg->isRequired() && !arg->isSet() ) {
             missingArgList += arg->getName();
             missingArgList += ", ";
@@ -497,7 +494,7 @@ inline void CmdLine::setExceptionHandling( const bool state ) {
 
 inline void CmdLine::reset() {
     // TODO: This is no longer correct (or perhaps we don't need "reset")
-    for( const auto arg : _argList ) arg->reset();
+    for( const auto &arg : _argList ) arg->reset();
     _progName.clear();
 }
 

@@ -30,7 +30,7 @@ public:
         std::string groupedShortOpts;
 
         // Short Opts
-        for( const auto arg : cmd.getArgList() ) {
+        for( const auto& arg : cmd.getArgList() ) {
             if( columnWidths[ 1 ] < arg->getName().length() )columnWidths[ 1 ] = arg->getName().length();
             if( columnWidths[ 2 ] < arg->getDescription().length() )columnWidths[ 2 ] = arg->getDescription().length();
 
@@ -48,7 +48,7 @@ public:
         for( const auto group : cmd.getArgGroups() ) {
             groupOpts += fmt::format( "\n{}:\n", group->getName() );
             std::string longOpts;
-            for( const auto arg : *group ) {
+            for( const auto &arg : *group ) {
                 std::string description{};
                 for( auto word : std::ranges::split_view( arg->getDescription(), ' ' ) ) {
                     if( description.size() - description.find_last_of( '\n' ) >= columnWidths[ 2 ] ) {

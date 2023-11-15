@@ -24,9 +24,9 @@
 #define TCLAP_SWITCH_ARG_H
 
 #include <tclap/Arg.h>
-#include <tclap/ArgContainer.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace TCLAP {
@@ -62,24 +62,7 @@ public:
      * use this unless you have a very good reason.
      */
     SwitchArg( const std::string& flag, const std::string& name,
-               const std::string& desc, bool default_val = false, Visitor* v = nullptr );
-
-    /**
-     * SwitchArg constructor.
-     * \param flag - The one character flag that identifies this
-     * argument on the command line.
-     * \param name - A one word name for the argument.  Can be
-     * used as a long flag on the command line.
-     * \param desc - A description of what the argument is for or
-     * does.
-     * \param parser - A CmdLine parser object to add this Arg to
-     * \param default_val - The default value for this Switch.
-     * \param v - An optional visitor.  You probably should not
-     * use this unless you have a very good reason.
-     */
-    SwitchArg( const std::string& flag, const std::string& name,
-               const std::string& desc, ArgContainer& parser, bool default_val = false,
-               Visitor* v = nullptr );
+               const std::string& desc, bool default_val = false, std::shared_ptr<Visitor> v = {} );
 
     /**
      * Handles the processing of the argument.
@@ -131,18 +114,10 @@ private:
 //////////////////////////////////////////////////////////////////////
 inline SwitchArg::SwitchArg( const std::string& flag, const std::string& name,
                              const std::string& desc, const bool default_val,
-                             Visitor* v )
-    : Arg( flag, name, desc, false, false, v ),
+                             std::shared_ptr<Visitor> v )
+    : Arg( flag, name, desc, false, false, std::move(v) ),
       _value( default_val ),
       _default( default_val ) {}
-
-inline SwitchArg::SwitchArg( const std::string& flag, const std::string& name,
-                             const std::string& desc, ArgContainer& parser, const bool default_val, Visitor* v )
-    : Arg( flag, name, desc, false, false, v ),
-      _value( default_val ),
-      _default( default_val ) {
-    parser.add( this );
-}
 
 inline bool SwitchArg::lastCombined( const std::string& combinedSwitches ) {
     for( unsigned int i = 1; i < combinedSwitches.length(); i++ )

@@ -41,13 +41,7 @@ public:
      * Adds an argument. Ownership is not transfered.
      * \param a - Argument to be added.
      */
-    virtual ArgContainer& add( Arg& a ) = 0;
-
-    /**
-     * Adds an argument. Ownership is not transfered.
-     * \param a - Argument to be added.
-     */
-    virtual ArgContainer& add( Arg* a ) = 0;
+    virtual ArgContainer& add( std::shared_ptr<Arg> a ) = 0;
 };
 } // namespace TCLAP
 

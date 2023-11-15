@@ -27,6 +27,7 @@
 #include <tclap/SwitchArg.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace TCLAP {
@@ -62,7 +63,7 @@ public:
      * use this unless you have a very good reason.
      */
     MultiSwitchArg( const std::string& flag, const std::string& name,
-                    const std::string& desc, int init = 0, Visitor* v = nullptr );
+                    const std::string& desc, int init = 0, std::shared_ptr<Visitor> v = nullptr );
 
     /**
      * MultiSwitchArg constructor.
@@ -101,12 +102,12 @@ public:
     /**
      * Returns the shortID for this Arg.
      */
-    [[nodiscard]] std::string shortID( const std::string& val ) const override;
+    [[nodiscard]] std::string shortID() const override;
 
     /**
      * Returns the longID for this Arg.
      */
-    [[nodiscard]] std::string longID( const std::string& val ) const override;
+    [[nodiscard]] std::string longID() const override;
 
     void reset() override;
 };
@@ -114,17 +115,8 @@ public:
 inline MultiSwitchArg::MultiSwitchArg( const std::string& flag,
                                        const std::string& name,
                                        const std::string& desc, const int init,
-                                       Visitor* v )
-    : SwitchArg( flag, name, desc, false, v ), _value( init ), _default( init ) {}
-
-inline MultiSwitchArg::MultiSwitchArg( const std::string& flag,
-                                       const std::string& name,
-                                       const std::string& desc,
-                                       ArgContainer& parser, const int init,
-                                       Visitor* v )
-    : SwitchArg( flag, name, desc, false, v ), _value( init ), _default( init ) {
-    parser.add( this );
-}
+                                       std::shared_ptr<Visitor> v )
+    : SwitchArg( flag, name, desc, false, std::move(v) ), _value( init ), _default( init ) {}
 
 inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args ) {
     if( argMatches( args[ *i ] ) ) {
@@ -156,12 +148,12 @@ inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args
     return false;
 }
 
-inline std::string MultiSwitchArg::shortID( const std::string& val ) const {
-    return Arg::shortID( val ) + " ...";
+inline std::string MultiSwitchArg::shortID() const {
+    return Arg::shortID() + " ...";
 }
 
-inline std::string MultiSwitchArg::longID( const std::string& val ) const {
-    return Arg::longID( val ) + "  (accepted multiple times)";
+inline std::string MultiSwitchArg::longID() const {
+    return Arg::longID() + "  (accepted multiple times)";
 }
 
 inline void MultiSwitchArg::reset() {

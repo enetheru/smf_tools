@@ -45,8 +45,8 @@ target_link_options( emapconv PUBLIC "LINKER:--allow-multiple-definition")
 add_executable( emapconv2 emapconv2.cpp )
 target_compile_features( emapconv2 PUBLIC cxx_std_23 )
 target_include_directories( emapconv2 PRIVATE ${TCLAP_INCLUDES} )
-target_link_libraries( emapconv2 -static spdlog::spdlog )
-# target_link_options( emapconv2 PUBLIC "LINKER:--allow-multiple-definition")
+target_link_libraries( emapconv2 spdlog::spdlog -static )
+target_link_options( emapconv2 PUBLIC "LINKER:--allow-multiple-definition")
 
 INSTALL(
         PROGRAMS
