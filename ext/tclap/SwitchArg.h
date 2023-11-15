@@ -26,7 +26,6 @@
 #include <tclap/Arg.h>
 
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace TCLAP {
@@ -61,8 +60,8 @@ public:
      * \param v - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
-    SwitchArg( const std::string& flag, const std::string& name,
-               const std::string& desc, bool default_val = false, std::shared_ptr<Visitor> v = {} );
+    SwitchArg( const std::string& flag, const std::string& name, const std::string& desc,
+        bool default_val = false, Visitor v = {} );
 
     /**
      * Handles the processing of the argument.
@@ -114,8 +113,8 @@ private:
 //////////////////////////////////////////////////////////////////////
 inline SwitchArg::SwitchArg( const std::string& flag, const std::string& name,
                              const std::string& desc, const bool default_val,
-                             std::shared_ptr<Visitor> v )
-    : Arg( flag, name, desc, false, false, std::move(v) ),
+                             const Visitor v )
+    : Arg( flag, name, desc, false, false, v ),
       _value( default_val ),
       _default( default_val ) {}
 

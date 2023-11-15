@@ -25,8 +25,6 @@
 
 #include <tclap/SwitchArg.h>
 
-#include <tclap/IgnoreRestVisitor.h>
-
 #include <tclap/CmdLineOutput.h>
 
 #include <tclap/ArgGroup.h>
@@ -303,10 +301,12 @@ inline void CmdLine::_constructor() {
 
     add( _standaloneArgs );
 
-    auto v = std::make_shared<IgnoreRestVisitor>( *this );
-    const auto ignore = std::make_shared<SwitchArg>( Arg::flagStartString(), ignoreNameString(),
-        "Ignores the rest of the labeled arguments following this flag.", false,
-        v );
+    const auto ignore = std::make_shared<SwitchArg>(
+        Arg::flagStartString(),
+        ignoreNameString(),
+        "Ignores the rest of the labeled arguments following this flag.",
+        false,
+        [&]( const Arg& ){ beginIgnoring(); } );
 
     addToArgList( ignore );
 }

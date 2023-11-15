@@ -63,7 +63,7 @@ public:
      * use this unless you have a very good reason.
      */
     MultiSwitchArg( const std::string& flag, const std::string& name,
-                    const std::string& desc, int init = 0, std::shared_ptr<Visitor> v = nullptr );
+                    const std::string& desc, int init = 0, Visitor v = nullptr );
 
     /**
      * MultiSwitchArg constructor.
@@ -114,9 +114,10 @@ public:
 
 inline MultiSwitchArg::MultiSwitchArg( const std::string& flag,
                                        const std::string& name,
-                                       const std::string& desc, const int init,
-                                       std::shared_ptr<Visitor> v )
-    : SwitchArg( flag, name, desc, false, std::move(v) ), _value( init ), _default( init ) {}
+                                       const std::string& desc,
+                                       const int init,
+                                       const Visitor v )
+    : SwitchArg( flag, name, desc, false, v ), _value( init ), _default( init ) {}
 
 inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args ) {
     if( argMatches( args[ *i ] ) ) {

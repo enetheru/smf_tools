@@ -159,7 +159,7 @@ public:
         T defaultValue = {},
         std::string typeDesc = {},
         std::shared_ptr<Constraint< T >> constraint = {},
-        std::shared_ptr< Visitor > v = {} );
+        Visitor v = {} );
 
     /**
      * Handles the processing of the argument.
@@ -204,7 +204,7 @@ ValueArg< T >::ValueArg(
     const bool req, T defaultValue,
     std::string  typeDesc,
     std::shared_ptr<Constraint< T >> constraint,
-    const std::shared_ptr<Visitor> v )
+    const Visitor v )
     : Arg( flag, name, desc, req, true, v ),
       _value( defaultValue ),
       _default( defaultValue ),

@@ -14,7 +14,6 @@
 #include <tclap/ValueArg.h>
 
 #include <tclap/Constraint.h>
-#include <tclap/Visitor.h>
 namespace TCLAP
 {
     //TODO Think about modifying the tclap source to make this redundant
@@ -33,14 +32,6 @@ namespace TCLAP
     };
 
     //TODO if we are modifying the source anywyay, We could replace the existing output with this.
-
-
-    class MyVisitor final : public Visitor
-    {
-    public:
-        void visit(const Arg *arg) override { fmt::println("MyVisitor has been visited when evaluating {}", arg->getName() ); }
-        ~MyVisitor() override = default;
-    };
 
     class MyConstraint final : public Constraint<int>
     {
@@ -79,9 +70,10 @@ main( int argc, char **argv )
     using TCLAP::MultiSwitchArg;
     using TCLAP::NamedGroup;
     using TCLAP::RangeInclusive;
-    using TCLAP::MyVisitor;
+    using TCLAP::Visitor;
 
-    auto my_visitor = std::make_shared<MyVisitor>();
+
+    Visitor my_visitor = [&](const TCLAP::Arg &arg) { fmt::println("MyVisitor has been visited when evaluating {}", arg.getName() ); };
     auto my_constraint = std::make_shared<RangeInclusive>( -5, 5);
 
     TCLAP::fmtOutput myout;

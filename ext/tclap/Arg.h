@@ -28,7 +28,6 @@
 #endif
 
 #include <tclap/ArgException.h>
-#include <tclap/Visitor.h>
 
 #include <format>
 #include <string>
@@ -41,6 +40,10 @@ namespace TCLAP {
  * This class, or one of its existing children, must be subclassed to do
  * anything.
  */
+
+class Arg;
+using Visitor = std::function<void(const Arg&)>;
+
 class Arg {
 public:
     /**
@@ -123,7 +126,8 @@ protected:
      * argument is matched.  This defaults to NULL and should not
      * be used unless absolutely necessary.
      */
-    std::shared_ptr<Visitor> _visitor{};
+    //Visitor _visitor{};
+    std::function<void(const Arg&)> _visitor;
 
     bool _acceptsMultipleValues{};
 
@@ -157,7 +161,7 @@ protected:
         std::string desc,
         bool req = false,
         bool valreq = false,
-        std::shared_ptr<Visitor> v = {});
+        Visitor v = nullptr );
 
 public:
     /**
@@ -340,7 +344,7 @@ inline Arg::Arg(
     std::string desc,
     const bool req,
     const bool valreq,
-    std::shared_ptr<Visitor> v )
+    const Visitor v )
     : _flag( std::move( flag ) ),
       _name( std::move( name ) ),
       _description( std::move( desc ) ),
@@ -348,7 +352,7 @@ inline Arg::Arg(
       _requireLabel( "required" ),
       _valueRequired( valreq ),
       _alreadySet( false ),
-      _visitor(std::move( v )),
+      _visitor( v ),
       _acceptsMultipleValues( false ),
       _visibleInHelp( true ) {
     if( _flag.length() > 1 )
@@ -417,7 +421,7 @@ constexpr std::string Arg::toString() const {
 }
 
 inline void Arg::_checkWithVisitor() const {
-    if( _visitor != nullptr ) _visitor->visit( this );
+    if( _visitor != nullptr ) _visitor( *this );
 }
 
 /**
