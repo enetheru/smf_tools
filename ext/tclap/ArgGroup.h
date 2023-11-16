@@ -48,7 +48,7 @@ public:
     ArgContainer& add( std::shared_ptr<Arg> arg ) override;
 
     template< class ArgType, typename ...args >
-    std::shared_ptr<ArgType> add( const args & ... fwd ) {
+    std::shared_ptr<ArgType> create( const args & ... fwd ) {
         auto item = std::make_shared<ArgType>( fwd ... );
         add( item );
         return item;
@@ -103,14 +103,15 @@ public:
     /**
      * If arguments in this group should show up as grouped in help.
      */
-    [[nodiscard]] virtual bool showAsGroup() const { return true; }
+    [[nodiscard]] bool showAsGroup() const { return _showAsGroup; }
 
     /// Returns the argument group's name.
     [[nodiscard]] virtual std::string getName() const;
 
+
 protected:
     // No direct instantiation
-    ArgGroup() : vector(), _parser( nullptr ) {}
+    explicit ArgGroup( CmdLineInterface *parser = {}, std::string name = {} ) : vector(), _parser( parser ), _name(std::move(name)) { }
 
 public:
     ArgGroup( const ArgGroup& ) = delete;
@@ -118,6 +119,8 @@ public:
 
 protected:
     CmdLineInterface* _parser;
+    std::string _name;
+    bool _showAsGroup;
 };
 
 /**
@@ -142,7 +145,6 @@ public:
 
 protected:
     ExclusiveArgGroup() = default;
-    explicit ExclusiveArgGroup( CmdLineInterface& parser ) { parser.add( *this ); }
 };
 
 /**
@@ -151,7 +153,7 @@ protected:
 class EitherOf final : public ExclusiveArgGroup {
 public:
     EitherOf() = default;
-    explicit EitherOf( CmdLineInterface& parser ) : ExclusiveArgGroup( parser ) {}
+    explicit EitherOf( CmdLineInterface& parser ) : ExclusiveArgGroup() {}
 
     [[nodiscard]] bool isRequired() const override { return false; }
 };
@@ -163,7 +165,7 @@ public:
 class OneOf final : public ExclusiveArgGroup {
 public:
     OneOf() = default;
-    explicit OneOf( CmdLineInterface& parser ) : ExclusiveArgGroup( parser ) {}
+    explicit OneOf( CmdLineInterface& parser ) : ExclusiveArgGroup( ) {}
 
     [[nodiscard]] bool isRequired() const override { return true; }
 };
@@ -177,7 +179,6 @@ public:
 class AnyOf : public ArgGroup {
 public:
     AnyOf() = default;
-    explicit AnyOf( CmdLineInterface& parser ) { parser.add( *this ); }
 
     bool validate() override {
         return false; /* All good */
@@ -225,12 +226,13 @@ inline bool ExclusiveArgGroup::validate() {
 }
 
 inline std::string ArgGroup::getName() const {
-    std::string name;
-    std::string sep = "{"; // TODO: this should change for non-exclusive arg groups
+    if( !_name.empty() ) return _name;
+    std::string list;
+    std::string sep; // TODO: this should change for non-exclusive arg groups
     for( const auto &it : *this ) {
-        name += std::exchange( sep, " | " ) + it->getName();
+        list += std::exchange( sep, " | " ) + it->getName();
     }
-    return name + '}';
+    return std::format("{{{}}}", list );
 }
 
 /// @internal

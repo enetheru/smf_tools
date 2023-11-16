@@ -57,11 +57,11 @@ public:
      * \param desc - A description of what the argument is for or
      * does.
      * \param default_val - The default value for this Switch.
-     * \param v - An optional visitor.  You probably should not
+     * \param visitor - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
     SwitchArg( const std::string& flag, const std::string& name, const std::string& desc,
-        bool default_val = false, Visitor v = {} );
+        bool default_val = false, const Visitor& visitor = {} );
 
     /**
      * Handles the processing of the argument.
@@ -113,8 +113,8 @@ private:
 //////////////////////////////////////////////////////////////////////
 inline SwitchArg::SwitchArg( const std::string& flag, const std::string& name,
                              const std::string& desc, const bool default_val,
-                             const Visitor v )
-    : Arg( flag, name, desc, false, false, v ),
+                             const Visitor& visitor )
+    : Arg( flag, name, desc, false, false, visitor ),
       _value( default_val ),
       _default( default_val ) {}
 

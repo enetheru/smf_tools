@@ -53,9 +53,13 @@ public:
         push_back( arg );
         return *this;
     }
-
-    [[nodiscard]] bool showAsGroup() const override { return false; }
 };
+
+class CmdLine;
+template<class T>
+auto add( CmdLine *cmd, std::shared_ptr<T> item ) {
+    add( cmd, item );
+}
 
 /**
  * The base class that manages the command line definition and passes
@@ -75,13 +79,13 @@ protected:
      */
     std::list< std::shared_ptr<Arg> > _argList;
 
-    StandaloneArgs _standaloneArgs;
+    std::shared_ptr<StandaloneArgs> _standaloneArgs;
 
     /**
      * Some args have set constraints on them (i.e., exactly or at
      * most one must be specified.
      */
-    std::list< ArgGroup* > _argGroups;
+    std::list< std::shared_ptr<ArgGroup> > _argGroups;
 
     /**
      * The name of the program.  Set to argv[0].
@@ -124,7 +128,7 @@ protected:
     /**
      * Throws an exception listing the missing args.
      */
-    void missingArgsException( const std::list< ArgGroup* >& missing ) const;
+    void missingArgsException( const std::list< std::shared_ptr<ArgGroup> >& missing ) const;
 
     /**
      * Checks whether a name/flag string matches entirely matches
@@ -142,17 +146,6 @@ public:
     CmdLine& operator=( const CmdLine& rhs ) = delete;
 
 private:
-    /**
-     * Encapsulates the code common to the constructors
-     * (which is all of it).
-     */
-    void _constructor();
-
-    /**
-     * Whether or not to automatically create help and version switches.
-     */
-    bool _helpAndVersion;
-
     /**
      * Whether or not to ignore unmatched args.
      */
@@ -187,27 +180,28 @@ public:
     ~CmdLine() override = default;
 
     /**
-     * Adds an argument to the list of arguments to be parsed.
-     *
-     * @param a - Argument to be added.
-     * @retval A reference to this so that add calls can be chained
-     */
-    ArgContainer& add( std::shared_ptr<Arg> a ) override { return *this; }
-
-    template< class ArgType, typename ...args >
-    std::shared_ptr<ArgType> add( args  ... fwd );
-
-    /**
      * Adds an argument group to the list of arguments to be parsed.
      *
      * All arguments in the group are added and the ArgGroup
      * object will validate that the input matches its
      * constraints.
      *
-     * @param args - Argument group to be added.
+     * @param argGroup - Argument group to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer& add( ArgGroup& args ) override;
+    ArgContainer& add( std::shared_ptr< ArgGroup > argGroup ) override;
+
+    /**
+     * Adds an argument to the list of arguments to be parsed.
+     *
+     * @param arg - Argument to be added.
+     * @retval A reference to this so that add calls can be chained
+     */
+    ArgContainer& add( std::shared_ptr<Arg> arg ) override;
+
+
+    template< class T, typename ...args >
+    std::shared_ptr<T> create( args  ... fwd );
 
     // Internal, do not use
     void addToArgList( std::shared_ptr<Arg> a ) override;
@@ -236,14 +230,10 @@ public:
     // TOOD: Get rid of getArgList
     [[nodiscard]] std::list< std::shared_ptr<Arg> > getArgList() const override { return _argList; }
 
-    std::list< ArgGroup* > getArgGroups() override {
-        std::list< ArgGroup* > groups = _argGroups;
-        return groups;
-    }
+    std::list< std::shared_ptr<ArgGroup> > getArgGroups() override { return _argGroups; }
 
     [[nodiscard]] char getDelimiter() const override { return _delimiter; }
     [[nodiscard]] std::string getMessage() const override { return _message; }
-    [[nodiscard]] bool hasHelpAndVersion() const override { return _helpAndVersion; }
 
     /**
      * Disables or enables CmdLine's internal parsing exception handling.
@@ -277,21 +267,28 @@ public:
     bool ignoreRest() override { return _ignoring; }
 };
 
-///////////////////////////////////////////////////////////////////////////////
 // Begin CmdLine.cpp
-///////////////////////////////////////////////////////////////////////////////
 
-inline CmdLine::CmdLine( std::string message, const char delimiter, std::string version, const bool helpAndVersion )
-    : _progName( "not_set_yet" ), _message( std::move( message ) ),
-      _version( std::move( version ) ), _numRequired( 0 ), _delimiter( delimiter ), _output(),
-      _handleExceptions( true ), _helpAndVersion( helpAndVersion ), _ignoreUnmatched( false ), _ignoring( false ) {
-    _constructor();
-}
-
-inline void CmdLine::_constructor() {
+inline CmdLine::CmdLine(
+    std::string message,
+    const char delimiter,
+    std::string version,
+    const bool helpAndVersion )
+:   _progName( "not_set_yet" ),
+    _message( std::move( message ) ),
+    _version( std::move( version ) ),
+    _numRequired( 0 ),
+    _delimiter( delimiter ),
+    _output(),
+    _handleExceptions( true ),
+    _ignoreUnmatched( false ),
+    _ignoring( false )
+{
     Arg::setDelimiter( _delimiter );
+    //Arg::setFlagStartString();
+    //Arg::setIgnoreNameString()
 
-    add( _standaloneArgs );
+    _standaloneArgs = create<StandaloneArgs>();
 
     const auto ignore = std::make_shared<SwitchArg>(
         Arg::flagStartString(),
@@ -303,21 +300,25 @@ inline void CmdLine::_constructor() {
     addToArgList( ignore );
 }
 
-template< class ArgType, typename ...args >
-std::shared_ptr<ArgType> CmdLine::add( args  ... fwd ) {
-    auto item = std::make_shared<ArgType>( std::move(fwd) ... );
-    addToArgList( item );
-    _standaloneArgs.add( item );
+template< class T, typename ...args >
+std::shared_ptr< T >
+CmdLine::create( args  ... fwd ) {
+    auto item = std::make_shared<T>( std::move(fwd) ... );
+    add( item );
     return item;
 }
 
-inline ArgContainer& CmdLine::add( ArgGroup& args ) {
-    args.setParser( *this );
-    _argGroups.push_back( &args );
-
+inline ArgContainer& CmdLine::add( const std::shared_ptr<ArgGroup> argGroup ) {
+    argGroup->setParser( *this );
+    _argGroups.push_back( argGroup );
     return *this;
 }
 
+inline ArgContainer& CmdLine::add( const std::shared_ptr<Arg> arg ) {
+    addToArgList( arg );
+    _standaloneArgs->add( arg );
+    return *this;
+}
 
 // TODO: Rename this to something smarter or refactor this logic so
 // it's not needed.
@@ -358,7 +359,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
         args.erase( args.begin() );
 
         int requiredCount = 0;
-        std::list< ArgGroup* > missingArgGroups;
+        std::list< std::shared_ptr<ArgGroup> > missingArgGroups;
 
         // Check that the right amount of arguments are provided for
         // each ArgGroup, and if there are any required arguments
@@ -402,7 +403,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
 
         // Once all arguments have been parsed, check that we don't
         // violate any constraints.
-        for( const auto argGroup : _argGroups ) {
+        for( const auto& argGroup : _argGroups ) {
             if( argGroup->validate() ) {
                 missingArgGroups.push_back( argGroup );
             }
@@ -452,7 +453,7 @@ inline bool CmdLine::_emptyCombined( const std::string& s ) {
 }
 
 inline void CmdLine::missingArgsException(
-    const std::list< ArgGroup* >& missing ) const {
+    const std::list< std::shared_ptr<ArgGroup> >& missing ) const {
     int count = 0;
 
     std::string missingArgList;
@@ -464,7 +465,7 @@ inline void CmdLine::missingArgsException(
         }
     }
 
-    for( const auto argGroup : missing ) {
+    for( const auto& argGroup : missing ) {
         missingArgList += argGroup->getName();
         missingArgList += ", ";
         count++;

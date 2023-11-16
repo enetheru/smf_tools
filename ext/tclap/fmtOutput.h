@@ -45,7 +45,7 @@ public:
 
         // Long opts
         std::string groupOpts{};
-        for( const auto group : cmd.getArgGroups() ) {
+        for( const auto& group : cmd.getArgGroups() ) {
             groupOpts += fmt::format( "\n{}:\n", group->getName() );
             std::string longOpts;
             for( const auto &arg : *group ) {

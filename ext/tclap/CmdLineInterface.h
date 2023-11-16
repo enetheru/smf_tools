@@ -63,10 +63,10 @@ public:
      * object will validate that the input matches its
      * constraints.
      *
-     * @param args - Argument group to be added.
+     * @param argGroup - Argument group to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    virtual ArgContainer& add( ArgGroup& args ) = 0;
+    virtual ArgContainer& add( std::shared_ptr<ArgGroup> argGroup ) = 0;
 
     /**
      * Parses the command line.
@@ -101,7 +101,7 @@ public:
     /**
      * Returns the list of ArgGroups.
      */
-    virtual std::list< ArgGroup* > getArgGroups() = 0;
+    virtual std::list< std::shared_ptr<ArgGroup> > getArgGroups() = 0;
     [[nodiscard]] virtual std::list< std::shared_ptr<Arg> > getArgList() const = 0; // TODO: get rid of this
 
     /**
@@ -113,12 +113,6 @@ public:
      * Returns the message string.
      */
     [[nodiscard]] virtual std::string getMessage() const = 0;
-
-    /**
-     * Indicates whether or not the help and version switches were created
-     * automatically.
-     */
-    [[nodiscard]] virtual bool hasHelpAndVersion() const = 0;
 
     /**
      * Resets the instance as if it had just been constructed so that the

@@ -21,8 +21,7 @@ namespace TCLAP
         std::string _name;
     public:
         NamedGroup() = default;
-        explicit NamedGroup(CmdLineInterface &parser) { parser.add(*this); }
-        explicit NamedGroup(CmdLineInterface &parser, std::string name ) : _name(std::move(name)) { parser.add(*this); }
+        explicit NamedGroup(std::string name ) : _name(std::move(name)) { }
 
         bool validate() override { return false; /* All good */ }
         [[nodiscard]] bool isExclusive() const override { return false; }
@@ -78,60 +77,60 @@ main( int argc, char **argv )
     TCLAP::fmtOutput myout;
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
 
-    TCLAP::CmdLine cmd("Command description message", ' ', "0.9", false);
-    auto argVersion = cmd.add< SwitchArg >( "V", "version", "Displays version information and exits" );
-    auto argHelp    = cmd.add< SwitchArg >( "h", "help", "Displays usage information and exits" );
-    auto argQuiet   = cmd.add< SwitchArg >( "q", "quiet", "Supress Output" );
-    auto argVerbose = cmd.add< MultiSwitchArg >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
-    auto argWerror = cmd.add< SwitchArg >( "", "werror", "treat warnings as errors and abort" );
+    TCLAP::CmdLine cmd("Command description message", ' ', "0.9" );
+    auto argVersion = cmd.create< SwitchArg >( "V", "version", "Displays version information and exits" );
+    auto argHelp    = cmd.create< SwitchArg >( "h", "help", "Displays usage information and exits" );
+    auto argQuiet   = cmd.create< SwitchArg >( "q", "quiet", "Supress Output" );
+    auto argVerbose = cmd.create< MultiSwitchArg >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
+    auto argWerror = cmd.create< SwitchArg >( "", "werror", "treat warnings as errors and abort" );
 
     // Primary modes
-    NamedGroup mode( cmd, "Program Modes(default is to display info)" );
-    auto argCompile   = mode.add< SwitchArg >( "", "compile", "construct smf, smt, or any other files based on options" );
-    auto argDecompile = mode.add< SwitchArg >( "", "decompile", "deconstruct input files into human readable formats" );
+    auto mode = cmd.create<NamedGroup>( "Program Modes(default is to display info)" );
+    auto argCompile   = mode->create< SwitchArg >( "", "compile", "construct smf, smt, or any other files based on options" );
+    auto argDecompile = mode->create< SwitchArg >( "", "decompile", "deconstruct input files into human readable formats" );
 
     // Compile SubOptions - Metadata
-    NamedGroup compileMeta( cmd, "Compile Sub-Options" );
-    auto argPrefix    = compileMeta.add< ValueArg< std::filesystem::path > >( "", "prefix", "File output prefix when saving files", false, std::filesystem::path( "./" ), "prefix" );
-    auto argOverwrite = compileMeta.add< SwitchArg >( "", "overwrite", "overwrite existing files" );
-    auto argMapX      = compileMeta.add< ValueArg< int > >( "", "mapx", "Width of map", false, 128, "int", my_constraint, my_visitor );
-    auto argMapY      = compileMeta.add< ValueArg< int > >( "", "mapy", "Height of map", false, 128, "128-int_max % 128" );
-    auto argMinHeight = compileMeta.add< ValueArg< float > >( "", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float" );
-    auto argMaxHeight = compileMeta.add< ValueArg< float > >( "", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float" );
+    auto compileMeta = cmd.create<NamedGroup>("Compile Sub-Options" );
+    auto argPrefix    = compileMeta->create< ValueArg< std::filesystem::path > >( "", "prefix", "File output prefix when saving files", false, std::filesystem::path( "./" ), "prefix" );
+    auto argOverwrite = compileMeta->create< SwitchArg >( "", "overwrite", "overwrite existing files" );
+    auto argMapX      = compileMeta->create< ValueArg< int > >( "", "mapx", "Width of map", false, 128, "int", my_constraint, my_visitor );
+    auto argMapY      = compileMeta->create< ValueArg< int > >( "", "mapy", "Height of map", false, 128, "128-int_max % 128" );
+    auto argMinHeight = compileMeta->create< ValueArg< float > >( "", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float" );
+    auto argMaxHeight = compileMeta->create< ValueArg< float > >( "", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float" );
 
 
     // Compile SubOptions - Metadata Advanced
-    NamedGroup compileMetaAdv(cmd, "Compile Advanced Sub-Options");
-	auto argMapId             = compileMetaAdv.add< ValueArg< uint32_t > > ("", "map-id", "Unique ID for the map", false, static_cast<uint32_t>(0), "uint32_t");
-	auto argSquare_size       = compileMetaAdv.add< ValueArg< int > > ("", "square-size", "Distance between vertices. Must be 8", false, 8, "int");
-	auto argTexels_per_square = compileMetaAdv.add< ValueArg< int > > ("", "texels-per-square", "Number of texels per square, must be 8", false, 8, "int");
-	auto argTile_size         = compileMetaAdv.add< ValueArg< int > > ("", "tile-size", "Number of texels in a tile, must be 32", false, 32, "int");
-	auto argCompression_type  = compileMetaAdv.add< ValueArg< int > > ("", "compression-type", "Tile compression format, must be 1, Types(1=DXT1)", false, 1, "int");
+    auto compileMetaAdv = cmd.create<NamedGroup>( "Compile Advanced Sub-Options");
+	auto argMapId             = compileMetaAdv->create< ValueArg< uint32_t > > ("", "map-id", "Unique ID for the map", false, static_cast<uint32_t>(0), "uint32_t");
+	auto argSquare_size       = compileMetaAdv->create< ValueArg< int > > ("", "square-size", "Distance between vertices. Must be 8", false, 8, "int");
+	auto argTexels_per_square = compileMetaAdv->create< ValueArg< int > > ("", "texels-per-square", "Number of texels per square, must be 8", false, 8, "int");
+	auto argTile_size         = compileMetaAdv->create< ValueArg< int > > ("", "tile-size", "Number of texels in a tile, must be 32", false, 32, "int");
+	auto argCompression_type  = compileMetaAdv->create< ValueArg< int > > ("", "compression-type", "Tile compression format, must be 1, Types(1=DXT1)", false, 1, "int");
 
     // Compile SubOptions - data
-    NamedGroup compileData(cmd, "Compile Data Options" );
-	auto argHeight_map  = compileData.add< ValueArg< Path > > ("", "height-map", "Image file to use as the height map" );
-	auto argType_map    = compileData.add< ValueArg< Path > > ("", "type-map", "Image file to use as the type map", false, std::filesystem::path{}, "path");
-	auto argTile_map    = compileData.add< ValueArg< Path > > ("", "tile-map", "File to use as the tile map", false, std::filesystem::path{}, "path");
-	auto argMini_map    = compileData.add< ValueArg< Path > > ("", "mini-map", "Image file to use as the mini map", false, std::filesystem::path{}, "path");
-	auto argMetal_map   = compileData.add< ValueArg< Path > > ("", "metal-map", "Image file to use as the metal map", false, std::filesystem::path{}, "path");
-	auto argFeature_map = compileData.add< ValueArg< Path > > ("", "feature-map", "image file to use as the feature map", false, std::filesystem::path{}, "path");
+    auto compileData = cmd.create<NamedGroup>( "Compile Data Options" );
+	auto argHeight_map  = compileData->create< ValueArg< Path > > ("", "height-map", "Image file to use as the height map" );
+	auto argType_map    = compileData->create< ValueArg< Path > > ("", "type-map", "Image file to use as the type map", false, std::filesystem::path{}, "path");
+	auto argTile_map    = compileData->create< ValueArg< Path > > ("", "tile-map", "File to use as the tile map", false, std::filesystem::path{}, "path");
+	auto argMini_map    = compileData->create< ValueArg< Path > > ("", "mini-map", "Image file to use as the mini map", false, std::filesystem::path{}, "path");
+	auto argMetal_map   = compileData->create< ValueArg< Path > > ("", "metal-map", "Image file to use as the metal map", false, std::filesystem::path{}, "path");
+	auto argFeature_map = compileData->create< ValueArg< Path > > ("", "feature-map", "image file to use as the feature map", false, std::filesystem::path{}, "path");
 
     // Compile SubOptions - Extra Data
-    NamedGroup compileDataEx(cmd, "Compile Extra Data Options");
-	auto argGrass_map = compileDataEx.add< ValueArg< Path > > ("", "grass-map", "Image file to use as the grass map", false, std::filesystem::path{}, "path");
+    auto compileDataEx = cmd.create<NamedGroup>( "Compile Extra Data Options");
+	auto argGrass_map = compileDataEx->create< ValueArg< Path > > ("", "grass-map", "Image file to use as the grass map", false, std::filesystem::path{}, "path");
 
     // Compile SubOptions - Conversion and Modification
-    NamedGroup conversion(cmd, "Data Conversion Options");
-	auto argDiffuse_map = conversion.add< ValueArg< Path > > ("", "diffuse-map", "Image file to use to construct the smt and tilemap", false, std::filesystem::path{}, "path");
-	auto argDecal       = conversion.add< ValueArg< Path > > ("", "decal", "Image file to use as a decal", false, std::filesystem::path{}, "path");
-    auto decal_value = conversion.add<ValueArg< std::string >>("", "decal-value", "Hexadecimal pixel value to detect when placing decal", false, std::string{}, "colour");
-    auto height_convolv =  conversion.add<ValueArg< std::string >>("", "height-convolv", "convolution matrix to apply to height data(for smoothing)", false, std::string{}, "matrix");
+    auto conversion = cmd.create<NamedGroup>( "Data Conversion Options");
+	auto argDiffuse_map = conversion->create< ValueArg< Path > > ("", "diffuse-map", "Image file to use to construct the smt and tilemap", false, std::filesystem::path{}, "path");
+	auto argDecal       = conversion->create< ValueArg< Path > > ("", "decal", "Image file to use as a decal", false, std::filesystem::path{}, "path");
+    auto decal_value = conversion->create<ValueArg< std::string >>("", "decal-value", "Hexadecimal pixel value to detect when placing decal", false, std::string{}, "colour");
+    auto height_convolv =  conversion->create<ValueArg< std::string >>("", "height-convolv", "convolution matrix to apply to height data(for smoothing)", false, std::string{}, "matrix");
 
     // Decompile Suboptions
-    NamedGroup decompile(cmd, "Decompile Options");
-    auto reconstruct = decompile.add<SwitchArg>("", "reconstruct", "Reconstruct the diffuse texture from the inputs");
-    // FIXME TCLAP::ValueArg<int>  argScale("", "scale", "Scale the reconstructed diffuse texture to this size", false, std::pair<int, int>{}, "XxY", decompile);
+    auto decompile = cmd.create<NamedGroup>( "Decompile Options");
+    auto reconstruct = decompile->create<SwitchArg>("", "reconstruct", "Reconstruct the diffuse texture from the inputs");
+    // FIXME TCLAP::ValueAr><int>  argScale("", "scale", "Scale the reconstructed diffuse texture to this size", false, std::pair<int, int>{}, "XxY", decompile);
 
     // Parse TCLAP arguments
     try {
