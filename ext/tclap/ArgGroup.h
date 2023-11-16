@@ -111,14 +111,14 @@ public:
 
 protected:
     // No direct instantiation
-    explicit ArgGroup( CmdLineInterface *parser = {}, std::string name = {} ) : vector(), _parser( parser ), _name(std::move(name)) { }
+    explicit ArgGroup( std::string name = {} ) : vector(), _name(std::move(name)) { }
 
 public:
     ArgGroup( const ArgGroup& ) = delete;
     ArgGroup& operator=( const ArgGroup& ) = delete; // no copy
 
 protected:
-    CmdLineInterface* _parser;
+    CmdLineInterface* _parser {};
     std::string _name;
     bool _showAsGroup;
 };

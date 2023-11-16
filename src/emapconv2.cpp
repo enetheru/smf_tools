@@ -16,28 +16,16 @@
 #include <tclap/Constraint.h>
 namespace TCLAP
 {
-    //TODO Think about modifying the tclap source to make this redundant
     class NamedGroup final : public ArgGroup {
-        std::string _name;
     public:
         NamedGroup() = default;
-        explicit NamedGroup(std::string name ) : _name(std::move(name)) { }
+        explicit NamedGroup( std::string name ) : ArgGroup( std::move(name) ) { }
 
         bool validate() override { return false; /* All good */ }
         [[nodiscard]] bool isExclusive() const override { return false; }
         [[nodiscard]] bool isRequired() const override { return false; }
 
         [[nodiscard]] std::string getName() const override { return _name; }
-    };
-
-    //TODO if we are modifying the source anywyay, We could replace the existing output with this.
-
-    class MyConstraint final : public Constraint<int>
-    {
-    public:
-        [[nodiscard]] std::string description() const override { return {"MyConstraint Violation"}; }
-        [[nodiscard]] std::string typeDesc() const override { return {"MyConstraint - typedesc"}; }
-        [[nodiscard]] bool check(const int& value) const override { return false; }
     };
 
     class RangeInclusive final : public Constraint<int>
@@ -177,7 +165,8 @@ main( int argc, char **argv )
         default:
             spdlog::set_level(spdlog::level::warn); break;
     }
-    fmt::println( "Spdlog Level: {}", static_cast<int>(spdlog::get_level()) );
+    std::array levels SPDLOG_LEVEL_NAMES;
+    if( verbose >=4 ) println( "Spdlog Level: {}", levels[spdlog::get_level()] );
 
     if( argMapX->isSet() )
     {
