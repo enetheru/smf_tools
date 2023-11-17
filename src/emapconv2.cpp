@@ -1,84 +1,19 @@
 //
 // Created by nicho on 11/11/2023.
 //
+
+#include "args.h"
+
 #include <filesystem>
 #include <numeric>
-#include <utility>
 #include <spdlog/spdlog.h>
 
 #include <tclap/CmdLine.h>
 #include <tclap/fmtOutput.h>
 
 #include <tclap/Arg.h>
-#include <tclap/MultiSwitchArg.h>
-#include <tclap/ValueArg.h>
 
 #include <tclap/Constraint.h>
-
-using Path = std::filesystem::path;
-
-using TCLAP::ArgGroup;
-using TCLAP::ValueArg;
-using TCLAP::SwitchArg;
-using TCLAP::MultiSwitchArg;
-
-using TCLAP::Constraint;
-using TCLAP::Visitor;
-
-class NamedGroup final : public ArgGroup {
-public:
-    NamedGroup() = default;
-    explicit NamedGroup( std::string name ) : ArgGroup( std::move( name ) ) {}
-
-    bool validate() override {
-        return false; /* All good */
-    }
-
-    [[nodiscard]] bool isExclusive() const override { return false; }
-    [[nodiscard]] bool isRequired() const override { return false; }
-
-    [[nodiscard]] std::string getName() const override { return _name; }
-};
-
-template< class T >
-class RangeConstraint final : public Constraint< T > {
-    using CheckResult = typename Constraint< T >::CheckResult;
-    using RetVal = typename Constraint< T >::RetVal;
-    std::string _name;
-    CheckResult _failureMode = CheckResult::HARD_FAILURE;
-    T _lowerBound, _upperBound, _modulo;
-
-public:
-    RangeConstraint( const T lower_bound, const T upper_bound, const T modulo = 1, const bool soft = false )
-        : _name( __func__ ), _failureMode( soft ? CheckResult::SOFT_FAILURE : CheckResult::HARD_FAILURE ),
-          _lowerBound( lower_bound ), _upperBound( upper_bound ), _modulo( modulo ) {}
-
-    [[nodiscard]] std::string description() const override {
-        return fmt::format(
-                           "{} - values must be within ({} -> {}), and a multiple of {}",
-                           _name, _lowerBound, _upperBound, _modulo );
-    }
-
-    [[nodiscard]] RetVal check( const ValueArg< T >& arg ) const override {
-        std::string msg;
-        bool fail = false;
-        if( arg.getValue() < _lowerBound ) {
-            fail = true;
-            msg += ", lower bound violation";
-        }
-        if( arg.getValue() > _upperBound ) {
-            fail = true;
-            msg += ", upper bound violation";
-        }
-        if( static_cast< long long >(arg.getValue()) % static_cast< long long >(_modulo) ) {
-            fail = true;
-            msg += ", modulo violation";
-        }
-        msg += "\n" + description();
-        return { fail ? _failureMode : CheckResult::SUCCESS, msg };
-    }
-};
-
 
 static void shutdown( const int code ){
     //OIIO::shutdown();
@@ -88,8 +23,10 @@ static void shutdown( const int code ){
 int
 main( int argc, char **argv )
 {
+    ImageSpec heightFormat{0,0,0,0 };
     auto mapSizeConstraint = std::make_shared<RangeConstraint<int>>( 128, 8192, 128 );
     auto mapHeightConstraint = std::make_shared<RangeConstraint<float>>( -8129, 8192  );
+    auto heightMapConstraint = std::make_shared<ImageConstraint>( &heightFormat );
 
     TCLAP::fmtOutput myout;
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
@@ -126,7 +63,7 @@ main( int argc, char **argv )
 
     // Compile SubOptions - data
     auto compileData = cmd.create<NamedGroup>( "Compile Data Options" );
-	auto argHeight_map  = compileData->create< ValueArg< Path > > ("", "height-map", "Image file to use as the height map" );
+	//auto argHeight_map  = compileData->create< ValueArg< Path > > ("", "height-map", "Image file to use as the height map", heightMapConstraint );
 	auto argType_map    = compileData->create< ValueArg< Path > > ("", "type-map", "Image file to use as the type map", false, std::filesystem::path{}, "path");
 	auto argTile_map    = compileData->create< ValueArg< Path > > ("", "tile-map", "File to use as the tile map", false, std::filesystem::path{}, "path");
 	auto argMini_map    = compileData->create< ValueArg< Path > > ("", "mini-map", "Image file to use as the mini map", false, std::filesystem::path{}, "path");

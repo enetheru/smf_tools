@@ -42,7 +42,8 @@ target_include_directories( emapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionspars
 target_link_libraries( emapconv smflib -static )
 target_link_options( emapconv PUBLIC "LINKER:--allow-multiple-definition")
 
-add_executable( emapconv2 emapconv2.cpp )
+add_executable( emapconv2 emapconv2.cpp
+        args.h)
 target_compile_features( emapconv2 PUBLIC cxx_std_23 )
 target_include_directories( emapconv2 PRIVATE ${TCLAP_INCLUDES} )
 target_link_libraries( emapconv2 spdlog::spdlog -static )
