@@ -29,10 +29,11 @@
 
 #include <tclap/ArgException.h>
 
-#include <format>
+#include <fmt/core.h>
 #include <string>
 #include <utility>
 #include <vector>
+#include <functional>
 
 namespace TCLAP {
 /**
@@ -371,7 +372,7 @@ inline Arg::Arg(
         _name.substr( 0, nameStartString().length() ) == nameStartString() ||
         _name.find( ' ', 0 ) != std::string::npos )
         throw SpecificationException(
-            std::format( "Argument name begin with either '{}' or '{}' or space.",
+            fmt::format( "Argument name begin with either '{}' or '{}' or space.",
                              flagStartString(), nameStartString() ),
             Arg::toString() );
 }

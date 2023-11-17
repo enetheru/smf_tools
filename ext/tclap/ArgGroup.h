@@ -214,7 +214,7 @@ inline bool ExclusiveArgGroup::validate() {
                 // already found previously.
                 throw CmdLineParseException(
                     "Only one is allowed.",
-                    std::format( "{} AND {} provided.", flag, arg->setBy() ) );
+                    fmt::format( "{} AND {} provided.", flag, arg->setBy() ) );
             }
 
             existing_arg = arg;
@@ -232,7 +232,7 @@ inline std::string ArgGroup::getName() const {
     for( const auto &it : *this ) {
         list += std::exchange( sep, " | " ) + it->getName();
     }
-    return std::format("{{{}}}", list );
+    return fmt::format("{{{}}}", list );
 }
 
 /// @internal
