@@ -26,28 +26,34 @@
 #include <string>
 
 namespace TCLAP {
+
+template<class T>
+class ValueArg;
+
 /**
  * The interface that defines the interaction between the Arg and Constraint.
  */
 template< class T >
 class Constraint {
 public:
+    enum CheckResult {
+        HARD_FAILURE,
+        SOFT_FAILURE,
+        SUCCESS
+    };
+    using RetVal = std::pair<CheckResult, std::string>;
     /**
      * Returns a description of the Constraint.
      */
     [[nodiscard]] virtual std::string description() const = 0;
 
     /**
-     * Returns the short ID for the Constraint.
-     */
-    [[nodiscard]] virtual std::string typeDesc() const = 0;
-
-    /**
      * The method used to verify that the value parsed from the command
      * line meets the constraint.
-     * \param value - The value that will be checked.
+     * \param arg - The value that will be checked.
+     * @retval - A pair of { result, message }
      */
-    virtual bool check( const T& value ) const = 0;
+    virtual RetVal check( const ValueArg<T>& arg ) const = 0;
 
     /**
      * Destructor.
@@ -55,14 +61,6 @@ public:
      * functions but without a virtual destructor.
      */
     virtual ~Constraint() = default;
-
-    static std::string shortID( Constraint* constraint ) {
-        if( !constraint ) {
-            throw std::logic_error(
-                "Cannot create a ValueArg with a NULL constraint" );
-        }
-        return constraint->shortID();
-    }
 };
 } // namespace TCLAP
 

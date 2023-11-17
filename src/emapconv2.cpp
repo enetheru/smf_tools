@@ -14,34 +14,71 @@
 #include <tclap/ValueArg.h>
 
 #include <tclap/Constraint.h>
-namespace TCLAP
-{
-    class NamedGroup final : public ArgGroup {
-    public:
-        NamedGroup() = default;
-        explicit NamedGroup( std::string name ) : ArgGroup( std::move(name) ) { }
 
-        bool validate() override { return false; /* All good */ }
-        [[nodiscard]] bool isExclusive() const override { return false; }
-        [[nodiscard]] bool isRequired() const override { return false; }
+using Path = std::filesystem::path;
 
-        [[nodiscard]] std::string getName() const override { return _name; }
-    };
+using TCLAP::ArgGroup;
+using TCLAP::ValueArg;
+using TCLAP::SwitchArg;
+using TCLAP::MultiSwitchArg;
 
-    class RangeInclusive final : public Constraint<int>
-    {
-        int _lowerBound, _upperBound;
-    public:
-        RangeInclusive(const int lower_bound, const int upper_bound ) : _lowerBound(lower_bound), _upperBound(upper_bound) {}
-        [[nodiscard]] std::string description() const override {
-            return fmt::format("Range Violation({} -> {})", _lowerBound, _upperBound );
+using TCLAP::Constraint;
+using TCLAP::Visitor;
+
+class NamedGroup final : public ArgGroup {
+public:
+    NamedGroup() = default;
+    explicit NamedGroup( std::string name ) : ArgGroup( std::move( name ) ) {}
+
+    bool validate() override {
+        return false; /* All good */
+    }
+
+    [[nodiscard]] bool isExclusive() const override { return false; }
+    [[nodiscard]] bool isRequired() const override { return false; }
+
+    [[nodiscard]] std::string getName() const override { return _name; }
+};
+
+template< class T >
+class RangeConstraint final : public Constraint< T > {
+    using CheckResult = typename Constraint< T >::CheckResult;
+    using RetVal = typename Constraint< T >::RetVal;
+    std::string _name;
+    CheckResult _failureMode = CheckResult::HARD_FAILURE;
+    T _lowerBound, _upperBound, _modulo;
+
+public:
+    RangeConstraint( const T lower_bound, const T upper_bound, const T modulo = 1, const bool soft = false )
+        : _name( __func__ ), _failureMode( soft ? CheckResult::SOFT_FAILURE : CheckResult::HARD_FAILURE ),
+          _lowerBound( lower_bound ), _upperBound( upper_bound ), _modulo( modulo ) {}
+
+    [[nodiscard]] std::string description() const override {
+        return fmt::format(
+                           "{} - values must be within ({} -> {}), and a multiple of {}",
+                           _name, _lowerBound, _upperBound, _modulo );
+    }
+
+    [[nodiscard]] RetVal check( const ValueArg< T >& arg ) const override {
+        std::string msg;
+        bool fail = false;
+        if( arg.getValue() < _lowerBound ) {
+            fail = true;
+            msg += ", lower bound violation";
         }
-        [[nodiscard]] std::string typeDesc() const override { return {"RangeInclusive - typeDesc"}; }
-        [[nodiscard]] bool check(const int& value) const override {
-            return value >= _lowerBound && value <= _upperBound;
+        if( arg.getValue() > _upperBound ) {
+            fail = true;
+            msg += ", upper bound violation";
         }
-    };
-}
+        if( static_cast< long long >(arg.getValue()) % static_cast< long long >(_modulo) ) {
+            fail = true;
+            msg += ", modulo violation";
+        }
+        msg += "\n" + description();
+        return { fail ? _failureMode : CheckResult::SUCCESS, msg };
+    }
+};
+
 
 static void shutdown( const int code ){
     //OIIO::shutdown();
@@ -51,16 +88,8 @@ static void shutdown( const int code ){
 int
 main( int argc, char **argv )
 {
-    using Path = std::filesystem::path;
-    using TCLAP::ValueArg;
-    using TCLAP::SwitchArg;
-    using TCLAP::MultiSwitchArg;
-    using TCLAP::NamedGroup;
-    using TCLAP::RangeInclusive;
-    using TCLAP::Visitor;
-
-    Visitor my_visitor = [&](const TCLAP::Arg &arg) { fmt::println("MyVisitor has been visited when evaluating {}", arg.getName() ); };
-    auto my_constraint = std::make_shared<RangeInclusive>( -5, 5);
+    auto mapSizeConstraint = std::make_shared<RangeConstraint<int>>( 128, 8192, 128 );
+    auto mapHeightConstraint = std::make_shared<RangeConstraint<float>>( -8129, 8192  );
 
     TCLAP::fmtOutput myout;
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
@@ -81,10 +110,10 @@ main( int argc, char **argv )
     auto compileMeta = cmd.create<NamedGroup>("Compile Sub-Options" );
     auto argPrefix    = compileMeta->create< ValueArg< std::filesystem::path > >( "", "prefix", "File output prefix when saving files", false, std::filesystem::path( "./" ), "prefix" );
     auto argOverwrite = compileMeta->create< SwitchArg >( "", "overwrite", "overwrite existing files" );
-    auto argMapX      = compileMeta->create< ValueArg< int > >( "", "mapx", "Width of map", false, 128, "int", my_constraint, my_visitor );
-    auto argMapY      = compileMeta->create< ValueArg< int > >( "", "mapy", "Height of map", false, 128, "128-int_max % 128" );
-    auto argMinHeight = compileMeta->create< ValueArg< float > >( "", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float" );
-    auto argMaxHeight = compileMeta->create< ValueArg< float > >( "", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float" );
+    auto argMapX      = compileMeta->create< ValueArg< int > >( "", "mapx", "Width of map", false, 128, "int", mapSizeConstraint );
+    auto argMapY      = compileMeta->create< ValueArg< int > >( "", "mapy", "Height of map", false, 128, "128-int_max % 128", mapSizeConstraint );
+    auto argMinHeight = compileMeta->create< ValueArg< float > >( "", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float", mapHeightConstraint );
+    auto argMaxHeight = compileMeta->create< ValueArg< float > >( "", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float", mapHeightConstraint );
 
 
     // Compile SubOptions - Metadata Advanced

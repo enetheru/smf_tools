@@ -91,8 +91,9 @@ protected:
 
     void _extractValue( const std::string& val ) {
         _value = ExtractValue<T>( val );
-        if( _constraint && !_constraint->check( _value ) ) {
-            throw CmdLineParseException( _constraint->description(), toString() );
+        if( _constraint ){
+            auto [passed, msg] = _constraint->check( *this );
+            if( passed != Constraint<T>::CheckResult::SUCCESS ) throw CmdLineParseException( msg, toString() );
         }
     }
 
