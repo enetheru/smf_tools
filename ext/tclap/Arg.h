@@ -344,7 +344,7 @@ inline Arg::Arg(
     std::string desc,
     const bool req,
     const bool valreq,
-    const Visitor v )
+    const Visitor visitor )
     : _flag( std::move( flag ) ),
       _name( std::move( name ) ),
       _description( std::move( desc ) ),
@@ -352,7 +352,7 @@ inline Arg::Arg(
       _requireLabel( "required" ),
       _valueRequired( valreq ),
       _alreadySet( false ),
-      _visitor( v ),
+      _visitor( visitor ),
       _acceptsMultipleValues( false ),
       _visibleInHelp( true ) {
     if( _flag.length() > 1 )
@@ -371,10 +371,9 @@ inline Arg::Arg(
         _name.substr( 0, nameStartString().length() ) == nameStartString() ||
         _name.find( ' ', 0 ) != std::string::npos )
         throw SpecificationException(
-                                  std::format(
-                                              "Argument name begin with either '{}' or '{}' or space.", flagStartString(),
-                                              nameStartString() ),
-                                  Arg::toString() );
+            std::format( "Argument name begin with either '{}' or '{}' or space.",
+                             flagStartString(), nameStartString() ),
+            Arg::toString() );
 }
 
 constexpr std::string Arg::shortID() const {

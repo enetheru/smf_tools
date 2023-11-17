@@ -69,7 +69,7 @@ public:
      */
     [[nodiscard]] const char* what() const noexcept override {
         static std::string ex;
-        ex = _argId + " -- " + _errorText;
+        ex = _argId + "; " + _errorText;
         return ex.c_str();
     }
 
