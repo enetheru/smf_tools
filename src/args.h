@@ -16,7 +16,7 @@ using TCLAP::SwitchArg;
 using TCLAP::MultiSwitchArg;
 
 using TCLAP::Constraint;
-using TCLAP::Visitor;
+using TCLAP::CheckResult;
 
 class NamedGroup final : public ArgGroup {
 public:
@@ -35,7 +35,6 @@ public:
 
 template< class T >
 class RangeConstraint final : public Constraint< T > {
-    using CheckResult = typename Constraint< T >::CheckResult;
     using RetVal = typename Constraint< T >::RetVal;
     std::string _name;
     CheckResult _failureMode = CheckResult::HARD_FAILURE;
@@ -76,9 +75,9 @@ struct ImageSpec {
     int width,height,channels,pixelFormat;
 };
 
-class ImageConstraint final : Constraint<Path> {
+class ImageConstraint final : public Constraint<Path> {
     std::string _name;
-    CheckResult _failureMode = HARD_FAILURE;
+    CheckResult _failureMode = CheckResult::HARD_FAILURE;
     const ImageSpec &_spec;
 public:
     explicit ImageConstraint( const ImageSpec *spec )
@@ -89,12 +88,12 @@ public:
             _name,  _spec.width, _spec.height, _spec.channels, _spec.pixelFormat );
     }
 
-    [[nodiscard]] RetVal check( const ValueArg<std::filesystem::path>& arg ) const override {
+    [[nodiscard]] RetVal check( const ValueArg<Path>& arg ) const override {
         // Open Image
         // Test against values
         bool fail{};
         std::string msg;
-        return { fail ? _failureMode : SUCCESS, msg };
+        return { fail ? _failureMode : CheckResult::SUCCESS, msg };
     }
 };
 

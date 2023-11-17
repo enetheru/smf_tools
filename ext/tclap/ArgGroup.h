@@ -120,7 +120,7 @@ public:
 protected:
     CmdLineInterface* _parser {};
     std::string _name;
-    bool _showAsGroup;
+    bool _showAsGroup{};
 };
 
 /**

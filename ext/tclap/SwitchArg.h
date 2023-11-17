@@ -169,7 +169,7 @@ inline void SwitchArg::commonProcessing() {
     else
         _value = true;
 
-    _checkWithVisitor();
+    _visit();
 }
 
 inline bool SwitchArg::processArg( int* i, std::vector< std::string >& args ) {

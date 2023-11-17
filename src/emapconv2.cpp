@@ -6,14 +6,13 @@
 
 #include <filesystem>
 #include <numeric>
+#include <recoil/SMFFormat.h>
 #include <spdlog/spdlog.h>
 
 #include <tclap/CmdLine.h>
 #include <tclap/fmtOutput.h>
 
 #include <tclap/Arg.h>
-
-#include <tclap/Constraint.h>
 
 static void shutdown( const int code ){
     //OIIO::shutdown();
@@ -23,11 +22,29 @@ static void shutdown( const int code ){
 int
 main( int argc, char **argv )
 {
-    ImageSpec heightFormat{0,0,0,0 };
-    auto mapSizeConstraint = std::make_shared<RangeConstraint<int>>( 128, 8192, 128 );
-    auto mapHeightConstraint = std::make_shared<RangeConstraint<float>>( -8129, 8192  );
-    auto heightMapConstraint = std::make_shared<ImageConstraint>( &heightFormat );
+    SMFHeader smf_header{ .mapx = 128, .mapy = 128 };
 
+    ImageSpec heightFormat{129,129,1, 0 };
+    ImageSpec typeFormat{64,64,1, 0 };
+    ImageSpec miniFormat{1024,1024,3, 0 };
+    ImageSpec metalFormat{64,64,1, 0 };
+    ImageSpec featureFormat{64,64,1, 0 };
+    ImageSpec grassFormat{32,32,1, 0 };
+
+    ValueArg<int>::Visitor updateFormats = [&]( const ValueArg<int>& arg ) {
+        if( arg.getName() == "mapx" ) smf_header.mapx = arg.getValue() * 128;
+        if( arg.getName() == "mapy" ) smf_header.mapy = arg.getValue() * 128;
+        heightFormat.width   = smf_header.mapx + 1;
+        heightFormat.height  = smf_header.mapy + 1;
+        typeFormat.width     = smf_header.mapx / 2;
+        typeFormat.height    = smf_header.mapy / 2;
+        metalFormat.width    = smf_header.mapx / 2;
+        metalFormat.height   = smf_header.mapy / 2;
+        featureFormat.width  = smf_header.mapx;
+        featureFormat.height = smf_header.mapy;
+        grassFormat.width    = smf_header.mapx / 4;
+        grassFormat.height   = smf_header.mapy / 4;
+    };
     TCLAP::fmtOutput myout;
     spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
 
@@ -45,10 +62,14 @@ main( int argc, char **argv )
 
     // Compile SubOptions - Metadata
     auto compileMeta = cmd.create<NamedGroup>("Compile Sub-Options" );
-    auto argPrefix    = compileMeta->create< ValueArg< std::filesystem::path > >( "", "prefix", "File output prefix when saving files", false, std::filesystem::path( "./" ), "prefix" );
+    auto argPrefix    = compileMeta->create< ValueArg< std::filesystem::path > >( "", "prefix", "File output prefix when saving files" );
     auto argOverwrite = compileMeta->create< SwitchArg >( "", "overwrite", "overwrite existing files" );
-    auto argMapX      = compileMeta->create< ValueArg< int > >( "", "mapx", "Width of map", false, 128, "int", mapSizeConstraint );
-    auto argMapY      = compileMeta->create< ValueArg< int > >( "", "mapy", "Height of map", false, 128, "128-int_max % 128", mapSizeConstraint );
+    auto mapSizeConstraint = std::make_shared<RangeConstraint<int>>( 1, 128 );
+    compileMeta->create< ValueArg< int > >( "", "mapx", "Width of map", //FIXME, a better description
+        mapSizeConstraint, updateFormats );
+    compileMeta->create< ValueArg< int > >( "", "mapy", "Height of map",//FIXME, a better description
+        mapSizeConstraint, updateFormats );
+    auto mapHeightConstraint = std::make_shared<RangeConstraint<float>>( -8129, 8192  );
     auto argMinHeight = compileMeta->create< ValueArg< float > >( "", "min-height", "In-game position of pixel value 0x00/0x0000 of height map", false, 32.0f, "float", mapHeightConstraint );
     auto argMaxHeight = compileMeta->create< ValueArg< float > >( "", "max-height", "In-game position of pixel value 0xFF/0xFFFF of height map", false, 256.0f, "float", mapHeightConstraint );
 
@@ -63,12 +84,12 @@ main( int argc, char **argv )
 
     // Compile SubOptions - data
     auto compileData = cmd.create<NamedGroup>( "Compile Data Options" );
-	//auto argHeight_map  = compileData->create< ValueArg< Path > > ("", "height-map", "Image file to use as the height map", heightMapConstraint );
-	auto argType_map    = compileData->create< ValueArg< Path > > ("", "type-map", "Image file to use as the type map", false, std::filesystem::path{}, "path");
+	auto argHeight_map  = compileData->create< ValueArg< Path > > ("", "height-map", "Image file to use as the height map", std::make_shared<ImageConstraint>( &heightFormat ) );
+	auto argType_map    = compileData->create< ValueArg< Path > > ("", "type-map", "Image file to use as the type map", std::make_shared<ImageConstraint>( &typeFormat ) );
 	auto argTile_map    = compileData->create< ValueArg< Path > > ("", "tile-map", "File to use as the tile map", false, std::filesystem::path{}, "path");
-	auto argMini_map    = compileData->create< ValueArg< Path > > ("", "mini-map", "Image file to use as the mini map", false, std::filesystem::path{}, "path");
-	auto argMetal_map   = compileData->create< ValueArg< Path > > ("", "metal-map", "Image file to use as the metal map", false, std::filesystem::path{}, "path");
-	auto argFeature_map = compileData->create< ValueArg< Path > > ("", "feature-map", "image file to use as the feature map", false, std::filesystem::path{}, "path");
+	auto argMini_map    = compileData->create< ValueArg< Path > > ("", "mini-map", "Image file to use as the mini map", std::make_shared<ImageConstraint>( &miniFormat ) );
+	auto argMetal_map   = compileData->create< ValueArg< Path > > ("", "metal-map", "Image file to use as the metal map", std::make_shared<ImageConstraint>( &metalFormat ));
+	auto argFeature_map = compileData->create< ValueArg< Path > > ("", "feature-map", "image file to use as the feature map", std::make_shared<ImageConstraint>( &featureFormat ));
 
     // Compile SubOptions - Extra Data
     auto compileDataEx = cmd.create<NamedGroup>( "Compile Extra Data Options");
@@ -134,10 +155,8 @@ main( int argc, char **argv )
     std::array levels SPDLOG_LEVEL_NAMES;
     if( verbose >=4 ) println( "Spdlog Level: {}", levels[spdlog::get_level()] );
 
-    if( argMapX->isSet() )
-    {
-        fmt::println("The value of MapX is {}", argMapX->getValue() );
-    }
+    fmt::println("The map dimensions are {}x{}", smf_header.mapx, smf_header.mapy );
+    fmt::println("The height map dimensions are {}x{}", heightFormat.width, heightFormat.height );
 
     shutdown(0);
     return 0;

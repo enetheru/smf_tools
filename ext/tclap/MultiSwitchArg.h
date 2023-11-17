@@ -128,7 +128,7 @@ inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args
         // Matched argument: increment value.
         ++_value;
 
-        _checkWithVisitor();
+        _visit();
 
         return true;
     }
@@ -142,7 +142,7 @@ inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args
         // Check for more in argument and increment value.
         while( combinedSwitchesMatch( args[ *i ] ) ) ++_value;
 
-        _checkWithVisitor();
+        _visit();
 
         return false;
     }

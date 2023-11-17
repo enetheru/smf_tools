@@ -22,7 +22,6 @@
 #ifndef TCLAP_CONSTRAINT_H
 #define TCLAP_CONSTRAINT_H
 
-#include <stdexcept>
 #include <string>
 
 namespace TCLAP {
@@ -33,14 +32,17 @@ class ValueArg;
 /**
  * The interface that defines the interaction between the Arg and Constraint.
  */
+
+enum CheckResult {
+ HARD_FAILURE,
+ SOFT_FAILURE,
+ SUCCESS
+};
+
+
 template< class T >
 class Constraint {
 public:
-    enum CheckResult {
-        HARD_FAILURE,
-        SOFT_FAILURE,
-        SUCCESS
-    };
     using RetVal = std::pair<CheckResult, std::string>;
     /**
      * Returns a description of the Constraint.

@@ -29,6 +29,35 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <filesystem>
+
+#include <string_view>
+
+/*template <typename T>
+constexpr auto type_name() {
+    std::string_view name, prefix, suffix;
+#ifdef __clang__
+    name = __PRETTY_FUNCTION__;
+    prefix = "auto type_name() [T = ";
+    suffix = "]";
+#elif defined(__GNUC__)
+    name = __PRETTY_FUNCTION__;
+    prefix = "constexpr auto type_name() [with T = ";
+    suffix = "]";
+#elif defined(_MSC_VER)
+    name = __FUNCSIG__;
+    prefix = "auto __cdecl type_name<";
+    suffix = ">(void)";
+#endif
+    name.remove_prefix(prefix.size());
+    name.remove_suffix(suffix.size());
+    return name;
+}*/
+
+template <typename T>
+constexpr auto type_name() {
+    return typeid(T).name();
+}
 
 namespace TCLAP {
 
@@ -54,6 +83,8 @@ T ExtractValue( const std::string& val ) { return std::filesystem::path( val ); 
  */
 template< class T >
 class ValueArg final : public Arg {
+public:
+    using Visitor = std::function<void(const ValueArg&)>;
 protected:
     /**
      * The value parsed from the command line.
@@ -75,12 +106,22 @@ protected:
      * consistent support for human readable names, we are left to our
      * own devices.
      */
-    std::string _typeDesc;
+    std::string _typeDesc = type_name<T>();
 
     /**
      * A Constraint this Arg must conform to.
      */
     std::shared_ptr<Constraint< T >> _constraint;
+
+    /**
+     * std::function visitor, is called after validation succeeds.
+     */
+    Visitor _visitor{};
+
+    /**
+     * Performs the special handling described by the Visitor.
+     */
+    void _visit() const override { if(_visitor)_visitor( *this ); };
 
     /**
      * Extracts the value from the string.
@@ -93,48 +134,60 @@ protected:
         _value = ExtractValue<T>( val );
         if( _constraint ){
             auto [passed, msg] = _constraint->check( *this );
-            if( passed != Constraint<T>::CheckResult::SUCCESS ) throw CmdLineParseException( msg, toString() );
+            if( passed != SUCCESS ) throw CmdLineParseException( msg, toString() );
         }
     }
 
-
-
 public:
-    ValueArg( const std::string& flag, const std::string& name, const std::string& desc, std::string typeDesc )
-    : Arg( flag, name, desc ), _typeDesc( std::move(typeDesc) ), _constraint( nullptr )
-    {}
+    /**
+     * \param flag - The one character flag that identifies this
+     *      argument on the command line.
+     * \param name - A one word name for the argument.  Can be
+     *      used as a long flag on the command line.
+     * \param desc - A description of what the argument is for or
+     *      does.
+     * \param constraint -
+     * \param visitor -
+     */
+
+    ValueArg( const std::string& flag, const std::string& name, const std::string& desc,
+        std::shared_ptr<Constraint< T >> constraint = {},
+        const Visitor visitor = {} )
+    : Arg( flag, name, desc, false, true  ),
+        _constraint( constraint ),
+        _visitor( visitor ) {}
 
     /**
-     * Labeled ValueArg constructor.
-     * You could conceivably call this constructor with a blank flag,
-     * but that would make you a bad person.  It would also cause
-     * an exception to be thrown.   If you want an unlabeled argument,
-     * use the other constructor.
      * \param flag - The one character flag that identifies this
      * argument on the command line.
      * \param name - A one word name for the argument.  Can be
      * used as a long flag on the command line.
      * \param desc - A description of what the argument is for or
      * does.
-     * \param req - Whether the argument is required on the command
+     * \param isRequired - Whether the argument is required on the command
      * line.
      * \param defaultValue - The default value assigned to this argument if it
      * is not present on the command line.
      * \param typeDesc - Description of the type of input
      * \param constraint - A pointer to a Constraint object used
      * to constrain this Arg.
-     * \param v - An optional visitor.  You probably should not
+     * \param visitor - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
     ValueArg(
-        const std::string& flag,
-        const std::string& name,
-        const std::string& desc,
-        bool req = false,
-        T defaultValue = {},
-        std::string typeDesc = {},
+        const std::string& flag, const std::string& name, const std::string& desc,
+        const bool isRequired,
+        T defaultValue,
+        std::string typeDesc,
         std::shared_ptr<Constraint< T >> constraint = {},
-        Visitor v = {} );
+        const Visitor visitor = {} )
+    :   Arg( flag, name, desc, isRequired, true ),
+        _value( defaultValue ),
+        _default( defaultValue ),
+        _typeDesc(std::move(  typeDesc )),
+        _constraint( constraint ),
+        _visitor( visitor )
+    {}
 
     /**
      * Handles the processing of the argument.
@@ -171,21 +224,6 @@ public:
     ValueArg& operator=( const ValueArg& rhs ) = delete;
 };
 
-template< class T >
-ValueArg< T >::ValueArg(
-    const std::string& flag,
-    const std::string& name,
-    const std::string& desc,
-    const bool req, T defaultValue,
-    std::string  typeDesc,
-    std::shared_ptr<Constraint< T >> constraint,
-    const Visitor v )
-    : Arg( flag, name, desc, req, true, v ),
-      _value( defaultValue ),
-      _default( defaultValue ),
-      _typeDesc(std::move(  typeDesc )),
-      _constraint( constraint ) {}
-
 /**
  * Implementation of processArg().
  */
@@ -221,7 +259,7 @@ bool ValueArg< T >::processArg( int* i, std::vector< std::string >& args ) {
 
         _alreadySet = true;
         _setBy = flag;
-        _checkWithVisitor();
+        _visit();
         return true;
     }
     return false;

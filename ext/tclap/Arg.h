@@ -42,11 +42,10 @@ namespace TCLAP {
  * anything.
  */
 
-class Arg;
-using Visitor = std::function<void(const Arg&)>;
-
 class Arg {
 public:
+    using Visitor = std::function<void(const Arg&)>;
+
     /**
         * Prevent accidental copying.
         */
@@ -127,8 +126,7 @@ protected:
      * argument is matched.  This defaults to NULL and should not
      * be used unless absolutely necessary.
      */
-    //Visitor _visitor{};
-    std::function<void(const Arg&)> _visitor;
+    Visitor _visitor{};
 
     bool _acceptsMultipleValues{};
 
@@ -141,7 +139,7 @@ protected:
     /**
      * Performs the special handling described by the Visitor.
      */
-    void _checkWithVisitor() const;
+    virtual void _visit() const { if( _visitor != nullptr ) _visitor( *this ); }
 
     /**
      * Primary constructor. YOU (yes you) should NEVER construct an Arg
@@ -154,7 +152,7 @@ protected:
      * \param desc - The description of the argument, used in the usage.
      * \param req - Whether the argument is required.
      * \param valreq - Whether the a value is required for the argument.
-     * \param v - The visitor checked by the argument. Defaults to NULL.
+     * \param visitor - The visitor checked by the argument. Defaults to NULL.
      */
     Arg(
         std::string flag,
@@ -162,7 +160,7 @@ protected:
         std::string desc,
         bool req = false,
         bool valreq = false,
-        Visitor v = nullptr );
+        Visitor visitor = nullptr );
 
 public:
     /**
@@ -345,7 +343,7 @@ inline Arg::Arg(
     std::string desc,
     const bool req,
     const bool valreq,
-    const Visitor visitor )
+    Visitor visitor )
     : _flag( std::move( flag ) ),
       _name( std::move( name ) ),
       _description( std::move( desc ) ),
@@ -353,7 +351,7 @@ inline Arg::Arg(
       _requireLabel( "required" ),
       _valueRequired( valreq ),
       _alreadySet( false ),
-      _visitor( visitor ),
+      _visitor(std::move( visitor )),
       _acceptsMultipleValues( false ),
       _visibleInHelp( true ) {
     if( _flag.length() > 1 )
@@ -418,10 +416,6 @@ constexpr std::string Arg::toString() const {
         return fmt::format("{}{}", nameStartString(), _name);
     }
     return fmt::format("{}{}, ({}{})", flagStartString(), _flag, nameStartString(), _name);
-}
-
-inline void Arg::_checkWithVisitor() const {
-    if( _visitor != nullptr ) _visitor( *this );
 }
 
 /**
