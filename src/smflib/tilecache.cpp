@@ -6,7 +6,9 @@
 #include "smf.h"
 #include "tilecache.h"
 
-std::string to_string( TileSourceType type ){
+using namespace smflib;
+
+std::string to_string( const TileSourceType type ){
     switch(type){
         case TileSourceType::Image:
             return "Image";
@@ -62,7 +64,7 @@ TileCache::getTile( const uint32_t index ) const {
 
     switch( tileSource.type ){
         case TileSourceType::SMT: {
-            auto smt = std::unique_ptr<SMT>( SMT::open(  tileSource.filePath ) );
+            const auto smt = std::unique_ptr<SMT>( SMT::open(  tileSource.filePath ) );
             return smt->getTile( index - tileSource.iStart );
         }
         case TileSourceType::SMF: {
@@ -83,8 +85,7 @@ TileCache::getTile( const uint32_t index ) const {
 bool
 TileCache::addSource( const std::filesystem::path& filePath ) {
     SPDLOG_INFO("Adding {} to TileCache", filePath.string() );
-    auto image = OIIO::ImageInput::open( filePath );
-    if( image ){
+    if( const auto image = OIIO::ImageInput::open( filePath ) ){
         SPDLOG_INFO( "{} is an image file", filePath.string() );
         image->close();
         auto start = _numTiles; _numTiles++;
@@ -92,21 +93,19 @@ TileCache::addSource( const std::filesystem::path& filePath ) {
         return false;
     }
 
-    std::unique_ptr<SMT> smt( SMT::open( filePath ) );
-    if( smt ){
+    if( const std::unique_ptr<SMT> smt( SMT::open( filePath ) ); smt ){
         SPDLOG_INFO(smt->json().dump(4) );
         auto start = _numTiles; _numTiles += smt->getNumTiles();
         _sources.emplace_back(start, _numTiles - 1, TileSourceType::SMT, filePath.string() );
         return false;
     }
 
-    std::unique_ptr<SMF> smf( SMF::open( filePath ) );
-    if( smf ){
+    if( const auto smf = SMF::open( filePath ) ){
         SPDLOG_INFO( "{} is an SMF file Adding any references to SMT files", filePath.string() );
         // get the fileNames here
-        auto smtList = smf->getSMTList();
+        const auto smtList = smf->getSMTList();
         bool result = false;
-        for( const auto& [numTiles,fileName] : smtList ){
+        for( const auto& fileName : smtList | std::views::values ){
             SPDLOG_INFO("Adding {} from {}", fileName, filePath.string() );
             result |= addSource( fileName );
             //auto start = _numTiles; _numTiles += numTiles;
@@ -148,7 +147,7 @@ nlohmann::ordered_json TileCache::json() const {
     j["numTiles"] = _numTiles;
     j["numSources"] = _sources.size();
     j["sources"] = nlohmann::json::array();
-    std::for_each(_sources.begin(), _sources.end(), [&j](const auto & source){
+    std::ranges::for_each( _sources , [&j](const auto & source){
         j["sources"] += source.json().dump();
     });
     return j;

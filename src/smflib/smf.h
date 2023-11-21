@@ -1,135 +1,151 @@
 #pragma once
 
-#include <cstring>
-#include <climits>
+#include <bitset>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
-#include <filesystem>
 
-#include <OpenImageIO/imagebuf.h>
+//#include <OpenImageIO/imagebuf.h>
 #include <nlohmann/json.hpp>
 
-#include "tilemap.h"
+#include "filemap.h"
+#include "smfiobase.h"
+
 #include "recoil/SMFFormat.h"
 
-/** Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.<br>
- * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4\n
- * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
- * SMFFormat.h provides a macro for this MINIMAP_SIZE = 699048
+// Additional items defined to help deserialisation
+namespace Recoil {
+/** HeaderExtn_Grass
+ * \brief Specialised struct for Grass Header
  */
+struct HeaderExtn_Grass : ExtraHeader {
+    int ptr = 80;
+    HeaderExtn_Grass() : ExtraHeader(12, 1) {}
+};
 
-#define SMF_HEADER              0x00000001 //!<
-#define SMF_EXTRA_HEADER        0x00000002 //!<
-#define SMF_HEIGHT              0x00000004 //!<
-#define SMF_TYPE                0x00000008 //!<
-#define SMF_MAP_HEADER          0x00000010 //!<
-#define SMF_MAP                 0x00000020 //!<
-#define SMF_MINI                0x00000040 //!<
-#define SMF_METAL               0x00000080 //!<
-#define SMF_FEATURES_HEADER     0x00000100 //!<
-#define SMF_FEATURES            0x00000200 //!<
-#define SMF_GRASS               0x00000400 //!<
-#define SMF_ALL                 0xFFFFFFFF //!<
+} // namespace Recoil
 
-// (&= !) turns the flag off
-// (|=  ) turns it on
+namespace smflib {
+
+/**
+ * \brief Helper class for reading and writing to SMF files.
+ */
+class SMF final {
+
+    /** the location of the smf file to use to read or write to.
+      */
+    using Path = std::filesystem::path;
+    Path _filePath;
+    std::streamsize _fileSize;
+    std::shared_ptr<FileMap> _fileMap;
 
 
-class SMF {
-    std::filesystem::path _filePath;
-    uint32_t _dirtyMask = 0xFFFFFFFF;
+    /** enum for bitmasking logic based on components.
+     */
+public:
+    enum SMFComponent {
+        NONE            = 0x00000000,
+        HEADER          = 1u << 0,
+        EXTRA_HEADER    = 1u << 1,
+        HEIGHT          = 1u << 2,
+        TYPE            = 1u << 3,
+        MAP_HEADER      = 1u << 4,
+        TILE            = 1u << 5,
+        MINI            = 1u << 6,
+        METAL           = 1u << 7,
+        FEATURES_HEADER = 1u << 8,
+        FEATURES        = 1u << 9,
+        GRASS           = 1u << 10,
+        ALL             = 0xFFFFFFFF
+    };
+private:
 
-    /*! Header struct as it is written on disk */
-    SMFHeader _header{"spring map file", 1, 0, 128, 128,
-                      8, 8, 32, 10, 256};
+    /** Header struct as it is written on disk
+     * \brief Primary SMF Header Struct.
+     */
+    Recoil::SMFHeader _header{
+     .magic = "spring map file",
+     .version = 1,
+     .mapid = 0,
+     .mapx = 128,
+     .mapy = 128,
+     .squareSize = 8,
+     .texelPerSquare = 8,
+     .tilesize = 32,
+     .minHeight = 1.0f,
+     .maxHeight = 128.0f,
+     .heightmapPtr = 0,
+     .typeMapPtr = 0,
+     .tilesPtr = 0,
+     .minimapPtr = 0,
+     .metalmapPtr = 0,
+     .featurePtr = 0,
+     .numExtraHeaders = 0
+    };
 
-    /*! Header Extension.
-     *
-     * start of every header Extn must look like this, then comes data specific
+    /** Header Extension.
+     *  start of every header Extn must look like this, then comes data specific
      * for header type
      */
-    std::vector< std::unique_ptr< ExtraHeader > > extraHeaders;
+    std::vector<std::unique_ptr<Recoil::ExtraHeader>> extraHeaders;
 
-    /*! grass Header Extn.
-     *
-     * This extension contains a offset to an unsigned char[mapx/4 * mapy/4] array
-     * that defines ground vegetation.
+    /** Tile Section Header.
+     *  See the section in SMFFormat.h
      */
-    struct HeaderExtn_Grass: public ExtraHeader
-    {
-        int ptr = 80; ///< offset to beginning of grass map data.
-        HeaderExtn_Grass( ) : ExtraHeader(12, 1 ){ };
-    };
+    //Recoil::MapTileHeader _mapTileHeader{};
 
-    OIIO::ImageSpec _heightSpec;
-    OIIO::ImageSpec _typeSpec;
-
-    /*! Tile Section Header.
-     *
-     * this is followed by numTileFiles file definition where each file definition
-     * is an int followed by a zero terminated file name. Each file defines as
-     * many tiles the int indicates with the following files starting where the
-     * last one ended. So if there is 2 files with 100 tiles each the first
-     * defines 0-99 and the second 100-199. After this follows an
-     * int[ mapx * texelPerSquare / tileSize * mapy * texelPerSquare / tileSize ]
-     * which is indexes to the defined tiles
+    /** List of SMT files and the number of tiles they contain.
+     *  the smt list is the list of {numTiles,'fileName'} parsed using the
+     * MapTileHeader information.
      */
-    struct HeaderTiles
-    {
-        int nFiles = 0; ///< number of files referenced
-        int nTiles = 0; ///< number of tiles total
-    };
-    HeaderTiles _headerTiles;
-    std::vector< std::pair< uint32_t, std::string > > _smtList;
+    //using smt_pair = std::pair<uint32_t, std::string>;
+    //std::vector<smt_pair> _smtList;
 
-    //FIXME why do I have a duplicate value here, shouldnt I just use the value from the header?
-    int _mapPtr{};         ///< pointer to beginning of the tilemap
-    OIIO::ImageSpec _mapSpec;
-
-    OIIO::ImageSpec _miniSpec;
-    OIIO::ImageSpec _metalSpec;
-
-    /*! Features Section Header.
-     *
-     * this is followed by numFeatureType zero terminated strings indicating the
-     * names of the features in the map then follow numFeatures
-     * MapFeatureStructs
+    /** Tile Map Pointer - A convenience to get directly to the tile map.
+     * points to the data directly after the MapTileheader following filename, and
+     * is a convenience.
      */
-    struct HeaderFeatures
-    {
-        int nTypes = 0;    ///< number of feature types
-        int nFeatures = 0; ///< number of features
-    };
-    HeaderFeatures _headerFeatures;
-    std::vector< std::string > _featureTypes; ///< names of features
+    //std::streampos _mapPtr{}; ///< pointer to beginning of the tilemap
 
-    /*! Individual features structure
+    /** This is followed by numFeatureType zero terminated strings
+     * indicating the names of the features in the map then follow numFeatures
      */
-    struct Feature
-    {
-        int type; ///< index to one of the strings above
-        float x;  ///< x position on the map
-        float y;  ///< y position on the map
-        float z;  ///< z position on the map
-        float r;  ///< rotation
-        float s;  ///< scale, currently unused.
-    };
-    std::vector< SMF::Feature > _features;
+    //Recoil::MapFeatureHeader _mapFeatureheader{};
 
-    OIIO::ImageSpec _grassSpec;
+    /**
+     */
+    //std::vector<std::string> _featureTypes;
 
-    // == Internal Utility Functions ==
-    OIIO::ImageBuf getImage( uint32_t ptr, const OIIO::ImageSpec& spec );
-    bool writeImage( uint32_t ptr, const OIIO::ImageSpec& spec, OIIO::ImageBuf &sourceBuf );
+    /** Individual features structure
+     */
+    //std::vector<Recoil::MapFeatureStruct> _features;
+
+    // component IO
+    std::shared_ptr<SMFIOBase> _heightIO;
+    std::shared_ptr<SMFIOBase> _typeIO;
+    std::shared_ptr<SMFIOBase> _miniIO;
+    std::shared_ptr<SMFIOBase> _metalIO;
+    std::shared_ptr<SMFIOBase> _featureIO;
+    std::shared_ptr<SMFIOBase> _grassIO;
+    std::shared_ptr<SMFIOBase> _tileIO;
+
+    /** Update the file offset pointers
+     * This function makes sure that all data offset pointers are pointing to the
+     * correct location and should be called whenever changes to the class are
+     * made that will effect its values.
+     */
+    void updateHeader();
+    std::streampos endStage1{};
+    void updatePtrs2(); // When Tile Files change
 
 public:
 
-    void good() const;
-    static bool test  ( const std::filesystem::path& filePath );
-    static SMF *create( const std::filesystem::path& filePath, bool overwrite = false );
-    static SMF *open  ( const std::filesystem::path& filePath );
-    //FIXME SMF::open change to output a unique buffer rather than a raw pointer
+    SMF() : _fileMap( std::make_shared<FileMap>() ) {}
+
+    Path getFilePath(){ return _filePath; }
+
+    Recoil::SMFHeader* header() { return &_header; }
 
     /*! create info string
      *
@@ -137,101 +153,123 @@ public:
      */
     [[nodiscard]] nlohmann::ordered_json json();
 
-    /*! Update the file offset pointers
-     *
-    * This function makes sure that all data offset pointers are pointing to the
-    * correct location and should be called whenever changes to the class are
-    * made that will effect its values.
-    */
-    void updatePtrs( );
-
-    /*! Update the Image Specifications
-     *
-     * calculates the image sizes based off the map size
-     */
-    void updateSpecs( );
-
-    /*! Read the file structure from disk
-     *
-     * Populates the class from a file on disk
-     */
-    void read( );
-
-    /*! Set the filename. */
-    //FIXME UNUSED void setFilePath( std::filesystem::path filePath );
-
-    /*! Set Map Size uses spring map units.
-    *
-    * @param width map width in spring map sizes
-    * @param length map length in spring map sizes
-    */
-    void setSize( int width, int length );
-
-     /*! set the size of the mesh squares
-     *
-     * This is legacy from old ground drawer code. no longer used.
-     * @param size Size of the mesh squares
-     */
-    //TODO UNUSED void setSquareWidth( int size );
-
-    /*! set the density of the images per square
-     *
-     * @param size density of pixels per square
-     */
-    //TODO UNUSED void setSquareTexels( int size );
+    void setMapid( const int mapid ){_header.mapid = mapid;}
+    void setMapx( const int mapx ){_header.mapx = mapx;}
+    void setMapy( const int mapy ){_header.mapy = mapy;}
+    [[deprecated]] void setSquareSize( const int squareSize ){_header.squareSize = squareSize;}
+    [[deprecated]] void setTexelPerSquare( const int texelPerSquare ){_header.texelPerSquare = texelPerSquare;}
 
     /*! setTileSize
      *
      * Sets the square pixel resolution of the tiles location in the file.
-     * @param size pixels squared
+     * @param tilesize
      */
-    void setTileSize( int size );
+    [[deprecated]] void setTilesize( const int tilesize ){_header.tilesize = tilesize;}
+    void setMinHeight( const float minHeight ){_header.minHeight = minHeight;}
+    void setMaxHeight( const float maxHeight ){_header.maxHeight = maxHeight;}
 
-    /*! Set map Depth
-     *
+    // Convenience functions which aggregate some units.
+    /** Set Map Size uses spring map units.
+     * @param width
+     * @param height
+     */
+    void setMapSize( int width, int height );
+
+    /** Set map Depth
      * Negative values for below sea level, positive values for above sea level.
      * Height map values are influenced by these.
-     * @param floor lowest point in the world
-     * @param ceiling highest point in the world
+     * @param lower, upper - each set the vertical position of the height map
+     * that pixel values of 0x0000 and 0xFFFF correspond to
      */
-    void setDepth( float floor, float ceiling );
+    void setHeight( float lower, float upper );
 
-    void enableGrass( bool enable = false );
+    [[nodiscard]] const std::filesystem::path &get_file_path() const;
+    void set_file_path(const std::filesystem::path &file_path);
+    std::shared_ptr<FileMap> getFileMap(){ return _fileMap; }
+    std::streamsize getFileSize(){ return _fileSize; }
 
-    void addTileFile( const std::filesystem::path& filePath );
+    void setHeightIO(const std::shared_ptr<SMFIOBase> &height_io);
+    void setTypeIO(const std::shared_ptr<SMFIOBase> &type_io);
+    void setMiniIO(const std::shared_ptr<SMFIOBase> &mini_io);
+    void setMetalIO(const std::shared_ptr<SMFIOBase> &metal_io);
+    void setGrassIO(const std::shared_ptr<SMFIOBase> &grass_io); //Optional
+    void setTileIO(const std::shared_ptr<SMFIOBase> &tile_io);
+    void setFeatureIO(const std::shared_ptr<SMFIOBase> &feature_io);
 
-    //TODO UNUSED void clearTileFiles( );
+    /** Tilemap related functions
+     */
+    //std::vector<smt_pair> getSMTList();
 
-    void addFeature( const std::string& name, float x, float y, float z,
-                     float r, float s );
+    /*! Read the file structure from disk
+     * @param components - optionally specify which components to read
+    */
+    void read( int components = ALL );
 
-    //TODO void addFeatureDefaults();
+    /**
+     * \brief
+     * @param components - optionally specify which components to write
+     */
+    void write( std::bitset<12> components = ALL );
 
-    //TODO UNUSED void clearFeatures();
+    /** Size of the height Map in Bytes
+      */
+    [[nodiscard]] int heightMapBytes() const {
+        // TODO evaluate whether this is more correct, or whether its just old inforamtion:
+        // const int& tps      = _header.texelPerSquare;
+        // const int& tileSize = _header.tilesize;
+        // tileMapBytes   = tps * mapx / tileSize * (tps * mapy / tileSize) * 4; // uint32
 
-    /// add a csv list of features
-    void addFeatures( const std::filesystem::path& filePath );
+        return (_header.mapx + 1) * (_header.mapy + 1) * 2; // sizeof(uint16_t) = 2 bytes
+    }
 
-    void writeHeader( );
-    void writeExtraHeaders();
-    void writeHeight  ( OIIO::ImageBuf &buf );
-    void writeType    ( OIIO::ImageBuf &buf );
-    void writeTileHeader( );
-    void writeMap     ( TileMap *tileMap );
-    void writeMini    ( OIIO::ImageBuf &buf );
-    void writeMetal   ( OIIO::ImageBuf &buf );
-    void writeFeatures();
-    // Extra
-    void writeGrass   ( OIIO::ImageBuf &buf );
+    /**
+      * \brief Size of the type map in bytes.
+      * \return
+      */
+    [[nodiscard]] int typeMapBytes() const {
+        // ReSharper disable once CppRedundantParentheses
+        return (_header.mapx / 2) * (_header.mapy / 2);
+    }
 
-    // Get Functions
-    OIIO::ImageBuf getHeight();
-    OIIO::ImageBuf getType();
-    OIIO::ImageBuf getMini();
-    OIIO::ImageBuf getMetal();
-    OIIO::ImageBuf getGrass();
-    auto getSMTList(){ return _smtList; };
-    TileMap getMap();
-    std::string getFeatureTypes();
-    std::string getFeatures();
+    /**
+     * \brief
+     * \return
+     */
+    [[nodiscard]] int tileMapBytes() const {
+        // ReSharper disable once CppRedundantParentheses
+        return (_header.mapx / 4) * (_header.mapy / 4) * 4; // sizeof(uint32_t) == 4 bytes;
+    }
+
+    /**
+     * \brief
+     * \return
+     * Minimap size is defined by a DXT1 compressed 1024x1024 image with 8 mipmaps.
+     * 1024   + 512    + 256   + 128  + 64   + 32  + 16  + 8  + 4
+     * 524288 + 131072 + 32768 + 8192 + 2048 + 512 + 128 + 32 + 8 = 699048
+     * SMFFormat.h provides a macro for this MINIMAP_SIZE = 699048
+     */
+    [[nodiscard]] static int miniMapBytes(){
+        return 699048;
+    }
+
+    /**
+     * \brief
+     * \return
+     */
+    [[nodiscard]] int metalMapBytes() const {
+     // ReSharper disable once CppRedundantParentheses
+        return (_header.mapx / 2) * (_header.mapy / 2);
+    }
+
+    /**
+     * \brief
+     * \return
+     */
+    [[nodiscard]] int grassMapBytes() const {
+     // ReSharper disable once CppRedundantParentheses
+        return (_header.mapx / 4) * (_header.mapy / 4);
+    }
+
 };
+
+} // namespace smflib

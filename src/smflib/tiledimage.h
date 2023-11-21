@@ -4,8 +4,6 @@
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
-#include <filesystem>
-#include <utility>
 
 #include "tilemap.h"
 #include "tilecache.h"

@@ -7,7 +7,6 @@
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 
-#include <OpenImageIO/imagebuf.h>
 
 /// Evaluates a string into two integers
 /* The function takes a string in the form of IxK, and assigns
@@ -36,15 +35,7 @@ std::string to_hex(T i)
   return stream.str();
 }
 
-/// re-orders the channels an imageBuf according to the imageSpec
-/*  Returns a copy of the sourceBuf with the number of channels in
- *  the ImageSpec spec.
- *  If there is no Alpha then an opaque one is created.
- */
-OIIO::ImageBuf channels( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec& destSpec );
 
-/// Scales an ImageBuf according to a given ImageSpec
-OIIO::ImageBuf scale( const OIIO::ImageBuf &sourceBuf, const OIIO::ImageSpec &destSpec );
 
 /// output a progress indicator
 void progressBar( const std::string& message, float goal, float progress );

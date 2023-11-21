@@ -23,6 +23,7 @@ TileFileHeader for details.
 
 #ifndef SMF_MAPFORMAT_H
 #define SMF_MAPFORMAT_H
+namespace Recoil {
 
 /// Size in bytes of a single tile in the .smt
 #define SMALL_TILE_SIZE 680
@@ -179,6 +180,5 @@ struct TileFileHeader
 	int tileSize;        ///< Must be 32 for now
 	int compressionType; ///< Must be 1 (= dxt1) for now
 };
-
-#endif //ndef _MAPFILE_H
-
+}
+#endif //SMF_MAPFORMAT_H

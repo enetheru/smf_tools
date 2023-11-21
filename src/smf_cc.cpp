@@ -28,7 +28,7 @@ enum optionsIndex
     // Compression
 };
 
-const option::Descriptor usage_short[] = {
+constexpr option::Descriptor usage_short[] = {
         {UNKNOWN, 0, "",      "",      Arg::None,
                                                 "USAGE: smf_cc [options] [smt1 ... smtn]\n\n"
                                                 "eg. $ smf_cc -v -o mymap.smf --mapsize 8x8 --height height.tif \\ \n"
@@ -94,7 +94,7 @@ const option::Descriptor usage[] = {
         {0,        0,  nullptr, nullptr,    nullptr,       nullptr}
 };
 
-static void shutdown( int code ){
+static void shutdown( const int code ){
     OIIO::shutdown();
     exit( code );
 }
@@ -107,7 +107,7 @@ main( int argc, char **argv )
 
     // Options Parsing
     // ===============
-    argc -= (argc > 0); argv += (argc > 0);
+    argc -= argc > 0; argv += argc > 0;
     int term_columns = getenv("COLUMNS" ) ? atoi(getenv("COLUMNS" ) ) : 80;
     bool arg_fail = false;
     option::Stats stats( usage, argc, argv );
@@ -117,7 +117,7 @@ main( int argc, char **argv )
 
     // No arguments
     if( argc == 0 ){
-        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
+        printUsage(std::cout, usage_short, term_columns, 60, 80 );
         shutdown( 1 );
     }
 
@@ -135,7 +135,7 @@ main( int argc, char **argv )
 
     // Help Message
     if( options[ HELP ] ) {
-        option::printUsage(std::cout, usage, term_columns, 60, 80);
+        printUsage(std::cout, usage, term_columns, 60, 80);
         shutdown( 0 );
     }
 
@@ -153,8 +153,7 @@ main( int argc, char **argv )
     // End of generic options
     // ======================
 
-    SMF *smf = nullptr;
-    SMT *smt = nullptr;
+    std::shared_ptr<SMF> smf{};
     bool force = false;
     int mapWidth = 0, mapLength = 0;
     std::filesystem::path outFilePath;
@@ -179,7 +178,7 @@ main( int argc, char **argv )
             arg_fail = true;
         }
     }
-    if( (! mapWidth || ! mapLength) && (! options[ TILEMAP ]) ){
+    if( (! mapWidth || ! mapLength) && ! options[ TILEMAP ] ){
         //FIXME dont error here, check first if a tilefile is specified.
         SPDLOG_ERROR("--mapsize not specified");
         arg_fail = true;
@@ -191,13 +190,14 @@ main( int argc, char **argv )
     // --tilesize
     // take the tilesize from the first smt added
     if( parse.nonOptionsCount() ){
+        SMT *smt;
         if(! SMT::test( parse.nonOption( 0 ) ) ){
             SPDLOG_CRITICAL( "additional arguments are not smt files" );
+            shutdown( 1 );
         }
         smt = SMT::open( parse.nonOption( 0 ) );
         tileSize = smt->getTileSize();
         delete smt;
-        smt = nullptr;
     }
     // take the tilesize from the arguments
     if( options[ TILESIZE ] ){
@@ -226,8 +226,7 @@ main( int argc, char **argv )
             shutdown(1);
         }
         // Load from smf
-        std::unique_ptr<SMF> smfTemp( SMF::open( options[ TILEMAP ].arg ) );
-        if( smfTemp ){
+        if( auto smfTemp = SMF::open( options[ TILEMAP ].arg ) ){
             tileMap = smfTemp->getMap();
         } else {
             // load from csv
@@ -266,8 +265,10 @@ R"(Checking input dimensions
     }
 
     // == lets do it! ==
-    if(! (smf = SMF::create( outFilePath, force )) ){
+    smf = SMF::create( outFilePath, force );
+    if(! smf ){
         SPDLOG_CRITICAL( "Unable to create: {}", outFilePath.string() );
+        shutdown( 1 );
     }
 
     // == Information Collection ==
@@ -373,7 +374,6 @@ R"(Checking input dimensions
     SPDLOG_INFO( smf->json().dump(4) );
     smf->good();
 
-    delete smf;
     OIIO::shutdown();
     return 0;
 }

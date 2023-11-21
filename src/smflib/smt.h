@@ -16,7 +16,7 @@
 class SMT {
 private:
     //! File Header
-    TileFileHeader _header{"spring tilefile", 1, 0, 32, SMT_HCT_DXT1 };
+    Recoil::TileFileHeader _header{"spring tilefile", 1, 0, 32, SMT_HCT_DXT1 };
 
     void calcTileBytes();
     uint32_t _tileBytes = 680; 

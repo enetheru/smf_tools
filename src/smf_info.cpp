@@ -1,106 +1,117 @@
 #include <spdlog/spdlog.h>
+#include <tclap/CmdLine.h>
+#include <tclap/fmtOutput.h>
+#include <tclap/MultiSwitchArg.h>
+#include <tclap/ValueArg.h>
 
-#include "option_args.h"
+#include "args.h"
+#include "smflib/basicio.h"
 #include "smflib/smf.h"
 
-enum optionsIndex {
-    UNKNOWN,
-    HELP,
-    VERBOSE,
-    QUIET,
-    VERSION
-};
+using namespace TCLAP;
+using component = smflib::SMF::SMFComponent;
 
-const option::Descriptor usage_short[] = {
-        { UNKNOWN, 0, "", "", Arg::None,
-          "USAGE: smf_info <smf file> \n"
-          "  eg. 'smf_info myfile.smt'\n"},
-        { 0, 0, nullptr, nullptr, nullptr, nullptr }
-};
-
-const option::Descriptor usage[] = {
-        {UNKNOWN, 0, "",      "",        Arg::None, ""},
-        {HELP,    0, "h",     "help",    Arg::None, "  -h,  \t--help  \tPrint usage and exit."},
-        {VERBOSE, 0, "v",     "verbose", Arg::None, "  -v,  \t--verbose  \tMOAR output."},
-        {QUIET,   0, "q",     "quiet",   Arg::None, "  -q,  \t--quiet  \tSupress Output."},
-        {VERSION, 0, "",      "version", Arg::None, "  -V,  \t--version  \tDisplay Version Information."},
-        {0,       0, nullptr, nullptr,   nullptr,   nullptr}
-};
-
-static void shutdown( int code ){
-    OIIO::shutdown();
+static void shutdown( const int code ){
     exit( code );
 }
 
-int main( int argc, char **argv )
+int
+main( const int argc, char **argv )
 {
-    spdlog::set_pattern("[%l] %s:%#:%! | %v");
+    spdlog::set_pattern("[%l] %s:%#:%! | %v");    // Option parsing
     spdlog::set_level( spdlog::level::warn );
 
-    // Option parsing
-    // ==============
-    argc -= (argc > 0); argv += (argc > 0);
-    option::Stats stats( usage, argc, argv );
-    auto* options = new option::Option[ stats.options_max ];
-    auto* buffer = new option::Option[ stats.buffer_max ];
-    option::Parser parse( usage, argc, argv, options, buffer );
-    int term_columns = getenv("COLUMNS" ) ? atoi(getenv("COLUMNS" ) ) : 80;
+    const auto heightIO = std::make_shared< smflib::BasicHeightIo >();
+    const auto typeIO   = std::make_shared<smflib::BasicTypeIO>();
+    const auto miniIO   = std::make_shared<smflib::BasicMiniIO>();
+    const auto metalIO   = std::make_shared<smflib::BasicMetalIO>();
+    const auto grassIO   = std::make_shared<smflib::BasicGrassIO>();
+    const auto tileIO   = std::make_shared<smflib::BasicTileIO>();
+    const auto featureIO   = std::make_shared<smflib::BasicFeatureIO>();
 
-    // No arguments
-    if( argc == 0 ){
-        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
-        shutdown( 1 );
+    smflib::SMF smf;
+    smf.setHeightIO( heightIO );
+    smf.setTypeIO( typeIO );
+    smf.setMiniIO( miniIO );
+    smf.setMetalIO( metalIO );
+    smf.setGrassIO( grassIO );
+    smf.setTileIO( tileIO );
+    smf.setFeatureIO( featureIO );
+
+    CmdLine cmd("Command description message", ' ', "0.9" );
+    const auto argVersion = cmd.create< SwitchArg >( "V", "version", "Displays version information and exits" );
+    const auto argHelp    = cmd.create< SwitchArg >( "h", "help", "Displays usage information and exits" );
+    const auto argQuiet   = cmd.create< SwitchArg >( "q", "quiet", "Supress Output" );
+    const auto argVerbose = cmd.create< MultiSwitchArg >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
+
+    // Arguments specific to smf_info
+    const auto argPath = cmd.create<ValueArg<Path>>("f","file"," Path of file to analyse", false, Path{} ,"path", std::make_shared<IsFile_SMF>() ); //TODO add constraint
+    // FIXME, add an unlabeled argument specifier
+    // FIXME, create a MultiValueArg argument for specifying multiple values
+
+    // Parse TCLAP arguments
+    fmtOutput myout;
+    try {
+        cmd.setOutput( &myout );
+        cmd.parse( argc, argv );
     }
-
-    // unknown options
-    if( options[ UNKNOWN ] ){
-        for( option::Option* opt = options[ UNKNOWN ]; opt; opt = opt->next() ){
-            SPDLOG_ERROR( "Unknown option: {}", std::string( opt->name,opt->namelen ) );
-        }
-        option::printUsage(std::cout, usage_short, term_columns, 60, 80 );
-        option::printUsage(std::cout, usage, term_columns, 60, 80 );
-        shutdown( 1 );
-    }
-
-    // Version Message
-    if( options[ VERSION ] ) {
-        fmt::println("Version Information Goes here"); //FIXME add version information
-        shutdown( 0 );
-    }
-
-    // Help Message
-    if( options[ HELP ] ) {
-        option::printUsage(std::cout, usage, term_columns, 60, 80);
-        shutdown( 0 );
-    }
-
-    // setup logging level.
-    if( options[ VERBOSE ] )
-        spdlog::set_level(spdlog::level::info);
-    if( options[ QUIET ] )
-        spdlog::set_level(spdlog::level::off);
-
-    if( parse.error() ) {
-        SPDLOG_ERROR("Options Parsing Error");
+    catch( ArgException&e ){
+        fmt::println(stderr, "error: {} for arg {}", e.error(), e.argId() );
         shutdown(1);
     }
 
-    // End of generic parsing options like quiet, verbose etc.
-
-    // all non-options are treated as smf's options
-    int retVal = 0;
-    for( int i = 0; i < parse.nonOptionsCount(); ++i ){
-        std::unique_ptr<SMF> smf( SMF::open( parse.nonOption( i ) ) );
-        if(! smf ){
-            SPDLOG_ERROR( "cannot open smf file" );
-            retVal = 1;
-        } else {
-            fmt::println( "{}", smf->json().dump(4) );
-        }
+    if( cmd.getNumMatched() == 0 ) {
+        //FIXME output short help when no arguments are supplied
+        SPDLOG_ERROR( "No arguments were supplied" );
+        shutdown(1);
     }
 
-    delete [] options;
-    delete [] buffer;
-    OIIO::shutdown();
-    return retVal;
+    // Deal with basic arguments
+    if( argHelp->isSet() ) {
+        myout.usage(cmd);
+        shutdown(0);
+    }
+
+    if( argVersion->isSet() ) {
+        myout.version(cmd);
+        shutdown(0);
+    }
+
+    // setup logging level.
+    int verbose = 3;
+    if( argQuiet->getValue() ) verbose = 0;
+    verbose += argVerbose->getValue();
+    if( verbose > 6 )verbose = 6;
+
+    switch( verbose ){
+    case 0: spdlog::set_level( spdlog::level::off );
+        break;
+    case 1: spdlog::set_level( spdlog::level::critical );
+        break;
+    case 2: spdlog::set_level( spdlog::level::err );
+        break;
+    case 3: spdlog::set_level( spdlog::level::warn );
+        break;
+    case 4: spdlog::set_level( spdlog::level::info );
+        break;
+    case 5: spdlog::set_level( spdlog::level::debug );
+        break;
+    case 6: spdlog::set_level( spdlog::level::trace );
+        break;
+    default: spdlog::set_level( spdlog::level::warn );
+        break;
+    }
+    std::array levels SPDLOG_LEVEL_NAMES;
+    if( verbose >=4 ) println( "Spdlog Level: {}", levels[spdlog::get_level()] );
+
+    if( argPath->isSet() ) {
+        smf.set_file_path( argPath->getValue() );
+        smf.read(component::ALL );
+
+        SPDLOG_INFO( "Getting info for file: {}", argPath->getValue().string() );
+        fmt::println( "{}\n{}", argPath->getValue().string(), smf.json().dump(4) );
+    }
+
+    shutdown(0);
+    return 0;
 }
