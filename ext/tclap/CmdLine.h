@@ -90,40 +90,44 @@ protected:
     /**
      * The name of the program.  Set to argv[0].
      */
-    std::string _progName;
+    std::string _progName{"program name"};
 
     /**
      * A message used to describe the program.  Used in the usage output.
      */
-    std::string _message;
+    std::string _message{"program message" };
 
     /**
      * The version to be displayed with the --version switch.
      */
-    std::string _version;
+    std::string _version{"unversioned"};
 
     /**
      * The number of arguments that are required to be present on
      * the command line. This is set dynamically, based on the
      * Args added to the CmdLine object.
      */
-    int _numRequired;
+    int _numRequired{};
+
+    /** The number of arguments that have matched when parsing
+     */
+    int _numMatched{};
 
     /**
      * The character that is used to separate the argument flag/name
      * from the value.  Defaults to ' ' (space).
      */
-    char _delimiter;
+    char _delimiter{' '};
 
     /**
      * Object that handles all output for the CmdLine.
      */
-    CmdLineOutput* _output;
+    CmdLineOutput* _output{};
 
     /**
      * Should CmdLine handle parsing exceptions internally?
      */
-    bool _handleExceptions;
+    bool _handleExceptions{true};
 
     /**
      * Throws an exception listing the missing args.
@@ -149,12 +153,12 @@ private:
     /**
      * Whether or not to ignore unmatched args.
      */
-    bool _ignoreUnmatched;
+    bool _ignoreUnmatched{false};
 
     /**
      * Ignoring arguments (e.g., after we have seen "--")
      */
-    bool _ignoring;
+    bool _ignoring{false};
 
 public:
     /**
@@ -166,13 +170,10 @@ public:
      * the argument flag/name from the value.  Defaults to ' ' (space).
      * \param version - The version number to be used in the
      * --version switch.
-     * \param helpAndVersion - Whether or not to create the Help and
-     * Version switches. Defaults to true.
      */
     explicit CmdLine( std::string message,
                       char delimiter = ' ',
-                      std::string version = "none",
-                      bool helpAndVersion = true );
+                      std::string version = "none" );
 
     /**
      * Deletes any resources allocated by a CmdLine object.
@@ -235,6 +236,8 @@ public:
     [[nodiscard]] char getDelimiter() const override { return _delimiter; }
     [[nodiscard]] std::string getMessage() const override { return _message; }
 
+    [[nodiscard]] int getNumMatched() const{ return _numMatched;  }
+
     /**
      * Disables or enables CmdLine's internal parsing exception handling.
      *
@@ -272,17 +275,11 @@ public:
 inline CmdLine::CmdLine(
     std::string message,
     const char delimiter,
-    std::string version,
-    const bool helpAndVersion )
+    std::string version )
 :   _progName( "not_set_yet" ),
     _message( std::move( message ) ),
     _version( std::move( version ) ),
-    _numRequired( 0 ),
-    _delimiter( delimiter ),
-    _output(),
-    _handleExceptions( true ),
-    _ignoreUnmatched( false ),
-    _ignoring( false )
+    _delimiter( delimiter )
 {
     Arg::setDelimiter( _delimiter );
     //Arg::setFlagStartString();
@@ -365,33 +362,37 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
         // each ArgGroup, and if there are any required arguments
         // missing, store them for later. Other errors will cause an
         // exception to be thrown and parse will exit early.
-        /*
-        for (std::list<ArgGroup*>::iterator it = _argGroups.begin();
-             it != _argGroups.end(); ++it) {
-            bool missingRequired = (*it)->validate(args);
-            if (missingRequired) {
-                missingArgGroups.push_back(*it);
-            }
-        }
-        */
+        // for( const auto &it : _argGroups ){
+        //     if( it->validate() ) {
+        //         missingArgGroups.push_back( it );
+        //     }
+        // }
 
         for( int i = 0; static_cast< unsigned int >(i) < args.size(); i++ ) {
             bool matched = false;
+
             for( const auto &arg : _argList ) {
+
                 // We check if the argument was already set (e.g., for
                 // a Multi-Arg) since then we don't want to count it
                 // as required again. This is a hack/workaround to
                 // make isRequired() imutable so it can be used to
                 // display help correctly (also it's a good idea).
                 //
-                // TODO: This logic should probably be refactored to remove this logic from here.
+                // TODO: This logic should probably be refactored to remove it from here.
+                // FIXME: arg->processArg takes a reference to the loop integer and advances it conditionally,
+                // this seems horrible to me. replace it with a return value or values.
+                // Actually it seems that passing an iterator would be best,
+                // then it can check the iterator itself, and advance it.
                 const bool alreadySet = arg->isSet();
-                if( const bool ignore = !arg->isRequired() && ignoreRest(); !ignore && arg->processArg( &i, args ) ) {
+                const bool ignore = !arg->isRequired() && ignoreRest();
+                if( !ignore && arg->processArg( &i, args ) ) {
                     requiredCount += !alreadySet && arg->isRequired() ? 1 : 0;
                     matched = true;
                     break;
                 }
             }
+            if( matched )_numMatched++;
 
             // checks to see if the argument is an empty combined
             // switch and if so, then we've actually matched it
@@ -489,15 +490,12 @@ inline void CmdLine::reset() {
     // TODO: This is no longer correct (or perhaps we don't need "reset")
     for( const auto &arg : _argList ) arg->reset();
     _progName.clear();
+    _numMatched = 0;
 }
 
 inline void CmdLine::ignoreUnmatched( const bool ignore ) {
     _ignoreUnmatched = ignore;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// End CmdLine.cpp
-///////////////////////////////////////////////////////////////////////////////
 } // namespace TCLAP
-
 #endif  // TCLAP_CMD_LINE_H

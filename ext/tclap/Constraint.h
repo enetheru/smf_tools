@@ -43,7 +43,7 @@ enum CheckResult {
 template< class T >
 class Constraint {
 public:
-    using RetVal = std::pair<CheckResult, std::string>;
+    using RetVal = std::pair<CheckResult, std::string>; //TODO make this a struct so we can get named values in hints
     /**
      * Returns a description of the Constraint.
      */
