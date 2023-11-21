@@ -19,7 +19,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };
@@ -32,7 +32,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };
@@ -45,7 +45,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };
@@ -58,7 +58,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };
@@ -71,7 +71,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };
@@ -96,7 +96,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };
@@ -120,7 +120,7 @@ public:
     void setSMF(SMF* smf) override;
     void update() override;
     void read( std::ifstream& file ) override;
-    size_t write() override;
+    size_t write( std::ofstream& file ) override;
     [[nodiscard]] nlohmann::ordered_json json() override;
     void reset() override;
 };

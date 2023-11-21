@@ -1,12 +1,9 @@
 #pragma once
 
 #include <bitset>
-#include <cstdint>
 #include <filesystem>
-#include <string>
 #include <vector>
 
-//#include <OpenImageIO/imagebuf.h>
 #include <nlohmann/json.hpp>
 
 #include "filemap.h"
@@ -37,7 +34,7 @@ class SMF final {
       */
     using Path = std::filesystem::path;
     Path _filePath;
-    std::streamsize _fileSize;
+    std::streamsize _fileSize{};
     std::shared_ptr<FileMap> _fileMap;
 
 
@@ -186,7 +183,7 @@ public:
     [[nodiscard]] const std::filesystem::path &get_file_path() const;
     void set_file_path(const std::filesystem::path &file_path);
     std::shared_ptr<FileMap> getFileMap(){ return _fileMap; }
-    std::streamsize getFileSize(){ return _fileSize; }
+    [[nodiscard]] std::streamsize getFileSize() const{ return _fileSize; }
 
     void setHeightIO(const std::shared_ptr<SMFIOBase> &height_io);
     void setTypeIO(const std::shared_ptr<SMFIOBase> &type_io);
@@ -209,7 +206,7 @@ public:
      * \brief
      * @param components - optionally specify which components to write
      */
-    void write( std::bitset<12> components = ALL );
+    void write( uint32_t components = ALL );
 
     /** Size of the height Map in Bytes
       */

@@ -4,9 +4,13 @@
 #include "basicio.h"
 
 #include "smf.h"
+#include "util.h"
 
+/// SECTION BasicHeightIO
+/// =====================
 
 /** BasicHeightIO::read()
+ * \brief Reads Height information
  */
 void smflib::BasicHeightIo::read( std::ifstream& file ) {
     // Check validity of position
@@ -18,9 +22,10 @@ void smflib::BasicHeightIo::read( std::ifstream& file ) {
     file.read( reinterpret_cast<char *>( _data.data() ), _bytes );
 }
 
-/** BasicHeightIO::write() - writes data from
+/** BasicHeightIO::write()
+ * \brief writes data to the smf file
  */
-size_t smflib::BasicHeightIo::write() {
+size_t smflib::BasicHeightIo::write( std::ofstream& file ) {
     // Double check that we have the data to write, padd with zeroes if its too small
     if( _data.capacity() < _bytes )_data.resize( _bytes, 0 );
     //open file
@@ -31,31 +36,54 @@ size_t smflib::BasicHeightIo::write() {
     return _bytes;
 }
 
-/** BasicHeightIO::update() - Updates any information based on the smf file.
+/** BasicHeightIO::update()
+ * \brief Updates any information based on the smf file.
  */
 void smflib::BasicHeightIo::update() {
     _position = _smf->header()->heightmapPtr;
     _bytes = _smf->heightMapBytes();
 }
 
-/** BasicHeightIO::reset() - clears any data allocated from reading the file.
+/** BasicHeightIO::reset()
+ * \brief Clears any data allocated from reading the file.
  */
 void smflib::BasicHeightIo::reset() {
     _data.clear();
     _data.shrink_to_fit();
 }
 
+
+/** BasicHeightIo::setSMF( SMF* smf )
+ * \brief
+ * \param smf
+ */
 void smflib::BasicHeightIo::setSMF( SMF* smf ) {
     SMFIOBase::setSMF( smf );
     _fileMap = smf->getFileMap();
 }
 
+/** BasicHeightIo::json()
+ * \brief
+ * \return nlohmann::ordered_json class with relevant information
+ */
 nlohmann::ordered_json smflib::BasicHeightIo::json() {
     nlohmann::ordered_json j;
+    j[ "Size" ]       = fmt::format("{}x{}", _smf->header()->mapx + 1, _smf->header()->mapy + 1);
+    j[ "Channels" ]   = 1;
+    j[ "Format" ]     = "UINT16";
+    j[ "Data Start" ] = _position;
+    j[ "Data End" ]   = _position + _bytes;
+    j[ "Data size" ]  = humanise( _bytes );
     return j;
 }
 
+/// ** BasicTypeIO **
+/// =================
 
+/** BasicTypeIO::setSMF( SMF* smf )
+ * \brief
+ * \param smf
+ */
 void smflib::BasicTypeIO::setSMF( SMF* smf ) {
     SMFIOBase::setSMF( smf );
     _fileMap = smf->getFileMap();
@@ -70,7 +98,7 @@ void smflib::BasicTypeIO::read( std::ifstream& file ) {
         SPDLOG_WARN("header.typeMapPtr({}) exists within an already mapped block({})", _position, block->name );
     }
 }
-size_t smflib::BasicTypeIO::write() { return 0; }
+size_t smflib::BasicTypeIO::write( std::ofstream& file ) { return 0; }
 void smflib::BasicTypeIO::update() {
     _position = _smf->header()->typeMapPtr;
     _bytes = _smf->typeMapBytes();
@@ -78,6 +106,12 @@ void smflib::BasicTypeIO::update() {
 void smflib::BasicTypeIO::reset() {}
 nlohmann::ordered_json smflib::BasicTypeIO::json() {
     nlohmann::ordered_json j;
+    j[ "Size" ]       = fmt::format("{}x{}", _smf->header()->mapx, _smf->header()->mapy);
+    j[ "Channels" ]   = 1;
+    j[ "Format" ]     = "UINT8";
+    j[ "Data Start" ] = _position;
+    j[ "Data End" ]   = _position + _bytes;
+    j[ "Data size" ]  = humanise( _bytes );
     return j;
 }
 
@@ -96,7 +130,7 @@ void smflib::BasicMiniIO::read( std::ifstream& file ) {
         SPDLOG_WARN("header.miniMapPtr({}) exists within an already mapped block({})", _position, block->name );
     }
 }
-size_t smflib::BasicMiniIO::write() { return 0; }
+size_t smflib::BasicMiniIO::write( std::ofstream& file ) { return 0; }
 void smflib::BasicMiniIO::update() {
     _position = _smf->header()->minimapPtr;
     _bytes = _smf->miniMapBytes();
@@ -104,6 +138,12 @@ void smflib::BasicMiniIO::update() {
 void smflib::BasicMiniIO::reset() {}
 nlohmann::ordered_json smflib::BasicMiniIO::json() {
     nlohmann::ordered_json j;
+    j[ "Size" ]       = "1024x1024";
+    j[ "Format" ]     = "DXT1";
+    j[ "Mip Levels" ] = 9;
+    j[ "Data Start" ] = _position;
+    j[ "Data End" ]   = _position + _bytes;
+    j[ "Data size" ]  = humanise( _bytes );
     return j;
 }
 
@@ -122,14 +162,21 @@ void smflib::BasicMetalIO::read( std::ifstream& file ) {
         SPDLOG_WARN("header.metalMapPtr({}) exists within an already mapped block({})", _position, block->name );
     }
 }
-size_t smflib::BasicMetalIO::write() { return 0; }
+size_t smflib::BasicMetalIO::write( std::ofstream& file ) { return 0; }
 void smflib::BasicMetalIO::update() {
     _position = _smf->header()->metalmapPtr;
     _bytes = _smf->metalMapBytes();
 }
 void smflib::BasicMetalIO::reset() {}
+
 nlohmann::ordered_json smflib::BasicMetalIO::json() {
     nlohmann::ordered_json j;
+    j[ "Size" ]       = fmt::format("{}x{}", _smf->header()->mapx / 2, _smf->header()->mapy / 2);
+    j[ "Channels" ]   = 1;
+    j[ "Format" ]     = "UINT8";
+    j[ "Data Start" ] = _position;
+    j[ "Data End" ]   = _position + _bytes;
+    j[ "Data size" ]  = humanise( _bytes );
     return j;
 }
 
@@ -148,7 +195,7 @@ void smflib::BasicGrassIO::read( std::ifstream& file ) {
         SPDLOG_WARN("header.grassMapPtr({}) exists within an already mapped block({})", _position, block->name );
     }
 }
-size_t smflib::BasicGrassIO::write() { return 0; }
+size_t smflib::BasicGrassIO::write( std::ofstream& file ) { return 0; }
 void smflib::BasicGrassIO::update() {
     //FIXME Get position through extra headers if there is some.
     // _position = _smf->header()->grassmapPtr;
@@ -158,6 +205,12 @@ void smflib::BasicGrassIO::update() {
 void smflib::BasicGrassIO::reset() {}
 nlohmann::ordered_json smflib::BasicGrassIO::json() {
     nlohmann::ordered_json j;
+    j[ "Size" ]       = fmt::format("{}x{}", _smf->header()->mapx / 4, _smf->header()->mapy / 4);
+    j[ "Channels" ]   = 1;
+    j[ "Format" ]     = "UINT8";
+    j[ "Data Start" ] = _position;
+    j[ "Data End" ]   = _position + _bytes;
+    j[ "Data size" ]  = humanise( _bytes );
     return j;
 }
 
@@ -169,6 +222,8 @@ void smflib::BasicTileIO::read( std::ifstream& file ) {
     // Check validity of position
     if( const auto block = _fileMap->getBlockAt( _position ); block.has_value() ) {
         SPDLOG_WARN("header.tileMapPtr({}) exists within an already mapped block({})", _position, block->name );
+        error = true;
+        errorMsg += " | overlapping data";
     }
 
     file.seekg( _position );
@@ -181,11 +236,11 @@ void smflib::BasicTileIO::read( std::ifstream& file ) {
         int estimatedMinimumBytes = _header.numTileFiles * 10;
         //TODO test against the next pointer instead of EOF
         if( estimatedMinimumBytes > _smf->getFileSize() ) {
-            SPDLOG_CRITICAL( "Impossible number of tileFiles, read error, or corrupt file." );
+            SPDLOG_CRITICAL( "Impossible number of tileFiles, read error, or corrupt file. Setting numTileFiles = 1" );
+            error = true;
+            errorMsg += " | Impossible value: tileFiles";
             _header.numTileFiles = 1;
         }
-        //FIXME we're goin to temporarily block any number larger than 1;
-        _header.numTileFiles = 1;
     }
 
     _fileMap->addBlock( _position, file.tellg() - _position, "mapHeader" );
@@ -200,7 +255,14 @@ void smflib::BasicTileIO::read( std::ifstream& file ) {
             file.read( reinterpret_cast< char* >(&nTiles), 4 );
             std::getline( file, smtFileName, '\0' );
             _smtList.emplace_back( nTiles, smtFileName );
+
             // TODO Check filename against pattern *.smt
+
+            if( file.eof() && i < _header.numTiles ) {
+                error = true;
+                errorMsg += " | premature eof";
+                break;
+            }
         }
 
         _fileMap->addBlock( startNames, file.tellg() - startNames, "tileFileList" );
@@ -213,7 +275,7 @@ void smflib::BasicTileIO::read( std::ifstream& file ) {
 
     _fileMap->addBlock( startMap, _bytes - startMap, "map" );
 }
-size_t smflib::BasicTileIO::write() { return 0; }
+size_t smflib::BasicTileIO::write( std::ofstream& file ) { return 0; }
 void smflib::BasicTileIO::update() {
     _position = _smf->header()->tilesPtr;
     _bytes = _smf->tileMapBytes();
@@ -228,13 +290,25 @@ void smflib::BasicTileIO::setSMF( SMF* smf ) {
 
 nlohmann::ordered_json smflib::BasicTileIO::json() {
     nlohmann::ordered_json j;
+    if( error ) j["Read Error"] = errorMsg;
+
+    j[ "Data Start" ] = _position;
     j[ "Num Files" ] = _smtList.size();
     j[ "Num Tiles" ] = _header.numTiles;
 
     j[ "File List" ] = nlohmann::json::array();
     for( const auto& [ numTiles,fileName ] : _smtList ) {
-        j[ "File List" ] += { numTiles, fileName };
+        j[ "File List" ] += fmt::format("{{ numTiles:{}, fileName:{} }}", numTiles, fileName );
     }
+
+    nlohmann::ordered_json j1;
+    j1[ "Size" ]       = fmt::format("{}x{}", _smf->header()->mapx/4, _smf->header()->mapy/4);
+    j1[ "Channels" ]   = 1;
+    j1[ "Format" ]     = "UINT32";
+    j1[ "Data Start" ] = _position;
+    j1[ "Data End" ]   = _position + _bytes;
+    j1[ "Data size" ]  = humanise( _bytes );
+    j["TileMap"] = j1;
     return j;
 }
 
@@ -287,7 +361,7 @@ void smflib::BasicFeatureIO::read( std::ifstream& file ) {
         _fileMap->addBlock( startFeatures,file.tellg() - startFeatures, "featureDefs" );
     }
 }
-size_t smflib::BasicFeatureIO::write() { return 0; }
+size_t smflib::BasicFeatureIO::write( std::ofstream& file ) { return 0; }
 void smflib::BasicFeatureIO::update() {
     _position = _smf->header()->featurePtr;
     _fileMap = _smf->getFileMap();
@@ -301,7 +375,19 @@ void smflib::BasicFeatureIO::setSMF( SMF* smf ) {
 
 nlohmann::ordered_json smflib::BasicFeatureIO::json() {
     nlohmann::ordered_json j;
+    j[ "Data Start" ] = _position;
     j[ "Num Features" ] = _header.numFeatures;
     j[ "Num Types" ]    = _header.numFeatureType;
+
+    j[ "Feature Types" ] = nlohmann::json::array();
+    for( const auto& name : _types ) {
+        j[ "Feature Types" ] += name;
+    }
+
+    j[ "Features" ] = nlohmann::json::array();
+    for( const auto& [type,x,y,z,rot,scale] : _features ) {
+        j[ "Features" ] += std::format("{{ type:{}, x:{:.2}, y:{:.2}, z:{:.2}, r:{:.2}, s:{:.2} }}",
+            type, x, y, z, rot, scale );
+    }
     return j;
 }

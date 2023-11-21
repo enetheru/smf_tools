@@ -15,7 +15,7 @@ namespace smflib {
 class NullWriter final : public SMFIOBase {
 public:
     void read( std::ifstream& file ) override {}
-    size_t write() override { return 0; }
+    size_t write( std::ofstream& file ) override { return 0; }
 };
 
 }

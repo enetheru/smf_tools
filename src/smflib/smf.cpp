@@ -1,5 +1,6 @@
 #include "smf.h"
 
+#include "basicio.h"
 #include "filemap.h"
 #include "util.h"
 
@@ -60,45 +61,39 @@ nlohmann::ordered_json SMF::json() {
     nlohmann::ordered_json h;
     h[ "version" ]         = _header.version;
     h[ "id" ]              = _header.mapid;
-    h[ "width" ]           = std::format( "{} | {}", _header.mapx, _header.mapx / 64 );
-    h[ "height" ]          = std::format( "{} | {}", _header.mapy, _header.mapy / 64 );
+    h[ "mapx" ]            = _header.mapx;
+    h[ "mapy" ]            = _header.mapy;
     h[ "squareSize" ]      = _header.squareSize;
     h[ "texelPerSquare" ]  = _header.texelPerSquare;
     h[ "tilesize" ]        = _header.tilesize;
     h[ "minHeight" ]       = _header.minHeight;
     h[ "maxHeight" ]       = _header.maxHeight;
-    h[ "heightmapPtr" ]    = std::format( "{} | {}x{}:1 UINT16", to_hex( _header.heightmapPtr ), _header.mapx + 1, _header.mapy + 1 );
-    h[ "typeMapPtr" ]      = std::format( "{} | {}x{}:1 UINT8", to_hex( _header.typeMapPtr ), _header.mapx, _header.mapy );
-    h[ "tilesPtr" ]        = std::format( "{} | {}x{}:1 UINT32", to_hex( _header.tilesPtr ), _header.mapx * 8 / _header.tilesize, _header.mapy * 8 / _header.tilesize );
-    h[ "minimapPtr" ]      = std::format( "{} | 1024x1024:4 DXT1", to_hex( _header.minimapPtr ) );
-    h[ "metalmapPtr" ]     = std::format( "{} | {}x{}:1 UINT8", to_hex( _header.metalmapPtr ), _header.mapx, _header.mapy );
-    h[ "featurePtr" ]      = std::format( "{}", to_hex( _header.featurePtr ) );
+    h[ "heightmapPtr" ]    = _header.heightmapPtr;
+    h[ "typeMapPtr" ]      = _header.typeMapPtr;
+    h[ "tilesPtr" ]        = _header.tilesPtr;
+    h[ "minimapPtr" ]      = _header.minimapPtr;
+    h[ "metalmapPtr" ]     = _header.metalmapPtr;
+    h[ "featurePtr" ]      = _header.featurePtr;
     h[ "numExtraHeaders" ] = _header.numExtraHeaders;
     j[ "header" ]          = h;
 
     //Header Extensions
     j[ "extraHeaders" ] = nlohmann::json::array();
     for( const auto& extraHeader : extraHeaders ) {
-        nlohmann::ordered_json eh;
         switch( extraHeader->type ) {
         case MEH_None: {
-            eh[ "size" ] = extraHeader->size;
-            eh[ "type" ] = fmt::format( "{} - Null Header", extraHeader->type );
+            j[ "extraHeaders" ] += fmt::format("{{ size:{}, type:MEH_None }}", extraHeader->size );
+            continue;
         }
-        break;
         case MEH_Vegetation: {
             const auto header = reinterpret_cast< Recoil::HeaderExtn_Grass* >(extraHeader.get());
-            eh[ "size" ]      = extraHeader->size;
-            eh[ "type" ]      = fmt::format( "{} - MEH_Vegetation", extraHeader->type );
-            eh[ "ptr" ]       = to_hex( header->ptr );
+            j[ "extraHeaders" ] += fmt::format("{{ size:{}, type:MEH_Vegetation, ptr:{} }}", extraHeader->size, header->ptr );
+            continue;
         }
-        break;
         default: {
-            eh[ "size" ] = extraHeader->size;
-            eh[ "type" ] = fmt::format( "{} - Unknown", extraHeader->type );
+            j[ "extraHeaders" ] += fmt::format("{{ size:{}, type:Unrecognised }}", extraHeader->size );
         }
         }
-        j[ "extraHeaders" ] += eh;
     }
 
     // Component Info
@@ -109,6 +104,11 @@ nlohmann::ordered_json SMF::json() {
     if( _grassIO ) j[ "GrassMap Info" ]  = _grassIO->json();
     if( _tileIO ) j[ "TileMap Info" ]  = _tileIO->json();
     if( _featureIO ) j[ "Feature Info" ]  = _featureIO->json();
+
+    nlohmann::ordered_json e;
+    e["Map Size"] = fmt::format("{}x{}", _header.mapx / 64, _header.mapy / 64);
+    e["Diffuse Size"] = fmt::format("{}x{}", _header.mapx * 8, _header.mapy * 8);
+    j["Additional Info"] = e;
     return j;
 }
 
@@ -183,6 +183,8 @@ void SMF::read( const int components ) {
         if( _typeIO ) _typeIO->update();
         if( _miniIO ) _miniIO->update();
         if( _metalIO ) _metalIO->update();
+        if( _tileIO ) _tileIO->update();
+        if( _featureIO ) _featureIO->update();
 
         // for each pointer, make sure they don't overlap with memory space of
         // other data
@@ -255,5 +257,26 @@ void SMF::read( const int components ) {
     file.close();
 }
 
-void SMF::write( std::bitset< 12 > components ) {}
+void SMF::write( uint32_t components ) {
+    _header.mapid = rand();
+
+    std::ofstream file( _filePath, std::ios::binary );
+    if( file.fail() ) {
+        SPDLOG_ERROR( "Unable to open {} for writing", _filePath.string() );
+        return;
+    }
+
+    SPDLOG_DEBUG( "Writing header" );
+    file.write( reinterpret_cast< char* >(&_header), sizeof(_header) );
+
+    if( _heightIO ) _heightIO->write( file );
+    if( _typeIO ) _typeIO->write( file );
+    if( _miniIO ) _miniIO->write( file );
+    if( _metalIO ) _metalIO->write( file );
+    if( _grassIO ) _grassIO->write( file );
+    if( _tileIO ) _tileIO->write( file );
+    if( _featureIO ) _featureIO->write( file );
+
+    file.close();
+}
 }

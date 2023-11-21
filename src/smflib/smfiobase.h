@@ -22,6 +22,9 @@ class SMF;
 
 class SMFIOBase {
 protected:
+    bool error{};
+    std::string errorMsg{};
+
     SMF *_smf{};
     std::shared_ptr<FileMap> _fileMap;
     std::streamoff _position{};
@@ -34,7 +37,7 @@ protected:
     virtual ~SMFIOBase() = default;
 public:
     virtual void read( std::ifstream& file ) = 0;
-    virtual size_t write() = 0;
+    virtual size_t write( std::ofstream& file ) = 0;
     virtual void update() = 0;
     virtual void reset() = 0;
     [[nodiscard]] virtual nlohmann::ordered_json json() = 0;
@@ -56,11 +59,7 @@ public:
 
     void read( std::ifstream& file ) override { }
 
-    size_t write( ) override {
-        if( exists(_path) ) {
-            SPDLOG_WARN( "Overwriting file: {}", _path.string() );
-        }
-        std::ofstream file( _path.string(), std::ios::out | std::ios::binary );
+    size_t write( std::ofstream& file ) override {
         file.seekp( _position );
         if( file.fail() ) {
             SPDLOG_ERROR( "Unable to seep to file position: {}", _position );
@@ -70,7 +69,6 @@ public:
         for( decltype(_bytes) i = 0; i < _bytes; ++i ) {
             file.write( &zero, 1);
         }
-        file.close();
         return _bytes;
     }
 
