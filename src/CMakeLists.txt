@@ -25,10 +25,10 @@ target_include_directories( smf_info PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionspars
 target_link_libraries( smf_info smflib -static )
 target_link_options( smf_info PUBLIC "LINKER:--allow-multiple-definition")
 
-add_executable( smt_repair smt_repair.cpp )
-target_include_directories( smt_repair PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
-target_link_libraries( smt_repair smflib -static )
-target_link_options( smt_repair PUBLIC "LINKER:--allow-multiple-definition")
+#add_executable(mapconv mapconv.cpp)
+#target_include_directories(mapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
+#target_link_libraries(mapconv smflib -static)
+#target_link_options(mapconv PUBLIC "LINKER:--allow-multiple-definition")
 
 add_executable( mapconv mapconv.cpp )
 target_include_directories( mapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
@@ -42,12 +42,6 @@ target_include_directories( emapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionspars
 target_link_libraries( emapconv smflib -static )
 target_link_options( emapconv PUBLIC "LINKER:--allow-multiple-definition")
 
-add_executable( emapconv2 emapconv2.cpp
-        args.h)
-target_compile_features( emapconv2 PUBLIC cxx_std_23 )
-target_include_directories( emapconv2 PRIVATE ${TCLAP_INCLUDES} )
-target_link_libraries( emapconv2 spdlog::spdlog -static )
-target_link_options( emapconv2 PUBLIC "LINKER:--allow-multiple-definition")
 
 INSTALL(
         PROGRAMS

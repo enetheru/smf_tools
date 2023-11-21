@@ -20,10 +20,6 @@ include( smt_info.cmake )
 # ===========
 include( smt_convert.cmake )
 
-# smt_repair
-# ==========
-include( smt_repair.cmake )
-
 # mapconv
 # =======
 include( mapconv.cmake )
