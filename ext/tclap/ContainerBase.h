@@ -21,8 +21,9 @@
 #ifndef TCLAP_ARG_CONTAINER_H
 #define TCLAP_ARG_CONTAINER_H
 
+#include <tclap/ArgBase.h>
+
 namespace TCLAP {
-class Arg;
 
 /**
  * Interface that allows adding an Arg to a "container".
@@ -33,15 +34,15 @@ class Arg;
  * user's responsibility to ensure the life time (scope) of the Arg's
  * outlives any operations on the container.
  */
-class ArgContainer {
+class Container {
 public:
-    virtual ~ArgContainer() = default;
+    virtual ~Container() = default;
 
     /**
      * Adds an argument. Ownership is not transfered.
      * \param a - Argument to be added.
      */
-    virtual ArgContainer& add( std::shared_ptr<Arg> a ) = 0;
+    virtual Container& add( std::shared_ptr<ArgBase> a ) = 0;
 };
 } // namespace TCLAP
 

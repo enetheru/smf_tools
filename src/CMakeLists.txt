@@ -1,10 +1,10 @@
 add_subdirectory(smflib)
 
-#add_executable( smf_cc smf_cc.cpp )
-#target_include_directories( smf_cc PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
-#target_link_libraries( smf_cc smflib -static )
-#target_link_options( smf_cc PUBLIC "LINKER:--allow-multiple-definition")
-#
+add_executable(smf_cc smf_cc.cpp)
+target_compile_features(smf_cc PUBLIC cxx_std_23)
+target_link_libraries(smf_cc smflib -static)
+target_link_options(smf_cc PUBLIC "LINKER:--allow-multiple-definition")
+
 #add_executable( smf_decc smf_decc.cpp )
 #target_include_directories( smf_decc PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
 #target_link_libraries( smf_decc smflib -static )
@@ -20,10 +20,10 @@ add_subdirectory(smflib)
 #target_link_libraries( smt_info smflib -static )
 #target_link_options( smt_info PUBLIC "LINKER:--allow-multiple-definition")
 #
-add_executable( smf_info smf_info.cpp )
-target_compile_features( smf_info PUBLIC cxx_std_23 )
-target_link_libraries( smf_info smflib -static )
-target_link_options( smf_info PUBLIC "LINKER:--allow-multiple-definition")
+add_executable(smf_info smf_info.cpp)
+target_compile_features(smf_info PUBLIC cxx_std_23)
+target_link_libraries(smf_info smflib -static)
+target_link_options(smf_info PUBLIC "LINKER:--allow-multiple-definition")
 
 #add_executable(mapconv mapconv.cpp)
 #target_include_directories(mapconv PRIVATE ${CMAKE_SOURCE_DIR}/ext/optionsparser)
@@ -31,7 +31,7 @@ target_link_options( smf_info PUBLIC "LINKER:--allow-multiple-definition")
 #target_link_options(mapconv PUBLIC "LINKER:--allow-multiple-definition")
 
 add_executable(emapconv emapconv.cpp)
-target_compile_features( emapconv PUBLIC cxx_std_23 )
+target_compile_features(emapconv PUBLIC cxx_std_23)
 target_link_libraries(emapconv smflib -static)
 target_link_options(emapconv PUBLIC "LINKER:--allow-multiple-definition")
 
@@ -47,3 +47,5 @@ INSTALL(
         ${CMAKE_CURRENT_SOURCE_DIR}/mapconv
         ${CMAKE_CURRENT_SOURCE_DIR}/emapconv
         DESTINATION bin)
+
+add_custom_target( all_but_test DEPENDS emapconv smflib smf_info smf_cc)

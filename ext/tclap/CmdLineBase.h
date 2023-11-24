@@ -23,22 +23,22 @@
 #ifndef TCLAP_CMD_LINE_INTERFACE_H
 #define TCLAP_CMD_LINE_INTERFACE_H
 
-#include <tclap/ArgContainer.h>
+#include <tclap/ContainerBase.h>
+#include <tclap/ArgBase.h>
 
 #include <list>
 #include <string>
 #include <vector>
 
 namespace TCLAP {
-class Arg;
-class ArgGroup;
+class Group;
 class CmdLineOutput;
 
 /**
  * The base class that manages the command line definition and passes
  * along the parsing to the appropriate Arg classes.
  */
-class CmdLineInterface : public ArgContainer {
+class CmdLineInterface : public Container {
 public:
     /**
      * Destructor
@@ -50,11 +50,11 @@ public:
      * @param a - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer& add( std::shared_ptr<Arg> a ) override = 0;
+    Container& add( std::shared_ptr<ArgBase> a ) override = 0;
 
     // TODO: Rename this to something smarter or refactor this logic so it's not needed.
     // Internal - do not use
-    virtual void addToArgList( std::shared_ptr<Arg> a ) = 0;
+    virtual void addToArgList( std::shared_ptr<ArgBase> a ) = 0;
 
     /**
      * Adds an argument group to the list of arguments to be parsed.
@@ -66,7 +66,7 @@ public:
      * @param argGroup - Argument group to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    virtual ArgContainer& add( std::shared_ptr<ArgGroup> argGroup ) = 0;
+    virtual Container& add( std::shared_ptr<Group> argGroup ) = 0;
 
     /**
      * Parses the command line.
@@ -101,8 +101,8 @@ public:
     /**
      * Returns the list of ArgGroups.
      */
-    virtual std::list< std::shared_ptr<ArgGroup> > getArgGroups() = 0;
-    [[nodiscard]] virtual std::list< std::shared_ptr<Arg> > getArgList() const = 0; // TODO: get rid of this
+    virtual std::list< std::shared_ptr<Group> > getArgGroups() = 0;
+    [[nodiscard]] virtual std::list< std::shared_ptr<ArgBase> > getArgList() const = 0; // TODO: get rid of this
 
     /**
      * Returns the delimiter string.

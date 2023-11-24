@@ -18,12 +18,12 @@
  *
  *****************************************************************************/
 
-#ifndef TCLAP_ARG_GROUP_H
-#define TCLAP_ARG_GROUP_H
+#ifndef TCLAP_ARG_GROUPBASE_H
+#define TCLAP_ARG_GROUPBASE_H
 
-#include <tclap/Arg.h>
-#include <tclap/ArgContainer.h>
-#include <tclap/CmdLineInterface.h>
+#include <tclap/ArgBase.h>
+#include <tclap/ContainerBase.h>
+#include <tclap/CmdLineBase.h>
 
 #include <string>
 #include <utility>
@@ -35,17 +35,17 @@ namespace TCLAP {
  * handler). It is not expected to be used directly, rather one of the
  * EitherOf or OneOf derived classes are used.
  */
-class ArgGroup : public ArgContainer, protected std::vector< std::shared_ptr<Arg> > {
+class Group : public Container, protected std::vector< std::shared_ptr<ArgBase> > {
 public:
-    using std::vector< std::shared_ptr<Arg> >::begin;
-    using std::vector< std::shared_ptr<Arg> >::end;
-    using std::vector< std::shared_ptr<Arg> >::iterator;
-    using std::vector< std::shared_ptr<Arg> >::const_iterator;
+    using std::vector< std::shared_ptr<ArgBase> >::begin;
+    using std::vector< std::shared_ptr<ArgBase> >::end;
+    using std::vector< std::shared_ptr<ArgBase> >::iterator;
+    using std::vector< std::shared_ptr<ArgBase> >::const_iterator;
 
-    ~ArgGroup() override = default;
+    ~Group() override = default;
 
     /// Add an argument to this arg group
-    ArgContainer& add( std::shared_ptr<Arg> arg ) override;
+    Container& add( std::shared_ptr<ArgBase> arg ) override;
 
     template< class ArgType, typename ...args >
     std::shared_ptr<ArgType> create( const args & ... fwd ) {
@@ -111,11 +111,11 @@ public:
 
 protected:
     // No direct instantiation
-    explicit ArgGroup( std::string name = {} ) : vector(), _name(std::move(name)) { }
+    explicit Group( std::string name = {} ) : vector(), _name(std::move(name)) { }
 
 public:
-    ArgGroup( const ArgGroup& ) = delete;
-    ArgGroup& operator=( const ArgGroup& ) = delete; // no copy
+    Group( const Group& ) = delete;
+    Group& operator=( const Group& ) = delete; // no copy
 
 protected:
     CmdLineInterface* _parser {};
@@ -123,73 +123,8 @@ protected:
     bool _showAsGroup{};
 };
 
-/**
- * Implements common functionality for exclusive argument groups.
- *
- * @internal
- */
-class ExclusiveArgGroup : public ArgGroup {
-public:
-    inline bool validate() override;
-    [[nodiscard]] bool isExclusive() const override { return true; }
-
-    ArgContainer& add( const std::shared_ptr<Arg> arg ) override {
-        if( arg->isRequired() ) {
-            throw SpecificationException(
-                "Required arguments are not allowed in an exclusive grouping.",
-                arg->longID() );
-        }
-
-        return ArgGroup::add( arg );
-    }
-
-protected:
-    ExclusiveArgGroup() = default;
-};
-
-/**
- * Implements a group of arguments where at most one can be selected.
- */
-class EitherOf final : public ExclusiveArgGroup {
-public:
-    EitherOf() = default;
-    explicit EitherOf( CmdLineInterface& parser ) : ExclusiveArgGroup() {}
-
-    [[nodiscard]] bool isRequired() const override { return false; }
-};
-
-/**
- * Implements a group of arguments where exactly one must be
- * selected. This corresponds to the deprecated "xoradd".
- */
-class OneOf final : public ExclusiveArgGroup {
-public:
-    OneOf() = default;
-    explicit OneOf( CmdLineInterface& parser ) : ExclusiveArgGroup( ) {}
-
-    [[nodiscard]] bool isRequired() const override { return true; }
-};
-
-/**
- * Implements a group of arguments where any combination is possible
- * (including all or none). This is mostly used in case one optional
- * argument allows additional arguments to be specified (for example
- * [-c [-de] [-n <int>]]).
- */
-class AnyOf : public ArgGroup {
-public:
-    AnyOf() = default;
-
-    bool validate() override {
-        return false; /* All good */
-    }
-
-    [[nodiscard]] bool isExclusive() const override { return false; }
-    [[nodiscard]] bool isRequired() const override { return false; }
-};
-
-inline ArgContainer& ArgGroup::add( std::shared_ptr<Arg> arg ) {
-    auto find_func = [&arg]( const std::shared_ptr<Arg> &existing ) { return *existing == *arg; };
+inline Container& Group::add( std::shared_ptr<ArgBase> arg ) {
+    auto find_func = [&arg]( const std::shared_ptr<ArgBase> &existing ) { return *existing == *arg; };
     if( std::ranges::find_if( *this, find_func ) != this->end() ) {
         throw SpecificationException(
             "Argument with same flag/name already exists!", arg->longID() );
@@ -203,29 +138,7 @@ inline ArgContainer& ArgGroup::add( std::shared_ptr<Arg> arg ) {
     return *this;
 }
 
-inline bool ExclusiveArgGroup::validate() {
-    std::shared_ptr<Arg> existing_arg = nullptr;
-    std::string flag;
-
-    for( const auto &arg : *this ) {
-        if( arg->isSet() ) {
-            if( !existing_arg && existing_arg != arg ) {
-                // We found a matching argument, but one was
-                // already found previously.
-                throw CmdLineParseException(
-                    "Only one is allowed.",
-                    fmt::format( "{} AND {} provided.", flag, arg->setBy() ) );
-            }
-
-            existing_arg = arg;
-            flag = existing_arg->setBy();
-        }
-    }
-
-    return isRequired() && !existing_arg;
-}
-
-inline std::string ArgGroup::getName() const {
+inline std::string Group::getName() const {
     if( !_name.empty() ) return _name;
     std::string list;
     std::string sep; // TODO: this should change for non-exclusive arg groups
@@ -236,10 +149,10 @@ inline std::string ArgGroup::getName() const {
 }
 
 /// @internal
-inline int CountVisibleArgs( const ArgGroup& g ) {
+inline int CountVisibleArgs( const Group& g ) {
     int visible = 0;
     for( const auto &it : g ) {
-        if( it->visibleInHelp() ) {
+        if( it->isVisible() ) {
             visible++;
         }
     }
@@ -247,4 +160,4 @@ inline int CountVisibleArgs( const ArgGroup& g ) {
 }
 } // namespace TCLAP
 
-#endif  // TCLAP_ARG_GROUP_H
+#endif  // TCLAP_ARG_GROUPBASE_H

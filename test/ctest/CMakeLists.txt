@@ -1,12 +1,12 @@
-set( TEST_DATA_DIR ${CMAKE_SOURCE_DIR}/test/data )
+set(TEST_DATA_DIR ${CMAKE_SOURCE_DIR}/test/data)
 
 # smf_info
 # ========
-include( smf_info.cmake )
+include(smf_info.cmake)
 
 # smf_cc
 # ======
-#include( smf_cc.cmake )
+include(smf_cc.cmake)
 
 # smf_decc
 # ========
@@ -26,4 +26,4 @@ include( smf_info.cmake )
 
 # emapconv
 # =======
-include( emapconv.cmake )
+include(emapconv.cmake)

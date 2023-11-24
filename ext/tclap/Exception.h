@@ -31,7 +31,7 @@ namespace TCLAP {
  * A simple class that defines and argument exception.  Should be caught
  * whenever a CmdLine is created and parsed.
  */
-class ArgException : public std::exception {
+class Exception : public std::exception {
 public:
     /**
      * Constructor.
@@ -40,7 +40,7 @@ public:
      * \param td - Text describing the type of ArgException it is.
      * of the exception.
      */
-    explicit ArgException( std::string text = "undefined exception",
+    explicit Exception( std::string text = "undefined exception",
                            std::string id = "undefined",
                            std::string td = "Generic ArgException" )
         : _errorText( std::move( text ) ),
@@ -50,7 +50,7 @@ public:
     /**
      * Destructor.
      */
-    ~ArgException() noexcept override = default;
+    ~Exception() noexcept override = default;
 
     /**
      * Returns the error text.
@@ -101,7 +101,7 @@ private:
  * Thrown from within the child Arg classes when it fails to properly
  * parse the argument it has been passed.
  */
-class ArgParseException final : public ArgException {
+class ArgParseException final : public Exception {
 public:
     /**
      * Constructor.
@@ -111,14 +111,14 @@ public:
      */
     explicit ArgParseException( const std::string& text = "undefined exception",
                                 const std::string& id = "undefined" )
-        : ArgException( text, id, std::string( "Exception found while parsing the value the Arg has been passed." ) ) {}
+        : Exception( text, id, std::string( "Exception found while parsing the value the Arg has been passed." ) ) {}
 };
 
 /**
  * Thrown from CmdLine when the arguments on the command line are not
  * properly specified, e.g. too many arguments, required argument missing, etc.
  */
-class CmdLineParseException final : public ArgException {
+class CmdLineParseException final : public Exception {
 public:
     /**
      * Constructor.
@@ -128,7 +128,7 @@ public:
      */
     explicit CmdLineParseException( const std::string& text = "undefined exception",
                                     const std::string& id = "undefined" )
-        : ArgException( text, id, std::string(
+        : Exception( text, id, std::string(
                             "Exception found when the values on the command line do not meet the requirements of the defined Args." ) ) {
     }
 };
@@ -137,7 +137,7 @@ public:
  * Thrown from Arg and CmdLine when an Arg is improperly specified, e.g.
  * same flag as another Arg, same name, etc.
  */
-class SpecificationException final : public ArgException {
+class SpecificationException final : public Exception {
 public:
     /**
      * Constructor.
@@ -147,7 +147,7 @@ public:
      */
     explicit SpecificationException( const std::string& text = "undefined exception",
                                      const std::string& id = "undefined" )
-        : ArgException(
+        : Exception(
             text, id, std::string( "Exception found when an Arg object is improperly defined by the developer." ) ) {}
 };
 

@@ -1,9 +1,10 @@
 #ifndef FMTOUTPUT_H
 #define FMTOUTPUT_H
 
-#include <tclap/CmdLineOutput.h>
+#include <tclap/OutputBase.h>
 #include <fmt/core.h>
 #include <ranges>
+#include <spdlog/spdlog.h>
 
 
 namespace TCLAP {
@@ -17,11 +18,11 @@ public:
     explicit fmtOutput( const size_t maxWidth, const size_t indentWidth ) : _maxWidth( maxWidth ),
                                                                             _indentWidth( indentWidth ) {}
 
-    void failure( CmdLineInterface& c, ArgException& e ) override {
-        fmt::println( stderr, "TCLAP Error: {}", e.what() );
-        fmt::println( stderr, "\t", e.typeDescription() );
-        fmt::println( stderr, "\t", e.error() );
-        exit( 1 );
+    void failure( CmdLineInterface& c, Exception& e ) override {
+        SPDLOG_CRITICAL( "TCLAP Error: {}", e.what() );
+        if(! e.typeDescription().empty() ) SPDLOG_CRITICAL(  "\t", e.typeDescription() );
+        if(! e.error().empty() ) SPDLOG_CRITICAL(  "\t", e.error() );
+        throw;
     }
 
     void usage( CmdLineInterface& cmd ) override {
@@ -34,13 +35,12 @@ public:
             if( columnWidths[ 1 ] < arg->getName().length() )columnWidths[ 1 ] = arg->getName().length();
             if( columnWidths[ 2 ] < arg->getDescription().length() )columnWidths[ 2 ] = arg->getDescription().length();
 
-            if( arg->visibleInHelp()
-                && !arg->isRequired()
-                && !arg->isValueRequired() )
+            if( arg->isVisible()
+                && !arg->isRequired() )
                 groupedShortOpts += arg->getFlag();
         }
         columnWidths[ 2 ] = _maxWidth - columnWidths[ 0 ] - columnWidths[ 1 ];
-        std::string shortOpts = std::format( "{: ^{}}[{}{}]", "", columnWidths[ 0 ], TCLAP_FLAGSTARTCHAR,
+        std::string shortOpts = fmt::format( "{: ^{}}[{}{}]", "", columnWidths[ 0 ], TCLAP_FLAGSTARTCHAR,
                                              groupedShortOpts );
 
         // Long opts
@@ -52,13 +52,13 @@ public:
                 std::string description{};
                 for( auto word : std::ranges::split_view( arg->getDescription(), ' ' ) ) {
                     if( description.size() - description.find_last_of( '\n' ) >= columnWidths[ 2 ] ) {
-                        description += std::format( "\n{: <{}}", "",
+                        description += fmt::format( "\n{: <{}}", "",
                                                     columnWidths[ 0 ] + columnWidths[ 1 ] + _indentWidth );
                     }
                     std::ranges::copy( word.begin(), word.end(), std::back_inserter( description ) );
                     description += " ";
                 }
-                longOpts += std::format(
+                longOpts += fmt::format(
                     "{: ^{}} {: <{}} {: <{}}\n",
                     arg->getFlag().empty() ? "" : "-" + arg->getFlag(), columnWidths[ 0 ],
                     "--" + arg->getName(), columnWidths[ 1 ],

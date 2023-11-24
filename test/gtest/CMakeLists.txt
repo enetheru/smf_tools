@@ -13,14 +13,16 @@ add_executable( gtests main.cpp
         t_smt.cpp
         t_smf.cpp)
 
-target_link_libraries( gtests
+target_link_libraries(gtests
         PRIVATE
-                -static
+        -static
         PUBLIC
-                smflib
-                GTest::gtest_main
-                libsquish::Squish
-        )
+        smflib
+        GTest::gtest_main
+        libsquish::Squish
+        OpenImageIO::OpenImageIO
+
+)
 target_link_options( gtests
         PUBLIC "LINKER:--allow-multiple-definition")
 

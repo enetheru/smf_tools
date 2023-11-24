@@ -21,21 +21,6 @@ using TCLAP::MultiSwitchArg;
 using TCLAP::Constraint;
 using TCLAP::CheckResult;
 
-class NamedGroup final : public ArgGroup {
-public:
-    NamedGroup() = default;
-    explicit NamedGroup( const std::string& name ) : ArgGroup( name ) {}
-
-    bool validate() override {
-        return false; /* All good */
-    }
-
-    [[nodiscard]] bool isExclusive() const override { return false; }
-    [[nodiscard]] bool isRequired() const override { return false; }
-
-    [[nodiscard]] std::string getName() const override { return _name; }
-};
-
 template< class T >
 class RangeConstraint final : public Constraint< T > {
     using RetVal = typename Constraint< T >::RetVal;

@@ -23,15 +23,14 @@
 #ifndef TCLAP_VALUE_ARG_H
 #define TCLAP_VALUE_ARG_H
 
-#include <tclap/Arg.h>
-#include <tclap/Constraint.h>
+#include <tclap/ArgBase.h>
+#include <tclap/ConstraintBase.h>
 
 #include <string>
 #include <utility>
 #include <vector>
 #include <filesystem>
-
-#include <string_view>
+#include <spdlog/spdlog.h>
 
 /*template <typename T>
 constexpr auto type_name() {
@@ -62,7 +61,9 @@ constexpr auto type_name() {
 namespace TCLAP {
 
 template<class T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
-T ExtractValue( const std::string& val ) { return std::stoi( val ); }
+T ExtractValue( const std::string& val ) {
+    return std::stoi( val );
+}
 
 template<class T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 T ExtractValue( const std::string& val ) { return std::stof( val ); }
@@ -82,9 +83,10 @@ T ExtractValue( const std::string& val ) { return std::filesystem::path( val ); 
  * Instead use an UnlabeledValueArg.
  */
 template< class T >
-class ValueArg final : public Arg {
+class ArgValue : public ArgBase {
 public:
-    using Visitor = std::function<void(const ValueArg&)>;
+    using Visitor = std::function<void(const ArgValue&)>;
+    using Constraint = std::shared_ptr<ConstraintBase< T >>;
 protected:
     /**
      * The value parsed from the command line.
@@ -111,7 +113,7 @@ protected:
     /**
      * A Constraint this Arg must conform to.
      */
-    std::shared_ptr<Constraint< T >> _constraint;
+    Constraint _constraint;
 
     /**
      * std::function visitor, is called after validation succeeds.
@@ -121,7 +123,7 @@ protected:
     /**
      * Performs the special handling described by the Visitor.
      */
-    void _visit() const override { if(_visitor)_visitor( *this ); };
+    void _visit() const override { if(_visitor)_visitor( *this ); }
 
     /**
      * Extracts the value from the string.
@@ -130,7 +132,7 @@ protected:
      * \param val - value to be parsed.
      */
 
-    void _extractValue( const std::string& val ) {
+    virtual void _extractValue( const std::string& val ) {
         _value = ExtractValue<T>( val );
         if( _constraint ){
             auto [passed, msg] = _constraint->check( *this );
@@ -150,10 +152,10 @@ public:
      * \param visitor -
      */
 
-    ValueArg( const std::string& flag, const std::string& name, const std::string& desc,
-        std::shared_ptr<Constraint< T >> constraint = {},
+    ArgValue( const std::string& flag, const std::string& name, const std::string& desc,
+        Constraint constraint = {},
         const Visitor visitor = {} )
-    : Arg( flag, name, desc, false, true  ),
+    : ArgBase( flag, name, desc, false, true  ),
         _constraint( constraint ),
         _visitor( visitor ) {}
 
@@ -174,14 +176,12 @@ public:
      * \param visitor - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
-    ValueArg(
+    ArgValue(
         const std::string& flag, const std::string& name, const std::string& desc,
-        const bool isRequired,
-        T defaultValue,
-        std::string typeDesc,
-        std::shared_ptr<Constraint< T >> constraint = {},
+        const bool isRequired, T defaultValue, std::string typeDesc,
+        Constraint constraint = {},
         const Visitor visitor = {} )
-    :   Arg( flag, name, desc, isRequired, true ),
+    :   ArgBase( flag, name, desc, isRequired, true ),
         _value( defaultValue ),
         _default( defaultValue ),
         _typeDesc(std::move(  typeDesc )),
@@ -220,15 +220,15 @@ public:
     /**
      * Prevent accidental copying
      */
-    ValueArg( const ValueArg& rhs ) = delete;
-    ValueArg& operator=( const ValueArg& rhs ) = delete;
+    ArgValue( const ArgValue& rhs ) = delete;
+    ArgValue& operator=( const ArgValue& rhs ) = delete;
 };
 
 /**
  * Implementation of processArg().
  */
 template< class T >
-bool ValueArg< T >::processArg( int* i, std::vector< std::string >& args ) {
+bool ArgValue< T >::processArg( int* i, std::vector< std::string >& args ) {
     if( _hasBlanks( args[ *i ] ) ) return false;
 
     std::string flag = args[ *i ];
@@ -237,7 +237,7 @@ bool ValueArg< T >::processArg( int* i, std::vector< std::string >& args ) {
     trimFlag( flag, value );
 
     if( argMatches( flag ) ) {
-        if( _alreadySet ) {
+        if( _isSet ) {
             throw CmdLineParseException( "Argument already set!", toString() );
         }
 
@@ -257,7 +257,7 @@ bool ValueArg< T >::processArg( int* i, std::vector< std::string >& args ) {
             _extractValue( value );
         }
 
-        _alreadySet = true;
+        _isSet = true;
         _setBy = flag;
         _visit();
         return true;
@@ -269,21 +269,21 @@ bool ValueArg< T >::processArg( int* i, std::vector< std::string >& args ) {
  * Implementation of shortID.
  */
 template< class T >
-std::string ValueArg< T >::shortID() const {
-    return fmt::format("{} <{}>", Arg::shortID(), _typeDesc );
+std::string ArgValue< T >::shortID() const {
+    return fmt::format("{} <{}>", ArgBase::shortID(), _typeDesc );
 }
 
 /**
  * Implementation of longID.
  */
 template< class T >
-std::string ValueArg< T >::longID() const {
-    return fmt::format("{} <{}>", Arg::longID(), _typeDesc );
+std::string ArgValue< T >::longID() const {
+    return fmt::format("{} <{}>", ArgBase::longID(), _typeDesc );
 }
 
 template< class T >
-void ValueArg< T >::reset() {
-    Arg::reset();
+void ArgValue< T >::reset() {
+    ArgBase::reset();
     _value = _default;
 }
 } // namespace TCLAP
