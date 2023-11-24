@@ -1,5 +1,10 @@
-#include <gtest/gtest.h>
 #include "smflib/util.h"
+#include "smflib/util_oiio.h"
+
+#include <gtest/gtest.h>
+#include <OpenImageIO/imageio.h>
+#include <OpenImageIO/imagebuf.h>
+
 
 TEST(utils, valxval) {
     auto [first, second] = valxval("123x456");
@@ -8,7 +13,7 @@ TEST(utils, valxval) {
 }
 
 TEST(utils, expandString) {
-    auto result = expandString("1,2,3-7,2-5");
+    const auto result = expandString("1,2,3-7,2-5");
     ASSERT_EQ(result[0], 1u);
     ASSERT_EQ(result[1], 2u);
     ASSERT_EQ(result[2], 3u);
@@ -23,15 +28,15 @@ TEST(utils, expandString) {
 }
 
 TEST(utils, to_hex) {
-    ASSERT_STREQ(to_hex(uint32_t(16)).c_str(), "0x00000010");
+    ASSERT_STREQ(to_hex(static_cast< uint32_t >(16)).c_str(), "0x00000010");
 }
 
 // fix_channels
 // ============
 TEST(utils, channels) {
-    OIIO::ImageSpec inputSpec(32, 32, 1, OIIO::TypeDesc::UINT8);
+    const OIIO::ImageSpec inputSpec(32, 32, 1, OIIO::TypeDesc::UINT8);
     OIIO::ImageBuf inputBuf(inputSpec);
-    OIIO::ImageSpec outputSpec(32, 32, 4, OIIO::TypeDesc::UINT8);
+    const OIIO::ImageSpec outputSpec(32, 32, 4, OIIO::TypeDesc::UINT8);
 
     inputBuf = channels(inputBuf, outputSpec);
 

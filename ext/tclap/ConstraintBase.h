@@ -27,7 +27,7 @@
 namespace TCLAP {
 
 template<class T>
-class ValueArg;
+class ArgValue;
 
 /**
  * The interface that defines the interaction between the Arg and Constraint.
@@ -41,7 +41,7 @@ enum CheckResult {
 
 
 template< class T >
-class Constraint {
+class ConstraintBase {
 public:
     using RetVal = std::pair<CheckResult, std::string>; //TODO make this a struct so we can get named values in hints
     /**
@@ -55,14 +55,14 @@ public:
      * \param arg - The value that will be checked.
      * @retval - A pair of { result, message }
      */
-    virtual RetVal check( const ValueArg<T>& arg ) const = 0;
+    virtual RetVal check( const ArgValue<T>& arg ) const = 0;
 
     /**
      * Destructor.
      * Silences warnings about Constraint being a base class with virtual
      * functions but without a virtual destructor.
      */
-    virtual ~Constraint() = default;
+    virtual ~ConstraintBase() = default;
 };
 } // namespace TCLAP
 

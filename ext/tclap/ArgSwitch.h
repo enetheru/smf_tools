@@ -23,7 +23,7 @@
 #ifndef TCLAP_SWITCH_ARG_H
 #define TCLAP_SWITCH_ARG_H
 
-#include <tclap/Arg.h>
+#include <tclap/ArgBase.h>
 
 #include <string>
 #include <vector>
@@ -34,7 +34,7 @@ namespace TCLAP {
  * the getValue method will return the opposite of the default value for the
  * switch.
  */
-class SwitchArg : public Arg {
+class ArgSwitch : public ArgBase {
 protected:
     /**
      * The value of the switch.
@@ -60,7 +60,7 @@ public:
      * \param visitor - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
-    SwitchArg( const std::string& flag, const std::string& name, const std::string& desc,
+    ArgSwitch( const std::string& flag, const std::string& name, const std::string& desc,
         bool default_val = false, const Visitor& visitor = {} );
 
     /**
@@ -111,21 +111,21 @@ private:
 //////////////////////////////////////////////////////////////////////
 // BEGIN SwitchArg.cpp
 //////////////////////////////////////////////////////////////////////
-inline SwitchArg::SwitchArg( const std::string& flag, const std::string& name,
+inline ArgSwitch::ArgSwitch( const std::string& flag, const std::string& name,
                              const std::string& desc, const bool default_val,
                              const Visitor& visitor )
-    : Arg( flag, name, desc, false, false, visitor ),
+    : ArgBase( flag, name, desc, false, false, visitor ),
       _value( default_val ),
       _default( default_val ) {}
 
-inline bool SwitchArg::lastCombined( const std::string& combinedSwitches ) {
+inline bool ArgSwitch::lastCombined( const std::string& combinedSwitches ) {
     for( unsigned int i = 1; i < combinedSwitches.length(); i++ )
         if( combinedSwitches[ i ] != blankChar() ) return false;
 
     return true;
 }
 
-inline bool SwitchArg::combinedSwitchesMatch( std::string& combinedSwitches ) {
+inline bool ArgSwitch::combinedSwitchesMatch( std::string& combinedSwitches ) {
     // make sure this is actually a combined switch
     if( !combinedSwitches.empty() &&
         combinedSwitches[ 0 ] != flagStartString()[ 0 ] )
@@ -158,11 +158,11 @@ inline bool SwitchArg::combinedSwitchesMatch( std::string& combinedSwitches ) {
     return false;
 }
 
-inline void SwitchArg::commonProcessing() {
-    if( _alreadySet )
+inline void ArgSwitch::commonProcessing() {
+    if( _isSet )
         throw CmdLineParseException( "Argument already set!", toString() );
 
-    _alreadySet = true;
+    _isSet = true;
 
     if( _value == true )
         _value = false;
@@ -172,7 +172,7 @@ inline void SwitchArg::commonProcessing() {
     _visit();
 }
 
-inline bool SwitchArg::processArg( int* i, std::vector< std::string >& args ) {
+inline bool ArgSwitch::processArg( int* i, std::vector< std::string >& args ) {
     if( argMatches( args[ *i ] ) ) {
         // The whole string matches the flag or name string
         _setBy = args[ *i ];
@@ -198,8 +198,8 @@ inline bool SwitchArg::processArg( int* i, std::vector< std::string >& args ) {
     return false;
 }
 
-inline void SwitchArg::reset() {
-    Arg::reset();
+inline void ArgSwitch::reset() {
+    ArgBase::reset();
     _value = _default;
 }
 } // namespace TCLAP

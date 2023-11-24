@@ -22,11 +22,10 @@
 #ifndef TCLAP_VALUES_CONSTRAINT_H
 #define TCLAP_VALUES_CONSTRAINT_H
 
-#include <tclap/Constraint.h>
+#include <tclap/ConstraintBase.h>
 
 #include <string>
 #include <vector>
-#include <ranges>
 
 #include <format>
 
@@ -37,7 +36,7 @@ namespace TCLAP {
  * in the constraint.
  */
 template <class T>
-class ValuesConstraint final : public Constraint<T> {
+class ValuesConstraint final : public ConstraintBase<T> {
 public:
     /**
      * Constructor.

@@ -22,14 +22,14 @@
 #ifndef TCLAP_CMD_LINE_OUTPUT_H
 #define TCLAP_CMD_LINE_OUTPUT_H
 
-#include <tclap/Arg.h>
-#include <tclap/ArgGroup.h>
+#include <tclap/ArgBase.h>
+#include <tclap/GroupBase.h>
 
 #include <list>
 
 namespace TCLAP {
 class CmdLineInterface;
-class ArgException;
+class Exception;
 
 /**
  * The interface that any output object must implement.
@@ -58,10 +58,10 @@ public:
      * \param c - The CmdLine object the output is generated for.
      * \param e - The ArgException that caused the failure.
      */
-    virtual void failure( CmdLineInterface& c, ArgException& e ) = 0;
+    virtual void failure( CmdLineInterface& c, Exception& e ) = 0;
 };
 
-inline bool isInArgGroup( const std::shared_ptr<Arg> arg, const std::list< ArgGroup* >& argSets ) {
+inline bool isInArgGroup( const std::shared_ptr<ArgBase> arg, const std::list< Group* >& argSets ) {
     for( const auto group : argSets ) {
         if( std::ranges::find( *group, arg ) != group->end() ) {
             return true;
@@ -70,7 +70,7 @@ inline bool isInArgGroup( const std::shared_ptr<Arg> arg, const std::list< ArgGr
     return false;
 }
 
-inline void removeArgsInArgGroups( std::list< std::shared_ptr<Arg> >& argList, const std::list< ArgGroup* >& argSets ) {
+inline void removeArgsInArgGroups( std::list< std::shared_ptr<ArgBase> >& argList, const std::list< Group* >& argSets ) {
     argList.remove_if( [&argSets]( const auto arg ) { return isInArgGroup( arg, argSets ); } );
 }
 } // namespace TCLAP

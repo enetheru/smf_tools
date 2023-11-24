@@ -27,10 +27,8 @@ void smflib::BasicHeightIo::read( std::ifstream& file ) {
  */
 size_t smflib::BasicHeightIo::write( std::ofstream& file ) {
     // Double check that we have the data to write, padd with zeroes if its too small
-    if( _data.capacity() < _bytes )_data.resize( _bytes, 0 );
+    if( _data.capacity() < _bytes )_data.resize( _bytes / 2, 0 );
     //open file
-    std::ofstream file( _smf->get_file_path(), std::ios::binary );
-    if( file.fail() ) return 0;
     file.seekp( _position );
     file.write( reinterpret_cast<char *>( _data.data() ), _bytes );
     return _bytes;

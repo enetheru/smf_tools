@@ -17,10 +17,6 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 message("Build Type: " ${CMAKE_BUILD_TYPE})
 
-# Compiler
-# --------
-set(CMAKE_CXX_FLAGS "-Wall -std=c++20 -fstack-usage")
-
 # CMake
 # -----
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
@@ -51,6 +47,7 @@ if (BUILD_TESTS)
     find_package(GTest REQUIRED HINTS C:/src/googletest/cmake-build-debug/lib/cmake/GTest)
     add_subdirectory(test/ctest)
     add_subdirectory(test/gtest)
+    add_subdirectory(ext/tclap/test)
 endif ()
 
 # sub directories

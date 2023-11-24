@@ -24,18 +24,19 @@
 #ifndef TCLAP_MULTI_SWITCH_ARG_H
 #define TCLAP_MULTI_SWITCH_ARG_H
 
-#include <tclap/SwitchArg.h>
+#include <tclap/ArgSwitch.h>
 
 #include <string>
-#include <utility>
 #include <vector>
+
+#include "ContainerBase.h"
 
 namespace TCLAP {
 /**
  * A multiple switch argument.  If the switch is set on the command line, then
  * the getValue method will return the number of times the switch appears.
  */
-class MultiSwitchArg final : public SwitchArg {
+class ArgSwitchMulti final : public ArgSwitch {
 protected:
     /**
      * The value of the switch.
@@ -62,7 +63,7 @@ public:
      * \param v - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
-    MultiSwitchArg( const std::string& flag, const std::string& name,
+    ArgSwitchMulti( const std::string& flag, const std::string& name,
                     const std::string& desc, int init = 0, Visitor v = nullptr );
 
     /**
@@ -79,8 +80,8 @@ public:
      * \param v - An optional visitor.  You probably should not
      * use this unless you have a very good reason.
      */
-    MultiSwitchArg( const std::string& flag, const std::string& name,
-                    const std::string& desc, ArgContainer& parser, int init = 0,
+    ArgSwitchMulti( const std::string& flag, const std::string& name,
+                    const std::string& desc, Container& parser, int init = 0,
                     Visitor* v = nullptr );
 
     /**
@@ -112,17 +113,17 @@ public:
     void reset() override;
 };
 
-inline MultiSwitchArg::MultiSwitchArg( const std::string& flag,
+inline ArgSwitchMulti::ArgSwitchMulti( const std::string& flag,
                                        const std::string& name,
                                        const std::string& desc,
                                        const int init,
                                        const Visitor v )
-    : SwitchArg( flag, name, desc, false, v ), _value( init ), _default( init ) {}
+    : ArgSwitch( flag, name, desc, false, v ), _value( init ), _default( init ) {}
 
-inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args ) {
+inline bool ArgSwitchMulti::processArg( int* i, std::vector< std::string >& args ) {
     if( argMatches( args[ *i ] ) ) {
         // so the isSet() method will work
-        _alreadySet = true;
+        _isSet = true;
         _setBy = args[ *i ];
 
         // Matched argument: increment value.
@@ -134,7 +135,7 @@ inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args
     }
     if( combinedSwitchesMatch( args[ *i ] ) ) {
         // so the isSet() method will work
-        _alreadySet = true;
+        _isSet = true;
 
         // Matched argument: increment value.
         ++_value;
@@ -149,15 +150,15 @@ inline bool MultiSwitchArg::processArg( int* i, std::vector< std::string >& args
     return false;
 }
 
-inline std::string MultiSwitchArg::shortID() const {
-    return Arg::shortID() + " ...";
+inline std::string ArgSwitchMulti::shortID() const {
+    return ArgBase::shortID() + " ...";
 }
 
-inline std::string MultiSwitchArg::longID() const {
-    return Arg::longID() + "  (accepted multiple times)";
+inline std::string ArgSwitchMulti::longID() const {
+    return ArgBase::longID() + "  (accepted multiple times)";
 }
 
-inline void MultiSwitchArg::reset() {
+inline void ArgSwitchMulti::reset() {
     _value = _default;
 }
 } // namespace TCLAP

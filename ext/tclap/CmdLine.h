@@ -23,11 +23,12 @@
 #ifndef TCLAP_CMD_LINE_H
 #define TCLAP_CMD_LINE_H
 
-#include <tclap/SwitchArg.h>
+#include <tclap/ArgSwitch.h>
 
-#include <tclap/CmdLineOutput.h>
+#include <tclap/OutputBase.h>
 
-#include <tclap/ArgGroup.h>
+#include <tclap/GroupBase.h>
+#include <tclap/Groups.h>
 
 #include <cstdlib>
 #include <list>
@@ -35,13 +36,14 @@
 #include <utility>
 #include <vector>
 #include <filesystem>
+#include <spdlog/spdlog.h>
 
 namespace TCLAP {
 class StandaloneArgs final : public AnyOf {
 public:
     StandaloneArgs() = default;
 
-    ArgContainer& add( const std::shared_ptr<Arg> arg ) override {
+    Container& add( const std::shared_ptr<ArgBase> arg ) override {
         for( const auto& it : *this ) {
             if( *arg == *it ) {
                 throw SpecificationException(
@@ -77,7 +79,7 @@ protected:
      * The list of arguments that will be tested against the
      * command line.
      */
-    std::list< std::shared_ptr<Arg> > _argList;
+    std::list< std::shared_ptr<ArgBase> > _argList;
 
     std::shared_ptr<StandaloneArgs> _standaloneArgs;
 
@@ -85,7 +87,7 @@ protected:
      * Some args have set constraints on them (i.e., exactly or at
      * most one must be specified.
      */
-    std::list< std::shared_ptr<ArgGroup> > _argGroups;
+    std::list< std::shared_ptr<Group> > _argGroups;
 
     /**
      * The name of the program.  Set to argv[0].
@@ -132,11 +134,11 @@ protected:
     /**
      * Throws an exception listing the missing args.
      */
-    void missingArgsException( const std::list< std::shared_ptr<ArgGroup> >& missing ) const;
+    void missingArgsException( const std::list< std::shared_ptr<Group> >& missing ) const;
 
     /**
      * Checks whether a name/flag string matches entirely matches
-     * the Arg::blankChar.  Used when multiple switches are combined
+     * the ArgBase::blankChar.  Used when multiple switches are combined
      * into a single argument.
      * \param s - The message to be used in the usage.
      */
@@ -190,7 +192,7 @@ public:
      * @param argGroup - Argument group to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer& add( std::shared_ptr< ArgGroup > argGroup ) override;
+    Container& add( std::shared_ptr< Group > argGroup ) override;
 
     /**
      * Adds an argument to the list of arguments to be parsed.
@@ -198,14 +200,14 @@ public:
      * @param arg - Argument to be added.
      * @retval A reference to this so that add calls can be chained
      */
-    ArgContainer& add( std::shared_ptr<Arg> arg ) override;
+    Container& add( std::shared_ptr<ArgBase> arg ) override;
 
 
     template< class T, typename ...args >
     std::shared_ptr<T> create( args  ... fwd );
 
     // Internal, do not use
-    void addToArgList( std::shared_ptr<Arg> a ) override;
+    void addToArgList( std::shared_ptr<ArgBase> a ) override;
 
     /**
      * Parses the command line.
@@ -229,9 +231,9 @@ public:
     [[nodiscard]] std::string getProgramName() const override { return _progName; }
 
     // TOOD: Get rid of getArgList
-    [[nodiscard]] std::list< std::shared_ptr<Arg> > getArgList() const override { return _argList; }
+    [[nodiscard]] std::list< std::shared_ptr<ArgBase> > getArgList() const override { return _argList; }
 
-    std::list< std::shared_ptr<ArgGroup> > getArgGroups() override { return _argGroups; }
+    std::list< std::shared_ptr<Group> > getArgGroups() override { return _argGroups; }
 
     [[nodiscard]] char getDelimiter() const override { return _delimiter; }
     [[nodiscard]] std::string getMessage() const override { return _message; }
@@ -281,18 +283,18 @@ inline CmdLine::CmdLine(
     _version( std::move( version ) ),
     _delimiter( delimiter )
 {
-    Arg::setDelimiter( _delimiter );
-    //Arg::setFlagStartString();
-    //Arg::setIgnoreNameString()
+    ArgBase::setDelimiter( _delimiter );
+    //ArgBase::setFlagStartString();
+    //ArgBase::setIgnoreNameString()
 
     _standaloneArgs = create<StandaloneArgs>();
 
-    const auto ignore = std::make_shared<SwitchArg>(
-        Arg::flagStartString(),
+    const auto ignore = std::make_shared<ArgSwitch>(
+        ArgBase::flagStartString(),
         ignoreNameString(),
         "Ignores the rest of the labeled arguments following this flag.",
         false,
-        [&]( const Arg& ){ beginIgnoring(); } );
+        [&]( const ArgBase& ){ beginIgnoring(); } );
 
     addToArgList( ignore );
 }
@@ -305,13 +307,13 @@ CmdLine::create( args  ... fwd ) {
     return item;
 }
 
-inline ArgContainer& CmdLine::add( const std::shared_ptr<ArgGroup> argGroup ) {
+inline Container& CmdLine::add( const std::shared_ptr<Group> argGroup ) {
     argGroup->setParser( *this );
     _argGroups.push_back( argGroup );
     return *this;
 }
 
-inline ArgContainer& CmdLine::add( const std::shared_ptr<Arg> arg ) {
+inline Container& CmdLine::add( const std::shared_ptr<ArgBase> arg ) {
     addToArgList( arg );
     _standaloneArgs->add( arg );
     return *this;
@@ -319,7 +321,7 @@ inline ArgContainer& CmdLine::add( const std::shared_ptr<Arg> arg ) {
 
 // TODO: Rename this to something smarter or refactor this logic so
 // it's not needed.
-inline void CmdLine::addToArgList( const std::shared_ptr<Arg> a ) {
+inline void CmdLine::addToArgList( const std::shared_ptr<ArgBase> a ) {
     for( const auto &arg : _argList ) {
         if( *a == *arg ) {
             throw SpecificationException(
@@ -356,7 +358,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
         args.erase( args.begin() );
 
         int requiredCount = 0;
-        std::list< std::shared_ptr<ArgGroup> > missingArgGroups;
+        std::list< std::shared_ptr<Group> > missingArgGroups;
 
         // Check that the right amount of arguments are provided for
         // each ArgGroup, and if there are any required arguments
@@ -418,7 +420,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
             throw CmdLineParseException( "Too many arguments!" );
         }
     }
-    catch( ArgException& e ) {
+    catch( Exception& e ) {
         // If we're not handling the exceptions, rethrow.
         if( !_handleExceptions ) {
             throw;
@@ -434,6 +436,7 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
     } catch( ExitException& ee ) {
         // If we're not handling the exceptions, rethrow.
         if( !_handleExceptions ) {
+            SPDLOG_CRITICAL("Unhandled Exception" );
             throw;
         }
 
@@ -445,16 +448,16 @@ inline void CmdLine::parse( std::vector< std::string >& args ) {
 }
 
 inline bool CmdLine::_emptyCombined( const std::string& s ) {
-    if( !s.empty() && s[ 0 ] != Arg::flagStartChar() ) return false;
+    if( !s.empty() && s[ 0 ] != ArgBase::flagStartChar() ) return false;
 
     for( unsigned int i = 1; i < s.length(); i++ )
-        if( s[ i ] != Arg::blankChar() ) return false;
+        if( s[ i ] != ArgBase::blankChar() ) return false;
 
     return true;
 }
 
 inline void CmdLine::missingArgsException(
-    const std::list< std::shared_ptr<ArgGroup> >& missing ) const {
+    const std::list< std::shared_ptr<Group> >& missing ) const {
     int count = 0;
 
     std::string missingArgList;
