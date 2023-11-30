@@ -6,4 +6,5 @@ find_package(spdlog REQUIRED HINTS C:/src/spdlog/cmake-build-debug/lib/cmake/spd
 find_package( fmt REQUIRED HINTS C:/src/fmt/cmake-build-debug/lib/cmake/fmt )
 
 enable_testing()
-add_subdirectory( test )
+
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/test )

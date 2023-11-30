@@ -54,7 +54,7 @@ std::string humanise( std::uintmax_t size ){
     int i{};
     double mantissa = size;
     for (; mantissa >= 1024.0; mantissa /= 1024.0, ++i) { }
-    std::string os = std::format( "{}{}", std::ceil(mantissa * 10.0) / 10.0, i["BKMGTPE"] );
+    std::string os = fmt::format( "{}{}", std::ceil(mantissa * 10.0) / 10.0, i["BKMGTPE"] );
     if( i ){
         fmt::format_to(std::back_inserter(os), "B ({})",size );
     }

@@ -57,7 +57,7 @@ nlohmann::ordered_json SMF::json() {
 
     nlohmann::ordered_json j;
     j[ "filename" ] = _filePath;
-    j[ "filesize" ] = std::format( "{}", humanise( file_size( _filePath ) ) );
+    j[ "filesize" ] = fmt::format( "{}", humanise( file_size( _filePath ) ) );
     nlohmann::ordered_json h;
     h[ "version" ]         = _header.version;
     h[ "id" ]              = _header.mapid;
@@ -199,7 +199,7 @@ void SMF::read( const int components ) {
         // Extra headers Information
         for( int i = 0; i < _header.numExtraHeaders; ++i ) {
             const uint32_t headerStart = file.tellg();
-            auto headerStub       = std::make_unique< Recoil::ExtraHeader >( 0, 0 );
+            auto headerStub       = std::make_unique< Recoil::ExtraHeader >();
             file.read( reinterpret_cast< char* >(headerStub.get()), sizeof(*headerStub) );
 
             switch( headerStub->type ) {

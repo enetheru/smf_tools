@@ -1,8 +1,8 @@
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
-#include <tclap/fmtOutput.h>
-#include <tclap/MultiSwitchArg.h>
-#include <tclap/ValueArg.h>
+#include <tclap/Output_fmt.h>
+#include <tclap/ArgSwitchMulti.h>
+#include <tclap/ArgValue.h>
 
 #include "args.h"
 #include "smflib/basicio.h"
@@ -39,15 +39,15 @@ main( const int argc, char **argv )
     smf.setFeatureIO( featureIO );
 
     CmdLine cmd("Command description message", ' ', "0.9" );
-    const auto argVersion = cmd.create< SwitchArg >( "V", "version", "Displays version information and exits" );
-    const auto argHelp    = cmd.create< SwitchArg >( "h", "help", "Displays usage information and exits" );
-    const auto argQuiet   = cmd.create< SwitchArg >( "q", "quiet", "Supress Output" );
-    const auto argVerbose = cmd.create< MultiSwitchArg >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
+    const auto argVersion = cmd.create< ArgSwitch >( "V", "version", "Displays version information and exits" );
+    const auto argHelp    = cmd.create< ArgSwitch >( "h", "help", "Displays usage information and exits" );
+    const auto argQuiet   = cmd.create< ArgSwitch >( "q", "quiet", "Supress Output" );
+    const auto argVerbose = cmd.create< ArgSwitchMulti >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
 
     // Arguments specific to smf_info
-    const auto argPath = cmd.create<ValueArg<Path>>("f","file"," Path of file to analyse", false, Path{} ,"path", std::make_shared<IsFile_SMF>() ); //TODO add constraint
+    const auto argPath = cmd.create<ArgValue<Path>>("f","file"," Path of file to analyse", false, Path{} ,"path", std::make_shared<IsFile_SMF>() ); //TODO add constraint
     // FIXME, add an unlabeled argument specifier
-    // FIXME, create a MultiValueArg argument for specifying multiple values
+    // FIXME, create a MultiArgValue argument for specifying multiple values
 
     // Parse TCLAP arguments
     fmtOutput myout;
@@ -55,7 +55,7 @@ main( const int argc, char **argv )
         cmd.setOutput( &myout );
         cmd.parse( argc, argv );
     }
-    catch( ArgException&e ){
+    catch( Exception&e ){
         fmt::println(stderr, "error: {} for arg {}", e.error(), e.argId() );
         shutdown(1);
     }

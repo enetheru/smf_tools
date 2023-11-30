@@ -384,7 +384,7 @@ nlohmann::ordered_json smflib::BasicFeatureIO::json() {
 
     j[ "Features" ] = nlohmann::json::array();
     for( const auto& [type,x,y,z,rot,scale] : _features ) {
-        j[ "Features" ] += std::format("{{ type:{}, x:{:.2}, y:{:.2}, z:{:.2}, r:{:.2}, s:{:.2} }}",
+        j[ "Features" ] += fmt::format("{{ type:{}, x:{:.2}, y:{:.2}, z:{:.2}, r:{:.2}, s:{:.2} }}",
             type, x, y, z, rot, scale );
     }
     return j;

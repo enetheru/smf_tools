@@ -1,9 +1,9 @@
 #ifndef ARGS_H
 #define ARGS_H
 
-#include <tclap/ArgGroup.h>
-#include <tclap/MultiSwitchArg.h>
-#include <tclap/ValueArg.h>
+#include <tclap/GroupBase.h>
+#include <tclap/ArgSwitchMulti.h>
+#include <tclap/ArgValue.h>
 
 
 #include <fmt/core.h>
@@ -13,17 +13,34 @@
 
 using Path = std::filesystem::path;
 
-using TCLAP::ArgGroup;
-using TCLAP::ValueArg;
-using TCLAP::SwitchArg;
-using TCLAP::MultiSwitchArg;
+using TCLAP::Group;
+using TCLAP::ArgValue;
+using TCLAP::ArgSwitch;
+using TCLAP::ArgSwitchMulti;
 
-using TCLAP::Constraint;
+using TCLAP::ConstraintBase;
 using TCLAP::CheckResult;
 
+class NamedGroup final : public Group {
+public:
+    NamedGroup() = default;
+    explicit NamedGroup( const std::string& name, const std::string &description = "" ) : Group( name ) {
+        //FIXME use description again
+    }
+
+    bool validate() override {
+        return false; /* All good */
+    }
+
+    [[nodiscard]] bool isExclusive() const override { return false; }
+    [[nodiscard]] bool isRequired() const override { return false; }
+
+    [[nodiscard]] std::string getName() const override { return _name; }
+};
+
 template< class T >
-class RangeConstraint final : public Constraint< T > {
-    using RetVal = typename Constraint< T >::RetVal;
+class RangeConstraint final : public ConstraintBase< T > {
+    using RetVal = typename ConstraintBase< T >::RetVal;
     std::string _name;
     CheckResult _failureMode = CheckResult::HARD_FAILURE;
     T _lowerBound, _upperBound, _modulo;
@@ -39,7 +56,7 @@ public:
                            _name, _lowerBound, _upperBound, _modulo );
     }
 
-    [[nodiscard]] RetVal check( const ValueArg< T >& arg ) const override {
+    [[nodiscard]] RetVal check( const ArgValue< T >& arg ) const override {
         std::string msg;
         bool fail = false;
         if( arg.getValue() < _lowerBound ) {
@@ -59,12 +76,12 @@ public:
     }
 };
 
-class FileConstraint final : public Constraint<Path> {
+class FileConstraint final : public ConstraintBase<Path> {
 public:
     [[nodiscard]] std::string description() const override {
         return "FileConsraint - tests whether a file exists";
     };
-    [[nodiscard]] RetVal check( const ValueArg<std::filesystem::path>& arg ) const override {
+    [[nodiscard]] RetVal check( const ArgValue<std::filesystem::path>& arg ) const override {
         if( exists( arg.getValue() ) ) {
             SPDLOG_TRACE("FileConstraint Success, file exists: {}", arg.getValue().string() );
             return {CheckResult::SUCCESS, "OK" };
@@ -74,12 +91,12 @@ public:
     }
 };
 
-class IsFile_SMF final : public Constraint<Path> {
+class IsFile_SMF final : public ConstraintBase<Path> {
 public:
     [[nodiscard]] std::string description() const override {
         return "FileConsraint - tests whether a file exists";
     };
-    [[nodiscard]] RetVal check( const ValueArg<std::filesystem::path>& arg ) const override {
+    [[nodiscard]] RetVal check( const ArgValue<std::filesystem::path>& arg ) const override {
         if(! exists( arg.getValue() ) ) {
             return {CheckResult::HARD_FAILURE, "File does not exist"};
         }

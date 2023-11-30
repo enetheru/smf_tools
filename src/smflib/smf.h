@@ -18,7 +18,10 @@ namespace Recoil {
  */
 struct HeaderExtn_Grass : ExtraHeader {
     int ptr = 80;
-    HeaderExtn_Grass() : ExtraHeader(12, 1) {}
+    HeaderExtn_Grass() : ExtraHeader() {
+     size = 12;
+     type = 1;
+    }
 };
 
 } // namespace Recoil

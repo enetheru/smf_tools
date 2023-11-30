@@ -1,9 +1,9 @@
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
-#include <tclap/fmtOutput.h>
-#include <tclap/MultiSwitchArg.h>
-#include <tclap/MultiValueArg.h>
-#include <tclap/ValueArg.h>
+#include <tclap/Output_fmt.h>
+#include <tclap/ArgSwitchMulti.h>
+#include <tclap/ArgValueMulti.h>
+#include <tclap/ArgValue.h>
 
 #include "args.h"
 #include "smflib/basicio.h"
@@ -40,41 +40,41 @@ main( const int argc, char **argv )
     smf.setFeatureIO( featureIO );
 
     CmdLine cmd("Command description message", ' ', "0.9" );
-    const auto argVersion = cmd.create< SwitchArg >( "V", "version", "Displays version information and exits" );
-    const auto argHelp    = cmd.create< SwitchArg >( "h", "help", "Displays usage information and exits" );
-    const auto argQuiet   = cmd.create< SwitchArg >( "q", "quiet", "Supress Output" );
-    const auto argVerbose = cmd.create< MultiSwitchArg >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
+    const auto argVersion = cmd.create< ArgSwitch >( "V", "version", "Displays version information and exits" );
+    const auto argHelp    = cmd.create< ArgSwitch >( "h", "help", "Displays usage information and exits" );
+    const auto argQuiet   = cmd.create< ArgSwitch >( "q", "quiet", "Supress Output" );
+    const auto argVerbose = cmd.create< ArgSwitchMulti >( "v", "verbose", "MOAR output, multiple times increases output, eg; '-vvvv'" );
 
     // Arguments specific to smf_info
-    const auto argOutput = cmd.create<ValueArg<Path>>( "o","output","filename of output" ); //TODO default value
+    const auto argOutput = cmd.create<ArgValue<Path>>( "o","output","filename of output" ); //TODO default value
     // TODO, add an unlabeled argument specifier for output
-    const auto argOverwrite = cmd.create<SwitchArg>("f", "overwrite", "overwrite existing file");
+    const auto argOverwrite = cmd.create<ArgSwitch>("f", "overwrite", "overwrite existing file");
 
     const auto groupSize = cmd.create<NamedGroup>( "Dimensions of the Map", "description" );
-    const auto argMapX = groupSize->create<ValueArg<int>>("x", "mapx", "width of map, must be multiple of two" ); // TODO default value, description
-    const auto argMapY = groupSize->create<ValueArg<int>>("y", "mapy", "length of map, must be multiple of two" ); // TODO default value, description
-    const auto argMapU = groupSize->create<ValueArg<int>>("u", "max-height", "" ); // TODO default value, description
-    const auto argMapL = groupSize->create<ValueArg<int>>("l", "min-height", "" ); // TODO default value, description
+    const auto argMapX = groupSize->create<ArgValue<int>>("x", "mapx", "width of map, must be multiple of two" ); // TODO default value, description
+    const auto argMapY = groupSize->create<ArgValue<int>>("y", "mapy", "length of map, must be multiple of two" ); // TODO default value, description
+    const auto argMapU = groupSize->create<ArgValue<int>>("u", "max-height", "" ); // TODO default value, description
+    const auto argMapL = groupSize->create<ArgValue<int>>("l", "min-height", "" ); // TODO default value, description
 
     const auto groupFiles = cmd.create<NamedGroup>("Image File Inputs", "description");
 
-    // TODO ValueArg argHeightFile <path> Height Image File, or raw file, or csv, or json
-    const auto argHeightMap = groupFiles->create<ValueArg<Path>>( "h", "height-map", "" );
-    // TODO ValueArg argTypeFile <path>
-    const auto argTypetMap = groupFiles->create<ValueArg<Path>>( "t", "type-map", "" );
-    // TODO ValueArg argMiniFile <path>
-    const auto argMinitMap = groupFiles->create<ValueArg<Path>>( "m", "mini-map", "" );
-    // TODO ValueArg argMetalFile <path>
-    const auto argMetaltMap = groupFiles->create<ValueArg<Path>>( "M", "metal-map", "" );
-    // TODO ValueArg argGrassFile <path> Optional
-    const auto argGrassMap = groupFiles->create<ValueArg<Path>>( "g", "grass-map", "" );
+    // TODO ArgValue argHeightFile <path> Height Image File, or raw file, or csv, or json
+    const auto argHeightMap = groupFiles->create<ArgValue<Path>>( "h", "height-map", "" );
+    // TODO ArgValue argTypeFile <path>
+    const auto argTypetMap = groupFiles->create<ArgValue<Path>>( "t", "type-map", "" );
+    // TODO ArgValue argMiniFile <path>
+    const auto argMinitMap = groupFiles->create<ArgValue<Path>>( "m", "mini-map", "" );
+    // TODO ArgValue argMetalFile <path>
+    const auto argMetaltMap = groupFiles->create<ArgValue<Path>>( "M", "metal-map", "" );
+    // TODO ArgValue argGrassFile <path> Optional
+    const auto argGrassMap = groupFiles->create<ArgValue<Path>>( "g", "grass-map", "" );
 
-    // TODO MultiValueArg argTileFile <path> specify multiple tile files
-    const auto argTileFiles = groupFiles->create<ValueArg<Path>>("", "tile-file", "" );
-    // TODO ValueArg argTileMapFile <path>
-    const auto argTileMap = groupFiles->create<ValueArg<Path>>( "T", "tile-map", "" );
-    // TODO ValueArg argFeatureFile <path>
-    const auto argFeatures = groupFiles->create<ValueArg<Path>>( "f", "feature-file", "" );
+    // TODO MultiArgValue argTileFile <path> specify multiple tile files
+    const auto argTileFiles = groupFiles->create<ArgValue<Path>>("", "tile-file", "" );
+    // TODO ArgValue argTileMapFile <path>
+    const auto argTileMap = groupFiles->create<ArgValue<Path>>( "T", "tile-map", "" );
+    // TODO ArgValue argFeatureFile <path>
+    const auto argFeatures = groupFiles->create<ArgValue<Path>>( "f", "feature-file", "" );
 
 
     // Parse TCLAP arguments
@@ -83,7 +83,7 @@ main( const int argc, char **argv )
         cmd.setOutput( &myout );
         cmd.parse( argc, argv );
     }
-    catch( ArgException&e ){
+    catch( Exception&e ){
         fmt::println(stderr, "error: {} for arg {}", e.error(), e.argId() );
         shutdown(1);
     }
